@@ -96,7 +96,7 @@ void sync_idle(Shell& s) {
 // False if there were none, as before the assets are in place.
 bool list_packs(Shell& s) {
   using crpp::sound::Device;
-  const auto catalog = crpp::sound::Catalog::scan(s.assets_dir / "sounds");
+  const auto catalog = crpp::sound::Catalog::scan(s.assets_dir / "sounds", s.expected_sounds);
   SoundTab& tab = s.app.settings().sound();
   const auto set = [&](SoundDevice to, Device from) {
     std::vector<SoundChoice> choices;

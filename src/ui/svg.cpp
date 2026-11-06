@@ -256,6 +256,7 @@ SvgImage parse_svg(const Gfx& gfx, std::string_view svg) {
 }
 
 void draw_svg(Painter& p, const SvgImage& image, Rect dst, float opacity) {
+  if (!image.glyph.empty()) p.emoji(image.glyph, dst, opacity);
   if (image.shapes.empty()) return;
   const float s = std::min(dst.w / image.width, dst.h / image.height);
   const float ox = dst.x + (dst.w - image.width * s) / 2;
@@ -270,6 +271,18 @@ void draw_svg(Painter& p, const SvgImage& image, Rect dst, float opacity) {
   p.pop();
 }
 
+bool valid_emoji_id(std::string_view id) noexcept {
+  constexpr std::size_t longest = 64;  // the longest Unicode sequences are far shorter
+  return !id.empty() && id.size() <= longest &&
+         std::ranges::all_of(id, [](char c) { return (c >= '0' && c <= '9') || (c >= 'a' && c <= 'z') || c == '-'; });
+}
+
+bool EmojiCache::available(const Gfx& gfx, const std::string& id) const {
+  if (!valid_emoji_id(id)) return false;
+  std::error_code ec;
+  return std::filesystem::is_regular_file(dir_ / "emoji" / (id + ".svg"), ec) || !gfx.emoji_glyph(id).empty();
+}
+
 const SvgImage& EmojiCache::get(const Gfx& gfx, const std::string& id) {
   for (auto it = entries_.begin(); it != entries_.end(); ++it) {
     if (it->id == id) {
@@ -278,13 +291,14 @@ const SvgImage& EmojiCache::get(const Gfx& gfx, const std::string& id) {
     }
   }
   SvgImage image;
-  for (const char* folder : {"emoji_profile_custom", "emoji_profile", "emoji_system"}) {
-    std::ifstream in(dir_ / folder / (id + ".svg"), std::ios::binary);
-    if (!in) continue;
-    std::stringstream buffer;
-    buffer << in.rdbuf();
-    image = parse_svg(gfx, buffer.str());
-    break;
+  if (valid_emoji_id(id)) {
+    if (std::ifstream in(dir_ / "emoji" / (id + ".svg"), std::ios::binary); in) {
+      std::stringstream buffer;
+      buffer << in.rdbuf();
+      image = parse_svg(gfx, buffer.str());
+    } else {
+      image.glyph = gfx.emoji_glyph(id);
+    }
   }
   entries_.push_front({id, std::move(image)});
   if (entries_.size() > capacity_) entries_.pop_back();

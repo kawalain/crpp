@@ -15,6 +15,7 @@
 #include <thread>
 
 #include "bridge.hpp"
+#include "crpp/assets/assets.hpp"
 #include "crpp/client/client.hpp"
 #include "crpp/input/raw_input_source.hpp"
 #include "crpp/sound/engine.hpp"
@@ -104,12 +105,16 @@ struct Shell {
   ui::ComPtr<ID2D1HwndRenderTarget> target;
   bool tracking = false;
   bool frame_timer_on = false;
+  bool frame_running = false;           // something moves, so each frame asks for the next
+  unsigned long long last_frame_ms = 0;
   bool blink_timer_on = false;
   bool hidden = true;       // hidden or minimized: no render resources, no frames
   UINT dpi = USER_DEFAULT_SCREEN_DPI;
   std::filesystem::path assets_dir;
+  assets::Manifest asset_manifest;
   std::string asset_url;
   std::thread assets_worker;
+  std::vector<std::string> expected_sounds;  // what the manifest promises, on disk or not
   std::filesystem::path data_dir;  // the Protected store's folder
   std::wstring data_override;      // --data, so a restart keeps it
   std::string update_url;          // --update-url, only for builds that are not official
@@ -139,7 +144,9 @@ struct Shell {
 // --- startup.cpp ---
 void start_client(Shell& s);
 void enter_app(Shell& s);
-void start_install(Shell& s);
+// Fetches what is missing. With wait, the first start's progress screen stays until that
+// is done; otherwise it goes on behind the app, for the next start.
+void start_install(Shell& s, bool wait);
 // A nickname like the upstream one: "<adjective> <animal>".
 std::string random_nickname(const std::filesystem::path& words);
 

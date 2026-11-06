@@ -1,4 +1,6 @@
 // The Room screen through a windowless App.
+#include <filesystem>
+#include <fstream>
 #include <string>
 #include <vector>
 
@@ -321,7 +323,155 @@ void test_other_questions_survive_leaving_the_room() {
   CHECK(h.app.dialogs().is_open());
 }
 
-void with_assets(UiHarness& h) { h.app.reload_assets(CRPP_TEST_ASSETS); }
+// An emoji folder with as many as the real list, none of them relying on the system's font.
+void with_assets(UiHarness& h) {
+  namespace fs = std::filesystem;
+  static const fs::path dir = [] {
+    fs::path folder = fs::temp_directory_path() / "crpp_room_test_assets";
+    fs::create_directories(folder / "emoji");
+    const char* drawing = R"(<svg viewBox="0 0 36 36"><circle cx="18" cy="18" r="18" fill="#fc0"/></svg>)";
+    for (int i = 0; i < 172; ++i) {
+      const std::string id = i < 165 ? "1f" + std::to_string(100 + i) : "0" + std::to_string(i - 164);
+      std::ofstream(folder / "emoji" / (id + ".svg")) << drawing;
+    }
+    return folder;
+  }();
+  std::vector<std::string> ids;
+  for (int i = 0; i < 172; ++i) ids.push_back(i < 165 ? "1f" + std::to_string(100 + i) : "0" + std::to_string(i - 164));
+  h.app.ui().emoji_ids = std::move(ids);
+  h.app.reload_assets(dir);
+}
+
+void test_a_new_message_rises_but_a_history_does_not() {
+  UiHarness h;
+  CHECK(h.start());
+  h.app.show_session("ABC234");
+  h.app.room().set_room({{0, "a", "", false}}, 0, 0, false, true);
+  ChatPanel& chat = h.app.room().chat();
+  chat.add({0, "c0", "a", "", "before", 1700000000000});
+  hold_clock_at(1000000);
+  h.app.ui().animations = true;
+  h.render();
+  hold_clock_at(1100000);
+  h.render();  // the view's own transition is long over
+  CHECK(!h.app.ui().more_frames);
+
+  chat.add({0, "c0", "a", "", "new", 1700000060000});
+  h.render();
+  CHECK(h.app.ui().more_frames);
+  hold_clock_at(1100000 + 400);
+  h.render();
+  hold_clock_at(1100000 + 800);
+  h.render();
+  CHECK(!h.app.ui().more_frames);  // settled, it asks for nothing
+  CHECK(chat.shown() == 2);
+
+  // Reading older messages: what arrives does not move the list.
+  for (int i = 0; i < 60; ++i) chat.add({0, "c0", "a", "", "line", 1700000120000});
+  hold_clock_at(1200000);
+  h.render();
+  hold_clock_at(1300000);
+  h.render();
+  h.app.wheel(800, 200, 1);
+  hold_clock_at(1400000);
+  h.render();
+  hold_clock_at(1500000);
+  h.render();
+  const float reading = chat.scroll_offset();
+  chat.add({0, "c0", "a", "", "while reading", 1700000180000});
+  h.render();
+  CHECK(chat.scroll_offset() == reading);
+  hold_clock_at(0);
+}
+
+void test_a_room_stays_as_it_was_while_it_fades_out() {
+  UiHarness h;
+  CHECK(h.start());
+  h.app.show_session("ABC234");
+  h.app.room().set_room({{0, "a", "", false}}, 0, 0, false, true);
+  h.app.ui().animations = true;
+  hold_clock_at(1000000);
+  h.render();
+  hold_clock_at(1100000);
+  h.render();
+  h.app.show_home();
+  CHECK(h.app.view() == View::Home);  // input goes to the new screen at once
+  CHECK(h.app.room().member_count() == 1);
+  h.render();
+  CHECK(h.app.ui().more_frames);
+  CHECK(h.app.ui().find_hit(&h.app.room(), RoomScreen::MemberBase) == nullptr);  // it takes no clicks
+  hold_clock_at(1100000 + 200);
+  h.render();
+  CHECK(h.app.room().member_count() == 0);
+  CHECK(!h.app.ui().more_frames);
+  hold_clock_at(0);
+}
+
+void test_a_member_arrives_and_a_settled_room_asks_for_no_frames() {
+  UiHarness h;
+  CHECK(h.start());
+  h.app.show_session("ABC234");
+  h.app.room().set_room({{0, "a", "", false}}, 0, 0, false, true);
+  h.app.ui().animations = true;
+  hold_clock_at(1000000);
+  h.render();
+  hold_clock_at(1100000);
+  h.render();
+  CHECK(!h.app.ui().more_frames);
+
+  h.app.room().set_room({{0, "a", "", false}, {1, "b", "", false}}, 0, 0, false, true);
+  h.render();
+  CHECK(h.app.ui().more_frames);
+  hold_clock_at(1100000 + 400);
+  h.render();
+  CHECK(!h.app.ui().more_frames);
+  hold_clock_at(0);
+}
+
+void test_the_settings_panel_fades_out_after_it_closed() {
+  UiHarness h;
+  CHECK(h.start());
+  h.app.ui().animations = true;
+  hold_clock_at(1000000);
+  h.render();
+  h.app.settings().open(SettingsPage::Sound);
+  h.render();
+  hold_clock_at(1100000);
+  h.render();
+  CHECK(!h.app.animating());
+
+  h.app.settings().close();
+  CHECK(!h.app.settings().is_open());  // it takes no more input
+  h.render();
+  CHECK(h.app.animating());
+  hold_clock_at(1100000 + 400);
+  h.render();
+  CHECK(!h.app.animating());
+  hold_clock_at(0);
+}
+
+void test_only_plain_ids_name_an_emoji_file() {
+  CHECK(valid_emoji_id("1f4a7"));
+  CHECK(valid_emoji_id("1f408-200d-2b1b"));
+  CHECK(valid_emoji_id("01"));
+  CHECK(!valid_emoji_id(""));
+  CHECK(!valid_emoji_id("../../secret"));
+  CHECK(!valid_emoji_id("C:\\secret"));
+  CHECK(!valid_emoji_id("a/b"));
+  CHECK(!valid_emoji_id(std::string(65, 'a')));
+}
+
+void test_picker_hides_what_it_cannot_show() {
+  UiHarness h;
+  CHECK(h.start());
+  with_assets(h);
+  h.app.ui().emoji_ids = {"1f100", "99", "1f999999"};
+  EmojiPicker& picker = h.app.emoji_picker();
+  picker.show("", nullptr);
+  // A hand-made id without its file has no glyph anywhere, and no code point is that big.
+  CHECK((picker.ids() == std::vector<std::string>{"1f100"}));
+  picker.close();
+}
 
 void test_picker_lists_every_emoji_and_parses_only_what_shows() {
   UiHarness h;
@@ -876,6 +1026,12 @@ int main() {
   test_member_menu_for_someone_else();
   test_member_menu_for_myself();
   test_right_click_elsewhere_closes_the_menu();
+  test_a_new_message_rises_but_a_history_does_not();
+  test_a_room_stays_as_it_was_while_it_fades_out();
+  test_a_member_arrives_and_a_settled_room_asks_for_no_frames();
+  test_the_settings_panel_fades_out_after_it_closed();
+  test_only_plain_ids_name_an_emoji_file();
+  test_picker_hides_what_it_cannot_show();
   test_picker_lists_every_emoji_and_parses_only_what_shows();
   test_picker_picks_once_and_closes();
   test_picker_closes_without_picking();

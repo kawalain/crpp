@@ -1,13 +1,12 @@
 #pragma once
 // Finds the notification sounds in a pack folder: each .wav is one, in the order of
-// its number prefix, named by pack.json under its key (upstream's discoverNotifications).
+// their names, named by pack.json under its key.
 #include <algorithm>
-#include <cctype>
-#include <climits>
-#include <cstdlib>
 #include <filesystem>
 #include <fstream>
 #include <iterator>
+#include <set>
+#include <span>
 #include <string>
 #include <system_error>
 #include <vector>
@@ -18,11 +17,11 @@ namespace crpp::gui {
 
 struct FoundSound {
   std::string stem, id, name;  // id: pref::notification_id(stem)
-  int order = INT_MAX;
 };
 
 template <typename IdOf>
-[[nodiscard]] std::vector<FoundSound> find_notification_sounds(const std::filesystem::path& folder, IdOf id_of) {
+[[nodiscard]] std::vector<FoundSound> find_notification_sounds(const std::filesystem::path& folder, IdOf id_of,
+                                                               std::span<const std::string> expected_stems = {}) {
   std::string pack_text;
   {
     std::ifstream in(folder / "pack.json", std::ios::binary);
@@ -30,13 +29,17 @@ template <typename IdOf>
   }
   const auto pack = store::Json::parse(pack_text);
 
-  std::vector<FoundSound> found;
+  std::set<std::string> stems(expected_stems.begin(), expected_stems.end());
   std::error_code ec;
   for (const auto& entry : std::filesystem::directory_iterator(folder, ec)) {
     if (entry.path().extension() != ".wav") continue;
-    FoundSound sound;
     const auto stem8 = entry.path().stem().u8string();
-    sound.stem.assign(stem8.begin(), stem8.end());
+    stems.emplace(stem8.begin(), stem8.end());
+  }
+  std::vector<FoundSound> found;
+  for (const std::string& stem : stems) {
+    FoundSound sound;
+    sound.stem = stem;
     sound.id = id_of(sound.stem);
     sound.name = sound.id;
     if (pack) {
@@ -46,12 +49,8 @@ template <typename IdOf>
         }
       }
     }
-    if (std::isdigit(static_cast<unsigned char>(sound.stem.front()))) sound.order = std::atoi(sound.stem.c_str());
     found.push_back(std::move(sound));
   }
-  std::ranges::sort(found, [](const FoundSound& a, const FoundSound& b) {
-    return a.order != b.order ? a.order < b.order : a.stem < b.stem;
-  });
   return found;
 }
 

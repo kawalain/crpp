@@ -140,6 +140,7 @@ class RoomScreen final : public Surface {
   Rect volume_track_;
   std::vector<std::pair<std::uint32_t, unsigned long long>> pulses_;  // slot, expiry (ms)
   Scroll members_scroll_;
+  std::vector<std::pair<std::uint32_t, unsigned long long>> arrivals_;  // slot, when it arrived
   Rect members_area_;  // window coordinates
   // Where the labelled things were last drawn, window coordinates.
   Rect fab_rects_[3], code_rect_, public_rect_, chat_rect_;

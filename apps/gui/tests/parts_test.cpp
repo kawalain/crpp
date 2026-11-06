@@ -71,7 +71,7 @@ void test_every_event_has_a_name() {
 }
 
 std::string lower_id(std::string_view stem) {
-  stem.remove_prefix(stem.find('_') + 1);
+  if (!stem.empty() && stem.front() >= '0' && stem.front() <= '9') stem.remove_prefix(stem.find('_') + 1);
   return std::string(stem);
 }
 
@@ -79,10 +79,10 @@ void test_finds_the_shipped_sounds_in_order(const char* folder) {
   const auto sounds = find_notification_sounds(folder, lower_id);
   CHECK(sounds.size() == 2);
   if (sounds.size() != 2) return;
-  CHECK(sounds[0].stem == "01_cloud_chat");
+  CHECK(sounds[0].stem == "cloud_chat");
   CHECK(sounds[0].id == "cloud_chat");
   CHECK(sounds[0].name == "메시지");
-  CHECK(sounds[1].stem == "02_cloud_enter");
+  CHECK(sounds[1].stem == "cloud_enter");
   CHECK(sounds[1].name == "구름 입장");
 }
 

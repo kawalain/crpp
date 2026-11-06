@@ -49,6 +49,11 @@ class Gfx {
   // SVG path data (M L H V C S A Z, absolute and relative) as a geometry.
   [[nodiscard]] ComPtr<ID2D1PathGeometry> parse_path(std::string_view d) const;
 
+  // The text of an emoji id ("1f408-200d-2b1b"), if the system's emoji font shows it as
+  // one glyph; otherwise empty.
+  [[nodiscard]] std::wstring emoji_glyph(std::string_view id) const;
+  [[nodiscard]] ComPtr<IDWriteTextLayout> emoji_layout(std::wstring_view text, float size) const;
+
   // A laid-out text block. max_w/max_h bound wrapping and alignment.
   [[nodiscard]] ComPtr<IDWriteTextLayout> layout(std::wstring_view text, const TextStyle& style, float max_w,
                                                  float max_h = 10000) const;
@@ -71,9 +76,14 @@ class Painter {
   [[nodiscard]] ID2D1RenderTarget* rt() const { return rt_; }
 
   void set_base(const D2D1_MATRIX_3X2_F& m) {
-    base_ = m;
-    rt_->SetTransform(m);
+    base_ = m * moved_;
+    rt_->SetTransform(base_);
   }
+  // Moves all that is drawn next, whatever base it sets, for a screen that slides in.
+  void set_moved(float dx, float dy) { moved_ = D2D1::Matrix3x2F::Translation(dx, dy); }
+  // Everything until pop_opacity is drawn as one, then blended at this opacity.
+  void push_opacity(float opacity);
+  void pop_opacity() { rt_->PopLayer(); }
   // Applies m (in stage coordinates) on top of the base transform.
   void push(const D2D1_MATRIX_3X2_F& m);
   void pop() { rt_->SetTransform(base_); }
@@ -92,6 +102,8 @@ class Painter {
   void draw_layout(IDWriteTextLayout* layout, float x, float y, Color c);
   // Draws text with its CSS line box starting at r.y. Returns the laid-out size.
   D2D1_SIZE_F text(std::wstring_view s, Rect r, const TextStyle& style, Color c);
+  // A colour glyph of the system's emoji font, filling r.
+  void emoji(std::wstring_view glyph, Rect r, float opacity);
   D2D1_SIZE_F text(std::string_view utf8, Rect r, const TextStyle& style, Color c) {
     return text(widen(utf8), r, style, c);
   }
@@ -110,6 +122,7 @@ class Painter {
   ID2D1RenderTarget* rt_;
   ComPtr<ID2D1SolidColorBrush> brush_;
   D2D1_MATRIX_3X2_F base_ = D2D1::Matrix3x2F::Identity();
+  D2D1_MATRIX_3X2_F moved_ = D2D1::Matrix3x2F::Identity();
 };
 
 // Upstream cloud outline (client/src/main.js cloudPath), 0..492 x 8..318.

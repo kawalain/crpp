@@ -77,7 +77,7 @@ void ConnectionFeedback::answered(bool reachable) {
     then_ = std::move(then);
     offline_ = true;
     app_.offline().show();
-    app_.offline().retry_at(GetTickCount64() + retry_ms);
+    app_.offline().retry_at(clock_ms() + retry_ms);
     return;
   }
   if (offline_) app_.offline().hide();

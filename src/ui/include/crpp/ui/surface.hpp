@@ -18,6 +18,12 @@ inline constexpr float stage_h = 692;
 
 enum class Cursor : std::uint8_t { Arrow, Hand, IBeam };
 
+// Milliseconds on the clock all motion runs on. The system's tick moves in steps of
+// about 16 ms, too coarse for what moves every frame.
+[[nodiscard]] unsigned long long clock_ms() noexcept;
+// Stops the clock at this time, for rendering a moment of a motion; 0 restarts it.
+void hold_clock_at(unsigned long long ms) noexcept;
+
 inline D2D1_MATRIX_3X2_F scale_about(float cx, float cy, float s) {
   return D2D1::Matrix3x2F::Translation(-cx, -cy) * D2D1::Matrix3x2F::Scale(s, s) * D2D1::Matrix3x2F::Translation(cx, cy);
 }
@@ -34,6 +40,7 @@ class Ui {
  public:
   Gfx gfx;
   std::optional<EmojiCache> emoji;
+  std::vector<std::string> emoji_ids;  // what the picker offers, when it can show them
   Theme theme = make_theme(ThemeId::Cloudroom);
   ComPtr<ID2D1PathGeometry> cloud;
 
@@ -43,8 +50,11 @@ class Ui {
   Toasts* toasts = nullptr;
   EmojiPicker* emoji_picker = nullptr;
 
-  // Off for --shot and tests: every transition shows its end state.
+  // Off for --shot, tests and a system set to show no animations: every transition
+  // shows its end state.
   bool animations = true;
+  // Set while painting by whatever needs another frame after this one.
+  bool more_frames = false;
 
   // The stage is scaled to cover the window; the overflow is cropped, centered.
   float scale = 1, ox = 0, oy = 0, width = stage_w, height = stage_h;
@@ -55,6 +65,9 @@ class Ui {
   Surface* focus_owner = nullptr;
   bool caret_on = true;
   Rect caret;  // window coordinates, for IME placement
+
+  // Off while drawing what is on its way out: only what stays takes clicks.
+  bool hits_enabled = true;
 
   // A surface that set this in click() gets drag() until the button goes up.
   Surface* capture = nullptr;
@@ -76,6 +89,11 @@ class Ui {
   [[nodiscard]] float to_stage_y(float y) const { return (y - oy) / scale; }
   [[nodiscard]] Rect to_window(Rect r) const { return {ox + r.x * scale, oy + r.y * scale, r.w * scale, r.h * scale}; }
 
+  // The opacity mask of an edge fade. They stay for reuse, since a scrolled list keeps
+  // asking for the same one, until the render target they belong to goes away.
+  [[nodiscard]] ID2D1LinearGradientBrush* edge_fade_mask(Painter& p, Rect area, float top, float bottom);
+  void forget_render_target();
+
   // The emoji with this Twemoji id, or the default droplet for an empty or unknown one.
   [[nodiscard]] const SvgImage& emoji_image(std::string_view id);
 
@@ -92,6 +110,12 @@ class Ui {
   int hover_id = 0;
 
  private:
+  struct FadeMask {
+    int key;
+    ComPtr<ID2D1LinearGradientBrush> brush;
+  };
+  std::vector<FadeMask> fade_masks_;
+  ID2D1RenderTarget* masks_target_ = nullptr;
   std::vector<Hit> hits_;
   std::vector<Rect> hit_clips_;
 };

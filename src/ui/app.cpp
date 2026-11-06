@@ -11,9 +11,9 @@ App::App() {
   ui_.emoji_picker = &emoji_picker_;
 }
 
-bool App::init(const std::filesystem::path& assets_dir) {
+bool App::init(const std::filesystem::path& assets_dir, bool load_font) {
   if (!ui_.gfx.init()) return false;
-  if (!assets_dir.empty()) reload_assets(assets_dir);
+  if (!assets_dir.empty() && load_font) reload_assets(assets_dir);
   else ui_.emoji.emplace(assets_dir);
   ui_.cloud = ui_.gfx.parse_path(cloud_path_data);
   return ui_.cloud && room_.init() && settings_.init();
@@ -24,37 +24,59 @@ void App::reload_assets(const std::filesystem::path& assets_dir) {
   ui_.emoji.emplace(assets_dir);
 }
 
-void App::show_setup(int percent, std::string error) {
+void App::view_left(View from) {
+  if (!ui_.animations || from == view_) return;
+  left_view_ = from;
+  left_at_ = clock_ms();
+}
+
+void App::finish_leaving_room() {
+  if (room_leaving_) room_.reset();
+  room_leaving_ = false;
+}
+
+void App::show_setup(int percent) {
+  const View from = view_;
   view_ = View::Setup;
-  setup_.set(percent, std::move(error));
+  setup_.set(percent);
+  view_left(from);
 }
 
 void App::show_home() {
+  const View from = view_;
   if (view_ == View::Prompt) {
     prompt_return_ = View::Home;
   } else {
     view_ = View::Home;
     ui_.set_focus(nullptr, nullptr);
   }
-  room_.reset();
+  view_left(from);
+  // The Room stays as it was while it fades out.
+  if (from == View::Session && ui_.animations) room_leaving_ = true;
+  else room_.reset();
 }
 
 void App::show_session(std::string room_code) {
+  finish_leaving_room();
   home_.left_home();
+  const View from = view_;
   if (view_ == View::Prompt) {
     prompt_return_ = View::Session;
   } else {
     view_ = View::Session;
     ui_.set_focus(nullptr, nullptr);
   }
+  view_left(from);
   room_.enter_room(std::move(room_code));
 }
 
 void App::show_prompt(Prompt prompt) {
   if (view_ != View::Prompt) {
+    const View from = view_;
     prompt_return_ = view_ == View::Setup ? View::Home : view_;
     view_ = View::Prompt;
     settings_.close();
+    view_left(from);
   }
   prompt_.show(std::move(prompt));
 }
@@ -63,6 +85,7 @@ void App::close_prompt() {
   if (view_ != View::Prompt) return;
   view_ = prompt_return_;
   ui_.set_focus(nullptr, nullptr);
+  view_left(View::Prompt);
 }
 
 std::vector<Surface*> App::layers() {
@@ -73,26 +96,24 @@ std::vector<Surface*> App::layers() {
 }
 
 void App::paint(ID2D1RenderTarget* rt, float width, float height) {
-  ui_.begin_frame(width, height, GetTickCount64());
+  ui_.begin_frame(width, height, clock_ms());
+  ui_.more_frames = false;
   Painter p(ui_.gfx, rt);
   p.set_base(D2D1::Matrix3x2F::Scale(ui_.scale, ui_.scale) * D2D1::Matrix3x2F::Translation(ui_.ox, ui_.oy));
   p.clear(ui_.theme.sky);
+  room_.set_controls_shown(!settings_.is_open());
+  paint_screens(p);
   if (view_ == View::Setup) {
-    setup_.paint(p);
     update_popup_.paint(p);
     changelog_.paint(p);
     return;
   }
   if (view_ == View::Prompt) {  // no droplet here, so no way into the settings
-    prompt_.paint(p);
     notice_.paint(p);
     toasts_.paint(p);
     dialogs_.paint(p);
     return;
   }
-  room_.set_controls_shown(!settings_.is_open());
-  if (view_ == View::Home) home_.paint(p);
-  else room_.paint(p);
   offline_.set_covered(settings_.is_open());
   offline_.paint(p);  // under the settings droplet, the one thing usable above it
   settings_.paint(p);
@@ -104,6 +125,38 @@ void App::paint(ID2D1RenderTarget* rt, float width, float height) {
   update_popup_.paint(p);
   changelog_.paint(p);
   dialogs_.paint(p);
+}
+
+void App::paint_screen(Painter& p, View view) {
+  p.set_base(D2D1::Matrix3x2F::Scale(ui_.scale, ui_.scale) * D2D1::Matrix3x2F::Translation(ui_.ox, ui_.oy));
+  switch (view) {
+    case View::Setup: setup_.paint(p); break;
+    case View::Prompt: prompt_.paint(p); break;
+    case View::Home: home_.paint(p); break;
+    case View::Session: room_.paint(p); break;
+  }
+}
+
+void App::paint_screens(Painter& p) {
+  constexpr float leaving_ms = 180, rise_px = 8;
+  const float t = left_at_ != 0 ? transition(ui_, left_at_, leaving_ms) : 1;
+  if (t >= 1) {
+    left_at_ = 0;
+    finish_leaving_room();
+    paint_screen(p, view_);
+    return;
+  }
+  ui_.more_frames = true;
+  ui_.hits_enabled = false;
+  p.push_opacity(1 - t);
+  paint_screen(p, left_view_);
+  p.pop_opacity();
+  ui_.hits_enabled = true;
+  p.push_opacity(t);
+  p.set_moved(0, rise_px * (1 - t));
+  paint_screen(p, view_);
+  p.set_moved(0, 0);
+  p.pop_opacity();
 }
 
 bool App::mouse_move(float x, float y) {
@@ -194,6 +247,7 @@ bool App::blink() {
 }
 
 bool App::animating() {
+  if (ui_.more_frames) return true;
   for (Surface* s : layers()) {
     if (s->animating()) return true;
   }

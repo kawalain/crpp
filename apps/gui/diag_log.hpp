@@ -30,6 +30,10 @@ enum class DiagEvent : std::uint8_t {
   FailedRoomGone,
   FailedServerError,
   FailedInvalidArgument,
+  AssetsNetwork,
+  AssetsUnavailable,
+  AssetsBadContent,
+  AssetsDisk,
   Count,
 };
 
@@ -38,6 +42,7 @@ enum class DiagEvent : std::uint8_t {
       "log started",      "connection idle",    "connecting",        "joining",
       "in room",          "leaving",            "waiting to reconnect", "failed: unauthorized",
       "failed: connect",  "failed: room gone",  "failed: server error", "failed: invalid argument",
+      "assets: no answer", "assets: not found", "assets: bad content", "assets: disk",
   };
   return names[static_cast<std::size_t>(event)];
 }

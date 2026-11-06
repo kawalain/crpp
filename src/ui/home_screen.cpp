@@ -175,10 +175,10 @@ void HomeScreen::join() {
 
 void HomeScreen::find() {
   if (is_busy()) return;
-  refresh_seat(GetTickCount64());
+  refresh_seat(clock_ms());
   if (home::find_step(returning()) == home::FindStep::AskReturn) {
     return_open_ = true;
-    return_opened_at_ = GetTickCount64();
+    return_opened_at_ = clock_ms();
     was_moving_ = true;
     return;
   }
@@ -196,7 +196,7 @@ void HomeScreen::show_error(std::string text) {
     ui_.toasts->bubble(ui_.to_window({469 + 221, 522 + 10, 52, 60}), std::move(text), 18);
   } else if (last_action_ == Find) {
     ui_.toasts->bubble(ui_.to_window({759, 522, 92, 80}), std::move(text));
-    tip_muted_until_ = GetTickCount64() + Toasts::default_ms + 200;  // .notifying > .tip
+    tip_muted_until_ = clock_ms() + Toasts::default_ms + 200;  // .notifying > .tip
   } else {
     ui_.toasts->toast(std::move(text));
   }
@@ -261,7 +261,7 @@ bool HomeScreen::moving(unsigned long long now) const {
          search_tip_.moving(tip_wanted(now), now);
 }
 
-bool HomeScreen::animating() const { return ui_.animations && moving(GetTickCount64()); }
+bool HomeScreen::animating() const { return ui_.animations && moving(clock_ms()); }
 
 bool HomeScreen::tick(unsigned long long now_ms) {
   const bool is_moving = ui_.animations && moving(now_ms);

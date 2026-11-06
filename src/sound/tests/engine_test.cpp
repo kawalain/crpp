@@ -339,6 +339,45 @@ void clearing_member_volumes_forgets_them() {
   engine.stop();
 }
 
+void an_expected_file_that_is_absent_plays_a_generated_sound() {
+  FakeDevice device;
+  const std::vector<std::string> expected{"keyboard/plastic/mod_space.wav"};
+  Engine engine(device, std::filesystem::path(CRPP_SOUNDS_DIR) / "none", expected);
+  Settings settings = full_volume();
+  settings.listen_self = true;
+  engine.set_settings(settings);
+  engine.start();
+  engine.play_own(Kind::KeySpace);
+  CHECK(eventually(device, [&] { return device.starts.load() == 1; }));
+  CHECK(loudest(device) > 0.001f);
+  engine.stop();
+}
+
+void a_sound_the_pack_does_not_have_stays_silent() {
+  FakeDevice device;
+  const std::vector<std::string> expected{"keyboard/plastic/mod_space.wav"};
+  Engine engine(device, std::filesystem::path(CRPP_SOUNDS_DIR) / "none", expected);
+  Settings settings = full_volume();
+  settings.listen_self = true;
+  engine.set_settings(settings);
+  engine.start();
+  engine.play_own(Kind::KeyEnter);
+  std::this_thread::sleep_for(100ms);
+  CHECK(device.starts.load() == 0);
+  engine.stop();
+}
+
+void an_absent_notification_plays_a_generated_cue() {
+  FakeDevice device;
+  Engine engine(device, std::filesystem::path(CRPP_SOUNDS_DIR) / "none");
+  engine.set_settings(full_volume());
+  engine.start();
+  engine.play_notification("cloud_chat");
+  CHECK(eventually(device, [&] { return device.starts.load() == 1; }));
+  CHECK(loudest(device) > 0.001f);
+  engine.stop();
+}
+
 void notifications_follow_the_mute_settings() {
   FakeDevice device;
   Engine engine(device, CRPP_SOUNDS_DIR);
@@ -518,6 +557,9 @@ int main() {
   a_member_at_zero_is_silent_and_stays_so_across_reconnects();
   a_member_volume_scales_only_that_member();
   clearing_member_volumes_forgets_them();
+  an_expected_file_that_is_absent_plays_a_generated_sound();
+  a_sound_the_pack_does_not_have_stays_silent();
+  an_absent_notification_plays_a_generated_cue();
   notifications_follow_the_mute_settings();
   previews_and_system_sounds_need_only_the_volume();
   an_unknown_cue_is_silent();

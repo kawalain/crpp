@@ -56,15 +56,19 @@ WindowsPlatform::WindowsPlatform(std::string_view base_url) : impl_(std::make_un
                                WINHTTP_NO_PROXY_BYPASS, 0);
   if (impl_->session.get() == nullptr) return;
   WinHttpSetTimeouts(impl_->session.get(), timeout_ms, timeout_ms, timeout_ms, timeout_ms);
+  // The files are served directly; a redirect would only hide a change of host.
+  DWORD redirects = WINHTTP_OPTION_REDIRECT_POLICY_NEVER;
+  WinHttpSetOption(impl_->session.get(), WINHTTP_OPTION_REDIRECT_POLICY, &redirects, sizeof redirects);
   const std::wstring host(parts.lpszHostName, parts.dwHostNameLength);
   impl_->connection = WinHttpConnect(impl_->session.get(), host.c_str(), parts.nPort, 0);
 }
 
 WindowsPlatform::~WindowsPlatform() = default;
 
-std::expected<std::vector<std::uint8_t>, Error> WindowsPlatform::fetch(const Entry& entry, const OnBytes& on_bytes) {
+std::expected<std::vector<std::uint8_t>, Error> WindowsPlatform::fetch(const Entry& entry, std::string_view remote,
+                                                                        const OnBytes& on_bytes) {
   if (impl_->connection.get() == nullptr) return std::unexpected(Error::Network);
-  const std::wstring path = impl_->prefix + wide(entry.path);
+  const std::wstring path = impl_->prefix + wide(remote);
   const Internet request(WinHttpOpenRequest(impl_->connection.get(), L"GET", path.c_str(), nullptr, WINHTTP_NO_REFERER,
                                             WINHTTP_DEFAULT_ACCEPT_TYPES, impl_->secure ? WINHTTP_FLAG_SECURE : 0));
   if (request.get() == nullptr ||

@@ -84,7 +84,8 @@ struct Member {
 
 class Engine final : private Renderer {
  public:
-  Engine(AudioDevice& device, std::filesystem::path sounds_dir);
+  // `expected`: see Catalog::scan. It must outlive the engine.
+  Engine(AudioDevice& device, std::filesystem::path sounds_dir, std::span<const std::string> expected = {});
   ~Engine();
   Engine(const Engine&) = delete;
   Engine& operator=(const Engine&) = delete;
@@ -102,7 +103,7 @@ class Engine final : private Renderer {
   void play_own(wire::Kind kind) noexcept;
   void play_peer(std::uint32_t slot, wire::Kind kind) noexcept;
 
-  // By the name of the file in Notifications, with or without its leading number.
+  // By the name of the file in notifications, with or without a leading number.
   // Silent while muted as Settings asks; a preview only needs the volume.
   void play_notification(std::string_view name);
   void preview_notification(std::string_view name);
@@ -144,11 +145,14 @@ class Engine final : private Renderer {
   void start_voice(std::span<const float> samples, const SeatMix& mix, float gain);
   [[nodiscard]] int volume_of(std::uint32_t slot) const;
   [[nodiscard]] std::span<const float> recording(const std::filesystem::path& path);
+  [[nodiscard]] std::span<const float> generated(wire::Kind kind, std::string_view pack);
+  [[nodiscard]] std::span<const float> generated_cue(const std::string& name);
   [[nodiscard]] std::string_view pack_for(const Event& event, Device device) const;
   [[nodiscard]] std::size_t seat_of(std::uint32_t slot) const;
 
   AudioDevice& device_;
   std::filesystem::path sounds_dir_;
+  std::span<const std::string> expected_;
 
   // Shared with the callers; guarded by mutex_.
   std::mutex mutex_;

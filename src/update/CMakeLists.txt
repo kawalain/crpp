@@ -51,7 +51,17 @@ else()
   endif()
 endif()
 configure_file(built_in.cpp.in built_in.cpp @ONLY)
+# The commit changes without CMake running, so a step of its own keeps it current.
+set(CRPP_BUILD_HEADER ${CMAKE_BINARY_DIR}/generated/crpp_build.h)
+set(CRPP_BUILD_HEADER ${CRPP_BUILD_HEADER} PARENT_SCOPE)
+set(CRPP_VERSION ${CRPP_VERSION} PARENT_SCOPE)
+add_custom_target(crpp_build_id
+  COMMAND ${CMAKE_COMMAND} -DSOURCE=${PROJECT_SOURCE_DIR} -DVERSION=${CRPP_VERSION} -DOUT=${CRPP_BUILD_HEADER}
+          -P ${PROJECT_SOURCE_DIR}/cmake/build_id.cmake
+  BYPRODUCTS ${CRPP_BUILD_HEADER} VERBATIM)
 add_library(crpp_update_built_in STATIC ${CMAKE_CURRENT_BINARY_DIR}/built_in.cpp)
+add_dependencies(crpp_update_built_in crpp_build_id)
+target_include_directories(crpp_update_built_in PRIVATE ${CMAKE_BINARY_DIR}/generated)
 target_link_libraries(crpp_update_built_in PUBLIC crpp_update)
 crpp_target_defaults(crpp_update_built_in)
 

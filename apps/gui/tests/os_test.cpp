@@ -145,22 +145,15 @@ void autostart_reports_a_failing_registry() {
   CHECK(!apply_autostart(key, false, L"a.exe"));
 }
 
-void the_icon_is_the_droplet() {
+void pixels_become_an_icon() {
   crpp::ui::Gfx gfx;
   CHECK(gfx.init());
-  for (const int size : {16, 20, 24, 32}) {
-    const auto pixels = render_droplet(gfx, size);
-    CHECK(pixels.size() == static_cast<std::size_t>(size * size));
-    if (pixels.size() != static_cast<std::size_t>(size * size)) continue;
-    const auto alpha = [&](int x, int y) { return pixels[static_cast<std::size_t>(y * size + x)] >> 24; };
-    CHECK(alpha(size / 2, size * 2 / 3) == 255);  // the belly
-    CHECK(alpha(0, 0) == 0);                      // beside the tip
-    CHECK(alpha(size - 1, 0) == 0);
-    CHECK(alpha(size / 2, 0) > 0 || alpha(size / 2, 1) > 0);  // the tip
-    HICON icon = icon_from_pixels(pixels, size);
-    CHECK(icon != nullptr);
-    if (icon) DestroyIcon(icon);
-  }
+  const int size = 16;
+  const auto pixels = render_pixels(gfx.d2d(), size, [](ID2D1RenderTarget* rt) { rt->Clear(D2D1::ColorF(0x5DADEC)); });
+  CHECK(pixels.size() == static_cast<std::size_t>(size * size));
+  HICON icon = icon_from_pixels(pixels, size);
+  CHECK(icon != nullptr);
+  if (icon) DestroyIcon(icon);
   CHECK(icon_from_pixels({}, 16) == nullptr);
 }
 
@@ -181,6 +174,6 @@ int main() {
   autostart_follows_the_setting();
   autostart_refuses_a_command_that_would_not_run();
   autostart_reports_a_failing_registry();
-  the_icon_is_the_droplet();
+  pixels_become_an_icon();
   return crpp_test_result();
 }

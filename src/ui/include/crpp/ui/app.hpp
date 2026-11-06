@@ -1,5 +1,5 @@
 #pragma once
-// The Cloudroom UI: the surfaces on screen, independent of the window they are
+// The Cloudroom++ UI: the surfaces on screen, independent of the window they are
 // shown in. All coordinates are device-independent pixels (1/96 inch), and the
 // render target's DPI maps them to the monitor. The shell converts what comes from
 // window messages.
@@ -34,8 +34,9 @@ enum class View : std::uint8_t { Setup, Home, Session, Prompt };
 class App {
  public:
   App();
-  // An empty assets_dir draws with a system font until reload_assets.
-  bool init(const std::filesystem::path& assets_dir);
+  // An empty assets_dir, or load_font false for a font file about to be replaced, draws
+  // with a system font until reload_assets.
+  bool init(const std::filesystem::path& assets_dir, bool load_font = true);
   void reload_assets(const std::filesystem::path& assets_dir);
   [[nodiscard]] ID2D1Factory* factory() const { return ui_.gfx.d2d(); }
 
@@ -56,7 +57,7 @@ class App {
   void set_prefs(Prefs& prefs) { ui_.prefs = &prefs; }
 
   void set_theme(ThemeId id) { ui_.theme = make_theme(id); }
-  void show_setup(int percent, std::string error = {});
+  void show_setup(int percent);
   void show_home();
   void show_session(std::string room_code);
   [[nodiscard]] View view() const { return view_; }
@@ -94,6 +95,10 @@ class App {
  private:
   // The surfaces on screen now, topmost first.
   [[nodiscard]] std::vector<Surface*> layers();
+  void view_left(View from);
+  void finish_leaving_room();
+  void paint_screen(Painter& p, View view);
+  void paint_screens(Painter& p);
 
   Ui ui_;
   MemoryPrefs memory_prefs_;
@@ -111,6 +116,10 @@ class App {
   PromptScreen prompt_{ui_};
   View view_ = View::Home;
   View prompt_return_ = View::Home;
+  // The screen fading out while left_at_ is set. A Room fading out resets after that.
+  View left_view_ = View::Home;
+  unsigned long long left_at_ = 0;
+  bool room_leaving_ = false;
 };
 
 }  // namespace crpp::ui

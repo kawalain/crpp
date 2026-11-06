@@ -1,5 +1,5 @@
 // crpp_soundtest: hear the spatial mix, to tune it by ear.
-//   crpp_soundtest <sounds folder> [--pack plastic] [--balance 60] [--flat]
+//   crpp_soundtest (<sounds folder> | --synth) [--pack plastic] [--balance 60] [--flat]
 //                  [--volume 30] [--repeat 3]
 // Walks through every seat of the virtual office, playing a few key presses from
 // each and printing where they should seem to come from.
@@ -17,6 +17,7 @@
 #include "crpp/sound/catalog.hpp"
 #include "crpp/sound/engine.hpp"
 #include "crpp/sound/mixer.hpp"
+#include "crpp/sound/synth.hpp"
 #include "crpp/sound/wasapi_device.hpp"
 
 using namespace crpp;
@@ -36,26 +37,30 @@ class MixerRenderer final : public sound::Renderer {
 }  // namespace
 
 int main(int argc, char** argv) {
-  if (argc < 2) {
-    std::fprintf(stderr, "usage: crpp_soundtest <sounds folder> [--pack id] [--balance n] [--flat] [--volume n] [--repeat n]\n");
-    return 2;
-  }
-  const std::filesystem::path sounds = argv[1];
+  std::filesystem::path sounds;
   std::string pack;
+  bool synth = false;
   sound::SpatialConfig config;
   int volume = 30, repeat = 3;
-  for (int i = 2; i < argc; ++i) {
+  for (int i = 1; i < argc; ++i) {
     const std::string arg = argv[i];
     const bool has_value = i + 1 < argc;
     if (arg == "--flat") config.spatial = false;
+    else if (arg == "--synth") synth = true;
     else if (arg == "--pack" && has_value) pack = argv[++i];
     else if (arg == "--balance" && has_value) config.balance = std::atoi(argv[++i]);
     else if (arg == "--volume" && has_value) volume = std::atoi(argv[++i]);
     else if (arg == "--repeat" && has_value) repeat = std::atoi(argv[++i]);
+    else if (!arg.starts_with("--")) sounds = arg;
+  }
+  if (sounds.empty() && !synth) {
+    std::fprintf(stderr, "usage: crpp_soundtest (<sounds folder> | --synth) [--pack id] [--balance n] [--flat] [--volume n] [--repeat n]\n");
+    return 2;
   }
 
-  const auto catalog = sound::Catalog::scan(sounds);
-  if (catalog.empty()) {
+  // Generated sounds need no files.
+  const auto catalog = synth ? sound::Catalog{} : sound::Catalog::scan(sounds);
+  if (!synth && catalog.empty()) {
     std::fprintf(stderr, "no sound packs in %s\n", sounds.string().c_str());
     return 1;
   }
@@ -81,9 +86,14 @@ int main(int argc, char** argv) {
   std::vector<std::vector<float>> kept;
   kept.reserve(256);  // voices point into these; they must not move
   const auto play = [&](wire::Kind kind, const sound::SeatMix& mix) {
-    const auto file = catalog.pick(kind, pack, random);
-    if (!file || kept.size() == kept.capacity()) return;
-    kept.push_back(sound::load_recording(*file, *rate));
+    if (kept.size() == kept.capacity()) return;
+    if (synth) {
+      kept.push_back(sound::synthesize(kind, pack, *rate, static_cast<std::uint32_t>(random.below(sound::synth_variants))));
+    } else {
+      const auto file = catalog.pick(kind, pack, random);
+      if (!file) return;
+      kept.push_back(sound::load_recording(*file, *rate));
+    }
     (void)mixer->trigger(kept.back(), mix, 1.0f);
   };
 

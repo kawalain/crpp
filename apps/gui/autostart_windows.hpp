@@ -1,5 +1,5 @@
 #pragma once
-// HKCU\Software\Microsoft\Windows\CurrentVersion\Run, value "Cloudroom".
+// HKCU\Software\Microsoft\Windows\CurrentVersion\Run, value "Cloudroom++".
 #include "autostart.hpp"
 
 namespace crpp::gui {

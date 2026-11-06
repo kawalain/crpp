@@ -43,8 +43,11 @@ class EmojiPicker final : public Surface {
 
  private:
   void reveal_thumb();
+  void paint_shown(Painter& p);
+  void release_shown();
 
   bool open_ = false;
+  unsigned long long opened_at_ = 0, closed_at_ = 0;  // closed_at_: fading out since then
   std::string current_;
   std::function<void(std::string id)> on_pick_;
   std::vector<std::string> ids_;

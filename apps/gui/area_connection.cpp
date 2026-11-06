@@ -102,10 +102,6 @@ bool scene(Shell& s, std::string_view name) {
     s.app.show_setup(42);
     return true;
   }
-  if (name == "setup-failed") {
-    s.app.show_setup(0, "파일을 받지 못했어요. 인터넷 연결을 확인해 주세요.");
-    return true;
-  }
   if (name == "offline" || name == "offline-dark") {
     if (name == "offline-dark") s.app.set_theme(ThemeId::DarkCloud);
     s.app.offline().show();

@@ -18,22 +18,20 @@ namespace crpp::gui {
 
 inline constexpr UINT wm_tray = WM_APP + 0x100;  // LOWORD(lParam) is the event
 inline constexpr UINT tray_icon_id = 1;
+inline constexpr int app_icon_id = 1;  // crpp.rc.in
 
 // Draws into a target of `size` pixels and returns straight-alpha BGRA pixels, top row
 // first; empty on failure.
 [[nodiscard]] std::vector<std::uint32_t> render_pixels(ID2D1Factory* factory, int size,
                                                        const std::function<void(ID2D1RenderTarget*)>& draw);
-// The app's droplet, from its path.
-[[nodiscard]] std::vector<std::uint32_t> render_droplet(const ui::Gfx& gfx, int size);
+// The icon in the exe, at that size in pixels; null without one. The caller destroys it.
+[[nodiscard]] HICON load_app_icon(int size);
 // Null on failure. The caller destroys it.
 [[nodiscard]] HICON icon_from_pixels(const std::vector<std::uint32_t>& pixels, int size);
 
 class TrayIcon {
  public:
-  void attach(HWND hwnd, const ui::Gfx& gfx) {
-    hwnd_ = hwnd;
-    gfx_ = &gfx;
-  }
+  void attach(HWND hwnd) { hwnd_ = hwnd; }
   // False where no taskbar takes it. Does nothing if it is already there.
   bool add();
   void remove();
@@ -48,7 +46,6 @@ class TrayIcon {
 
  private:
   HWND hwnd_ = nullptr;
-  const ui::Gfx* gfx_ = nullptr;
   bool present_ = false;
 };
 

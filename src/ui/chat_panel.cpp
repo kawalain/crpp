@@ -57,6 +57,7 @@ constexpr float send_move_ms = 240;
 
 // .calm-bubble: springs out of the send button, and shrinks back faster.
 constexpr float calm_in_ms = 420, calm_out_ms = 140;
+constexpr float arrive_ms = 300, arrive_rise = 8;
 constexpr const char* calm_tail = "M0 0H32C28 10 27 22 31 34C17 27 15 18 10 12C7 6 3 3 0 0Z";
 
 // CSS cubic-bezier(x1, y1, x2, y2) at t; y may overshoot.
@@ -97,7 +98,7 @@ void ChatPanel::clear() {
   rows_.clear();
   first_ = 0;
   fresh_ = dirty_ = true;
-  scroll_ = 0;
+  scroll_ = {};
   stick_ = true;
   input_.clear();
   limiter_.reset();
@@ -118,7 +119,7 @@ void ChatPanel::send() {
   text.erase(0, lead);
   if (text.empty()) return;
   std::string message = narrow(text);
-  if (!limiter_.try_send(GetTickCount64())) {
+  if (!limiter_.try_send(clock_ms())) {
     // Still sent: every attempt prolongs the block on the server too, and its answer
     // keeps the two in step. The text stays in the box.
     shake();
@@ -134,12 +135,12 @@ void ChatPanel::send() {
 }
 
 void ChatPanel::blocked(std::uint64_t ms) {
-  if (!limiter_.server_blocked(GetTickCount64(), ms)) return;
+  if (!limiter_.server_blocked(clock_ms(), ms)) return;
   shake();
   if (input_.text().empty() && !last_sent_.empty()) input_.set_text(widen(last_sent_));
 }
 
-void ChatPanel::shake() { shake_at_ = GetTickCount64(); }
+void ChatPanel::shake() { shake_at_ = clock_ms(); }
 
 bool ChatPanel::shaking() const {
   return ui_.animations && shake_at_ != 0 && static_cast<float>(ui_.now_ms - std::min(ui_.now_ms, shake_at_)) < send_shake_ms;
@@ -174,7 +175,7 @@ Cursor ChatPanel::cursor(int id) const {
   return id == Area ? Cursor::Arrow : Cursor::Hand;
 }
 
-void ChatPanel::append_row(std::size_t index, float list_w) {
+void ChatPanel::append_row(std::size_t index, float list_w, bool arriving) {
   const ChatEntry& e = log_[index];
   const bool cont = chat_grouped(e, index > first_ ? &log_[index - 1] : nullptr);
   Row row;
@@ -192,6 +193,11 @@ void ChatPanel::append_row(std::size_t index, float list_w) {
   row.h_text = m.height;
   row.links = find_links(text);
   next_y_ += m.height + 14;
+  if (arriving) {
+    // A burst rises as one, so the list does not keep jerking under it.
+    if (ui_.now_ms >= arrivals_at_ + static_cast<unsigned long long>(arrive_ms)) arrivals_at_ = ui_.now_ms;
+    row.arrived_at = arrivals_at_;
+  }
   rows_.push_back(std::move(row));
 }
 
@@ -202,13 +208,17 @@ void ChatPanel::sync_rows(float list_w) {
     fresh_ = false;
     dirty_ = true;
   }
-  if (dirty_ || list_w != rows_w_) {
+  const bool again = dirty_ || list_w != rows_w_;
+  if (again) {
     rows_.clear();
     next_y_ = 24;
     rows_w_ = list_w;
     dirty_ = false;
+    kept_from_ = kept_to_ = 0;
   }
-  for (std::size_t i = first_ + rows_.size(); i < log_.size(); ++i) append_row(i, list_w);
+  // Only a new message at the end of what is being read arrives; a history just is.
+  const bool arriving = !again && stick_ && ui_.animations;
+  for (std::size_t i = first_ + rows_.size(); i < log_.size(); ++i) append_row(i, list_w, arriving);
 }
 
 void ChatPanel::paint(Painter& p, Rect panel) {
@@ -233,43 +243,70 @@ void ChatPanel::paint(Painter& p, Rect panel) {
   const std::size_t shown_before = rows_.size();
   sync_rows(list_w);
   content_h_ = (next_y_ - 14 + 24) * zoom_;
-  area_h_ = area.h;
-  const float max_scroll = std::max(0.0f, content_h_ - area.h);
+  scroll_.view_h = area.h;
+  scroll_.content_h = content_h_;
+  const float max_scroll = scroll_.max_offset();
   // Older messages arrived above: what is on screen stays where it is.
-  if (older_pending_ && !stick_ && rows_.size() > shown_before) scroll_ += content_h_ - content_before;
+  if (older_pending_ && !stick_ && rows_.size() > shown_before) {
+    scroll_.offset += content_h_ - content_before;
+    scroll_.target += content_h_ - content_before;
+  }
   older_pending_ = false;
-  if (stick_) scroll_ = max_scroll;
-  scroll_ = std::clamp(scroll_, 0.0f, max_scroll);
+  if (stick_ && rows_.size() > shown_before && shown_before > 0) scroll_.target = max_scroll;  // a message came
+  else if (stick_ && scroll_.target != max_scroll) scroll_.jump_to(max_scroll);  // the view changed size
+  scroll_.clamp();
+  scroll_.advance(ui_);
 
   p.rt()->PushAxisAlignedClip(D2D1::RectF(area.x, area.y, area.right(), area.bottom()),
                               D2D1_ANTIALIAS_MODE_PER_PRIMITIVE);
-  const EdgeFade fade = push_edge_fade(p, area, scroll_ > 0, scroll_ < max_scroll);
+  const bool fade = push_edge_fade(ui_, p, area, scroll_.fade_top(), scroll_.fade_bottom());
   ui_.add_hit_window(this, area, Area);
   ui_.push_hit_clip(area);
-  const float list_top = area.y - scroll_;
+  const float list_top = area.y - scroll_.drawn();
   p.set_base(D2D1::Matrix3x2F::Scale(zoom_, zoom_) * D2D1::Matrix3x2F::Translation(area.x, list_top));
   constexpr float x = 17;
   HoverTip::Spec tip;
   bool show_tip = false;
+  std::size_t in_view_from = rows_.size(), in_view_to = 0;
   for (std::size_t r = 0; r < rows_.size(); ++r) {
-    const Row& row = rows_[r];
+    Row& row = rows_[r];
     const float row_top = list_top + (row.head ? row.y_head : row.y_text) * zoom_;
     const float row_bottom = list_top + (row.y_text + row.h_text) * zoom_;
     if (row_bottom <= area.y) continue;
     if (row_top >= area.bottom()) break;
+    in_view_from = std::min(in_view_from, r);
+    in_view_to = r + 1;
     const std::size_t index = first_ + r;
     const ChatEntry& e = log_[index];
-    if (row.head) {
-      draw_svg(p, ui_.emoji_image(e.emoji), {x, row.y_head, 25, 25});
-      const std::string time = chat_clock_text(e.time_ms, use_24h_);
-      const D2D1_SIZE_F time_size = p.text(time, {x, row.y_head + 2.5f, list_w, 20},
-                                           {.size = 14, .line_height = 20, .align = Align::Right}, t.hl_text);
-      p.text(e.nick.empty() ? "게스트" : e.nick,
-             {x + 25 + 7, row.y_head + 2.5f, std::max(20.0f, list_w - 25 - 7 - time_size.width - 7), 20},
-             {.size = 15, .line_height = 20, .ellipsis = true}, t.hl_text);
+    // .chat-line entering: rises and fades in, the same way a member arrives.
+    float arrived = 1;
+    if (row.arrived_at != 0) {
+      arrived = transition(ui_, row.arrived_at, arrive_ms);
+      if (arrived >= 1) row.arrived_at = 0;
+      else ui_.more_frames = true;
     }
-    const auto layout = ui_.gfx.layout(widen(e.text), body_style, list_w, 100000);
-    if (!layout) continue;
+    const float rise = arrive_rise * (1 - arrived);
+    const Color ink = with_alpha(t.hl_text, arrived);
+    if (row.head) {
+      draw_svg(p, ui_.emoji_image(e.emoji), {x, row.y_head + rise, 25, 25}, arrived);
+      const TextStyle time_style{.size = 14, .line_height = 20, .align = Align::Right};
+      if (!row.time) {
+        row.time = ui_.gfx.layout(widen(chat_clock_text(e.time_ms, use_24h_)), time_style, list_w, 20);
+        DWRITE_TEXT_METRICS m{};
+        if (row.time) row.time->GetMetrics(&m);
+        row.time_w = m.widthIncludingTrailingWhitespace;
+      }
+      if (row.time) p.draw_layout(row.time.get(), x, row.y_head + 2.5f + rise, ink);
+      if (!row.nick) {
+        const TextStyle nick_style{.size = 15, .line_height = 20, .ellipsis = true};
+        row.nick = ui_.gfx.layout(widen(e.nick.empty() ? std::string_view("게스트") : std::string_view(e.nick)), nick_style,
+                                  std::max(20.0f, list_w - 25 - 7 - row.time_w - 7), 20);
+      }
+      if (row.nick) p.draw_layout(row.nick.get(), x + 25 + 7, row.y_head + 2.5f + rise, ink);
+    }
+    if (!row.text) row.text = ui_.gfx.layout(widen(e.text), body_style, list_w, 100000);
+    if (!row.text) continue;
+    IDWriteTextLayout* const layout = row.text.get();
     for (std::size_t l = 0; l < row.links.size() && l < links_per_entry; ++l) {
       const LinkSpan link = row.links[l];
       const int id = LinkBase + static_cast<int>(index) * links_per_entry + static_cast<int>(l);
@@ -292,8 +329,8 @@ void ChatPanel::paint(Painter& p, Rect panel) {
           bounds.h = bottom - bounds.y;
         }
       }
+      layout->SetUnderline(ui_.hot(this, id), {link.start, link.length});
       if (ui_.hot(this, id)) {
-        layout->SetUnderline(TRUE, {link.start, link.length});
         tip.text = "링크 연결";
         tip.anchor = bounds;
         tip.gap = 6;
@@ -301,8 +338,16 @@ void ChatPanel::paint(Painter& p, Rect panel) {
         show_tip = true;
       }
     }
-    p.draw_layout(layout.get(), x, row.y_text, t.hl_text);
+    p.draw_layout(layout, x, row.y_text + rise, ink);
   }
+  for (std::size_t r = kept_from_; r < kept_to_ && r < rows_.size(); ++r) {
+    if (r >= in_view_from && r < in_view_to) continue;
+    rows_[r].text.reset();
+    rows_[r].nick.reset();
+    rows_[r].time.reset();
+  }
+  kept_from_ = in_view_from;
+  kept_to_ = in_view_to;
   ui_.pop_hit_clip();
   p.set_base(D2D1::Matrix3x2F::Identity());
   pop_edge_fade(p, fade);
@@ -340,9 +385,9 @@ void ChatPanel::paint_send(Painter& p, Rect send_rect, float out) {
   const float a = input_.text().empty() || limiter_.cooling() ? 0.55f : 1.0f;
   p.fill_ellipse(send_rect.x + 15, send_rect.y + 15, 15, 15, with_alpha(mix(t.hl, t.surface, out * 100), a));
   {
-    const auto arrow = ui_.gfx.parse_path("M5 12h14M13 6l6 6-6 6");
+    if (!send_arrow_) send_arrow_ = ui_.gfx.parse_path("M5 12h14M13 6l6 6-6 6");
     p.push(D2D1::Matrix3x2F::Scale(18 / 24.f, 18 / 24.f) * D2D1::Matrix3x2F::Translation(send_rect.x + 6, send_rect.y + 6));
-    p.stroke_geometry(arrow.get(), with_alpha(mix(t.on_accent, t.hl_text, out * 100), a), 3);
+    p.stroke_geometry(send_arrow_.get(), with_alpha(mix(t.on_accent, t.hl_text, out * 100), a), 3);
     p.pop();
   }
   if (hot) p.pop();
@@ -405,11 +450,10 @@ void ChatPanel::click(int id, float, float, bool) {
 
 bool ChatPanel::wheel(float x, float y, float delta) {
   if (!area_.contains(x, y)) return false;
-  const float max_scroll = std::max(0.0f, content_h_ - area_h_);
-  scroll_ = std::clamp(scroll_ - delta * 80, 0.0f, max_scroll);
-  stick_ = scroll_ >= max_scroll - 4;
+  scroll_.wheel(ui_, delta);
+  stick_ = scroll_.target >= scroll_.max_offset() - 4;
   // Close to the top the next page is laid out, without moving what is on screen.
-  if (scroll_ < 60 && first_ > 0) {
+  if (scroll_.target < 60 && first_ > 0) {
     first_ = first_ > chat_page ? first_ - chat_page : 0;
     dirty_ = true;
     older_pending_ = true;

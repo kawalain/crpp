@@ -38,7 +38,7 @@ class SettingsPanel final : public Surface {
   // Goes back to the first tab's top the next time it opens by the droplet.
   void select(SettingsPage page);
   [[nodiscard]] SettingsPage page() const { return page_; }
-  void scroll_to(float offset) { scroll_.offset = offset; }
+  void scroll_to(float offset) { scroll_.jump_to(offset); }
   [[nodiscard]] float scroll_offset() const { return scroll_.offset; }
   // The scrollbar shows on scrolling or under the pointer, then fades away.
   [[nodiscard]] bool scrollbar_shown() const { return bar_shown_; }
@@ -58,6 +58,7 @@ class SettingsPanel final : public Surface {
  private:
   [[nodiscard]] bool drop_moving(unsigned long long now) const;
   [[nodiscard]] SettingsTab& tab();
+  [[nodiscard]] SettingsTab& tab_of(SettingsPage page);
   [[nodiscard]] const SettingsTab& tab() const { return const_cast<SettingsPanel*>(this)->tab(); }
   void paint_panel(Painter& p);
   void paint_tabs(Painter& p);
@@ -75,6 +76,10 @@ class SettingsPanel final : public Surface {
   bool open_ = false;
   SettingsPage page_ = SettingsPage::Sound;
   Scroll scroll_;
+  Fade panel_;  // the panel coming and going
+  SettingsPage left_page_ = SettingsPage::Sound;  // the tab fading out, while left_at_ is set
+  float left_scroll_ = 0;
+  unsigned long long left_at_ = 0;
   std::string version_;
 
   struct TabAnim {

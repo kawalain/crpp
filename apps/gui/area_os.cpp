@@ -26,8 +26,8 @@ namespace {
 
 constexpr const char* hint_shown_key = "roomStaysConnectedShown";  // not upstream's
 
-constexpr std::string_view chat_sound_key = "cloud_chat", chat_sound_file = "01_cloud_chat";
-constexpr std::string_view enter_sound_key = "cloud_enter", enter_sound_file = "02_cloud_enter";
+constexpr std::string_view chat_sound_key = "cloud_chat", chat_sound_file = "cloud_chat";
+constexpr std::string_view enter_sound_key = "cloud_enter", enter_sound_file = "cloud_enter";
 
 struct State {
   TrayIcon tray;
@@ -144,7 +144,7 @@ void show_window(Shell& s) {
 // Input timing keeps being shared with the Room while the window is away.
 void hint_room_stays_connected(Shell& s) {
   if (!os_policy::hide_needs_hint(s.app.view() == View::Session, s.store->bool_or(hint_shown_key, false))) return;
-  if (show_notification(s, L"Cloudroom", L"창을 숨겨도 구름에 계속 연결되어 있어요. 키보드와 마우스 입력 시점도 계속 공유돼요.",
+  if (show_notification(s, L"Cloudroom++", L"창을 숨겨도 구름에 계속 연결되어 있어요. 키보드와 마우스 입력 시점도 계속 공유돼요.",
                         nullptr, NIIF_NOSOUND)) {
     s.store->set(hint_shown_key, store::Json(true));
   }
@@ -159,7 +159,7 @@ void show_menu(Shell& s, int x, int y) {
   HMENU menu = CreatePopupMenu();
   if (!menu) return;
   constexpr UINT_PTR exit_item = 1;
-  AppendMenuW(menu, MF_STRING, exit_item, L"Cloudroom 종료");
+  AppendMenuW(menu, MF_STRING, exit_item, L"Cloudroom++ 종료");
   // Without both of these the menu does not close on a click elsewhere, or closes
   // at once the second time it opens (TrackPopupMenu's documentation).
   SetForegroundWindow(s.hwnd);
@@ -211,6 +211,7 @@ void sync_hidden(Shell& s) {
   s.hidden = hidden;
   if (hidden) {
     s.target.reset();
+    s.app.ui().forget_render_target();
     if (s.app.ui().emoji) s.app.ui().emoji.emplace(s.assets_dir);
     // Freed memory stays in the working set until asked for. What is still in use comes
     // back on the next touch, at the price of one soft fault per page.
@@ -224,7 +225,7 @@ void sync_hidden(Shell& s) {
 }  // namespace
 
 void wire(Shell& s) {
-  state.tray.attach(s.hwnd, s.app.ui().gfx);
+  state.tray.attach(s.hwnd);
   state.taskbar_created = RegisterWindowMessageW(L"TaskbarCreated");
   state.show_window_requested = RegisterWindowMessageW(show_window_message);
   if (s.throwaway_data) state.run_key = std::make_unique<MemoryRunKey>();

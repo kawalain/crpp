@@ -71,6 +71,7 @@ void RoomScreen::enter_room(std::string room_code) {
 
 void RoomScreen::reset() {
   members_.clear();
+  arrivals_.clear();
   members_scroll_ = {};
   chat_panel_.clear();
   options_open_ = mute_popup_open_ = false;
@@ -94,17 +95,25 @@ void RoomScreen::close_member_popups() {
 
 void RoomScreen::set_room(std::vector<MemberView> members, std::uint32_t me, std::optional<std::uint32_t> host,
                           bool is_public, bool chat, std::uint64_t chat_lock_ms) {
+  // Those already here at the first list are not arriving; everyone after it is.
+  if (!members_.empty() && ui_.animations) {
+    const auto now = clock_ms();
+    for (const MemberView& member : members) {
+      const auto same = [&](const MemberView& known) { return known.slot == member.slot && known.cid == member.cid; };
+      if (std::ranges::none_of(members_, same)) arrivals_.emplace_back(member.slot, now);
+    }
+  }
   members_ = std::move(members);
   me_ = me;
   host_ = host;
   public_ = is_public;
   chat_ = chat;
-  chat_lock_at_ = GetTickCount64() + chat_lock_ms;
+  chat_lock_at_ = clock_ms() + chat_lock_ms;
   lock_pending_ = chat && chat_lock_ms > 0;
 }
 
 void RoomScreen::pulse(std::uint32_t slot) {
-  const auto until = GetTickCount64() + 140;
+  const auto until = clock_ms() + 140;
   for (auto& p : pulses_) {
     if (p.first == slot) {
       p.second = until;
@@ -149,7 +158,7 @@ void RoomScreen::set_member_volume(std::uint32_t slot, int percent) {
   if ((before == 0) != (percent == 0) && on_member_muted) on_member_muted(member->cid, percent == 0);
 }
 
-bool RoomScreen::chat_locked() const { return chat_ && GetTickCount64() >= chat_lock_at_; }
+bool RoomScreen::chat_locked() const { return chat_ && clock_ms() >= chat_lock_at_; }
 
 bool RoomScreen::shaking() const {
   return ui_.animations && blocked_id_ >= 0 && static_cast<float>(ui_.now_ms - std::min(ui_.now_ms, blocked_at_)) < tip_shake_ms;
@@ -247,19 +256,27 @@ void RoomScreen::paint_members(Painter& p, const Layout& l) {
   members_scroll_.view_h = l.members_h;
   members_scroll_.content_h = 2 * pad + static_cast<float>(rows) * 49;
   members_scroll_.clamp();
+  members_scroll_.advance(ui_);
 
   const D2D1_RECT_F bounds = D2D1::RectF(members_area_.x, members_area_.y, members_area_.right(), members_area_.bottom());
   p.rt()->PushAxisAlignedClip(bounds, D2D1_ANTIALIAS_MODE_PER_PRIMITIVE);
-  const EdgeFade fade = push_edge_fade(p, members_area_, members_scroll_.offset > 0,
-                                       members_scroll_.offset < members_scroll_.max_offset());
+  const bool fade = push_edge_fade(ui_, p, members_area_, members_scroll_.fade_top(), members_scroll_.fade_bottom());
   ui_.push_hit_clip(members_area_);
   member_rects_.clear();
+  constexpr float arrive_ms = 300, arrive_rise = 8;  // .member.entering
+  std::erase_if(arrivals_, [&](const auto& a) { return static_cast<float>(ui_.now_ms - std::min(ui_.now_ms, a.second)) >= arrive_ms; });
+  if (!arrivals_.empty()) ui_.more_frames = true;
   for (int i = 0; i < n; ++i) {
     const MemberView& m = members_[static_cast<std::size_t>(i)];
+    float arrived = 1;
+    for (const auto& [slot, at] : arrivals_) {
+      if (slot == m.slot) arrived = transition(ui_, at, arrive_ms);
+    }
     const int col = i % cols, row = i / cols;
     const float x = l.members_x + static_cast<float>(col) * (col_w + 24);
-    const float y = l.members_y + pad + static_cast<float>(row) * 49 + 1 - members_scroll_.offset;
+    const float y = l.members_y + pad + static_cast<float>(row) * 49 + 1 - members_scroll_.drawn() + arrive_rise * (1 - arrived);
     if (y + 47 <= members_area_.y || y >= members_area_.bottom()) continue;
+    if (arrived < 1) p.push_opacity(arrived);
     const Rect box{x, y, col_w, 47};
     const int id = MemberBase + static_cast<int>(m.slot);
     if (ui_.hot(this, id)) p.fill_round(box, 14, with_alpha(t.hl, 0.2f));
@@ -273,6 +290,7 @@ void RoomScreen::paint_members(Painter& p, const Layout& l) {
            {.size = 21, .weight = 700, .line_height = 26, .ellipsis = true}, name);
     ui_.add_hit_window(this, box, id);
     member_rects_.emplace_back(m.slot, box);
+    if (arrived < 1) p.pop_opacity();
   }
   ui_.pop_hit_clip();
   pop_edge_fade(p, fade);
@@ -482,7 +500,7 @@ void RoomScreen::set_volume_from(float x) {
 void RoomScreen::copy_code() {
   const bool copied = on_copy && on_copy(room_code_);
   copy_text_ = copied ? "복사 완료 !" : "복사 실패";
-  const auto now = GetTickCount64();
+  const auto now = clock_ms();
   copy_until_ = now + 1000;
   // Right after copying the hint stays away, even under the cursor.
   hint_muted_until_ = now + 5000;
@@ -526,7 +544,7 @@ void RoomScreen::notice_answered(pref::Bool seen) {
 void RoomScreen::block_switch(int id, const char* text) {
   blocked_id_ = id;
   blocked_text_ = text;
-  blocked_at_ = GetTickCount64();
+  blocked_at_ = clock_ms();
 }
 
 void RoomScreen::toggle_public() {
@@ -656,7 +674,7 @@ bool RoomScreen::wheel(float x, float y, float delta) {
   if (profile_.is_open()) return true;  // modal
   if (chat_ && chat_panel_.wheel(x, y, delta)) return true;
   if (!members_area_.contains(x, y) || members_scroll_.max_offset() <= 0) return false;
-  members_scroll_.wheel(delta);
+  members_scroll_.wheel(ui_, delta);
   return true;
 }
 

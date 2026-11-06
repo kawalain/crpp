@@ -142,7 +142,7 @@ void check_finished(Shell& s, std::expected<up::CheckResult, up::Error> result) 
       if (!same || s.app.update_popup().state() == UpdatePopup::State::Hidden) s.app.update_popup().show_available();
     }
   }
-  s.app.update_popup().schedule_check(GetTickCount64() + check_interval_ms);
+  s.app.update_popup().schedule_check(clock_ms() + check_interval_ms);
   sync_frames(s);
   if (st.update_requested) {
     st.update_requested = false;
@@ -155,7 +155,7 @@ void start_check(Shell& s) {
   Target target = target_for(s);
   if (!target.enabled) return;
   if (st.worker.joinable()) {  // a download is running; the check can wait its turn
-    s.app.update_popup().schedule_check(GetTickCount64() + check_interval_ms);
+    s.app.update_popup().schedule_check(clock_ms() + check_interval_ms);
     return;
   }
   run_worker(s, [&s, target = std::move(target), cache = cache_path(s)] {
@@ -265,7 +265,7 @@ void wire(Shell& s) {
   up::WindowsPlatform platform;
   up::remove_leftovers(up::running_exe(), platform);
 
-  s.app.settings().set_version(std::string(up::built_version()));
+  s.app.settings().set_version("v" + std::string(up::built_version()) + " (" + std::string(up::built_hash()) + ")");
   s.app.settings().on_version = [&s] { on_version(s); };
   s.app.update_popup().on_update = [&s] { start_update(s); };
   s.app.update_popup().on_check_due = [&s] { start_check(s); };
@@ -273,7 +273,7 @@ void wire(Shell& s) {
   const Target target = target_for(s);
   if (!target.enabled) return;  // a development build, or no real key yet: no network
   show_notes_of_a_new_version(s);
-  s.app.update_popup().schedule_check(GetTickCount64() + first_check_delay_ms);
+  s.app.update_popup().schedule_check(clock_ms() + first_check_delay_ms);
   sync_frames(s);
 }
 

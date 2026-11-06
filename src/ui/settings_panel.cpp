@@ -11,7 +11,6 @@ constexpr const char* droplet_x_path = "M12 25 24 37M24 25 12 37";
 
 constexpr Rect content_area = settings_view;
 constexpr Rect scroll_track{835, 187, 8, 403};  // .settings-scrollbar
-constexpr float fade_h = 27;
 constexpr unsigned long long scrollbar_pause_ms = 2000;
 
 struct TabButton {
@@ -29,8 +28,10 @@ bool SettingsPanel::init() {
   return droplet_ && droplet_x_;
 }
 
-SettingsTab& SettingsPanel::tab() {
-  switch (page_) {
+SettingsTab& SettingsPanel::tab() { return tab_of(page_); }
+
+SettingsTab& SettingsPanel::tab_of(SettingsPage page) {
+  switch (page) {
     case SettingsPage::Display:
       return display_;
     case SettingsPage::Notify:
@@ -63,14 +64,35 @@ void SettingsPanel::close() {
 }
 
 void SettingsPanel::select(SettingsPage page) {
+  if (open_ && page != page_ && ui_.animations) {
+    left_page_ = page_;
+    left_scroll_ = scroll_.drawn();
+    left_at_ = clock_ms();
+  }
   page_ = page;
-  scroll_.offset = 0;
+  scroll_.jump_to(0);
   reset_scrollbar();
   tab().shown();
 }
 
 void SettingsPanel::paint(Painter& p) {
-  if (open_) paint_panel(p);
+  panel_.set(ui_, open_, modal_pop_ms);
+  const float shown = panel_.value(ui_);
+  if (shown > 0) {
+    const bool moving = shown < 1;
+    if (moving) {
+      ui_.more_frames = true;
+      p.push_opacity(shown);
+      p.set_moved(0, 6 * (1 - shown));
+    }
+    ui_.hits_enabled = open_;  // closing, it is only a picture
+    paint_panel(p);
+    ui_.hits_enabled = true;
+    if (moving) {
+      p.set_moved(0, 0);
+      p.pop_opacity();
+    }
+  }
   paint_droplet(p);
 }
 
@@ -116,23 +138,31 @@ void SettingsPanel::paint_panel(Painter& p) {
   scroll_.view_h = content_area.h;
   scroll_.content_h = current.content_height();
   scroll_.clamp();
-  const Rect area{content_area.x, content_area.y - scroll_.offset, 550, scroll_.content_h};
+  scroll_.advance(ui_);
+  const Rect area{content_area.x, content_area.y - scroll_.drawn(), 550, scroll_.content_h};
   ui_.push_hit_clip(ui_.to_window(content_area));
   p.rt()->PushAxisAlignedClip(D2D1::RectF(content_area.x, content_area.y, content_area.right(), content_area.bottom()),
                               D2D1_ANTIALIAS_MODE_PER_PRIMITIVE);
-  current.paint(p, area);
-  // Content fades where it runs under the edges (.settings-content mask). The panel
-  // is the only thing behind it.
-  const auto fade = [&](float y0, float y1, float from, float to) {
-    ComPtr<ID2D1RectangleGeometry> g;
-    if (FAILED(ui_.gfx.d2d()->CreateRectangleGeometry(D2D1::RectF(content_area.x, std::min(y0, y1), content_area.right(), std::max(y0, y1)),
-                                                      g.put()))) {
-      return;
-    }
-    p.fill_vertical_gradient(g.get(), y0, y1, {{0, with_alpha(cloud, from)}, {1, with_alpha(cloud, to)}});
-  };
-  if (scroll_.offset > 1) fade(content_area.y, content_area.y + fade_h, 1, 0);
-  if (scroll_.offset < scroll_.max_offset() - 1) fade(content_area.bottom() - fade_h, content_area.bottom(), 0, 1);
+  const bool fade = push_edge_fade(ui_, p, content_area, scroll_.fade_top(), scroll_.fade_bottom());
+  constexpr float tab_fade_ms = 140;
+  const float change = left_at_ != 0 ? transition(ui_, left_at_, tab_fade_ms) : 1;
+  if (change < 1) {
+    ui_.more_frames = true;
+    SettingsTab& left = tab_of(left_page_);
+    const bool hits = ui_.hits_enabled;
+    ui_.hits_enabled = false;
+    p.push_opacity(1 - change);
+    left.paint(p, {content_area.x, content_area.y - left_scroll_, 550, left.content_height()});
+    p.pop_opacity();
+    ui_.hits_enabled = hits;
+    p.push_opacity(change);
+    current.paint(p, area);
+    p.pop_opacity();
+  } else {
+    left_at_ = 0;
+    current.paint(p, area);
+  }
+  pop_edge_fade(p, fade);
   p.rt()->PopAxisAlignedClip();
   ui_.pop_hit_clip();
 
@@ -242,16 +272,15 @@ void SettingsPanel::click(int id, float, float y, bool) {
 
 void SettingsPanel::drag(float, float y) {
   const float travel = std::max(1.0f, scroll_track.h - scroll_.thumb(scroll_track).h);
-  scroll_.offset = grab_offset_ + (ui_.to_stage_y(y) - grab_y_) * scroll_.max_offset() / travel;
-  scroll_.clamp();
+  scroll_.jump_to(grab_offset_ + (ui_.to_stage_y(y) - grab_y_) * scroll_.max_offset() / travel);
 }
 
 bool SettingsPanel::wheel(float x, float y, float delta) {
   if (!open_) return false;
   if (!tab().wheel(x, y, delta)) {
-    const float before = scroll_.offset;
-    scroll_.wheel(delta);
-    if (scroll_.offset != before) {
+    const float before = scroll_.target;
+    scroll_.wheel(ui_, delta);
+    if (scroll_.target != before) {
       bar_shown_ = true;
       reveal_pending_ = true;
     }
@@ -271,6 +300,7 @@ Cursor SettingsPanel::cursor(int id) const {
 }
 
 bool SettingsPanel::animating() const {
+  if (panel_.running(ui_)) return true;
   if (droplet_hover_.running(ui_) || droplet_grow_.running(ui_) || droplet_tip_.running(ui_)) return true;
   if (!open_) return false;
   if (bar_.running(ui_) || thumb_hover_.running(ui_) || version_tip_.running(ui_)) return true;

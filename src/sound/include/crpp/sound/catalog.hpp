@@ -1,10 +1,11 @@
 #pragma once
 // Which recording plays for an Input kind: the Sound packs on disk and the rules
-// for choosing among their files. A pack is a folder like
-// Device_Keyboard/01_Plastic holding pack.json and <pack>_<sound>[_N].wav.
+// for choosing among their files. A pack is a folder like keyboard/plastic holding
+// pack.json and any of the <sound>[_(hold|release)][_N].wav it has a recording for.
 #include <cstdint>
 #include <filesystem>
 #include <optional>
+#include <span>
 #include <string>
 #include <string_view>
 #include <vector>
@@ -34,8 +35,8 @@ class Random {
   std::uint64_t state_;
 };
 
-// A notification sound, by its file's name with or without the leading number:
-// "cloud_chat" and "01_cloud_chat" both find Notifications/01_cloud_chat.wav.
+// A notification sound, by its file's name, or by that name with the number upstream
+// puts in front: "cloud_chat" and "01_cloud_chat" both find notifications/cloud_chat.wav.
 [[nodiscard]] std::optional<std::filesystem::path> notification_file(const std::filesystem::path& root, std::string_view name);
 
 struct PackInfo {
@@ -44,8 +45,10 @@ struct PackInfo {
 
 class Catalog {
  public:
-  // Reads the folder structure under `root` (the "sounds" folder).
-  [[nodiscard]] static Catalog scan(const std::filesystem::path& root);
+  // Reads the folder structure under `root` (the "sounds" folder). `expected` lists files
+  // relative to it that belong there, on disk or not, like "keyboard/plastic/left.wav":
+  // a pack still downloading can be chosen, and a sound it deliberately lacks stays silent.
+  [[nodiscard]] static Catalog scan(const std::filesystem::path& root, std::span<const std::string> expected = {});
 
   [[nodiscard]] bool empty() const noexcept { return packs_.empty(); }
   // The pack ids of a device, in display order. The first is its default.

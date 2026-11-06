@@ -42,7 +42,8 @@ and developer communities, not from memory.
   hides because it does not work there. Pen ships hidden until verified on a
   real device.
 - Data files: see `docs/adr/0001-protected-store-with-shared-fallback.md`.
-- Assets: see `docs/adr/0002-download-assets-on-first-run.md`. Offline use is
+- Assets: see `docs/adr/0002-download-assets-on-first-run.md` and
+  `docs/adr/0004-assets-through-jsdelivr-and-never-required.md`. Offline use is
   not a goal: without a server the app opens only to say so.
 - Keystroke privacy: see `docs/adr/0003-presence-mode-by-default.md`.
 - Sound engine: raw WASAPI, upstream's sound packs. The spatial/reverb/resampling
@@ -50,7 +51,8 @@ and developer communities, not from memory.
   tests cover numbers and stability; a listening test tool lets the user judge
   quality by ear.
 - Every UI element is vector data (paths, SVG); no bitmaps. Animations follow
-  upstream CSS durations and easings. App font: Pretendard GOV Variable.
+  upstream CSS durations and easings; where upstream has none (scrolling, screens, tabs,
+  chat rows) the durations are ours, listed under Differences from upstream. App font: Pretendard GOV Variable.
 - Distribution differs from upstream: GitHub Actions builds, the app checks the
   latest GitHub Release, and release notes are shown as the changelog. A release
   is one exe plus a manifest signed with ECDSA P-256 (key in GitHub Secrets,
@@ -114,6 +116,15 @@ against a real `server/` yet; do that once a local build of it is available.
   3 s forever; it does not ask `/health` first. A connection error names no reason in
   parentheses, because the transport reports none.
 - A Room that cannot be resumed at startup says so; upstream returns to Home silently.
+- The program calls itself Cloudroom++, so its autostart entry does not collide with upstream's.
+- Assets may be missing without stopping the app; see ADR 0004.
+- Motion upstream does not have: wheel scrolling settles over 160 ms, the ends stretch up
+  to 48 px and return over 240 ms, screens cross-fade over 180 ms with an 8 px rise,
+  settings tabs over 140 ms, the settings panel and emoji picker over 160 ms with 6 px,
+  a dropdown fades in over 120 ms, and a new chat message rises 8 px over 300 ms. Scrolled
+  areas fade at the edge they cut, by up to 27 px. All of it follows the system's "Show
+  animations" setting; there is no toggle of its own.
+- The app is named Cloudroom++, and its data stays in the same folders as upstream's.
 - The changelog comes from GitHub release notes, so an empty one says it could not be
   loaded, and a first run ever does not open it.
 
@@ -125,6 +136,8 @@ cmake --build build && ctest --test-dir build --output-on-failure
 ```
 
 MSVC needs a developer environment (vcvars); `cl` is not on PATH by default.
+The app is a Windows-subsystem program with no console: PowerShell does not wait for it,
+so wait with `Start-Process -Wait`, and read `--smoke`'s result from the exit code.
 Run GCC-built tests from PowerShell: Git Bash's PATH finds another
 `libstdc++-6.dll` first and they die with `0xc0000139`.
 
@@ -165,14 +178,15 @@ exist (real + test).
   batches: the first event after a pause at once, then every 10 ms at most. A
   mouse move costs about 8,700 cycles this way, against 50,000 read one by one.
 - `sound`: pack loading and a pure `render(span<float>)` mixer; device adapter
-  behind it. The stream uses the default period (about 10 ms), not the smallest
+  behind it. `synth` makes a short stand-in for a recording that could not be fetched. The stream uses the default period (about 10 ms), not the smallest
   the research note suggests: CPU comes first and network delay dwarfs the gain.
 - `store`: settings, Seats and chat cache in the Protected or Shared store; a
   flushed temp file + rename for every write. `Platform` is the seam for DPAPI
   and file replacement.
 - `assets`: fetch and verify files against the manifest CMake builds into the
-  exe, pinned to the commit that last changed `assets/`. That commit must be on
-  GitHub before a release can install. `Platform` is the seam for WinHTTP and BCrypt.
+  exe from `assets/` and `cmake/remote_assets.txt`. This repository's files are pinned
+  to the commit that last changed `assets/`, which must be on GitHub before a release
+  can install them. `Platform` is the seam for WinHTTP and BCrypt.
 - `api`: the account HTTP API as pure requests and responses, and `Flow`, the
   prompt's steps. `HttpClient` is the seam for WinHTTP; `Worker` keeps its blocking
   calls off the UI thread. `apps/gui/account_controller` joins it to `ui`.
@@ -193,6 +207,12 @@ exist (real + test).
   size is in DIPs. `--shot ... --dpi <n>` renders any scale. `WM_DPICHANGED`
   cannot be sent from another process; test it by moving the window between
   monitors of different DPI.
+  Motion runs on `clock_ms()` (QPC). Anything still moving says so with `Ui::more_frames`
+  while painting or with `animating()`; only then does the shell draw the next frame,
+  paced by the display, so a still window draws nothing. `Scroll` in `controls.hpp` is
+  every scroll area's wheel, stretch and edge fade. A motion's first frame has made no
+  progress yet, so it must ask for the next frame from its start. `--shot ...
+  motion-<name> --at <ms>` renders a moment of a motion; `apps/gui/shot.cpp` names them.
 
 ## Performance rules
 
@@ -202,6 +222,10 @@ exist (real + test).
 - Resample WAV once at load to the device rate; load pack variants lazily.
 - Mixer does no work when no voice is active.
 - Measure idle memory/CPU of every UI change; do not trust third-party numbers.
+- Frames have no cap of their own. Measured with an MSVC Release build at 125% on a hidden
+  desktop, settings open: idle 0.0% of one core and about 47 MB working set; wheel
+  scrolling without pause 0.6-1.9% at about 73 frames/s (a counter confirmed the frames),
+  back to 0.0% afterwards. A real desktop adds composition, which this does not show.
 
 ## Transport facts (verified on Windows 10 19044)
 
@@ -228,7 +252,8 @@ exist (real + test).
   full idle period in a real Room. It ends on a key or click, not on mouse movement
   alone: Raw Input only reports Input kinds.
 - The sound of spatial audio and reverb needs ears: run
-  `crpp_soundtest assets/sounds`, which walks every seat.
+  `crpp_soundtest assets/sounds`, which walks every seat. `--synth` plays the generated
+  stand-ins instead, which also need ears.
 - Following the OS theme: `WM_SETTINGCHANGE` was only posted in a scripted run.
   Flipping the real Windows setting and seeing the dark title bar are unverified.
 - The tray needs a real desktop: a hidden one has no taskbar, so the icon fails to
@@ -240,5 +265,10 @@ exist (real + test).
 - Accounts are tested with a fake HTTP seam and a scripted localhost server, never
   against a real `server/`.
 - Re-check C++26 status against WG21 primary records.
+- Motion has been compared frame by frame and measured, not felt: how scrolling and
+  transitions feel needs the user's own hands, on a real display.
+- The generated stand-in sounds need ears: `crpp_soundtest --synth`.
+- jsDelivr has only served the files pinned so far. Files of this repository 404 there
+  until their commit is on GitHub, so a first real install needs that push.
 - The workflows have never run. A first real release must also confirm GitHub's redirect
   for release downloads through WinHTTP, and a replacement under real antivirus.

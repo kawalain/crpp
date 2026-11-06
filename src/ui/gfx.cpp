@@ -4,7 +4,9 @@
 #include <dwrite_3.h>
 #include <windows.h>
 
+#include <algorithm>
 #include <cctype>
+#include <charconv>
 #include <cmath>
 #include <cstdlib>
 #include <vector>
@@ -33,7 +35,8 @@ std::string narrow(std::wstring_view w) {
 namespace {
 
 constexpr const wchar_t* ui_font = L"Malgun Gothic";            // fallback
-constexpr const wchar_t* custom_font = L"Pretendard GOV Variable";  // family name inside the bundled font
+constexpr const wchar_t* custom_font = L"Pretendard GOV Variable";  // family name inside the fetched font
+constexpr const wchar_t* emoji_font = L"Segoe UI Emoji";
 
 D2D1_COLOR_F to_d2d(Color c) { return D2D1::ColorF(c.r, c.g, c.b, c.a); }
 
@@ -246,6 +249,57 @@ ComPtr<ID2D1PathGeometry> Gfx::parse_path(std::string_view d) const {
   return geometry;
 }
 
+ComPtr<IDWriteTextLayout> Gfx::emoji_layout(std::wstring_view text, float size) const {
+  ComPtr<IDWriteTextFormat> format;
+  ComPtr<IDWriteTextLayout> layout;
+  if (FAILED(dwrite_->CreateTextFormat(emoji_font, nullptr, DWRITE_FONT_WEIGHT_NORMAL, DWRITE_FONT_STYLE_NORMAL,
+                                       DWRITE_FONT_STRETCH_NORMAL, size, L"", format.put())) ||
+      FAILED(dwrite_->CreateTextLayout(text.data(), static_cast<UINT32>(text.size()), format.get(), 10000, 10000, layout.put()))) {
+    return {};
+  }
+  return layout;
+}
+
+std::wstring Gfx::emoji_glyph(std::string_view id) const {
+  ComPtr<IDWriteFontCollection> fonts;
+  ComPtr<IDWriteFontFamily> family;
+  ComPtr<IDWriteFont> font;
+  UINT32 index = 0;
+  BOOL exists = FALSE;
+  if (FAILED(dwrite_->GetSystemFontCollection(fonts.put(), FALSE)) ||
+      FAILED(fonts->FindFamilyName(emoji_font, &index, &exists)) || !exists ||
+      FAILED(fonts->GetFontFamily(index, family.put())) ||
+      FAILED(family->GetFirstMatchingFont(DWRITE_FONT_WEIGHT_NORMAL, DWRITE_FONT_STRETCH_NORMAL, DWRITE_FONT_STYLE_NORMAL,
+                                          font.put()))) {
+    return {};
+  }
+  std::wstring text;
+  while (!id.empty()) {
+    const auto dash = id.find('-');
+    const std::string_view part = id.substr(0, dash);
+    id = dash == std::string_view::npos ? std::string_view{} : id.substr(dash + 1);
+    UINT32 code = 0;
+    const auto [end, error] = std::from_chars(part.data(), part.data() + part.size(), code, 16);
+    if (error != std::errc{} || end != part.data() + part.size() || code < 0x100 || code > 0x10FFFF) return {};
+    if (code != 0x200D && code != 0xFE0F) {
+      BOOL has = FALSE;
+      if (FAILED(font->HasCharacter(code, &has)) || !has) return {};
+    }
+    if (code >= 0x10000) {
+      text += static_cast<wchar_t>(0xD800 + ((code - 0x10000) >> 10));
+      text += static_cast<wchar_t>(0xDC00 + ((code - 0x10000) & 0x3FF));
+    } else {
+      text += static_cast<wchar_t>(code);
+    }
+  }
+  // A sequence the font does not join comes out as several glyphs, wider than one.
+  constexpr float probe = 100;
+  const auto layout = emoji_layout(text, probe);
+  DWRITE_TEXT_METRICS metrics{};
+  if (!layout || FAILED(layout->GetMetrics(&metrics)) || metrics.width > probe * 1.5f) return {};
+  return text;
+}
+
 ComPtr<IDWriteTextLayout> Gfx::layout(std::wstring_view text, const TextStyle& style, float max_w,
                                       float max_h) const {
   ComPtr<IDWriteTextFormat> format;
@@ -291,6 +345,12 @@ Painter::Painter(const Gfx& gfx, ID2D1RenderTarget* rt) : gfx_(gfx), rt_(rt) {
   rt_->CreateSolidColorBrush(D2D1::ColorF(0, 0, 0, 1), brush_.put());
   rt_->SetAntialiasMode(D2D1_ANTIALIAS_MODE_PER_PRIMITIVE);
   rt_->SetTextAntialiasMode(D2D1_TEXT_ANTIALIAS_MODE_GRAYSCALE);
+}
+
+void Painter::push_opacity(float opacity) {
+  D2D1_LAYER_PARAMETERS params = D2D1::LayerParameters();
+  params.opacity = opacity;
+  rt_->PushLayer(params, nullptr);
 }
 
 void Painter::push(const D2D1_MATRIX_3X2_F& m) { rt_->SetTransform(m * base_); }
@@ -368,6 +428,19 @@ D2D1_SIZE_F Painter::text(std::wstring_view s, Rect r, const TextStyle& style, C
   DWRITE_TEXT_METRICS m{};
   layout->GetMetrics(&m);
   return D2D1::SizeF(m.widthIncludingTrailingWhitespace, m.height);
+}
+
+void Painter::emoji(std::wstring_view glyph, Rect r, float opacity) {
+  // The glyphs fill less of their line box than the drawn emoji do of theirs.
+  const auto layout = gfx_.emoji_layout(glyph, std::min(r.w, r.h) * 0.8f);
+  DWRITE_TEXT_METRICS m{};
+  if (!layout || FAILED(layout->GetMetrics(&m))) return;
+  const bool translucent = opacity < 1;
+  if (translucent) push_opacity(opacity);
+  brush_->SetColor(D2D1::ColorF(0, 0, 0, 1));
+  rt_->DrawTextLayout(D2D1::Point2F(r.x + (r.w - m.width) / 2, r.y + (r.h - m.height) / 2), layout.get(), brush_.get(),
+                      D2D1_DRAW_TEXT_OPTIONS_ENABLE_COLOR_FONT);
+  if (translucent) pop_opacity();
 }
 
 void Painter::shadow_geometry(ID2D1Geometry* g, float blur, float dy, Color c) {

@@ -7,15 +7,24 @@ namespace crpp::assets {
 
 namespace {
 
+constexpr std::array<Source, 3> sources{{
+    {"kawalain/crpp@@CRPP_ASSET_COMMIT@/assets/", ""},
+    {"jdecked/twemoji@@CRPP_TWEMOJI_COMMIT@/assets/svg/", "emoji/"},
+    {"orioncactus/pretendard@@CRPP_PRETENDARD_REF@/packages/pretendard-gov/dist/public/variable/", "fonts/"},
+}};
+
 constexpr auto entries = std::to_array<Entry>({
 @CRPP_ASSET_ENTRIES@});
 
+constexpr auto picker = std::to_array<std::string_view>({
+@CRPP_PICKER_ENTRIES@});
+
 }  // namespace
 
-Manifest built_in_manifest() noexcept { return {"@CRPP_ASSET_COMMIT@", entries}; }
+Manifest built_in_manifest() noexcept { return {entries, sources}; }
 
-std::string published_url(const Manifest& manifest) {
-  return "https://raw.githubusercontent.com/kawalain/crpp/" + std::string(manifest.commit) + "/assets/";
-}
+std::string published_url() { return "https://cdn.jsdelivr.net/gh/"; }
+
+std::span<const std::string_view> picker_emoji() noexcept { return picker; }
 
 }  // namespace crpp::assets

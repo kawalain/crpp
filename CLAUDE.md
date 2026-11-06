@@ -224,7 +224,7 @@ exist (real + test).
 - Measure idle memory/CPU of every UI change; do not trust third-party numbers.
 - Frames have no cap of their own. Measured with an MSVC Release build at 125% on a hidden
   desktop, settings open: idle 0.0% of one core and about 47 MB working set; wheel
-  scrolling without pause 0.6-1.3% at about 73 frames/s (a counter confirmed the frames),
+  scrolling without pause 0.6-1.9% at about 73 frames/s (a counter confirmed the frames),
   back to 0.0% afterwards. A real desktop adds composition, which this does not show.
 
 ## Transport facts (verified on Windows 10 19044)

@@ -5,6 +5,9 @@
 //                                 render a scene offscreen and exit; the area_*.cpp
 //                                 files name the scenes
 //   crpp --smoke out.png          create a room, save a screenshot and exit with 0
+//   crpp --shot out.png WxH hour motion-<name> --at <ms>
+//                                 a moment of a motion, <ms> after it starts; shot.cpp
+//                                 names them
 //   ... --dpi <n>                 (with --shot) render at that DPI; WxH stay in
 //                                 DIPs, so the image grows with it
 //   ... --asset-url <url>         fetch assets from <url>, not the published

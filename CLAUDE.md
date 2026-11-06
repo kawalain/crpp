@@ -51,7 +51,8 @@ and developer communities, not from memory.
   tests cover numbers and stability; a listening test tool lets the user judge
   quality by ear.
 - Every UI element is vector data (paths, SVG); no bitmaps. Animations follow
-  upstream CSS durations and easings. App font: Pretendard GOV Variable.
+  upstream CSS durations and easings; where upstream has none (scrolling, screens, tabs,
+  chat rows) the durations are ours, listed under Differences from upstream. App font: Pretendard GOV Variable.
 - Distribution differs from upstream: GitHub Actions builds, the app checks the
   latest GitHub Release, and release notes are shown as the changelog. A release
   is one exe plus a manifest signed with ECDSA P-256 (key in GitHub Secrets,
@@ -117,6 +118,13 @@ against a real `server/` yet; do that once a local build of it is available.
 - A Room that cannot be resumed at startup says so; upstream returns to Home silently.
 - The program calls itself Cloudroom++, so its autostart entry does not collide with upstream's.
 - Assets may be missing without stopping the app; see ADR 0004.
+- Motion upstream does not have: wheel scrolling settles over 160 ms, the ends stretch up
+  to 48 px and return over 240 ms, screens cross-fade over 180 ms with an 8 px rise,
+  settings tabs over 140 ms, the settings panel and emoji picker over 160 ms with 6 px,
+  a dropdown fades in over 120 ms, and a new chat message rises 8 px over 300 ms. Scrolled
+  areas fade at the edge they cut, by up to 27 px. All of it follows the system's "Show
+  animations" setting; there is no toggle of its own.
+- The app is named Cloudroom++, and its data stays in the same folders as upstream's.
 - The changelog comes from GitHub release notes, so an empty one says it could not be
   loaded, and a first run ever does not open it.
 
@@ -199,6 +207,12 @@ exist (real + test).
   size is in DIPs. `--shot ... --dpi <n>` renders any scale. `WM_DPICHANGED`
   cannot be sent from another process; test it by moving the window between
   monitors of different DPI.
+  Motion runs on `clock_ms()` (QPC). Anything still moving says so with `Ui::more_frames`
+  while painting or with `animating()`; only then does the shell draw the next frame,
+  paced by the display, so a still window draws nothing. `Scroll` in `controls.hpp` is
+  every scroll area's wheel, stretch and edge fade. A motion's first frame has made no
+  progress yet, so it must ask for the next frame from its start. `--shot ...
+  motion-<name> --at <ms>` renders a moment of a motion; `apps/gui/shot.cpp` names them.
 
 ## Performance rules
 
@@ -247,5 +261,10 @@ exist (real + test).
 - Accounts are tested with a fake HTTP seam and a scripted localhost server, never
   against a real `server/`.
 - Re-check C++26 status against WG21 primary records.
+- Motion has been compared frame by frame and measured, not felt: how scrolling and
+  transitions feel needs the user's own hands, on a real display.
+- The generated stand-in sounds need ears: `crpp_soundtest --synth`.
+- jsDelivr has only served the files pinned so far. Files of this repository 404 there
+  until their commit is on GitHub, so a first real install needs that push.
 - The workflows have never run. A first real release must also confirm GitHub's redirect
   for release downloads through WinHTTP, and a replacement under real antivirus.

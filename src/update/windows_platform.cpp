@@ -1,0 +1,249 @@
+#include "crpp/update/windows_platform.hpp"
+
+#include <windows.h>
+#include <bcrypt.h>
+#include <winhttp.h>
+
+#include <algorithm>
+#include <array>
+#include <cstring>
+
+namespace crpp::update {
+
+namespace {
+
+constexpr int timeout_ms = 30000;
+constexpr DWORD exit_wait_ms = 30000;
+
+class Internet {
+ public:
+  explicit Internet(HINTERNET handle = nullptr) noexcept : handle_(handle) {}
+  ~Internet() {
+    if (handle_ != nullptr) WinHttpCloseHandle(handle_);
+  }
+  Internet(const Internet&) = delete;
+  Internet& operator=(const Internet&) = delete;
+  [[nodiscard]] HINTERNET get() const noexcept { return handle_; }
+
+ private:
+  HINTERNET handle_;
+};
+
+class Kernel {
+ public:
+  // Both spellings of "no handle" that kernel calls return.
+  explicit Kernel(HANDLE handle = nullptr) noexcept : handle_(handle == INVALID_HANDLE_VALUE ? nullptr : handle) {}
+  ~Kernel() {
+    if (handle_ != nullptr) CloseHandle(handle_);
+  }
+  Kernel(const Kernel&) = delete;
+  Kernel& operator=(const Kernel&) = delete;
+  [[nodiscard]] HANDLE get() const noexcept { return handle_; }
+
+ private:
+  HANDLE handle_;
+};
+
+std::wstring ascii_wide(std::string_view s) { return {s.begin(), s.end()}; }
+
+std::wstring ack_event_name(DWORD pid) { return L"Local\\crpp.update." + std::to_wstring(pid); }
+
+}  // namespace
+
+struct WindowsPlatform::Impl {
+  std::wstring relaunch_args;
+  DWORD launch_wait_ms = 0;
+  // GitHub's API refuses requests without a User-Agent; this is it.
+  Internet session{WinHttpOpen(L"crpp-update", WINHTTP_ACCESS_TYPE_AUTOMATIC_PROXY, WINHTTP_NO_PROXY_NAME,
+                               WINHTTP_NO_PROXY_BYPASS, 0)};
+};
+
+WindowsPlatform::WindowsPlatform(std::wstring relaunch_args, unsigned long launch_wait_ms) : impl_(std::make_unique<Impl>()) {
+  impl_->relaunch_args = std::move(relaunch_args);
+  impl_->launch_wait_ms = launch_wait_ms;
+  if (impl_->session.get() != nullptr) WinHttpSetTimeouts(impl_->session.get(), timeout_ms, timeout_ms, timeout_ms, timeout_ms);
+}
+
+WindowsPlatform::~WindowsPlatform() = default;
+
+std::expected<std::vector<std::uint8_t>, Error> WindowsPlatform::get(const std::string& url, std::size_t limit,
+                                                                     std::string_view accept, const OnBytes& on_bytes) {
+  if (impl_->session.get() == nullptr) return std::unexpected(Error::Network);
+  const std::wstring wide_url = ascii_wide(url);
+  URL_COMPONENTS parts{};
+  parts.dwStructSize = sizeof parts;
+  parts.dwHostNameLength = static_cast<DWORD>(-1);
+  parts.dwUrlPathLength = static_cast<DWORD>(-1);
+  parts.dwExtraInfoLength = static_cast<DWORD>(-1);
+  if (!WinHttpCrackUrl(wide_url.c_str(), 0, 0, &parts)) return std::unexpected(Error::Network);
+  const std::wstring host(parts.lpszHostName, parts.dwHostNameLength);
+  const std::wstring path = std::wstring(parts.lpszUrlPath, parts.dwUrlPathLength) +
+                            std::wstring(parts.lpszExtraInfo, parts.dwExtraInfoLength);
+  const Internet connection(WinHttpConnect(impl_->session.get(), host.c_str(), parts.nPort, 0));
+  if (connection.get() == nullptr) return std::unexpected(Error::Network);
+  // WinHTTP follows redirects itself, except from HTTPS down to HTTP.
+  const Internet request(WinHttpOpenRequest(connection.get(), L"GET", path.c_str(), nullptr, WINHTTP_NO_REFERER,
+                                            WINHTTP_DEFAULT_ACCEPT_TYPES,
+                                            parts.nScheme == INTERNET_SCHEME_HTTPS ? WINHTTP_FLAG_SECURE : 0));
+  if (request.get() == nullptr) return std::unexpected(Error::Network);
+  const std::wstring headers = accept.empty() ? std::wstring{} : L"Accept: " + ascii_wide(accept);
+  if (!WinHttpSendRequest(request.get(), headers.empty() ? WINHTTP_NO_ADDITIONAL_HEADERS : headers.c_str(),
+                          headers.empty() ? 0 : static_cast<DWORD>(-1), WINHTTP_NO_REQUEST_DATA, 0, 0, 0) ||
+      !WinHttpReceiveResponse(request.get(), nullptr)) {
+    return std::unexpected(Error::Network);
+  }
+  DWORD status = 0;
+  DWORD status_size = sizeof status;
+  if (!WinHttpQueryHeaders(request.get(), WINHTTP_QUERY_STATUS_CODE | WINHTTP_QUERY_FLAG_NUMBER,
+                           WINHTTP_HEADER_NAME_BY_INDEX, &status, &status_size, WINHTTP_NO_HEADER_INDEX)) {
+    return std::unexpected(Error::Network);
+  }
+  if (status != 200) return std::unexpected(Error::Unavailable);
+  // Grows as data arrives: for most requests `limit` is only an upper bound.
+  std::vector<std::uint8_t> bytes;
+  std::size_t received = 0;
+  while (received <= limit) {
+    const std::size_t room = std::min<std::size_t>(limit + 1 - received, 256 * 1024);
+    bytes.resize(received + room);
+    DWORD read = 0;
+    if (!WinHttpReadData(request.get(), bytes.data() + received, static_cast<DWORD>(room), &read)) {
+      return std::unexpected(Error::Network);
+    }
+    if (read == 0) break;
+    received += read;
+    if (on_bytes) on_bytes(received);
+  }
+  bytes.resize(received);
+  bytes.shrink_to_fit();
+  return bytes;
+}
+
+std::string WindowsPlatform::sha256(std::span<const std::uint8_t> bytes) {
+  std::array<UCHAR, 32> digest{};
+  if (!BCRYPT_SUCCESS(BCryptHash(BCRYPT_SHA256_ALG_HANDLE, nullptr, 0, const_cast<UCHAR*>(bytes.data()),
+                                 static_cast<ULONG>(bytes.size()), digest.data(), static_cast<ULONG>(digest.size())))) {
+    return {};
+  }
+  static constexpr char hex[] = "0123456789abcdef";
+  std::string text;
+  text.reserve(digest.size() * 2);
+  for (const UCHAR b : digest) {
+    text += hex[b >> 4];
+    text += hex[b & 15];
+  }
+  return text;
+}
+
+bool WindowsPlatform::verify(const PublicKey& key, std::span<const std::uint8_t> message, const Signature& signature) {
+  std::array<UCHAR, 32> digest{};
+  if (!BCRYPT_SUCCESS(BCryptHash(BCRYPT_SHA256_ALG_HANDLE, nullptr, 0, const_cast<UCHAR*>(message.data()),
+                                 static_cast<ULONG>(message.size()), digest.data(), static_cast<ULONG>(digest.size())))) {
+    return false;
+  }
+  BCRYPT_ALG_HANDLE algorithm = nullptr;
+  if (!BCRYPT_SUCCESS(BCryptOpenAlgorithmProvider(&algorithm, BCRYPT_ECDSA_P256_ALGORITHM, nullptr, 0))) return false;
+  std::array<UCHAR, sizeof(BCRYPT_ECCKEY_BLOB) + std::tuple_size_v<PublicKey>> blob{};
+  const BCRYPT_ECCKEY_BLOB header{BCRYPT_ECDSA_PUBLIC_P256_MAGIC, 32};
+  std::memcpy(blob.data(), &header, sizeof header);
+  std::memcpy(blob.data() + sizeof header, key.data(), key.size());
+  BCRYPT_KEY_HANDLE handle = nullptr;
+  bool good = false;
+  if (BCRYPT_SUCCESS(BCryptImportKeyPair(algorithm, nullptr, BCRYPT_ECCPUBLIC_BLOB, &handle, blob.data(),
+                                         static_cast<ULONG>(blob.size()), 0))) {
+    good = BCRYPT_SUCCESS(BCryptVerifySignature(handle, nullptr, digest.data(), static_cast<ULONG>(digest.size()),
+                                                const_cast<UCHAR*>(signature.data()), static_cast<ULONG>(signature.size()), 0));
+    BCryptDestroyKey(handle);
+  }
+  BCryptCloseAlgorithmProvider(algorithm, 0);
+  return good;
+}
+
+bool WindowsPlatform::write_file(const std::filesystem::path& path, std::span<const std::uint8_t> bytes) {
+  const Kernel file(CreateFileW(path.c_str(), GENERIC_WRITE, 0, nullptr, CREATE_ALWAYS, FILE_ATTRIBUTE_NORMAL, nullptr));
+  if (file.get() == nullptr) return false;
+  std::size_t done = 0;
+  while (done < bytes.size()) {
+    DWORD written = 0;
+    const auto chunk = static_cast<DWORD>(std::min<std::size_t>(bytes.size() - done, 1024 * 1024));
+    if (!WriteFile(file.get(), bytes.data() + done, chunk, &written, nullptr) || written != chunk) return false;
+    done += written;
+  }
+  return FlushFileBuffers(file.get()) != 0;
+}
+
+std::expected<std::vector<std::uint8_t>, Error> WindowsPlatform::read_file(const std::filesystem::path& path, std::size_t limit) {
+  const Kernel file(CreateFileW(path.c_str(), GENERIC_READ, FILE_SHARE_READ | FILE_SHARE_DELETE, nullptr, OPEN_EXISTING,
+                                FILE_ATTRIBUTE_NORMAL, nullptr));
+  if (file.get() == nullptr) return std::unexpected(Error::Disk);
+  LARGE_INTEGER size{};
+  if (!GetFileSizeEx(file.get(), &size) || static_cast<std::uint64_t>(size.QuadPart) > limit) return std::unexpected(Error::Disk);
+  std::vector<std::uint8_t> bytes(static_cast<std::size_t>(size.QuadPart));
+  std::size_t done = 0;
+  while (done < bytes.size()) {
+    DWORD read = 0;
+    const auto chunk = static_cast<DWORD>(std::min<std::size_t>(bytes.size() - done, 1024 * 1024));
+    if (!ReadFile(file.get(), bytes.data() + done, chunk, &read, nullptr) || read == 0) return std::unexpected(Error::Disk);
+    done += read;
+  }
+  return bytes;
+}
+
+bool WindowsPlatform::move_file(const std::filesystem::path& from, const std::filesystem::path& to) {
+  // A scanner holding a freshly written exe is common and brief.
+  for (int attempt = 0; attempt < 10; ++attempt) {
+    if (MoveFileExW(from.c_str(), to.c_str(), MOVEFILE_REPLACE_EXISTING | MOVEFILE_WRITE_THROUGH)) return true;
+    const DWORD error = GetLastError();
+    if (error != ERROR_ACCESS_DENIED && error != ERROR_SHARING_VIOLATION) return false;
+    Sleep(200);
+  }
+  return false;
+}
+
+bool WindowsPlatform::remove_file(const std::filesystem::path& path) {
+  if (DeleteFileW(path.c_str())) return true;
+  const DWORD error = GetLastError();
+  return error == ERROR_FILE_NOT_FOUND || error == ERROR_PATH_NOT_FOUND;
+}
+
+bool WindowsPlatform::launch(const std::filesystem::path& exe) {
+  const DWORD me = GetCurrentProcessId();
+  const Kernel started(CreateEventW(nullptr, TRUE, FALSE, ack_event_name(me).c_str()));
+  if (started.get() == nullptr) return false;
+  ResetEvent(started.get());  // a failed attempt may have left it set
+  std::wstring command = L"\"" + exe.wstring() + L"\" --updated-from " + std::to_wstring(me);
+  if (!impl_->relaunch_args.empty()) command += L" " + impl_->relaunch_args;
+  STARTUPINFOW startup{};
+  startup.cb = sizeof startup;
+  PROCESS_INFORMATION process{};
+  if (!CreateProcessW(exe.c_str(), command.data(), nullptr, nullptr, FALSE, 0, nullptr, exe.parent_path().c_str(), &startup,
+                      &process)) {
+    return false;
+  }
+  const Kernel child(process.hProcess), thread(process.hThread);
+  const std::array<HANDLE, 2> waits{started.get(), child.get()};
+  if (WaitForMultipleObjects(static_cast<DWORD>(waits.size()), waits.data(), FALSE, impl_->launch_wait_ms) == WAIT_OBJECT_0) {
+    return true;
+  }
+  TerminateProcess(child.get(), 1);
+  WaitForSingleObject(child.get(), 5000);  // until the file it ran from can be replaced
+  return false;
+}
+
+std::filesystem::path running_exe() {
+  std::wstring buffer(32768, L'\0');
+  const DWORD n = GetModuleFileNameW(nullptr, buffer.data(), static_cast<DWORD>(buffer.size()));
+  buffer.resize(n);
+  return buffer;
+}
+
+void report_started(unsigned long parent_pid) {
+  const Kernel started(OpenEventW(EVENT_MODIFY_STATE, FALSE, ack_event_name(parent_pid).c_str()));
+  if (started.get() != nullptr) SetEvent(started.get());
+}
+
+void wait_for_exit(unsigned long parent_pid) {
+  const Kernel parent(OpenProcess(SYNCHRONIZE, FALSE, parent_pid));
+  if (parent.get() != nullptr) WaitForSingleObject(parent.get(), exit_wait_ms);
+}
+
+}  // namespace crpp::update

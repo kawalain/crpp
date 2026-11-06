@@ -2,6 +2,8 @@
 
 #include <algorithm>
 #include <array>
+#include <fstream>
+#include <iterator>
 #include <system_error>
 #include <utility>
 
@@ -37,6 +39,24 @@ std::vector<std::string_view> matching(const std::vector<std::string>& files, co
 }
 
 std::string lower_name(std::string_view name) { return lower(std::string(name)); }
+
+// The Korean name in a pack.json ({"name": {"ko": "...", "en": "..."}}); these files
+// come with the app and hold nothing else, so this is no JSON parser.
+std::string pack_name(const fs::path& json, std::string fallback) {
+  std::ifstream in(json, std::ios::binary);
+  const std::string text{std::istreambuf_iterator<char>(in), std::istreambuf_iterator<char>()};
+  auto at = text.find("\"ko\"");
+  if (at == std::string::npos || (at = text.find(':', at)) == std::string::npos ||
+      (at = text.find('"', at)) == std::string::npos) {
+    return fallback;
+  }
+  const auto end = text.find('"', at + 1);
+  return end == std::string::npos ? fallback : text.substr(at + 1, end - at - 1);
+}
+
+bool numbered(std::string_view text) {
+  return !text.empty() && std::ranges::all_of(text, [](char c) { return c >= '0' && c <= '9'; });
+}
 
 }  // namespace
 
@@ -81,6 +101,21 @@ std::optional<std::string_view> sound_name(wire::Kind kind) noexcept {
   }
 }
 
+std::optional<fs::path> notification_file(const fs::path& root, std::string_view name) {
+  const std::string wanted = lower_name(name) + ".wav";
+  std::error_code ec;
+  for (const auto& entry : fs::directory_iterator(root / "Notifications", ec)) {
+    const std::string file = lower(entry.path().filename().string());
+    if (file == wanted) return entry.path();
+    const auto underscore = file.find('_');
+    if (underscore != std::string::npos && numbered(std::string_view(file).substr(0, underscore)) &&
+        std::string_view(file).substr(underscore + 1) == wanted) {
+      return entry.path();
+    }
+  }
+  return std::nullopt;
+}
+
 Device device_of(wire::Kind kind) noexcept {
   const auto k = static_cast<std::uint8_t>(kind);
   if (k < 16) return Device::Mouse;
@@ -106,7 +141,8 @@ Catalog Catalog::scan(const fs::path& root) {
           std::all_of(id.begin(), id.begin() + static_cast<std::ptrdiff_t>(underscore), [](char c) { return c >= '0' && c <= '9'; })) {
         id.erase(0, underscore + 1);
       }
-      Pack pack{device, std::move(id), dir, {}};
+      std::string name = pack_name(dir / "pack.json", id);
+      Pack pack{device, std::move(id), std::move(name), dir, {}};
       for (const auto& file : fs::directory_iterator(dir, ec)) {
         if (file.is_regular_file(ec)) pack.files.push_back(file.path().filename().string());
       }
@@ -122,6 +158,17 @@ std::vector<std::string> Catalog::packs(Device device) const {
     if (pack.device == device) ids.push_back(pack.id);
   }
   return ids;
+}
+
+std::vector<PackInfo> Catalog::choices(Device device) const {
+  std::vector<PackInfo> found;
+  for (const Pack& pack : packs_) {
+    if (pack.device != device) continue;
+    if (std::ranges::any_of(pack.files, [](const std::string& file) { return lower(file).ends_with(".wav"); })) {
+      found.push_back({pack.id, pack.name});
+    }
+  }
+  return found;
 }
 
 const Catalog::Pack* Catalog::find(Device device, std::string_view id) const noexcept {

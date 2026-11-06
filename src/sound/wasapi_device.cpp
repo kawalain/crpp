@@ -6,12 +6,14 @@
 #include <avrt.h>
 #include <mmdeviceapi.h>
 #include <mmreg.h>
+#include <propidl.h>
 #include <xmmintrin.h>
 
 #include <algorithm>
 #include <atomic>
 #include <cstdint>
 #include <mutex>
+#include <string>
 #include <thread>
 #include <vector>
 
@@ -27,6 +29,26 @@ void release(T*& p) noexcept {
 
 enum class SampleType : std::uint8_t { Float32, Int16 };
 
+std::wstring to_wide(std::string_view utf8) {
+  if (utf8.empty()) return {};
+  const int size = static_cast<int>(utf8.size());
+  std::wstring wide(static_cast<std::size_t>(MultiByteToWideChar(CP_UTF8, 0, utf8.data(), size, nullptr, 0)), L'\0');
+  MultiByteToWideChar(CP_UTF8, 0, utf8.data(), size, wide.data(), static_cast<int>(wide.size()));
+  return wide;
+}
+
+std::string to_utf8(std::wstring_view wide) {
+  if (wide.empty()) return {};
+  const int size = static_cast<int>(wide.size());
+  std::string utf8(static_cast<std::size_t>(WideCharToMultiByte(CP_UTF8, 0, wide.data(), size, nullptr, 0, nullptr, nullptr)), '\0');
+  WideCharToMultiByte(CP_UTF8, 0, wide.data(), size, utf8.data(), static_cast<int>(utf8.size()), nullptr, nullptr);
+  return utf8;
+}
+
+// PKEY_Device_FriendlyName (functiondiscoverykeys_devpkey.h), defined here because
+// that header's definition needs the initguid dance in exactly one file.
+const PROPERTYKEY friendly_name_key{{0xa45c254e, 0xdf1c, 0x4efd, {0x80, 0x20, 0x67, 0xd1, 0x46, 0xa8, 0x50, 0xe0}}, 14};
+
 }  // namespace
 
 struct WasapiDevice::Impl final : IMMNotificationClient {
@@ -37,7 +59,12 @@ struct WasapiDevice::Impl final : IMMNotificationClient {
     if (changed) changed();
   }
 
-  // ---- IMMNotificationClient: only sets a flag, as its rules require ----
+  // The endpoint asked for, and whether the stream fell back to the default one.
+  std::wstring selected;  // guarded by changed_mutex
+  std::atomic<bool> on_default{true};
+
+  // ---- IMMNotificationClient. Its rules forbid waiting; these locks are only ever
+  // held for a moment, and never around a call into Windows. ----
   ULONG STDMETHODCALLTYPE AddRef() override { return 1; }
   ULONG STDMETHODCALLTYPE Release() override { return 1; }
   HRESULT STDMETHODCALLTYPE QueryInterface(REFIID iid, void** out) override {
@@ -49,10 +76,19 @@ struct WasapiDevice::Impl final : IMMNotificationClient {
     return E_NOINTERFACE;
   }
   HRESULT STDMETHODCALLTYPE OnDefaultDeviceChanged(EDataFlow flow, ERole role, LPCWSTR) override {
-    if (flow == eRender && role == eConsole) notify_changed();
+    if (flow == eRender && role == eConsole && on_default.load()) notify_changed();
     return S_OK;
   }
-  HRESULT STDMETHODCALLTYPE OnDeviceStateChanged(LPCWSTR, DWORD) override { return S_OK; }
+  HRESULT STDMETHODCALLTYPE OnDeviceStateChanged(LPCWSTR id, DWORD) override {
+    // The chosen device left, or came back while the default stood in for it.
+    bool mine = false;
+    {
+      std::lock_guard lock(changed_mutex);
+      mine = id && selected == id;
+    }
+    if (mine) notify_changed();
+    return S_OK;
+  }
   HRESULT STDMETHODCALLTYPE OnDeviceAdded(LPCWSTR) override { return S_OK; }
   HRESULT STDMETHODCALLTYPE OnDeviceRemoved(LPCWSTR) override { return S_OK; }
   HRESULT STDMETHODCALLTYPE OnPropertyValueChanged(LPCWSTR, const PROPERTYKEY) override { return S_OK; }
@@ -133,6 +169,12 @@ WasapiDevice::WasapiDevice() : impl_(std::make_unique<Impl>()) {}
 
 WasapiDevice::~WasapiDevice() { close(); }
 
+void WasapiDevice::select(std::string_view device) {
+  std::wstring wide = to_wide(device);
+  std::lock_guard lock(impl_->changed_mutex);
+  impl_->selected = std::move(wide);
+}
+
 void WasapiDevice::set_on_changed(std::function<void()> changed) {
   std::lock_guard lock(impl_->changed_mutex);
   impl_->changed = std::move(changed);
@@ -154,8 +196,18 @@ std::expected<std::uint32_t, DeviceError> WasapiDevice::open(Renderer& renderer)
   }
   s.registered = SUCCEEDED(s.enumerator->RegisterEndpointNotificationCallback(&s));
 
+  std::wstring selected;
+  {
+    std::lock_guard lock(s.changed_mutex);
+    selected = s.selected;
+  }
   IMMDevice* endpoint = nullptr;
-  HRESULT hr = s.enumerator->GetDefaultAudioEndpoint(eRender, eConsole, &endpoint);
+  if (!selected.empty() && SUCCEEDED(s.enumerator->GetDevice(selected.c_str(), &endpoint))) {
+    DWORD state = 0;
+    if (FAILED(endpoint->GetState(&state)) || state != DEVICE_STATE_ACTIVE) release(endpoint);
+  }
+  s.on_default = endpoint == nullptr;
+  HRESULT hr = endpoint ? S_OK : s.enumerator->GetDefaultAudioEndpoint(eRender, eConsole, &endpoint);
   if (SUCCEEDED(hr)) hr = endpoint->Activate(__uuidof(IAudioClient), CLSCTX_ALL, nullptr, reinterpret_cast<void**>(&s.client));
   release(endpoint);
   if (FAILED(hr)) return fail(DeviceError::Unavailable);
@@ -224,6 +276,96 @@ void WasapiDevice::close() {
   release(s.enumerator);
   if (s.com_ready) CoUninitialize();
   s.com_ready = false;
+}
+
+struct OutputDevices::Impl final : IMMNotificationClient {
+  bool com_ready = false;
+  IMMDeviceEnumerator* enumerator = nullptr;
+  bool registered = false;
+  std::function<void()> changed;  // set before registering, then only read
+
+  ULONG STDMETHODCALLTYPE AddRef() override { return 1; }
+  ULONG STDMETHODCALLTYPE Release() override { return 1; }
+  HRESULT STDMETHODCALLTYPE QueryInterface(REFIID iid, void** out) override {
+    if (iid == __uuidof(IUnknown) || iid == __uuidof(IMMNotificationClient)) {
+      *out = static_cast<IMMNotificationClient*>(this);
+      return S_OK;
+    }
+    *out = nullptr;
+    return E_NOINTERFACE;
+  }
+  HRESULT STDMETHODCALLTYPE OnDefaultDeviceChanged(EDataFlow, ERole, LPCWSTR) override { return S_OK; }
+  HRESULT STDMETHODCALLTYPE OnDeviceStateChanged(LPCWSTR, DWORD) override {
+    changed();
+    return S_OK;
+  }
+  HRESULT STDMETHODCALLTYPE OnDeviceAdded(LPCWSTR) override {
+    changed();
+    return S_OK;
+  }
+  HRESULT STDMETHODCALLTYPE OnDeviceRemoved(LPCWSTR) override {
+    changed();
+    return S_OK;
+  }
+  HRESULT STDMETHODCALLTYPE OnPropertyValueChanged(LPCWSTR, const PROPERTYKEY key) override {
+    if (key.fmtid == friendly_name_key.fmtid && key.pid == friendly_name_key.pid) changed();
+    return S_OK;
+  }
+};
+
+OutputDevices::OutputDevices() : impl_(std::make_unique<Impl>()) {
+  // Whatever model the thread already has will do; each success is paired below.
+  impl_->com_ready = SUCCEEDED(CoInitializeEx(nullptr, COINIT_APARTMENTTHREADED));
+  (void)CoCreateInstance(__uuidof(MMDeviceEnumerator), nullptr, CLSCTX_ALL, __uuidof(IMMDeviceEnumerator),
+                         reinterpret_cast<void**>(&impl_->enumerator));
+}
+
+OutputDevices::~OutputDevices() {
+  Impl& s = *impl_;
+  if (s.enumerator && s.registered) s.enumerator->UnregisterEndpointNotificationCallback(&s);
+  release(s.enumerator);
+  if (s.com_ready) CoUninitialize();
+}
+
+void OutputDevices::watch(std::function<void()> changed) {
+  Impl& s = *impl_;
+  if (!s.enumerator || s.registered) return;
+  s.changed = std::move(changed);
+  s.registered = SUCCEEDED(s.enumerator->RegisterEndpointNotificationCallback(&s));
+}
+
+std::vector<OutputDevice> OutputDevices::list() const {
+  std::vector<OutputDevice> devices;
+  IMMDeviceCollection* collection = nullptr;
+  if (!impl_->enumerator || FAILED(impl_->enumerator->EnumAudioEndpoints(eRender, DEVICE_STATE_ACTIVE, &collection))) {
+    return devices;
+  }
+  UINT count = 0;
+  if (FAILED(collection->GetCount(&count))) count = 0;
+  for (UINT i = 0; i < count; ++i) {
+    IMMDevice* device = nullptr;
+    if (FAILED(collection->Item(i, &device))) continue;
+    OutputDevice entry;
+    LPWSTR id = nullptr;
+    if (SUCCEEDED(device->GetId(&id))) {
+      entry.id = to_utf8(id);
+      CoTaskMemFree(id);
+    }
+    IPropertyStore* properties = nullptr;
+    if (SUCCEEDED(device->OpenPropertyStore(STGM_READ, &properties))) {
+      PROPVARIANT name;
+      PropVariantInit(&name);
+      if (SUCCEEDED(properties->GetValue(friendly_name_key, &name)) && name.vt == VT_LPWSTR && name.pwszVal) {
+        entry.name = to_utf8(name.pwszVal);
+      }
+      PropVariantClear(&name);
+      release(properties);
+    }
+    release(device);
+    if (!entry.id.empty()) devices.push_back(std::move(entry));
+  }
+  release(collection);
+  return devices;
 }
 
 }  // namespace crpp::sound

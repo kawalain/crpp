@@ -34,6 +34,14 @@ class Random {
   std::uint64_t state_;
 };
 
+// A notification sound, by its file's name with or without the leading number:
+// "cloud_chat" and "01_cloud_chat" both find Notifications/01_cloud_chat.wav.
+[[nodiscard]] std::optional<std::filesystem::path> notification_file(const std::filesystem::path& root, std::string_view name);
+
+struct PackInfo {
+  std::string id, name;
+};
+
 class Catalog {
  public:
   // Reads the folder structure under `root` (the "sounds" folder).
@@ -42,6 +50,8 @@ class Catalog {
   [[nodiscard]] bool empty() const noexcept { return packs_.empty(); }
   // The pack ids of a device, in display order. The first is its default.
   [[nodiscard]] std::vector<std::string> packs(Device device) const;
+  // What a user can pick for a device: only packs with recordings, by their name.
+  [[nodiscard]] std::vector<PackInfo> choices(Device device) const;
 
   // The file to play, or empty if this pack has no sound for the kind. An unknown
   // pack means the device's default.
@@ -51,6 +61,7 @@ class Catalog {
   struct Pack {
     Device device;
     std::string id;
+    std::string name;
     std::filesystem::path dir;
     std::vector<std::string> files;  // as on disk; compared without case
   };

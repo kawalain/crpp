@@ -1,4 +1,4 @@
-add_library(crpp_sound STATIC pcm.cpp catalog.cpp mixer.cpp engine.cpp)
+add_library(crpp_sound STATIC pcm.cpp catalog.cpp mixer.cpp engine.cpp synth.cpp)
 target_include_directories(crpp_sound PUBLIC include)
 target_link_libraries(crpp_sound PUBLIC crpp_wire Threads::Threads)
 crpp_target_defaults(crpp_sound)
@@ -13,6 +13,7 @@ function(crpp_sound_test name)
 endfunction()
 
 crpp_sound_test(pcm)
+crpp_sound_test(synth)
 crpp_sound_test(catalog)
 crpp_sound_test(mixer)
 crpp_sound_test(engine)

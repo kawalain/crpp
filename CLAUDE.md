@@ -170,7 +170,7 @@ exist (real + test).
   batches: the first event after a pause at once, then every 10 ms at most. A
   mouse move costs about 8,700 cycles this way, against 50,000 read one by one.
 - `sound`: pack loading and a pure `render(span<float>)` mixer; device adapter
-  behind it. The stream uses the default period (about 10 ms), not the smallest
+  behind it. `synth` makes a short stand-in for a recording that could not be fetched. The stream uses the default period (about 10 ms), not the smallest
   the research note suggests: CPU comes first and network delay dwarfs the gain.
 - `store`: settings, Seats and chat cache in the Protected or Shared store; a
   flushed temp file + rename for every write. `Platform` is the seam for DPAPI
@@ -234,7 +234,8 @@ exist (real + test).
   full idle period in a real Room. It ends on a key or click, not on mouse movement
   alone: Raw Input only reports Input kinds.
 - The sound of spatial audio and reverb needs ears: run
-  `crpp_soundtest assets/sounds`, which walks every seat.
+  `crpp_soundtest assets/sounds`, which walks every seat. `--synth` plays the generated
+  stand-ins instead, which also need ears.
 - Following the OS theme: `WM_SETTINGCHANGE` was only posted in a scripted run.
   Flipping the real Windows setting and seeing the dark title bar are unverified.
 - The tray needs a real desktop: a hidden one has no taskbar, so the icon fails to

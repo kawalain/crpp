@@ -1,5 +1,7 @@
 #include "crpp/sound/engine.hpp"
 
+#include "crpp/sound/synth.hpp"
+
 #include <algorithm>
 #include <fstream>
 #include <iterator>
@@ -293,6 +295,20 @@ std::span<const float> Engine::recording(const std::filesystem::path& path) {
   return recordings_.emplace(key, std::move(converted)).first->second;
 }
 
+// Kept with the recordings: voices point into them, and they cost nothing until needed.
+std::span<const float> Engine::generated(wire::Kind kind, std::string_view pack) {
+  const auto variant = static_cast<std::uint32_t>(random_.below(synth_variants));
+  const std::string key = "generated:" + std::string(pack) + ":" + std::to_string(static_cast<int>(kind)) + ":" + std::to_string(variant);
+  if (const auto found = recordings_.find(key); found != recordings_.end()) return found->second;
+  return recordings_.emplace(key, synthesize(kind, pack, rate_, variant)).first->second;
+}
+
+std::span<const float> Engine::generated_cue(const std::string& name) {
+  const std::string key = "generated:" + name;
+  if (const auto found = recordings_.find(key); found != recordings_.end()) return found->second;
+  return recordings_.emplace(key, synthesize_cue(name, rate_)).first->second;
+}
+
 int Engine::volume_of(std::uint32_t slot) const {
   for (const Member& member : members_) {
     if (member.slot != slot) continue;
@@ -322,10 +338,13 @@ void Engine::play(const Event& event) {
   const int member_volume = event.own ? 100 : volume_of(event.slot);
   if (member_volume <= 0) return;
   if (catalog_.empty()) catalog_ = Catalog::scan(sounds_dir_, expected_);
-  const auto file = catalog_.pick(event.kind, pack_for(event, device), random_);
+  const std::string_view pack = pack_for(event, device);
+  const auto file = catalog_.pick(event.kind, pack, random_);
   if (!file || !ensure_open()) return;
   const SeatMix mix = event.own ? own_mix() : seat_mixes_[seat_of(event.slot)];
-  start_voice(recording(*file), mix, gain_of(device_volume) * gain_of(member_volume));
+  std::span<const float> samples = recording(*file);
+  if (samples.empty()) samples = generated(event.kind, pack);
+  start_voice(samples, mix, gain_of(device_volume) * gain_of(member_volume));
 }
 
 void Engine::play_cue(const Cue& cue) {
@@ -336,8 +355,11 @@ void Engine::play_cue(const Cue& cue) {
   }
   const auto file = cue.kind == CueKind::System ? std::optional(sounds_dir_ / "system" / (cue.name + ".wav"))
                                                 : notification_file(sounds_dir_, cue.name);
-  if (!file || !ensure_open()) return;
-  start_voice(recording(*file), own_mix(), 1.0f);
+  if ((!file && !can_synthesize_cue(cue.name)) || !ensure_open()) return;
+  std::span<const float> samples;
+  if (file) samples = recording(*file);
+  if (samples.empty()) samples = generated_cue(cue.name);
+  start_voice(samples, own_mix(), 1.0f);
 }
 
 }  // namespace crpp::sound

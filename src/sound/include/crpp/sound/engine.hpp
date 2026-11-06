@@ -145,6 +145,8 @@ class Engine final : private Renderer {
   void start_voice(std::span<const float> samples, const SeatMix& mix, float gain);
   [[nodiscard]] int volume_of(std::uint32_t slot) const;
   [[nodiscard]] std::span<const float> recording(const std::filesystem::path& path);
+  [[nodiscard]] std::span<const float> generated(wire::Kind kind, std::string_view pack);
+  [[nodiscard]] std::span<const float> generated_cue(const std::string& name);
   [[nodiscard]] std::string_view pack_for(const Event& event, Device device) const;
   [[nodiscard]] std::size_t seat_of(std::uint32_t slot) const;
 

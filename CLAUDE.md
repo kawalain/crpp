@@ -83,8 +83,9 @@ Done means: state logic has CTest coverage, `--shot` output has been compared
 with upstream by eye (pixel equality is not required), a scripted run passes on a
 hidden desktop, and idle memory and CPU have been measured.
 
-Scripted runs and tests connect to a local build of upstream's `server/`, one port
-per subagent, never to production. Never create accounts on production.
+Scripted runs and tests stay off the network or use a scripted localhost server, and
+never reach production. Never create accounts on production. No part of this has run
+against a real `server/` yet; do that once a local build of it is available.
 
 ## Differences from upstream
 

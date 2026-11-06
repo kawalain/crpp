@@ -153,7 +153,7 @@ bool RoomScreen::shaking() const {
 
 bool RoomScreen::animating() const {
   return !pulses_.empty() || tip_.animating(ui_) || copy_tip_.animating(ui_) || shaking() || profile_.animating() ||
-         menu_.animating();
+         menu_.animating() || chat_panel_.animating();
 }
 
 bool RoomScreen::tick(unsigned long long now_ms) {
@@ -162,6 +162,7 @@ bool RoomScreen::tick(unsigned long long now_ms) {
   bool changed = pulses_.size() != before;
   if (tip_.animating(ui_) || copy_tip_.animating(ui_) || shaking() || menu_.animating()) changed = true;
   changed = profile_.tick(now_ms) || changed;
+  changed = chat_panel_.tick(now_ms) || changed;
   // The chat switch locks 5 minutes after chat was turned on.
   if (lock_pending_ && now_ms >= chat_lock_at_) {
     lock_pending_ = false;
@@ -181,7 +182,8 @@ bool RoomScreen::tick(unsigned long long now_ms) {
 
 unsigned long long RoomScreen::wake_at() const {
   unsigned long long at = 0;
-  for (const auto wake : {copy_until_, hint_muted_until_, lock_pending_ ? chat_lock_at_ : 0ULL, profile_.wake_at()}) {
+  for (const auto wake : {copy_until_, hint_muted_until_, lock_pending_ ? chat_lock_at_ : 0ULL, profile_.wake_at(),
+                          chat_panel_.wake_at()}) {
     if (wake != 0 && (at == 0 || wake < at)) at = wake;
   }
   return at;

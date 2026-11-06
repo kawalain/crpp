@@ -586,9 +586,248 @@ void test_right_click_elsewhere_closes_the_menu() {
   CHECK(!room.member_menu().is_open());
 }
 
+std::wstring slice(std::wstring_view text, LinkSpan link) { return std::wstring(text.substr(link.start, link.length)); }
+
+void test_links_are_https_with_punctuation_left_out() {
+  const auto one = [](std::wstring_view text) {
+    const auto links = find_links(text);
+    return links.size() == 1 ? slice(text, links[0]) : std::wstring(L"<none>");
+  };
+  CHECK(one(L"https://a.com") == L"https://a.com");
+  CHECK(one(L"봐요 https://a.com/b?c=1#d 여기") == L"https://a.com/b?c=1#d");
+  CHECK(one(L"https://a.com.") == L"https://a.com");
+  CHECK(one(L"https://a.com/x!?,") == L"https://a.com/x");
+  CHECK(one(L"(https://a.com/x)") == L"https://a.com/x");
+  CHECK(one(L"https://w.org/w/%EC(%EC)") == L"https://w.org/w/%EC(%EC)");  // its own bracket stays
+  CHECK(one(L"https://a.com/x]") == L"https://a.com/x");
+  CHECK(find_links(L"http://a.com").empty());
+  CHECK(find_links(L"https://").empty());
+  CHECK(find_links(L"https://.a").empty());
+  CHECK(find_links(L"그냥 글").empty());
+  const std::wstring_view two = L"https://a.b, https://c.d";
+  const auto links = find_links(two);
+  CHECK(links.size() == 2);
+  if (links.size() == 2) {
+    CHECK(slice(two, links[0]) == L"https://a.b");
+    CHECK(slice(two, links[1]) == L"https://c.d");
+  }
+}
+
+void test_limiter_allows_a_burst_then_cools_down() {
+  ChatLimiter l;
+  for (int i = 0; i < 10; ++i) CHECK(l.try_send(1000 + static_cast<unsigned>(i)));
+  CHECK(!l.calm());
+  CHECK(!l.try_send(1100));  // the eleventh
+  CHECK(l.calm());
+  CHECK(l.cooling());
+  CHECK(l.calm_text() == "진정하세요 ! ! !");
+  CHECK(!l.try_send(1200));  // one more attempt, one more mark
+  CHECK(l.calm_text() == "진정하세요 ! ! ! !");
+
+  CHECK(l.wake_at() == 1200 + 5000 - 150);
+  CHECK(l.expire(l.wake_at()));
+  CHECK(!l.cooling());
+  CHECK(l.calm());  // the bubble lingers
+  CHECK(l.try_send(1200 + 5000 - 150));  // and the count started over
+  CHECK(l.wake_at() == 1200 + 5000 + 1000);
+  CHECK(l.expire(l.wake_at()));
+  CHECK(!l.calm());
+  CHECK(l.wake_at() == 0);
+}
+
+void test_limiter_forgets_old_messages() {
+  ChatLimiter l;
+  for (int i = 0; i < 10; ++i) CHECK(l.try_send(1000));
+  CHECK(l.try_send(11001));  // the window has passed
+}
+
+void test_limiter_marks_stop_at_twenty() {
+  ChatLimiter l;
+  for (int i = 0; i < 10; ++i) CHECK(l.try_send(1000));
+  for (unsigned i = 0; i < 40; ++i) CHECK(!l.try_send(1100 + i));
+  CHECK(l.calm_text() == "진정하세요 ! ! ! ! ! ! ! ! ! ! ! ! ! ! ! ! ! ! ! !");
+}
+
+void test_limiter_tells_foreseen_from_unforeseen_blocks() {
+  ChatLimiter l;
+  CHECK(l.server_blocked(1000, 5000));  // nothing here saw it coming
+  CHECK(l.calm());
+  CHECK(!l.try_send(1100));
+  CHECK(!l.server_blocked(1101, 5000));  // the answer to that attempt
+  CHECK(l.calm_text() == "진정하세요 ! ! ! !");  // counted once, not twice
+}
+
+void send_text(UiHarness& h, ChatPanel& chat, const wchar_t* text) {
+  chat.input().set_text(text);
+  CHECK(h.click(chat, ChatPanel::Send));
+}
+
+void test_chat_blocks_the_eleventh_and_keeps_its_text() {
+  UiHarness h;
+  CHECK(h.start());
+  enter(h, 3, true);
+  ChatPanel& chat = h.app.room().chat();
+  int sent = 0;
+  chat.on_send = [&](std::string) {
+    ++sent;
+    return true;
+  };
+  for (int i = 0; i < 10; ++i) send_text(h, chat, L"안녕");
+  CHECK(sent == 10);
+  CHECK(chat.input().text().empty());
+  CHECK(!chat.limiter().calm());
+
+  send_text(h, chat, L"또");
+  CHECK(sent == 11);  // the server hears it too, and extends its own block
+  CHECK(chat.input().text() == L"또");
+  CHECK(chat.limiter().calm());
+  CHECK(chat.limiter().cooling());
+  CHECK(h.app.wake_at() != 0);
+
+  // Its answer changes nothing more; the block stays for the next one.
+  chat.input().clear();
+  chat.blocked(5000);
+  CHECK(chat.input().text().empty());
+}
+
+void test_an_unforeseen_block_brings_the_message_back() {
+  UiHarness h;
+  CHECK(h.start());
+  enter(h, 3, true);
+  ChatPanel& chat = h.app.room().chat();
+  chat.on_send = [](std::string) { return true; };
+  send_text(h, chat, L"안녕");
+  CHECK(chat.input().text().empty());
+  chat.blocked(5000);
+  h.render();
+  CHECK(chat.input().text() == L"안녕");
+  CHECK(chat.limiter().calm());
+  // And it does not overwrite what is being typed.
+  chat.input().set_text(L"다른 글");
+  chat.blocked(5000);
+  CHECK(chat.input().text() == L"다른 글");
+}
+
+void test_send_failure_keeps_the_text_and_says_so() {
+  UiHarness h;
+  CHECK(h.start());
+  enter(h, 3, true);
+  ChatPanel& chat = h.app.room().chat();
+  chat.on_send = [](std::string) { return false; };
+  send_text(h, chat, L"안녕");
+  CHECK(chat.input().text() == L"안녕");
+  CHECK(h.app.wake_at() != 0);  // the toast
+}
+
+ChatEntry entry_with(std::string text) { return {1, "c1", "하늘", "", std::move(text), 1700000000000}; }
+
+void test_link_opens_through_the_seam_and_shows_its_tip() {
+  UiHarness h;
+  CHECK(h.start());
+  enter(h, 3, true);
+  ChatPanel& chat = h.app.room().chat();
+  std::vector<std::string> opened;
+  bool works = true;
+  chat.on_open_link = [&](const std::string& url) {
+    opened.push_back(url);
+    return works;
+  };
+  chat.add(entry_with("자료는 https://example.com/a. 입니다"));
+  h.render();
+  const int link = ChatPanel::LinkBase;
+  CHECK(h.drawn(chat, link));
+  CHECK(h.drawn(chat, ChatPanel::Area));
+  hover(h, chat, link);
+  CHECK(chat.link_tip().visible());
+  CHECK(chat.link_tip().text() == "링크 연결");
+  CHECK(h.app.cursor() == Cursor::Hand);
+  CHECK(h.click(chat, link));
+  CHECK(opened.size() == 1 && opened[0] == "https://example.com/a");
+  CHECK(h.app.wake_at() == 0);
+  works = false;
+  CHECK(h.click(chat, link));
+  CHECK(h.app.wake_at() != 0);  // "링크를 열지 못했어요."
+  h.app.mouse_leave();
+  h.render();
+  CHECK(!chat.link_tip().visible());
+}
+
+void test_cursors_of_the_chat() {
+  UiHarness h;
+  CHECK(h.start());
+  enter(h, 3, true);
+  ChatPanel& chat = h.app.room().chat();
+  h.render();
+  hover(h, chat, ChatPanel::Input);
+  CHECK(h.app.cursor() == Cursor::IBeam);
+  hover(h, chat, ChatPanel::Send);
+  CHECK(h.app.cursor() == Cursor::Hand);
+}
+
+void test_older_messages_come_by_the_page_and_nothing_jumps() {
+  UiHarness h;
+  CHECK(h.start());
+  enter(h, 3, true);
+  ChatPanel& chat = h.app.room().chat();
+  for (int i = 0; i < 250; ++i) chat.add(entry_with("메시지 " + std::to_string(i)));
+  h.render();
+  CHECK(chat.log_size() == 250);
+  CHECK(chat.shown() == 100);
+
+  // Up to the top of the first page.
+  const Ui::Hit* area = h.app.ui().find_hit(&chat, ChatPanel::Area);
+  CHECK(area != nullptr);
+  const float x = area->rect.x + 30, y = area->rect.y + 30;
+  while (chat.shown() == 100) {
+    h.app.wheel(x, y, 50);
+    h.render();
+  }
+  CHECK(chat.shown() == 200);
+  CHECK(chat.scroll_offset() > 60);  // stayed on the same messages
+
+  while (chat.shown() == 200) {
+    h.app.wheel(x, y, 50);
+    h.render();
+  }
+  CHECK(chat.shown() == 250);
+
+  // New ones still arrive at the end, one measured at a time.
+  chat.add(entry_with("새 메시지"));
+  h.render();
+  CHECK(chat.shown() == 251);
+}
+
+void test_clearing_the_chat_starts_over() {
+  UiHarness h;
+  CHECK(h.start());
+  enter(h, 3, true);
+  ChatPanel& chat = h.app.room().chat();
+  for (int i = 0; i < 150; ++i) chat.add(entry_with("메시지"));
+  h.render();
+  chat.blocked(5000);
+  chat.clear();
+  CHECK(!chat.limiter().calm());
+  for (int i = 0; i < 120; ++i) chat.add(entry_with("다른 구름"));
+  h.render();
+  CHECK(chat.shown() == 100);
+  CHECK(h.drawn(chat, ChatPanel::Area));
+}
+
 }  // namespace
 
 int main() {
+  test_links_are_https_with_punctuation_left_out();
+  test_limiter_allows_a_burst_then_cools_down();
+  test_limiter_forgets_old_messages();
+  test_limiter_marks_stop_at_twenty();
+  test_limiter_tells_foreseen_from_unforeseen_blocks();
+  test_chat_blocks_the_eleventh_and_keeps_its_text();
+  test_an_unforeseen_block_brings_the_message_back();
+  test_send_failure_keeps_the_text_and_says_so();
+  test_link_opens_through_the_seam_and_shows_its_tip();
+  test_cursors_of_the_chat();
+  test_older_messages_come_by_the_page_and_nothing_jumps();
+  test_clearing_the_chat_starts_over();
   test_stay_and_count_read_like_upstream();
   test_clicking_a_member_asks_and_the_answer_opens_the_card();
   test_a_late_refresh_does_not_reopen_the_card();

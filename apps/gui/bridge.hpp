@@ -54,6 +54,9 @@ class Bridge final : public client::Observer {
   // UI thread: remember which held Seat a resume is for, to forget it if refused.
   void expect_resume(std::string code) { resume_code_ = std::move(code); }
 
+  // UI thread: whether a message can be sent at all right now.
+  [[nodiscard]] bool in_room() const { return in_room_; }
+
   // UI thread: the user leaves. The Seat stays held for a while.
   void leaving();
 
@@ -74,6 +77,7 @@ class Bridge final : public client::Observer {
   std::uint32_t me_ = 0;
   bool is_public_ = false;
   bool keep_seat_ = false;
+  bool in_room_ = false;
   std::string room_code_;
   std::string resume_code_;
 };

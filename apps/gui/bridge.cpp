@@ -20,6 +20,7 @@ void Bridge::leaving() {
 
 void Bridge::on_status(session::State s) {
   tasks_.post([this, s] {
+    in_room_ = s == session::State::InRoom;
     if (on_state) on_state(s);
     if (s != session::State::Idle) return;
     const auto now = unix_ms();

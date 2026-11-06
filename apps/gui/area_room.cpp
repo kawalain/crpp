@@ -5,6 +5,8 @@
 #include "areas.hpp"
 #include "shell.hpp"
 
+#include <shellapi.h>  // after windows.h, which shell.hpp brings
+
 using namespace crpp::ui;
 
 namespace crpp::gui::area::room {
@@ -65,7 +67,17 @@ void wire(Shell& s) {
   };
   s.app.room().on_set_public = [sp](bool v) { sp->client->set_visibility(v); };
   s.app.room().on_set_chat = [sp](bool v) { sp->client->set_chat_enabled(v); };
-  s.app.room().chat().on_send = [sp](std::string text) { sp->client->send_chat(text); };
+  s.app.room().chat().on_send = [sp](std::string text) {
+    // The session drops what it cannot send, so this is where that shows.
+    if (!sp->bridge->in_room()) return false;
+    sp->client->send_chat(text);
+    return true;
+  };
+  s.app.room().chat().on_open_link = [](const std::string& url) {
+    // ShellExecute's result above 32 means it worked.
+    return reinterpret_cast<INT_PTR>(ShellExecuteW(nullptr, L"open", widen(url).c_str(), nullptr, nullptr, SW_SHOWNORMAL)) > 32;
+  };
+  s.bridge->on_chat_blocked = [sp](std::uint64_t ms) { sp->app.room().chat().blocked(ms); };
   s.app.room().on_copy = [sp](std::string text) { return copy_to_clipboard(sp->hwnd, text); };
   s.app.room().on_request_profile = [sp](std::uint32_t slot) { sp->client->request_profile(slot); };
   s.app.room().on_member_volume = [sp](const std::string& cid, int percent) { sound::set_member_volume(*sp, cid, percent); };
@@ -77,6 +89,11 @@ void wire(Shell& s) {
 }
 
 bool scene(Shell& s, std::string_view name) {
+  // Any of these in the dark theme: "room-menu-dark".
+  if (name.starts_with("room-") && name.ends_with("-dark")) {
+    s.app.set_theme(ThemeId::DarkCloud);
+    name.remove_suffix(5);
+  }
   if (name == "session") {
     demo_session(s.app, false);
     return true;
@@ -102,6 +119,13 @@ bool scene(Shell& s, std::string_view name) {
   if (name == "room-menu") {
     demo_session(s.app, false);
     s.app.room().member_menu().open(1, false, 70, 300, 320);
+    return true;
+  }
+  if (name == "room-calm") {
+    demo_session(s.app, true);
+    ChatPanel& chat = s.app.room().chat();
+    chat.add({1, "c1", "하늘", "1f431", "자료는 https://example.com/docs?page=1 에 있어요.", static_cast<long long>(std::time(nullptr)) * 1000});
+    chat.blocked(5000);
     return true;
   }
   if (name == "room-emoji") {

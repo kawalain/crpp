@@ -6,11 +6,14 @@
 #include <windowsx.h>
 
 #include <climits>
+#include <memory>
 #include <string>
 #include <string_view>
 #include <vector>
 
 #include "areas.hpp"
+#include "autostart.hpp"
+#include "autostart_windows.hpp"
 #include "os_policy.hpp"
 #include "shell.hpp"
 #include "tray.hpp"
@@ -29,6 +32,8 @@ constexpr std::string_view enter_sound_key = "cloud_enter", enter_sound_file = "
 struct State {
   TrayIcon tray;
   UINT taskbar_created = 0;
+  std::unique_ptr<RunKey> run_key;
+  bool reverting_autostart = false;
   bool flashing = false;
   bool notified = false;        // chat notifications may still be on screen
   int balloons = 0;             // shown or queued, for an icon that exists only for them
@@ -185,6 +190,19 @@ void on_tray_event(Shell& s, WPARAM wp, LPARAM lp) {
   }
 }
 
+// Only when the setting changes: Windows asks programs run from this key not to write
+// to it during their run, so a logon does not refresh it as upstream's does.
+void apply_start_with_system(Shell& s) {
+  wchar_t exe[MAX_PATH];
+  const DWORD n = GetModuleFileNameW(nullptr, exe, MAX_PATH);
+  const bool enabled = s.prefs->get(pref::start_with_system);
+  if (n > 0 && n < MAX_PATH && apply_autostart(*state.run_key, enabled, std::wstring_view(exe, n))) return;
+  state.reverting_autostart = true;
+  s.prefs->set(pref::start_with_system, !enabled);
+  state.reverting_autostart = false;
+  s.app.toasts().toast("시스템과 함께 자동 실행 설정을 바꾸지 못했어요.");
+}
+
 // A hidden window draws nothing. What it drew with comes back on the next WM_PAINT.
 void sync_hidden(Shell& s) {
   const bool hidden = os_policy::window_hidden(IsWindowVisible(s.hwnd) != FALSE, IsIconic(s.hwnd) != FALSE);
@@ -207,6 +225,8 @@ void sync_hidden(Shell& s) {
 void wire(Shell& s) {
   state.tray.attach(s.hwnd, s.app.ui().gfx);
   state.taskbar_created = RegisterWindowMessageW(L"TaskbarCreated");
+  if (s.isolated) state.run_key = std::make_unique<MemoryRunKey>();
+  else state.run_key = std::make_unique<WindowsRunKey>();
   if (tray_wanted(s)) state.tray.add();
 
   // These chain: another area may listen to the same events.
@@ -237,6 +257,7 @@ void pref_changed(Shell& s, std::string_view key) {
     if (tray_wanted(s)) state.tray.add();
     else if (state.balloons == 0) state.tray.remove();
   }
+  if (key == pref::start_with_system.name && !state.reverting_autostart) apply_start_with_system(s);
 }
 
 void first_show(Shell& s, bool minimized) {

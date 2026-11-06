@@ -1,5 +1,6 @@
 // crpp: the native Cloudroom window.
 //   crpp                          run the app
+//   crpp --minimized              run it hidden in the tray, as a logon does
 //   crpp --shot out.png [WxH] [hour] [scene] [notice]
 //                                 render a scene offscreen and exit; the area_*.cpp
 //                                 files name the scenes
@@ -138,7 +139,7 @@ int main(int argc, char** argv) {
   shell.tasks.attach(hwnd);
   shell.input_sink.attach(hwnd);
   wire_areas(shell);
-  area::os::first_show(shell, false);
+  area::os::first_show(shell, argc >= 2 && std::string(argv[1]) == "--minimized");
   if (argc >= 3 && std::string(argv[1]) == "--smoke") shell.smoke_path = ui::widen(argv[2]);
   Shell* sp = &shell;
   shell.app.setup().on_retry = [sp] { start_install(*sp); };

@@ -255,7 +255,10 @@ LRESULT CALLBACK wnd_proc(HWND hwnd, UINT msg, WPARAM wp, LPARAM lp) {
 }  // namespace
 
 void sync_frames(Shell& s) {
-  if (s.app.animating() && !s.frame_timer_on) {
+  if (s.hidden) {  // nobody to animate for; showing the window calls this again
+    if (s.frame_timer_on) KillTimer(s.hwnd, frame_timer);
+    s.frame_timer_on = false;
+  } else if (s.app.animating() && !s.frame_timer_on) {
     SetTimer(s.hwnd, frame_timer, 16, nullptr);
     s.frame_timer_on = true;
   }

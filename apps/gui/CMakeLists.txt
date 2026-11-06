@@ -2,7 +2,7 @@ if(WIN32)
   add_executable(crpp
     main.cpp window.cpp startup.cpp bridge.cpp shot.cpp
     area_connection.cpp area_home.cpp area_room.cpp area_sound.cpp area_preferences.cpp area_os.cpp area_account.cpp
-    area_update.cpp)
+    area_update.cpp tray.cpp autostart_windows.cpp)
   # Releases use MSVC, whose linker embeds this. A GCC build runs unaware of DPI,
   # which Windows scales for it; it exists to keep the code portable.
   if(MSVC)
@@ -16,4 +16,11 @@ if(WIN32)
   # the exe alone, and fetches them into the user's data folder.
   add_custom_command(TARGET crpp POST_BUILD
     COMMAND ${CMAKE_COMMAND} -E copy_directory ${PROJECT_SOURCE_DIR}/assets $<TARGET_FILE_DIR:crpp>/assets)
+
+  add_executable(crpp_gui_os_test tests/os_test.cpp tray.cpp)
+  target_link_libraries(crpp_gui_os_test PRIVATE crpp_ui)
+  target_include_directories(crpp_gui_os_test PRIVATE . ${PROJECT_SOURCE_DIR}/tests/support)
+  target_compile_definitions(crpp_gui_os_test PRIVATE _WIN32_WINNT=0x0A00)
+  crpp_target_defaults(crpp_gui_os_test)
+  add_test(NAME gui.os COMMAND crpp_gui_os_test)
 endif()

@@ -85,6 +85,7 @@ int main(int argc, char** argv) {
     argc -= 2;
   }
   Shell shell;
+  shell.isolated = !data_dir.empty();
   const assets::Manifest manifest = assets::built_in_manifest();
   shell.asset_url = assets::published_url(manifest);
   if (argc >= 3 && std::string(argv[argc - 2]) == "--asset-url") {
@@ -137,7 +138,7 @@ int main(int argc, char** argv) {
   shell.tasks.attach(hwnd);
   shell.input_sink.attach(hwnd);
   wire_areas(shell);
-  ShowWindow(hwnd, SW_SHOWDEFAULT);
+  area::os::first_show(shell, false);
   if (argc >= 3 && std::string(argv[1]) == "--smoke") shell.smoke_path = ui::widen(argv[2]);
   Shell* sp = &shell;
   shell.app.setup().on_retry = [sp] { start_install(*sp); };

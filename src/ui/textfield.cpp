@@ -43,7 +43,7 @@ void TextField::erase_selection() {
 void TextField::insert(std::wstring_view s) {
   std::wstring clean;
   for (const wchar_t c : s) {
-    if (is_control(c)) continue;
+    if (is_control(c) && !(multiline && c == 0x0A)) continue;
     clean += uppercase ? static_cast<wchar_t>(std::towupper(c)) : c;
   }
   if (clean.empty()) return;
@@ -59,6 +59,27 @@ void TextField::insert(std::wstring_view s) {
 void TextField::move_to(std::size_t pos, bool extend) {
   caret_ = pos;
   if (!extend) anchor_ = pos;
+}
+
+float TextField::measure_height(const Gfx& gfx, const TextStyle& style, float width) const {
+  const auto layout = gfx.layout(shown().empty() ? L" " : shown(), style, width, 10000);
+  if (!layout) return style.line_height;
+  DWRITE_TEXT_METRICS m{};
+  layout->GetMetrics(&m);
+  return m.height;
+}
+
+void TextField::move_vertical(const Gfx& gfx, const TextStyle& style, float width, int dir, bool extend) {
+  const auto layout = gfx.layout(text_, style, width, 10000);
+  if (!layout) return;
+  float x = 0, y = 0;
+  DWRITE_HIT_TEST_METRICS m{};
+  layout->HitTestTextPosition(static_cast<UINT32>(caret_), FALSE, &x, &y, &m);
+  const float line = m.height > 0 ? m.height : style.line_height;
+  BOOL trailing = FALSE, inside = FALSE;
+  DWRITE_HIT_TEST_METRICS t{};
+  layout->HitTestPoint(x, y + line * (dir < 0 ? -0.5f : 1.5f), &trailing, &inside, &t);
+  move_to(std::min<std::size_t>(t.textPosition + (trailing ? t.length : 0), text_.size()), extend);
 }
 
 void TextField::select_all() {
@@ -161,7 +182,7 @@ Rect TextField::paint(Painter& p, Rect box, const TextStyle& style, Color text, 
   const float caret_h = style.size * 1.25f;
   const float caret_y = style.line_height > 0 ? box.y + (box.h - caret_h) / 2 : box.y;
   Rect caret_rect{box.x, caret_y, 1.5f, caret_h};
-  const auto layout = p.gfx().layout(display, style, 10000, box.h);
+  const auto layout = p.gfx().layout(display, style, style.wrap ? box.w : 10000, style.wrap ? 10000 : box.h);
   if (!layout) return caret_rect;
 
   const UINT32 comp_len = static_cast<UINT32>(composition_.size());
@@ -180,14 +201,14 @@ Rect TextField::paint(Painter& p, Rect box, const TextStyle& style, Color text, 
   if (focused && has_selection() && comp_len == 0) {
     const auto lo = std::min(caret_, anchor_), hi = std::max(caret_, anchor_);
     for (const auto& r : range_runs(lo, hi - lo)) {
-      p.fill_rect({box.x + r.left, caret_y, r.width, caret_h}, selection_color);
+      p.fill_rect({box.x + r.left, box.y + r.top + (r.height - caret_h) / 2, r.width, caret_h}, selection_color);
     }
   }
   if (!display.empty()) p.draw_layout(layout.get(), box.x, box.y, text);
 
   if (comp_len > 0) {  // the IME's uncommitted text is underlined
     for (const auto& r : range_runs(caret_, comp_len)) {
-      const float y = caret_y + caret_h + 1;
+      const float y = box.y + r.top + (r.height - caret_h) / 2 + caret_h + 1;
       p.stroke_line(box.x + r.left, y, box.x + r.left + r.width, y, text, 1.5f);
     }
   }
@@ -195,6 +216,7 @@ Rect TextField::paint(Painter& p, Rect box, const TextStyle& style, Color text, 
   DWRITE_HIT_TEST_METRICS m{};
   layout->HitTestTextPosition(static_cast<UINT32>(caret_) + comp_len, FALSE, &x, &y, &m);
   caret_rect.x = box.x + x;
+  caret_rect.y = box.y + y + (m.height - caret_h) / 2;
   if (focused && caret_on && !has_selection()) p.fill_rect(caret_rect, caret_color);
   return caret_rect;
 }

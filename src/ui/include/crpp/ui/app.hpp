@@ -32,6 +32,12 @@ struct MemberView {
   bool offline = false;
 };
 
+struct ChatEntry {
+  std::uint32_t slot = 0;
+  std::string cid, nick, emoji, text;
+  long long time_ms = 0;  // unix epoch, milliseconds
+};
+
 class App {
  public:
   bool init(const std::filesystem::path& assets_dir);
@@ -48,6 +54,8 @@ class App {
                 bool is_public, bool chat);
   // A member made a sound: their emoji ring lights up briefly.
   void pulse(std::uint32_t slot);
+  void add_chat(ChatEntry entry);
+  void clear_chat();
   [[nodiscard]] View view() const { return view_; }
   [[nodiscard]] std::size_t member_count() const { return members_.size(); }
 
@@ -62,6 +70,7 @@ class App {
   std::function<void(int percent)> on_volume;
   std::function<void(bool)> on_mute;
   std::function<void(std::string)> on_copy;
+  std::function<void(std::string text)> on_send_chat;
 
   // --- drawing ---
   void paint(ID2D1RenderTarget* rt, float width, float height);
@@ -72,6 +81,7 @@ class App {
   bool mouse_down(float x, float y, bool shift);
   bool mouse_up();
   bool right_click(float x, float y);
+  bool wheel(float x, float y, float delta);  // delta in notches (+ = up)
   bool char_input(wchar_t c);
   bool key_down(unsigned vk, bool ctrl, bool shift);
   bool ime_composition(std::wstring_view composition, std::wstring_view result);
@@ -86,10 +96,10 @@ class App {
  private:
   // Hit ids: fixed values plus MemberBase + slot.
   enum Id : int {
-    None, Create, Join, Code, Find, Settings, Leave, Mute, More, OptCode, OptPublic, OptChat, VolumeSlider, Popup,
+    None, Create, Join, Code, Find, Settings, Leave, Mute, More, OptCode, OptPublic, OptChat, VolumeSlider, Popup, ChatInput, ChatSend, ChatArea,
     MemberBase = 1000,
   };
-  enum class Focus : std::uint8_t { None, Code };
+  enum class Focus : std::uint8_t { None, Code, Chat };
   struct Hit {
     Rect rect;  // window pixels
     int id;
@@ -97,10 +107,13 @@ class App {
   struct SessionLayout {
     float members_x, members_y, members_h;  // window pixels
     bool single_column;
+    Rect chat;  // the chat panel, window pixels
   };
 
   void paint_home(Painter& p);
   void paint_session(Painter& p);
+  void paint_chat(Painter& p, const SessionLayout& layout);
+  void send_chat();
   void paint_corner_controls(Painter& p);
   void paint_session_controls(Painter& p);
   void paint_options_popup(Painter& p);
@@ -133,6 +146,12 @@ class App {
   bool caret_on_ = true;
   Rect caret_;
   TextField code_;
+  TextField chat_input_;
+  std::vector<ChatEntry> chat_log_;
+  float chat_scroll_ = 0;
+  bool chat_stick_ = true;
+  float chat_content_h_ = 0, chat_area_h_ = 0;
+  Rect chat_area_;
 
   // Session state.
   std::string room_code_;

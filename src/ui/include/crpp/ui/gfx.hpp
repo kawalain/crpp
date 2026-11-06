@@ -86,8 +86,8 @@ class Painter {
   void draw_layout(IDWriteTextLayout* layout, float x, float y, Color c);
   // Draws text with its CSS line box starting at r.y. Returns the laid-out size.
   D2D1_SIZE_F text(std::wstring_view s, Rect r, const TextStyle& style, Color c);
-  void text(std::string_view utf8, Rect r, const TextStyle& style, Color c) {
-    text(widen(utf8), r, style, c);
+  D2D1_SIZE_F text(std::string_view utf8, Rect r, const TextStyle& style, Color c) {
+    return text(widen(utf8), r, style, c);
   }
 
   // A soft shadow under any shape, drawn with the current transform.

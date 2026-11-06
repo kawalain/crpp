@@ -105,6 +105,12 @@ class Bridge final : public client::Observer {
     } else if (const auto* u = std::get_if<wire::msg::Members>(&m)) {
       room = &u->room;
     }
+    if (const auto* c = std::get_if<wire::msg::Chat>(&m)) {
+      ChatEntry entry{c->slot, std::string(c->cid), std::string(c->nick), c->emoji ? std::string(*c->emoji) : std::string{},
+                      std::string(c->text), c->time};
+      tasks_.post([this, entry = std::move(entry)]() mutable { app_.add_chat(std::move(entry)); });
+      return;
+    }
     if (!room) return;
     std::vector<MemberView> members;
     for (const auto& info : room->members) {
@@ -267,6 +273,13 @@ LRESULT CALLBACK wnd_proc(HWND hwnd, UINT msg, WPARAM wp, LPARAM lp) {
       ReleaseCapture();
       repaint(s->app.mouse_up());
       return 0;
+    case WM_MOUSEWHEEL: {
+      POINT pt{GET_X_LPARAM(lp), GET_Y_LPARAM(lp)};
+      ScreenToClient(hwnd, &pt);
+      repaint(s->app.wheel(static_cast<float>(pt.x), static_cast<float>(pt.y),
+                           static_cast<float>(GET_WHEEL_DELTA_WPARAM(wp)) / WHEEL_DELTA));
+      return 0;
+    }
     case WM_RBUTTONDOWN:
       repaint(s->app.right_click(static_cast<float>(GET_X_LPARAM(lp)), static_cast<float>(GET_Y_LPARAM(lp))));
       return 0;
@@ -333,13 +346,19 @@ LRESULT CALLBACK wnd_proc(HWND hwnd, UINT msg, WPARAM wp, LPARAM lp) {
   return DefWindowProcW(hwnd, msg, wp, lp);
 }
 
-void demo_session(App& app) {
+void demo_session(App& app, bool chat) {
   app.show_session("ABC234");
+  if (chat) {
+    const long long now = static_cast<long long>(std::time(nullptr)) * 1000;
+    app.add_chat({0, "c0", "크롬이", "1f600", "안녕하세요! 처음 뵙겠습니다.", now - 400000});
+    app.add_chat({0, "c0", "크롬이", "1f600", "같은 사람이 5분 안에 보낸 메시지는 묶여요.", now - 390000});
+    app.add_chat({1, "c1", "하늘", "1f431", "반가워요 :)\n두 줄짜리 메시지도 잘 보이나요?", now - 120000});
+  }
   app.set_room({{0, "크롬이", "1f600", false},
                 {1, "하늘", "1f431", false},
                 {2, "구름빵", "1f436", false},
                 {3, "졸린 곰", "1f43b", true}},
-               0, 0, false, false);
+               0, 0, false, chat);
 }
 
 }  // namespace
@@ -364,7 +383,8 @@ int main(int argc, char** argv) {
     if (argc >= 4) std::sscanf(argv[3], "%ux%u", &w, &h);
     if (argc >= 5) shell.app.set_hour(std::atoi(argv[4]));
     shell.app.set_nickname("크롬이");
-    if (argc >= 6 && std::string(argv[5]) == "session") demo_session(shell.app);
+    if (argc >= 6 && std::string(argv[5]) == "session") demo_session(shell.app, false);
+    if (argc >= 6 && std::string(argv[5]) == "chat") demo_session(shell.app, true);
     return save_png(shell.app, widen(argv[2]), w, h) ? 0 : 1;
   }
 
@@ -381,6 +401,7 @@ int main(int argc, char** argv) {
   shell.app.on_leave = [sp] { sp->client->leave(); };
   shell.app.on_set_public = [sp](bool v) { sp->client->set_visibility(v); };
   shell.app.on_set_chat = [sp](bool v) { sp->client->set_chat_enabled(v); };
+  shell.app.on_send_chat = [sp](std::string text) { sp->client->send_chat(text); };
 
   WNDCLASSEXW wc{};
   wc.cbSize = sizeof wc;

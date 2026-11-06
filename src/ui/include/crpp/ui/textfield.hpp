@@ -14,6 +14,7 @@ class TextField {
   std::size_t max_length = 0;  // 0 = unlimited (UTF-16 units)
   bool uppercase = false;
   bool password = false;
+  bool multiline = false;  // allows line breaks (Shift+Enter); the owner decides what Enter does
 
   [[nodiscard]] const std::wstring& text() const { return text_; }
   void set_text(std::wstring_view s);
@@ -28,6 +29,10 @@ class TextField {
   bool key_down(unsigned vk, bool ctrl, bool shift);
 
   void select_all();
+  // Height of the laid-out text when wrapped to width.
+  [[nodiscard]] float measure_height(const Gfx& gfx, const TextStyle& style, float width) const;
+  // Moves the caret one wrapped line up (dir < 0) or down.
+  void move_vertical(const Gfx& gfx, const TextStyle& style, float width, int dir, bool extend);
   void click_at(const Gfx& gfx, const TextStyle& style, float x_in_text, bool extend);
 
   // Draws inside box (the text origin is the box's left edge; the line box is

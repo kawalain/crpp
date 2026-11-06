@@ -270,6 +270,12 @@ void draw_svg(Painter& p, const SvgImage& image, Rect dst, float opacity) {
   p.pop();
 }
 
+bool valid_emoji_id(std::string_view id) noexcept {
+  constexpr std::size_t longest = 64;  // the longest Unicode sequences are far shorter
+  return !id.empty() && id.size() <= longest &&
+         std::ranges::all_of(id, [](char c) { return (c >= '0' && c <= '9') || (c >= 'a' && c <= 'z') || c == '-'; });
+}
+
 const SvgImage& EmojiCache::get(const Gfx& gfx, const std::string& id) {
   for (auto it = entries_.begin(); it != entries_.end(); ++it) {
     if (it->id == id) {
@@ -279,6 +285,7 @@ const SvgImage& EmojiCache::get(const Gfx& gfx, const std::string& id) {
   }
   SvgImage image;
   for (const char* folder : {"emoji_profile_custom", "emoji_profile", "emoji_system"}) {
+    if (!valid_emoji_id(id)) break;
     std::ifstream in(dir_ / folder / (id + ".svg"), std::ios::binary);
     if (!in) continue;
     std::stringstream buffer;

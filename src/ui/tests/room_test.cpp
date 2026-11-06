@@ -323,6 +323,17 @@ void test_other_questions_survive_leaving_the_room() {
 
 void with_assets(UiHarness& h) { h.app.reload_assets(CRPP_TEST_ASSETS); }
 
+void test_only_plain_ids_name_an_emoji_file() {
+  CHECK(valid_emoji_id("1f4a7"));
+  CHECK(valid_emoji_id("1f408-200d-2b1b"));
+  CHECK(valid_emoji_id("01"));
+  CHECK(!valid_emoji_id(""));
+  CHECK(!valid_emoji_id("../../secret"));
+  CHECK(!valid_emoji_id("C:\secret"));
+  CHECK(!valid_emoji_id("a/b"));
+  CHECK(!valid_emoji_id(std::string(65, 'a')));
+}
+
 void test_picker_lists_every_emoji_and_parses_only_what_shows() {
   UiHarness h;
   CHECK(h.start());
@@ -876,6 +887,7 @@ int main() {
   test_member_menu_for_someone_else();
   test_member_menu_for_myself();
   test_right_click_elsewhere_closes_the_menu();
+  test_only_plain_ids_name_an_emoji_file();
   test_picker_lists_every_emoji_and_parses_only_what_shows();
   test_picker_picks_once_and_closes();
   test_picker_closes_without_picking();

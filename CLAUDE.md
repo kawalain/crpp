@@ -111,6 +111,9 @@ per subagent, never to production. Never create accounts on production.
   3 s forever; it does not ask `/health` first. A connection error names no reason in
   parentheses, because the transport reports none.
 - A Room that cannot be resumed at startup says so; upstream returns to Home silently.
+- The update popup sits at the bottom left, not the top left. The changelog comes from
+  GitHub release notes, so an empty one says it could not be loaded, and a first run
+  ever does not open it.
 
 ## Build
 
@@ -168,7 +171,10 @@ exist (real + test).
   prompt's steps. `HttpClient` is the seam for WinHTTP; `Worker` keeps its blocking
   calls off the UI thread. `apps/gui/account_controller` joins it to `ui`.
 - `update`: version check, download, signature and SHA-256 (BCrypt) verify,
-  self-replace.
+  self-replace, Markdown of the release notes. Only official builds with a real key go
+  online. Key: `docs/signing-key.md`. Releasing: `docs/releases/README.md`. To try the
+  flow, build with `-DCRPP_UPDATE_TEST_KEY=<hex>` and run with `--update-url`; never
+  start an official build in a test, as it asks GitHub.
 - `ui`: every part of the screen is a `Surface` with its own file, hit ids, state
   and callbacks; `App` only routes input through the layers on screen. `controls.hpp`
   has the shared controls, `Dialogs` the modal question, `Toasts` the messages that
@@ -228,3 +234,5 @@ exist (real + test).
 - Accounts are tested with a fake HTTP seam and a scripted localhost server, never
   against a real `server/`.
 - Re-check C++26 status against WG21 primary records.
+- The workflows have never run. A first real release must also confirm GitHub's redirect
+  for release downloads through WinHTTP, and a replacement under real antivirus.

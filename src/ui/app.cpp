@@ -66,10 +66,10 @@ void App::close_prompt() {
 }
 
 std::vector<Surface*> App::layers() {
-  if (view_ == View::Setup) return {&setup_};
+  if (view_ == View::Setup) return {&changelog_, &update_popup_, &setup_};
   if (view_ == View::Prompt) return {&dialogs_, &toasts_, &notice_, &prompt_};
   Surface* screen = view_ == View::Home ? static_cast<Surface*>(&home_) : &room_;
-  return {&dialogs_, &toasts_, &emoji_picker_, &notice_, &settings_, &offline_, screen};
+  return {&dialogs_, &changelog_, &update_popup_, &toasts_, &emoji_picker_, &notice_, &settings_, &offline_, screen};
 }
 
 void App::paint(ID2D1RenderTarget* rt, float width, float height) {
@@ -79,6 +79,8 @@ void App::paint(ID2D1RenderTarget* rt, float width, float height) {
   p.clear(ui_.theme.sky);
   if (view_ == View::Setup) {
     setup_.paint(p);
+    update_popup_.paint(p);
+    changelog_.paint(p);
     return;
   }
   if (view_ == View::Prompt) {  // no droplet here, so no way into the settings
@@ -99,6 +101,8 @@ void App::paint(ID2D1RenderTarget* rt, float width, float height) {
   emoji_picker_.paint(p);
   if (view_ == View::Home) home_.paint_return(p);
   toasts_.paint(p);
+  update_popup_.paint(p);
+  changelog_.paint(p);
   dialogs_.paint(p);
 }
 

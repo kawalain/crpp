@@ -1,0 +1,85 @@
+# A tag v0.y.z on main becomes a published release: one exe and its signed manifest. Every
+# check comes before anything is published, and a failed run publishes nothing.
+# See docs/signing-key.md for the key and docs/releases/README.md for the notes.
+name: Release
+
+on:
+  push:
+    tags: ['v0.*']
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    runs-on: windows-2022
+    timeout-minutes: 60
+    steps:
+      # Full history: the asset manifest pins the commit that last changed assets/.
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+
+      - name: Check the tag, the notes and the key
+        id: tag
+        shell: pwsh
+        env:
+          TAG: ${{ github.ref_name }}
+        run: |
+          $ErrorActionPreference = 'Stop'
+          if ($env:TAG -notmatch '^v(0\.(0|[1-9][0-9]*)\.(0|[1-9][0-9]*))$') { throw "not a version tag: $env:TAG" }
+          $version = $Matches[1]
+          git merge-base --is-ancestor HEAD origin/main
+          if ($LASTEXITCODE -ne 0) { throw 'the tag is not on main' }
+          $notes = "docs/releases/$env:TAG.md"
+          if (-not (Test-Path -LiteralPath $notes)) { throw "$notes is missing: its text is the changelog" }
+          if ((Get-Content -Raw src/update/release_public_key.txt).Trim() -eq 'PLACEHOLDER') {
+            throw 'src/update/release_public_key.txt still holds the placeholder; see docs/signing-key.md'
+          }
+          "version=$version" >> $env:GITHUB_OUTPUT
+
+      - name: Build
+        shell: cmd
+        run: .github\scripts\msvc-build.cmd build "-DCRPP_OFFICIAL_BUILD=ON" "-DCRPP_VERSION=${{ steps.tag.outputs.version }}"
+
+      - name: Test
+        shell: pwsh
+        run: ctest --test-dir build --output-on-failure -E "^input\.raw$"
+
+      - name: Sign
+        shell: pwsh
+        env:
+          CRPP_UPDATE_SIGNING_KEY: ${{ secrets.CRPP_UPDATE_SIGNING_KEY }}
+          VERSION: ${{ steps.tag.outputs.version }}
+        run: |
+          $ErrorActionPreference = 'Stop'
+          New-Item -ItemType Directory dist | Out-Null
+          Copy-Item build/apps/gui/crpp.exe dist/crpp.exe
+          .github/scripts/sign-release.ps1 -Exe dist/crpp.exe -Version $env:VERSION -Out dist/crpp-update.manifest
+          Get-Content dist/crpp-update.manifest
+
+      # Against the key built into this very exe's build: a secret that does not match
+      # would otherwise strand every installed copy.
+      - name: Verify as the app will
+        shell: pwsh
+        run: |
+          build/src/update/crpp_update_verify.exe dist/crpp-update.manifest dist/crpp.exe
+          if ($LASTEXITCODE -ne 0) { throw 'the release does not verify' }
+
+      - name: Publish
+        shell: pwsh
+        env:
+          GH_TOKEN: ${{ github.token }}
+          TAG: ${{ github.ref_name }}
+        run: |
+          $ErrorActionPreference = 'Stop'
+          $lines = Get-Content "docs/releases/$env:TAG.md"
+          $title = $env:TAG
+          if ($lines.Count -gt 0 -and $lines[0] -match '^# (.+)$') {
+            $title = $Matches[1]
+            $lines = $lines | Select-Object -Skip 1
+          }
+          $lines | Set-Content -Encoding utf8NoBOM dist/notes.md
+          gh release create $env:TAG dist/crpp.exe dist/crpp-update.manifest --verify-tag --latest --title $title --notes-file dist/notes.md
+          if ($LASTEXITCODE -ne 0) { throw 'publishing failed' }

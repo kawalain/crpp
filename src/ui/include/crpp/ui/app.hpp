@@ -12,6 +12,7 @@
 #include <string>
 #include <string_view>
 
+#include "crpp/ui/changelog_view.hpp"
 #include "crpp/ui/dialogs.hpp"
 #include "crpp/ui/emoji_picker.hpp"
 #include "crpp/ui/home_screen.hpp"
@@ -24,6 +25,7 @@
 #include "crpp/ui/setup_screen.hpp"
 #include "crpp/ui/surface.hpp"
 #include "crpp/ui/toasts.hpp"
+#include "crpp/ui/update_popup.hpp"
 
 namespace crpp::ui {
 
@@ -48,6 +50,8 @@ class App {
   [[nodiscard]] Dialogs& dialogs() { return dialogs_; }
   [[nodiscard]] Toasts& toasts() { return toasts_; }
   [[nodiscard]] EmojiPicker& emoji_picker() { return emoji_picker_; }
+  [[nodiscard]] UpdatePopup& update_popup() { return update_popup_; }
+  [[nodiscard]] ChangelogView& changelog() { return changelog_; }
   // The settings surfaces read and change; in memory until the shell sets its own.
   void set_prefs(Prefs& prefs) { ui_.prefs = &prefs; }
 
@@ -101,6 +105,8 @@ class App {
   SettingsPanel settings_{ui_};
   EmojiPicker emoji_picker_{ui_};
   Toasts toasts_{ui_};
+  UpdatePopup update_popup_{ui_};
+  ChangelogView changelog_{ui_};
   Dialogs dialogs_{ui_};
   PromptScreen prompt_{ui_};
   View view_ = View::Home;

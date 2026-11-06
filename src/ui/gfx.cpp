@@ -347,6 +347,12 @@ Painter::Painter(const Gfx& gfx, ID2D1RenderTarget* rt) : gfx_(gfx), rt_(rt) {
   rt_->SetTextAntialiasMode(D2D1_TEXT_ANTIALIAS_MODE_GRAYSCALE);
 }
 
+void Painter::push_opacity(float opacity) {
+  D2D1_LAYER_PARAMETERS params = D2D1::LayerParameters();
+  params.opacity = opacity;
+  rt_->PushLayer(params, nullptr);
+}
+
 void Painter::push(const D2D1_MATRIX_3X2_F& m) { rt_->SetTransform(m * base_); }
 
 void Painter::clear(Color c) { rt_->Clear(to_d2d(c)); }
@@ -430,15 +436,11 @@ void Painter::emoji(std::wstring_view glyph, Rect r, float opacity) {
   DWRITE_TEXT_METRICS m{};
   if (!layout || FAILED(layout->GetMetrics(&m))) return;
   const bool translucent = opacity < 1;
-  if (translucent) {
-    D2D1_LAYER_PARAMETERS params = D2D1::LayerParameters();
-    params.opacity = opacity;
-    rt_->PushLayer(params, nullptr);
-  }
+  if (translucent) push_opacity(opacity);
   brush_->SetColor(D2D1::ColorF(0, 0, 0, 1));
   rt_->DrawTextLayout(D2D1::Point2F(r.x + (r.w - m.width) / 2, r.y + (r.h - m.height) / 2), layout.get(), brush_.get(),
                       D2D1_DRAW_TEXT_OPTIONS_ENABLE_COLOR_FONT);
-  if (translucent) rt_->PopLayer();
+  if (translucent) pop_opacity();
 }
 
 void Painter::shadow_geometry(ID2D1Geometry* g, float blur, float dy, Color c) {

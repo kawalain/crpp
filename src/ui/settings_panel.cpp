@@ -11,7 +11,6 @@ constexpr const char* droplet_x_path = "M12 25 24 37M24 25 12 37";
 
 constexpr Rect content_area = settings_view;
 constexpr Rect scroll_track{835, 187, 8, 403};  // .settings-scrollbar
-constexpr float fade_h = 27;
 constexpr unsigned long long scrollbar_pause_ms = 2000;
 
 struct TabButton {
@@ -64,7 +63,7 @@ void SettingsPanel::close() {
 
 void SettingsPanel::select(SettingsPage page) {
   page_ = page;
-  scroll_.offset = 0;
+  scroll_.jump_to(0);
   reset_scrollbar();
   tab().shown();
 }
@@ -116,23 +115,14 @@ void SettingsPanel::paint_panel(Painter& p) {
   scroll_.view_h = content_area.h;
   scroll_.content_h = current.content_height();
   scroll_.clamp();
-  const Rect area{content_area.x, content_area.y - scroll_.offset, 550, scroll_.content_h};
+  scroll_.advance(ui_);
+  const Rect area{content_area.x, content_area.y - scroll_.drawn(), 550, scroll_.content_h};
   ui_.push_hit_clip(ui_.to_window(content_area));
   p.rt()->PushAxisAlignedClip(D2D1::RectF(content_area.x, content_area.y, content_area.right(), content_area.bottom()),
                               D2D1_ANTIALIAS_MODE_PER_PRIMITIVE);
+  const bool fade = push_edge_fade(ui_, p, content_area, scroll_.fade_top(), scroll_.fade_bottom());
   current.paint(p, area);
-  // Content fades where it runs under the edges (.settings-content mask). The panel
-  // is the only thing behind it.
-  const auto fade = [&](float y0, float y1, float from, float to) {
-    ComPtr<ID2D1RectangleGeometry> g;
-    if (FAILED(ui_.gfx.d2d()->CreateRectangleGeometry(D2D1::RectF(content_area.x, std::min(y0, y1), content_area.right(), std::max(y0, y1)),
-                                                      g.put()))) {
-      return;
-    }
-    p.fill_vertical_gradient(g.get(), y0, y1, {{0, with_alpha(cloud, from)}, {1, with_alpha(cloud, to)}});
-  };
-  if (scroll_.offset > 1) fade(content_area.y, content_area.y + fade_h, 1, 0);
-  if (scroll_.offset < scroll_.max_offset() - 1) fade(content_area.bottom() - fade_h, content_area.bottom(), 0, 1);
+  pop_edge_fade(p, fade);
   p.rt()->PopAxisAlignedClip();
   ui_.pop_hit_clip();
 
@@ -242,16 +232,15 @@ void SettingsPanel::click(int id, float, float y, bool) {
 
 void SettingsPanel::drag(float, float y) {
   const float travel = std::max(1.0f, scroll_track.h - scroll_.thumb(scroll_track).h);
-  scroll_.offset = grab_offset_ + (ui_.to_stage_y(y) - grab_y_) * scroll_.max_offset() / travel;
-  scroll_.clamp();
+  scroll_.jump_to(grab_offset_ + (ui_.to_stage_y(y) - grab_y_) * scroll_.max_offset() / travel);
 }
 
 bool SettingsPanel::wheel(float x, float y, float delta) {
   if (!open_) return false;
   if (!tab().wheel(x, y, delta)) {
-    const float before = scroll_.offset;
-    scroll_.wheel(delta);
-    if (scroll_.offset != before) {
+    const float before = scroll_.target;
+    scroll_.wheel(ui_, delta);
+    if (scroll_.target != before) {
       bar_shown_ = true;
       reveal_pending_ = true;
     }

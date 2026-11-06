@@ -148,10 +148,12 @@ void test_dropdown_selects_and_closes() {
 }
 
 void test_scroll_clamps_and_drags() {
+  Ui instant;
+  instant.animations = false;
   Scroll s{.offset = 0, .content_h = 1000, .view_h = 500};
-  s.wheel(1);
+  s.wheel(instant, 1);
   CHECK(s.offset == 0);
-  s.wheel(-100);
+  s.wheel(instant, -100);
   CHECK(s.offset == 500);
   const Rect track{0, 0, 8, 400};
   s.drag_thumb(track, 0);
@@ -161,6 +163,80 @@ void test_scroll_clamps_and_drags() {
   Scroll fits{.offset = 40, .content_h = 100, .view_h = 500};
   fits.clamp();
   CHECK(fits.offset == 0);
+}
+
+void test_scroll_heads_for_where_the_wheel_sent_it() {
+  Ui ui;
+  ui.now_ms = 1000;
+  Scroll s{.offset = 0, .content_h = 1000, .view_h = 500};
+  s.wheel(ui, -1);
+  CHECK(s.target == 80 && s.offset == 0);
+  CHECK(s.moving());
+  float last = 0;
+  for (int frame = 0; frame < 10; ++frame) {
+    ui.now_ms += 16;
+    ui.more_frames = false;
+    s.advance(ui);
+    CHECK(ui.more_frames);
+    CHECK(s.offset > last || s.offset == s.target);
+    last = s.offset;
+  }
+  CHECK(s.offset > 70 && s.offset <= 80);
+  for (int frame = 0; frame < 30; ++frame) {
+    ui.now_ms += 16;
+    s.advance(ui);
+  }
+  CHECK(s.offset == 80);
+  CHECK(!s.moving());
+  ui.more_frames = false;
+  s.advance(ui);
+  CHECK(!ui.more_frames);  // a settled list asks for nothing
+}
+
+void test_scroll_stretches_past_the_end_and_comes_back() {
+  Ui ui;
+  ui.now_ms = 1000;
+  Scroll s{.offset = 500, .content_h = 1000, .view_h = 500, .target = 500};
+  for (int notch = 0; notch < 40; ++notch) s.wheel(ui, -1);
+  CHECK(s.target == 500);
+  CHECK(s.stretch > 20);
+  CHECK(s.stretch <= Scroll::longest_stretch);
+  CHECK(s.drawn() > 500);
+  CHECK(s.fade_bottom() == 0);
+  const float pulled = s.stretch;
+  ui.now_ms += 16;
+  s.advance(ui);
+  CHECK(s.stretch == pulled);  // the wheel may still be turning
+  for (int frame = 0; frame < 40; ++frame) {
+    ui.now_ms += 16;
+    s.advance(ui);
+  }
+  CHECK(s.stretch == 0);
+  CHECK(!s.moving());
+
+  // Up past the top likewise, on the other side.
+  s.jump_to(0);
+  s.wheel(ui, 3);
+  CHECK(s.stretch < 0);
+  CHECK(s.fade_top() == 0);
+
+  // What fits does not move at all.
+  Scroll fits{.offset = 0, .content_h = 100, .view_h = 500};
+  fits.wheel(ui, -3);
+  CHECK(fits.stretch == 0);
+  CHECK(!fits.moving());
+}
+
+void test_edge_fades_grow_with_the_distance() {
+  Scroll s{.offset = 0, .content_h = 1000, .view_h = 500};
+  CHECK(s.fade_top() == 0);
+  CHECK(s.fade_bottom() == edge_fade_px);
+  s.jump_to(10);
+  CHECK(s.fade_top() == 10);
+  s.jump_to(200);
+  CHECK(s.fade_top() == edge_fade_px);
+  s.jump_to(495);
+  CHECK(s.fade_bottom() == 5);
 }
 
 void test_ease_matches_css() {
@@ -195,6 +271,9 @@ int main() {
   test_slider_value_ends_and_middle();
   test_dropdown_selects_and_closes();
   test_scroll_clamps_and_drags();
+  test_scroll_heads_for_where_the_wheel_sent_it();
+  test_scroll_stretches_past_the_end_and_comes_back();
+  test_edge_fades_grow_with_the_distance();
   test_ease_matches_css();
   test_prefs_reset_restores_defaults();
   return crpp_test_result();

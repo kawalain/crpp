@@ -76,9 +76,14 @@ class Painter {
   [[nodiscard]] ID2D1RenderTarget* rt() const { return rt_; }
 
   void set_base(const D2D1_MATRIX_3X2_F& m) {
-    base_ = m;
-    rt_->SetTransform(m);
+    base_ = m * moved_;
+    rt_->SetTransform(base_);
   }
+  // Moves all that is drawn next, whatever base it sets, for a screen that slides in.
+  void set_moved(float dx, float dy) { moved_ = D2D1::Matrix3x2F::Translation(dx, dy); }
+  // Everything until pop_opacity is drawn as one, then blended at this opacity.
+  void push_opacity(float opacity);
+  void pop_opacity() { rt_->PopLayer(); }
   // Applies m (in stage coordinates) on top of the base transform.
   void push(const D2D1_MATRIX_3X2_F& m);
   void pop() { rt_->SetTransform(base_); }
@@ -117,6 +122,7 @@ class Painter {
   ID2D1RenderTarget* rt_;
   ComPtr<ID2D1SolidColorBrush> brush_;
   D2D1_MATRIX_3X2_F base_ = D2D1::Matrix3x2F::Identity();
+  D2D1_MATRIX_3X2_F moved_ = D2D1::Matrix3x2F::Identity();
 };
 
 // Upstream cloud outline (client/src/main.js cloudPath), 0..492 x 8..318.

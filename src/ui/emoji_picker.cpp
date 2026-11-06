@@ -67,18 +67,20 @@ void EmojiPicker::paint(Painter& p) {
   scroll_.view_h = view.h;
   scroll_.content_h = rows > 0 ? static_cast<float>(rows) * (cell + gap) - gap : 0;
   scroll_.clamp();
+  scroll_.advance(ui_);
 
   p.rt()->PushAxisAlignedClip(D2D1::RectF(view.x, view.y, view.right(), view.bottom()), D2D1_ANTIALIAS_MODE_PER_PRIMITIVE);
+  const bool fade = push_edge_fade(ui_, p, view, scroll_.fade_top(), scroll_.fade_bottom());
   ui_.push_hit_clip(view);
   // Only the rows in view are touched, so only they get parsed.
-  const int first_row = static_cast<int>(scroll_.offset / (cell + gap));
-  const int last_row = std::min(rows - 1, static_cast<int>((scroll_.offset + view.h) / (cell + gap)));
+  const int first_row = std::max(0, static_cast<int>(scroll_.drawn() / (cell + gap)));
+  const int last_row = std::min(rows - 1, static_cast<int>((scroll_.drawn() + view.h) / (cell + gap)));
   for (int row = first_row; row <= last_row; ++row) {
     for (int col = 0; col < columns; ++col) {
       const auto index = static_cast<std::size_t>(row * columns + col);
       if (index >= ids_.size()) break;
       const Rect box{view.x + static_cast<float>(col) * (cell + gap),
-                     view.y + static_cast<float>(row) * (cell + gap) - scroll_.offset, cell, cell};
+                     view.y + static_cast<float>(row) * (cell + gap) - scroll_.drawn(), cell, cell};
       const int id = CellBase + static_cast<int>(index);
       if (ids_[index] == current_) p.fill_round(box, 10, t.hl_soft);
       else if (ui_.hot(this, id)) p.fill_round(box, 10, t.hl_pale2);
@@ -88,6 +90,7 @@ void EmojiPicker::paint(Painter& p) {
     }
   }
   ui_.pop_hit_clip();
+  pop_edge_fade(p, fade);
   p.rt()->PopAxisAlignedClip();
 
   track_ = {r.right() - 4 - 8, r.y + pad, 8, picker_h - 2 * pad};
@@ -136,7 +139,7 @@ void EmojiPicker::release() { reveal_thumb(); }
 
 bool EmojiPicker::wheel(float, float, float delta) {
   if (!open_) return false;
-  scroll_.wheel(delta);
+  scroll_.wheel(ui_, delta);
   reveal_thumb();
   return true;
 }

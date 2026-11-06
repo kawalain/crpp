@@ -211,6 +211,7 @@ void sync_hidden(Shell& s) {
   s.hidden = hidden;
   if (hidden) {
     s.target.reset();
+    s.app.ui().forget_render_target();
     if (s.app.ui().emoji) s.app.ui().emoji.emplace(s.assets_dir);
     // Freed memory stays in the working set until asked for. What is still in use comes
     // back on the next touch, at the price of one soft fault per page.

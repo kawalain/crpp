@@ -132,7 +132,10 @@ LRESULT CALLBACK wnd_proc(HWND hwnd, UINT msg, WPARAM wp, LPARAM lp) {
         const D2D1_SIZE_F size = s->target->GetSize();  // in DIPs
         s->target->BeginDraw();
         s->app.paint(s->target.get(), size.width, size.height);
-        if (s->target->EndDraw() == D2DERR_RECREATE_TARGET) s->target.reset();
+        if (s->target->EndDraw() == D2DERR_RECREATE_TARGET) {
+          s->target.reset();
+          s->app.ui().forget_render_target();
+        }
       }
       EndPaint(hwnd, &ps);
       place_ime(*s, hwnd);

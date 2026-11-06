@@ -86,6 +86,11 @@ class Ui {
   [[nodiscard]] float to_stage_y(float y) const { return (y - oy) / scale; }
   [[nodiscard]] Rect to_window(Rect r) const { return {ox + r.x * scale, oy + r.y * scale, r.w * scale, r.h * scale}; }
 
+  // The opacity mask of an edge fade. They stay for reuse, since a scrolled list keeps
+  // asking for the same one, until the render target they belong to goes away.
+  [[nodiscard]] ID2D1LinearGradientBrush* edge_fade_mask(Painter& p, Rect area, float top, float bottom);
+  void forget_render_target();
+
   // The emoji with this Twemoji id, or the default droplet for an empty or unknown one.
   [[nodiscard]] const SvgImage& emoji_image(std::string_view id);
 
@@ -102,6 +107,12 @@ class Ui {
   int hover_id = 0;
 
  private:
+  struct FadeMask {
+    int key;
+    ComPtr<ID2D1LinearGradientBrush> brush;
+  };
+  std::vector<FadeMask> fade_masks_;
+  ID2D1RenderTarget* masks_target_ = nullptr;
   std::vector<Hit> hits_;
   std::vector<Rect> hit_clips_;
 };

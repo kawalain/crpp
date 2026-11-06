@@ -5,6 +5,7 @@
 #include <string>
 #include <vector>
 
+#include "crpp/ui/controls.hpp"
 #include "crpp/ui/surface.hpp"
 #include "crpp/update/notes.hpp"
 
@@ -87,7 +88,7 @@ class ChangelogView final : public Surface {
   ComPtr<IDWriteTextLayout> tagline_, date_, version_;
   bool built_ = false;
   float built_width_ = 0, head_h_ = 0, body_h_ = 0;
-  float offset_ = 0, max_offset_ = 0;
+  Scroll scroll_;
   bool start_at_bottom_ = false;
   ComPtr<ID2D1PathGeometry> close_icon_;
 

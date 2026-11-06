@@ -15,7 +15,6 @@ constexpr const char* close_path = "M12 12 24 24M24 12 12 24";
 constexpr float card_w = 520, card_h = 480;   // .modal-card.changelog, .cl-scroll
 constexpr float pad_x = 28, head_top = 22, head_bottom = 14, head_right = 62, head_gap = 2, body_bottom = 24;
 constexpr float li_indent = 20, li_margin = 4, li_line = 24.8f, heading_top = 14, heading_bottom = 6;
-constexpr float scroll_step = 80;
 constexpr float hint_fade_ms = 180;                   // .cl-hint transition
 constexpr unsigned long long idle_reset_ms = 1800;    // IDLE_RESET
 constexpr unsigned long long switch_cooldown_ms = 500;  // SWITCH_COOLDOWN
@@ -123,7 +122,7 @@ void ChangelogView::next() {
 void ChangelogView::show(std::size_t index, bool at_bottom) {
   index_ = index;
   built_ = false;
-  offset_ = 0;
+  scroll_ = {};
   start_at_bottom_ = at_bottom;
   overscroll_.reset();
   idle_at_ = 0;
@@ -213,12 +212,14 @@ void ChangelogView::paint(Painter& p) {
   const Color ink = with_alpha(t.hl_text, shown);
 
   const float view_h = card.h - head_h_;
-  max_offset_ = std::max(0.0f, body_h_ - view_h);
+  scroll_.view_h = view_h;
+  scroll_.content_h = body_h_;
+  scroll_.clamp();
   if (start_at_bottom_) {
-    offset_ = max_offset_;
+    scroll_.jump_to(scroll_.max_offset());
     start_at_bottom_ = false;
   }
-  offset_ = std::clamp(offset_, 0.0f, max_offset_);
+  scroll_.advance(ui_);
 
   if (entries_.empty()) {
     p.text("변경사항을 불러오지 못했어요.", {card.x + pad_x, card.y + (card.h - 27) / 2, card.w - 2 * pad_x, 27},
@@ -228,14 +229,16 @@ void ChangelogView::paint(Painter& p) {
   // The body scrolls under the head, which stays (.cl-head is sticky).
   const Rect body{card.x, card.y + head_h_, card.w, view_h};
   p.rt()->PushAxisAlignedClip(D2D1::RectF(body.x, body.y, body.right(), body.bottom()), D2D1_ANTIALIAS_MODE_PER_PRIMITIVE);
+  const bool fade = push_edge_fade(ui_, p, body, scroll_.fade_top(), scroll_.fade_bottom());
   for (const Line& line : lines_) {
-    const float y = body.y + line.y - offset_;
+    const float y = body.y + line.y - scroll_.drawn();
     if (line.bullet_x >= 0) p.fill_ellipse(card.x + line.bullet_x, y - line.y + line.bullet_y, 2.5f, 2.5f, ink);
     if (!line.marker.empty()) {
       p.text(line.marker, {card.x + line.marker_x - 4, y, li_indent, li_line}, item_style, ink);
     }
     if (line.layout) p.draw_layout(line.layout.get(), card.x + line.x, y, ink);
   }
+  pop_edge_fade(p, fade);
   p.rt()->PopAxisAlignedClip();
 
   float y = card.y + head_top;
@@ -287,11 +290,11 @@ bool ChangelogView::wheel(float, float, float delta) {
   const int direction = delta < 0 ? 1 : delta > 0 ? -1 : 0;
   if (direction == 0 || (ui_.animations && now < ignore_until_)) return true;
   const bool can_go = direction > 0 ? index_ + 1 < entries_.size() : index_ > 0;
-  const bool at_edge = direction > 0 ? offset_ >= max_offset_ - 1 : offset_ <= 1;
+  const bool at_edge = direction > 0 ? scroll_.target >= scroll_.max_offset() - 1 : scroll_.target <= 1;
   // With animations off (tests, --shot) the wait for the hint has already passed.
   const auto clock = ui_.animations ? now : now + ChangelogOverscroll::hint_ms * ++synthetic_steps_;
   const auto result = overscroll_.step(direction, clock, can_go, at_edge, std::abs(delta));
-  offset_ = std::clamp(offset_ - delta * scroll_step, 0.0f, max_offset_);
+  scroll_.wheel(ui_, delta);
   if (result.go != 0) {
     ignore_until_ = now + switch_cooldown_ms;
     show(static_cast<std::size_t>(static_cast<int>(index_) + result.go), result.go < 0);

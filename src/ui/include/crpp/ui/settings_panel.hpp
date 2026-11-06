@@ -38,7 +38,7 @@ class SettingsPanel final : public Surface {
   // Goes back to the first tab's top the next time it opens by the droplet.
   void select(SettingsPage page);
   [[nodiscard]] SettingsPage page() const { return page_; }
-  void scroll_to(float offset) { scroll_.offset = offset; }
+  void scroll_to(float offset) { scroll_.jump_to(offset); }
   [[nodiscard]] float scroll_offset() const { return scroll_.offset; }
   // The scrollbar shows on scrolling or under the pointer, then fades away.
   [[nodiscard]] bool scrollbar_shown() const { return bar_shown_; }

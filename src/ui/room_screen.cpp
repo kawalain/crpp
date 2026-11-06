@@ -247,18 +247,18 @@ void RoomScreen::paint_members(Painter& p, const Layout& l) {
   members_scroll_.view_h = l.members_h;
   members_scroll_.content_h = 2 * pad + static_cast<float>(rows) * 49;
   members_scroll_.clamp();
+  members_scroll_.advance(ui_);
 
   const D2D1_RECT_F bounds = D2D1::RectF(members_area_.x, members_area_.y, members_area_.right(), members_area_.bottom());
   p.rt()->PushAxisAlignedClip(bounds, D2D1_ANTIALIAS_MODE_PER_PRIMITIVE);
-  const EdgeFade fade = push_edge_fade(p, members_area_, members_scroll_.offset > 0,
-                                       members_scroll_.offset < members_scroll_.max_offset());
+  const bool fade = push_edge_fade(ui_, p, members_area_, members_scroll_.fade_top(), members_scroll_.fade_bottom());
   ui_.push_hit_clip(members_area_);
   member_rects_.clear();
   for (int i = 0; i < n; ++i) {
     const MemberView& m = members_[static_cast<std::size_t>(i)];
     const int col = i % cols, row = i / cols;
     const float x = l.members_x + static_cast<float>(col) * (col_w + 24);
-    const float y = l.members_y + pad + static_cast<float>(row) * 49 + 1 - members_scroll_.offset;
+    const float y = l.members_y + pad + static_cast<float>(row) * 49 + 1 - members_scroll_.drawn();
     if (y + 47 <= members_area_.y || y >= members_area_.bottom()) continue;
     const Rect box{x, y, col_w, 47};
     const int id = MemberBase + static_cast<int>(m.slot);
@@ -656,7 +656,7 @@ bool RoomScreen::wheel(float x, float y, float delta) {
   if (profile_.is_open()) return true;  // modal
   if (chat_ && chat_panel_.wheel(x, y, delta)) return true;
   if (!members_area_.contains(x, y) || members_scroll_.max_offset() <= 0) return false;
-  members_scroll_.wheel(delta);
+  members_scroll_.wheel(ui_, delta);
   return true;
 }
 

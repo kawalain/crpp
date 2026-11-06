@@ -6,6 +6,7 @@
 #include <vector>
 
 #include "crpp/ui/chat_logic.hpp"
+#include "crpp/ui/controls.hpp"
 #include "crpp/ui/surface.hpp"
 #include "crpp/ui/tip.hpp"
 
@@ -47,7 +48,7 @@ class ChatPanel final : public Surface {
   [[nodiscard]] std::size_t shown() const { return rows_.size(); }
   [[nodiscard]] const ChatLimiter& limiter() const { return limiter_; }
   [[nodiscard]] TextField& input() { return input_; }
-  [[nodiscard]] float scroll_offset() const { return scroll_; }
+  [[nodiscard]] float scroll_offset() const { return scroll_.offset; }
   [[nodiscard]] const HoverTip& link_tip() const { return link_tip_; }
 
   void paint(Painter& p, Rect panel);  // window coordinates
@@ -89,9 +90,9 @@ class ChatPanel final : public Surface {
   bool dirty_ = true;   // rows_ must be measured again
   float rows_w_ = 0;    // the width rows_ was measured at
   float next_y_ = 24;   // where the next row starts
-  float scroll_ = 0;
+  Scroll scroll_;
   bool stick_ = true;
-  float content_h_ = 0, area_h_ = 0;
+  float content_h_ = 0;
   float zoom_ = 1;
   bool use_24h_ = false;
   Rect area_;

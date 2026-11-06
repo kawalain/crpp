@@ -97,7 +97,7 @@ void ChatPanel::clear() {
   rows_.clear();
   first_ = 0;
   fresh_ = dirty_ = true;
-  scroll_ = 0;
+  scroll_ = {};
   stick_ = true;
   input_.clear();
   limiter_.reset();
@@ -233,20 +233,26 @@ void ChatPanel::paint(Painter& p, Rect panel) {
   const std::size_t shown_before = rows_.size();
   sync_rows(list_w);
   content_h_ = (next_y_ - 14 + 24) * zoom_;
-  area_h_ = area.h;
-  const float max_scroll = std::max(0.0f, content_h_ - area.h);
+  scroll_.view_h = area.h;
+  scroll_.content_h = content_h_;
+  const float max_scroll = scroll_.max_offset();
   // Older messages arrived above: what is on screen stays where it is.
-  if (older_pending_ && !stick_ && rows_.size() > shown_before) scroll_ += content_h_ - content_before;
+  if (older_pending_ && !stick_ && rows_.size() > shown_before) {
+    scroll_.offset += content_h_ - content_before;
+    scroll_.target += content_h_ - content_before;
+  }
   older_pending_ = false;
-  if (stick_) scroll_ = max_scroll;
-  scroll_ = std::clamp(scroll_, 0.0f, max_scroll);
+  if (stick_ && rows_.size() > shown_before && shown_before > 0) scroll_.target = max_scroll;  // a message came
+  else if (stick_ && scroll_.target != max_scroll) scroll_.jump_to(max_scroll);  // the view changed size
+  scroll_.clamp();
+  scroll_.advance(ui_);
 
   p.rt()->PushAxisAlignedClip(D2D1::RectF(area.x, area.y, area.right(), area.bottom()),
                               D2D1_ANTIALIAS_MODE_PER_PRIMITIVE);
-  const EdgeFade fade = push_edge_fade(p, area, scroll_ > 0, scroll_ < max_scroll);
+  const bool fade = push_edge_fade(ui_, p, area, scroll_.fade_top(), scroll_.fade_bottom());
   ui_.add_hit_window(this, area, Area);
   ui_.push_hit_clip(area);
-  const float list_top = area.y - scroll_;
+  const float list_top = area.y - scroll_.drawn();
   p.set_base(D2D1::Matrix3x2F::Scale(zoom_, zoom_) * D2D1::Matrix3x2F::Translation(area.x, list_top));
   constexpr float x = 17;
   HoverTip::Spec tip;
@@ -405,11 +411,10 @@ void ChatPanel::click(int id, float, float, bool) {
 
 bool ChatPanel::wheel(float x, float y, float delta) {
   if (!area_.contains(x, y)) return false;
-  const float max_scroll = std::max(0.0f, content_h_ - area_h_);
-  scroll_ = std::clamp(scroll_ - delta * 80, 0.0f, max_scroll);
-  stick_ = scroll_ >= max_scroll - 4;
+  scroll_.wheel(ui_, delta);
+  stick_ = scroll_.target >= scroll_.max_offset() - 4;
   // Close to the top the next page is laid out, without moving what is on screen.
-  if (scroll_ < 60 && first_ > 0) {
+  if (scroll_.target < 60 && first_ > 0) {
     first_ = first_ > chat_page ? first_ - chat_page : 0;
     dirty_ = true;
     older_pending_ = true;

@@ -6,6 +6,17 @@
 
 namespace crpp::ui {
 
+float keyframes(float t, std::span<const std::pair<float, float>> stops) {
+  for (std::size_t i = 1; i < stops.size(); ++i) {
+    if (t < stops[i].first) {
+      const auto& [from_at, from] = stops[i - 1];
+      const auto& [to_at, to] = stops[i];
+      return from + (to - from) * ease((t - from_at) / (to_at - from_at));
+    }
+  }
+  return stops.empty() ? 0 : stops.back().second;
+}
+
 void HoverTip::paint(Ui& ui, Painter& p, const Spec* want) {
   seen_owner_ = ui.hover_owner;
   seen_id_ = ui.hover_id;

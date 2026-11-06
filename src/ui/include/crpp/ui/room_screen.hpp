@@ -9,6 +9,8 @@
 
 #include "crpp/ui/chat_panel.hpp"
 #include "crpp/ui/controls.hpp"
+#include "crpp/ui/dialogs.hpp"
+#include "crpp/ui/prefs.hpp"
 #include "crpp/ui/surface.hpp"
 #include "crpp/ui/tip.hpp"
 
@@ -44,7 +46,7 @@ class RoomScreen final : public Surface {
   void reset();
   // Replaces the member list and room flags (from joined/members messages).
   void set_room(std::vector<MemberView> members, std::uint32_t me, std::optional<std::uint32_t> host,
-                bool is_public, bool chat);
+                bool is_public, bool chat, std::uint64_t chat_lock_ms = 0);
   // A member made a sound: their emoji ring lights up briefly.
   void pulse(std::uint32_t slot);
   void pulse_me() { pulse(me_); }
@@ -82,6 +84,16 @@ class RoomScreen final : public Surface {
   void paint_mute_popup(Painter& p);
   void paint_members(Painter& p, const Layout& l);
   void paint_tips(Painter& p);
+  void paint_pin(Painter& p, Rect sw, bool on, bool disabled);
+  void ask(Dialog dialog);
+  void ask_leave();
+  void notice_answered(pref::Bool seen);
+  void block_switch(int id, const char* text);
+  void toggle_public();
+  void toggle_chat();
+  void toggle_pin(pref::Bool key, bool on);
+  [[nodiscard]] bool chat_locked() const;
+  [[nodiscard]] bool shaking() const;
   // A hovered thing's label, if it has one.
   [[nodiscard]] std::optional<HoverTip::Spec> tip_for_hover() const;
   void copy_code();
@@ -105,11 +117,17 @@ class RoomScreen final : public Surface {
   Scroll members_scroll_;
   Rect members_area_;  // window coordinates
   // Where the labelled things were last drawn, window coordinates.
-  Rect fab_rects_[3], code_rect_;
+  Rect fab_rects_[3], code_rect_, public_rect_, chat_rect_;
   std::vector<std::pair<std::uint32_t, Rect>> member_rects_;
   HoverTip tip_, copy_tip_;
   std::string copy_text_;
   unsigned long long copy_until_ = 0, hint_muted_until_ = 0;
+  unsigned long long chat_lock_at_ = 0;  // after this, chat cannot be turned off
+  bool lock_pending_ = false;
+  bool dialog_open_ = false;  // Dialogs is showing a question of this screen's
+  int blocked_id_ = -1;       // the switch showing why it did not move
+  std::string blocked_text_;
+  unsigned long long blocked_at_ = 0;
 };
 
 }  // namespace crpp::ui

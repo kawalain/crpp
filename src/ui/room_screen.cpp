@@ -21,6 +21,13 @@ constexpr float speaker_level_shift[4] = {0, 3.05f, 1.1f, -1.4f};
 constexpr float cloud_dy = 33;  // main.js SESSION_CLOUD_DY
 constexpr float fab_size = 42;
 
+constexpr const char* pin_tip_blocked = "우클릭하여 기본값 고정 해제 후\n조작할 수 있습니다.";
+constexpr const char* chat_tip_locked = "이 구름에서는 이제 채팅을\n비활성화 할 수 없습니다.";
+
+// @keyframes tip-shake, over 320 ms.
+constexpr std::pair<float, float> tip_shake[] = {{0, 0}, {0.2f, -7}, {0.4f, 7}, {0.6f, -4}, {0.8f, 3}, {1, 0}};
+constexpr float tip_shake_ms = 320;
+
 }  // namespace
 
 RoomScreen::RoomScreen(Ui& ui) : Surface(ui), chat_panel_(ui) {}
@@ -59,15 +66,22 @@ void RoomScreen::reset() {
   options_open_ = mute_popup_open_ = false;
   pulses_.clear();
   copy_until_ = hint_muted_until_ = 0;
+  lock_pending_ = false;
+  blocked_id_ = -1;
+  // A question about this Room means nothing once it is gone.
+  if (dialog_open_) ui_.dialogs->close();
+  dialog_open_ = false;
 }
 
 void RoomScreen::set_room(std::vector<MemberView> members, std::uint32_t me, std::optional<std::uint32_t> host,
-                          bool is_public, bool chat) {
+                          bool is_public, bool chat, std::uint64_t chat_lock_ms) {
   members_ = std::move(members);
   me_ = me;
   host_ = host;
   public_ = is_public;
   chat_ = chat;
+  chat_lock_at_ = GetTickCount64() + chat_lock_ms;
+  lock_pending_ = chat && chat_lock_ms > 0;
 }
 
 void RoomScreen::pulse(std::uint32_t slot) {
@@ -88,15 +102,26 @@ bool RoomScreen::speaking(std::uint32_t slot) const {
   return false;
 }
 
+bool RoomScreen::chat_locked() const { return chat_ && GetTickCount64() >= chat_lock_at_; }
+
+bool RoomScreen::shaking() const {
+  return ui_.animations && blocked_id_ >= 0 && static_cast<float>(ui_.now_ms - std::min(ui_.now_ms, blocked_at_)) < tip_shake_ms;
+}
+
 bool RoomScreen::animating() const {
-  return !pulses_.empty() || tip_.animating(ui_) || copy_tip_.animating(ui_);
+  return !pulses_.empty() || tip_.animating(ui_) || copy_tip_.animating(ui_) || shaking();
 }
 
 bool RoomScreen::tick(unsigned long long now_ms) {
   const auto before = pulses_.size();
   std::erase_if(pulses_, [&](const auto& p) { return p.second <= now_ms; });
   bool changed = pulses_.size() != before;
-  if (tip_.animating(ui_) || copy_tip_.animating(ui_)) changed = true;
+  if (tip_.animating(ui_) || copy_tip_.animating(ui_) || shaking()) changed = true;
+  // The chat switch locks 5 minutes after chat was turned on.
+  if (lock_pending_ && now_ms >= chat_lock_at_) {
+    lock_pending_ = false;
+    changed = true;
+  }
   // A waiting copy tip or muted hint: one repaint when its time comes.
   if (copy_until_ != 0 && now_ms >= copy_until_) {
     copy_until_ = 0;
@@ -111,7 +136,7 @@ bool RoomScreen::tick(unsigned long long now_ms) {
 
 unsigned long long RoomScreen::wake_at() const {
   unsigned long long at = 0;
-  for (const auto wake : {copy_until_, hint_muted_until_}) {
+  for (const auto wake : {copy_until_, hint_muted_until_, lock_pending_ ? chat_lock_at_ : 0ULL}) {
     if (wake != 0 && (at == 0 || wake < at)) at = wake;
   }
   return at;
@@ -298,12 +323,23 @@ void RoomScreen::paint_options_popup(Painter& p) {
   p.text("공개 구름", {r.x + 25, y, 150, 41}, label, ink);
   const Rect pub{r.x + 25 + 201 - 6 - 51, y + (41 - 27) / 2.0f, 51, 27};
   paint_switch(p, t, pub, public_, !host, ui_.hot(this, OptPublic));
+  if (ui_.prefs->get(pref::pin_public)) paint_pin(p, pub, public_, !host);
   ui_.add_hit_window(this, pub, OptPublic);
+  public_rect_ = pub;
   y += 41;
   p.text("채팅", {r.x + 25, y, 150, 41}, label, ink);
   const Rect chat{r.x + 25 + 201 - 6 - 51, y + (41 - 27) / 2.0f, 51, 27};
-  paint_switch(p, t, chat, chat_, !host, ui_.hot(this, OptChat));
+  const bool chat_disabled = !host || chat_locked();
+  paint_switch(p, t, chat, chat_, chat_disabled, ui_.hot(this, OptChat));
+  if (ui_.prefs->get(pref::pin_chat)) paint_pin(p, chat, chat_, chat_disabled);
   ui_.add_hit_window(this, chat, OptChat);
+  chat_rect_ = chat;
+}
+
+// .switch.pinned: a small bar across the knob.
+void RoomScreen::paint_pin(Painter& p, Rect sw, bool on, bool disabled) {
+  const float cx = sw.x + (on ? 37.5f : 13.5f), cy = sw.y + 13.5f;
+  p.fill_round({cx - 5.5f, cy - 1.5f, 11, 3}, 1.5f, with_alpha(ui_.theme.hl_mid, disabled ? 0.5f : 1.0f));
 }
 
 void RoomScreen::paint_mute_popup(Painter& p) {
@@ -339,6 +375,31 @@ std::optional<HoverTip::Spec> RoomScreen::tip_for_hover() const {
     spec.text = "클릭해 복사";
     spec.anchor = code_rect_;
     spec.place = HoverTip::Place::Right;
+  } else if ((id == OptPublic || id == OptChat) && options_open_) {
+    const Rect sw = id == OptPublic ? public_rect_ : chat_rect_;
+    spec.place = HoverTip::Place::Right;
+    if (!is_host()) {
+      // Above the whole row (.host-tip).
+      spec.text = "호스트만 조작할 수 있습니다.";
+      spec.size = 15;
+      spec.anchor = {sw.x, sw.y - 7, sw.w, sw.h + 14};
+      return spec;
+    }
+    // An off switch has nothing to pin (.switch:has(input:not(:checked)) > .pin-tip).
+    if (!(id == OptPublic ? public_ : chat_)) return std::nullopt;
+    spec.anchor = sw;
+    if (blocked_id_ == id) {
+      spec.text = blocked_text_;
+      if (shaking()) {
+        spec.dx = keyframes(static_cast<float>(ui_.now_ms - std::min(ui_.now_ms, blocked_at_)) / tip_shake_ms, tip_shake);
+      }
+    } else if (id == OptChat && chat_locked()) {
+      spec.text = chat_tip_locked;
+    } else {
+      spec.text = ui_.prefs->get(id == OptPublic ? pref::pin_public : pref::pin_chat)
+                      ? "우클릭해 기본값 고정을 해제합니다."
+                      : "우클릭해 활성화 상태를\n기본값으로 고정합니다.";
+    }
   } else if (id >= MemberBase) {
     const auto slot = static_cast<std::uint32_t>(id - MemberBase);
     const auto member = std::ranges::find(members_, slot, &MemberView::slot);
@@ -359,6 +420,8 @@ std::optional<HoverTip::Spec> RoomScreen::tip_for_hover() const {
 }
 
 void RoomScreen::paint_tips(Painter& p) {
+  // A refusal stays on the switch until the pointer leaves it.
+  if (blocked_id_ >= 0 && !ui_.hot(this, blocked_id_)) blocked_id_ = -1;
   const auto want = tip_for_hover();
   tip_.paint(ui_, p, want ? &*want : nullptr);
   HoverTip::Spec copied;
@@ -386,19 +449,110 @@ void RoomScreen::copy_code() {
   hint_muted_until_ = now + 5000;
 }
 
+void RoomScreen::ask(Dialog dialog) {
+  dialog_open_ = true;
+  dialog.on_confirm = [this, then = std::move(dialog.on_confirm)] {
+    dialog_open_ = false;
+    if (then) then();
+  };
+  dialog.on_cancel = [this, then = std::move(dialog.on_cancel)] {
+    dialog_open_ = false;
+    if (then) then();
+  };
+  ui_.dialogs->show(std::move(dialog));
+}
+
+void RoomScreen::ask_leave() {
+  options_open_ = false;
+  // A leaving Host hands the Room to someone, if anyone else is there.
+  const bool others = std::ranges::any_of(members_, [&](const MemberView& m) { return m.slot != me_; });
+  const bool delegates = is_host() && others;
+  ask({delegates ? "이 구름에서 떠날까요?\n호스트를 무작위로 다른 사람에게 위임합니다." : "이 구름에서 떠날까요?", "떠나기", "취소",
+       delegates,
+       [this] {
+         if (on_leave) on_leave();
+       },
+       nullptr});
+}
+
+// The public and chat notices show once each. The first answer to either brings the
+// tip about pinning, once.
+void RoomScreen::notice_answered(pref::Bool seen) {
+  ui_.prefs->set(seen, true);
+  if (ui_.prefs->get(pref::pin_tip_seen)) return;
+  ui_.prefs->set(pref::pin_tip_seen, true);
+  ask({"공개 구름 및 채팅 토글 스위치를\n우클릭하여 구름을 띄울 때\n기본값으로 고정할 수 있습니다.", "확인", "", false, nullptr, nullptr});
+}
+
+void RoomScreen::block_switch(int id, const char* text) {
+  blocked_id_ = id;
+  blocked_text_ = text;
+  blocked_at_ = GetTickCount64();
+}
+
+void RoomScreen::toggle_public() {
+  if (!is_host()) return;
+  if (public_ && ui_.prefs->get(pref::pin_public)) {
+    block_switch(OptPublic, pin_tip_blocked);
+    return;
+  }
+  if (!public_ && !ui_.prefs->get(pref::public_notice_seen)) {
+    ask({"이 구름을 공개 구름으로 전환합니다.\n메인 메뉴에서 누구나 이 구름에\n코드 없이 참여할 수 있습니다.", "전환", "취소", false,
+         [this] {
+           notice_answered(pref::public_notice_seen);
+           if (on_set_public) on_set_public(true);
+         },
+         [this] { notice_answered(pref::public_notice_seen); }});
+    return;
+  }
+  if (on_set_public) on_set_public(!public_);
+}
+
+void RoomScreen::toggle_chat() {
+  if (!is_host()) return;
+  if (chat_locked()) {
+    block_switch(OptChat, chat_tip_locked);
+    return;
+  }
+  if (chat_ && ui_.prefs->get(pref::pin_chat)) {
+    block_switch(OptChat, pin_tip_blocked);
+    return;
+  }
+  if (!chat_ && !ui_.prefs->get(pref::chat_notice_seen)) {
+    ask({"이 구름에서 채팅 기능을 활성화하려 합니다.\n서버는 채팅 기록을 기록하지 않습니다.\n채팅 기능 활성화 후 5분이 지나면\n다시 비활성화 할 수 없습니다.",
+         "활성화", "취소", true,
+         [this] {
+           notice_answered(pref::chat_notice_seen);
+           if (on_set_chat) on_set_chat(true);
+         },
+         [this] { notice_answered(pref::chat_notice_seen); }});
+    return;
+  }
+  if (on_set_chat) on_set_chat(!chat_);
+}
+
+// Pinned, a new Room starts with this on. Off is the default, so only an on switch
+// can be pinned; anyone can pin, and any pin can be removed.
+void RoomScreen::toggle_pin(pref::Bool key, bool on) {
+  const bool pinned = ui_.prefs->get(key);
+  if (!pinned && !on) return;
+  ui_.prefs->set(key, !pinned);
+}
+
 void RoomScreen::before_click(const Surface* owner, int id) {
-  // Popups close when anything outside them is clicked.
+  // Popups close when anything outside them is clicked, except a notice's buttons,
+  // which leave the switches in view.
   const bool own = owner == this;
   const bool in_options = own && (id == Popup || id == OptCode || id == OptPublic || id == OptChat || id == More);
   const bool in_mute = own && (id == Popup || id == VolumeSlider || id == Mute);
-  if (options_open_ && !in_options) options_open_ = false;
+  if (options_open_ && !in_options && owner != ui_.dialogs) options_open_ = false;
   if (mute_popup_open_ && !in_mute) mute_popup_open_ = false;
 }
 
 void RoomScreen::click(int id, float x, float, bool) {
   switch (id) {
     case Leave:
-      if (on_leave) on_leave();
+      ask_leave();
       break;
     case More:
       options_open_ = !options_open_;
@@ -412,10 +566,10 @@ void RoomScreen::click(int id, float x, float, bool) {
       copy_code();
       break;
     case OptPublic:
-      if (is_host() && on_set_public) on_set_public(!public_);
+      toggle_public();
       break;
     case OptChat:
-      if (is_host() && on_set_chat) on_set_chat(!chat_);
+      toggle_chat();
       break;
     case VolumeSlider:
       ui_.capture = this;
@@ -427,6 +581,10 @@ void RoomScreen::click(int id, float x, float, bool) {
 }
 
 bool RoomScreen::right_click(int id, float, float) {
+  if (id == OptPublic || id == OptChat) {
+    toggle_pin(id == OptPublic ? pref::pin_public : pref::pin_chat, id == OptPublic ? public_ : chat_);
+    return true;
+  }
   // Right-clicking the speaker opens the volume popup (main.js contextmenu).
   if (id != Mute) return false;
   mute_popup_open_ = !mute_popup_open_;

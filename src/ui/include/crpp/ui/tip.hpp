@@ -2,11 +2,16 @@
 // A small label over something (.tip, .copy-tip, .link-tip, .volume-tooltip): it fades
 // in and out on its own clock, so the owner only says each frame what should show.
 #include <optional>
+#include <span>
 #include <string>
+#include <utility>
 
 #include "crpp/ui/surface.hpp"
 
 namespace crpp::ui {
+
+// A CSS keyframe track at t in 0..1: stops are (offset, value), eased between each.
+[[nodiscard]] float keyframes(float t, std::span<const std::pair<float, float>> stops);
 
 class HoverTip {
  public:

@@ -65,6 +65,17 @@ bool scene(Shell& s, std::string_view name) {
     demo_session(s.app, true);
     return true;
   }
+  if (name == "room-leave") {
+    demo_session(s.app, false);
+    s.app.room().click(RoomScreen::Leave, 0, 0, false);
+    return true;
+  }
+  if (name == "room-options") {
+    demo_session(s.app, true);
+    s.app.ui().prefs->set(pref::pin_chat, true);
+    s.app.room().click(RoomScreen::More, 0, 0, false);
+    return true;
+  }
   return false;
 }
 

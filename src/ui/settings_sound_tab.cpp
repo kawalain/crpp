@@ -20,7 +20,6 @@ constexpr float effects_shift = 104 - pen_shift;
 constexpr float view_top = 137, view_bottom = 641;
 
 constexpr float slider_x = 16, slider_w = 244, slider_hit_h = 21;
-constexpr float dropdown_x = 285, dropdown_w = 246, dropdown_h = 38;
 constexpr float row_x = 16, row_w = 505, row_h = 36, switch_w = 50, switch_h = 26;
 
 constexpr int balance_min = 55, balance_max = 90;  // BALANCE_MIN, BALANCE_MAX

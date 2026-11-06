@@ -278,8 +278,8 @@ void test_focus_and_droplet_animate_then_go_idle() {
   const Ui::Hit* drop = h.app.ui().find_hit(&h.app.settings(), SettingsPanel::Droplet);
   CHECK(drop != nullptr);
   CHECK(h.app.mouse_move(drop->rect.x + 17, drop->rect.y + 30));
+  h.render();  // a paint starts the droplet's transition
   CHECK(h.app.animating());
-  h.render();
   settle(h);
 }
 

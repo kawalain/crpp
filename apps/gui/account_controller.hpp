@@ -23,6 +23,8 @@ class AccountHost {
   virtual void erase_personal_data() = 0;
   // Leaves the Room this client is in.
   virtual void leave_room() = 0;
+  // A call got no answer at all; a connection's feedback decides what that means.
+  virtual void server_unreachable() = 0;
   [[nodiscard]] virtual std::string random_nickname() = 0;
   [[nodiscard]] virtual std::string emoji() const = 0;
   virtual void set_emoji(std::string id) = 0;

@@ -57,6 +57,7 @@ class Host final : public AccountHost {
     (void)s_.store->save();
   }
 
+  void server_unreachable() override { connection::server_unreachable(s_); }
   void leave_room() override {
     s_.bridge->leaving();
     s_.client->leave();

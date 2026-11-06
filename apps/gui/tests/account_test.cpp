@@ -35,6 +35,8 @@ class FakeHost final : public AccountHost {
     gid.clear();
   }
   void leave_room() override { ++left_room; }
+  void server_unreachable() override { ++unreachable; }
+  int unreachable = 0;
   [[nodiscard]] std::string random_nickname() override { return "졸린 곰"; }
   [[nodiscard]] std::string emoji() const override { return stored_emoji; }
   void set_emoji(std::string id) override { stored_emoji = std::move(id); }
@@ -434,6 +436,7 @@ void test_refresh_at_startup() {
     r.host.answer(r.h, std::unexpected(api::HttpError::Network));
     CHECK(r.h.app.view() == View::Home);
     CHECK(r.host.stored.token == "TOKEN");
+    CHECK(r.host.unreachable == 1);
   }
   {  // An account with no name at all has to get one.
     Rig r;

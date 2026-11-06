@@ -80,6 +80,7 @@ void AccountController::refresh_profile() {
     if (!me) {
       // Anything else says nothing about the account: the server may just be away.
       if (me.error().status == 401) token_rejected();
+      else if (me.error().code == "network") host_.server_unreachable();
       return;
     }
     identity.username = std::move(me->username);

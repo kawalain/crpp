@@ -74,11 +74,10 @@ std::string random_nickname(const std::filesystem::path& words) {
     char buf[512];
     for (std::size_t n; (n = std::fread(buf, 1, sizeof buf, f)) > 0;) text.append(buf, n);
     std::fclose(f);
-    for (std::size_t i = 0; (i = text.find('\'', i)) != std::string::npos;) {
-      const auto end = text.find('\'', i + 1);
-      if (end == std::string::npos) break;
-      list.push_back(text.substr(i + 1, end - i - 1));
-      i = end + 1;
+    while (!text.empty() && (text.back() == '\n' || text.back() == '\r')) text.pop_back();
+    for (std::size_t start = 0, comma = 0; comma != std::string::npos; start = comma + 1) {
+      comma = text.find(',', start);
+      if (const auto word = text.substr(start, comma - start); !word.empty()) list.push_back(word);
     }
     return list;
   };

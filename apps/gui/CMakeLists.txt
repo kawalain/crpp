@@ -1,5 +1,8 @@
 if(WIN32)
-  add_executable(crpp main.cpp)
+  add_executable(crpp
+    main.cpp window.cpp startup.cpp bridge.cpp shot.cpp
+    area_connection.cpp area_home.cpp area_room.cpp area_sound.cpp area_preferences.cpp area_os.cpp area_account.cpp
+    area_update.cpp)
   # Releases use MSVC, whose linker embeds this. A GCC build runs unaware of DPI,
   # which Windows scales for it; it exists to keep the code portable.
   if(MSVC)

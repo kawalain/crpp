@@ -1,0 +1,30 @@
+add_library(crpp_api STATIC api.cpp flow.cpp worker.cpp)
+target_include_directories(crpp_api PUBLIC include)
+target_link_libraries(crpp_api PUBLIC crpp_store Threads::Threads)
+crpp_target_defaults(crpp_api)
+
+function(crpp_api_test name)
+  add_executable(crpp_api_${name}_test tests/${name}_test.cpp)
+  target_link_libraries(crpp_api_${name}_test PRIVATE crpp_api)
+  target_include_directories(crpp_api_${name}_test PRIVATE ${PROJECT_SOURCE_DIR}/tests/support)
+  crpp_target_defaults(crpp_api_${name}_test)
+  add_test(NAME api.${name} COMMAND crpp_api_${name}_test)
+endfunction()
+
+crpp_api_test(api)
+crpp_api_test(flow)
+crpp_api_test(worker)
+
+if(WIN32)
+  add_library(crpp_api_winhttp STATIC winhttp_client.cpp)
+  target_link_libraries(crpp_api_winhttp PUBLIC crpp_api winhttp)
+  target_compile_definitions(crpp_api_winhttp PRIVATE NOMINMAX WIN32_LEAN_AND_MEAN)
+  crpp_target_defaults(crpp_api_winhttp)
+
+  add_executable(crpp_api_winhttp_test tests/winhttp_client_test.cpp)
+  target_link_libraries(crpp_api_winhttp_test PRIVATE crpp_api_winhttp ws2_32 bcrypt)
+  target_include_directories(crpp_api_winhttp_test PRIVATE
+    ${PROJECT_SOURCE_DIR}/tests/support ${PROJECT_SOURCE_DIR}/src/transport/tests)
+  crpp_target_defaults(crpp_api_winhttp_test)
+  add_test(NAME api.winhttp COMMAND crpp_api_winhttp_test)
+endif()

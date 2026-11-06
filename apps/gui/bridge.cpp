@@ -20,6 +20,7 @@ void Bridge::leaving() {
 
 void Bridge::on_status(session::State s) {
   tasks_.post([this, s] {
+    state_ = s;
     if (on_state) on_state(s);
     if (s != session::State::Idle) return;
     const auto now = unix_ms();
@@ -114,6 +115,7 @@ void Bridge::on_peer_input(std::span<const wire::ServerEvent> events) {
 
 void Bridge::on_failed(session::Failure reason, std::string_view detail) {
   tasks_.post([this, reason, detail = std::string(detail)] {
+    state_ = session::State::Idle;  // a refused command reports no state of its own
     switch (reason) {
       case session::Failure::Unauthorized:
         if (on_unauthorized) on_unauthorized();

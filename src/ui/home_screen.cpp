@@ -1,5 +1,6 @@
 #include "crpp/ui/home_screen.hpp"
 
+#include "crpp/ui/home_logic.hpp"
 #include "crpp/ui/toasts.hpp"
 
 namespace crpp::ui {
@@ -94,9 +95,14 @@ bool HomeScreen::accepts(int id, float x, float y) const {
 }
 
 void HomeScreen::join() {
-  if (code_.text().empty()) return;
+  if (is_busy()) return;
   last_action_ = Join;
-  if (on_join) on_join(narrow(code_.text()));
+  const auto code = home::normalize_code(code_.text());
+  if (!code) {
+    show_error(home::code_length_error);
+    return;
+  }
+  if (on_join) on_join(narrow(*code));
 }
 
 void HomeScreen::show_error(std::string text) {
@@ -112,6 +118,7 @@ void HomeScreen::show_error(std::string text) {
 void HomeScreen::click(int id, float x, float, bool shift) {
   switch (id) {
     case Create:
+      if (is_busy()) break;
       last_action_ = Create;
       if (on_create) on_create();
       break;
@@ -124,6 +131,7 @@ void HomeScreen::click(int id, float x, float, bool shift) {
       code_.click_at(ui_.gfx, code_style, ui_.to_stage_x(x) - (469 + 18), shift);
       break;
     case Find:
+      if (is_busy()) break;
       last_action_ = Find;
       if (on_find_public) on_find_public();
       break;

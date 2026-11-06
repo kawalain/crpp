@@ -11,9 +11,13 @@ class HomeScreen final : public Surface {
  public:
   explicit HomeScreen(Ui& ui);
 
+  enum Id : int { Create, Join, Code, Find };
+
   std::function<void()> on_create;
   std::function<void(std::string code)> on_join;
   std::function<void()> on_find_public;
+  // A Room is being entered: the buttons do nothing and nothing about them changes.
+  std::function<bool()> busy;
 
   void set_nickname(std::string nickname) { nickname_ = std::move(nickname); }
   void set_hour(int hour) { hour_ = hour; }  // 0-23, for the greeting
@@ -28,7 +32,7 @@ class HomeScreen final : public Surface {
   [[nodiscard]] Cursor cursor(int id) const override;
 
  private:
-  enum Id : int { Create, Join, Code, Find };
+  [[nodiscard]] bool is_busy() const { return busy && busy(); }
   void join();
 
   std::string nickname_;

@@ -54,6 +54,11 @@ class Bridge final : public client::Observer {
   // UI thread: remember which held Seat a resume is for, to forget it if refused.
   void expect_resume(std::string code) { resume_code_ = std::move(code); }
 
+  // UI thread: the Session takes a command to enter a Room only when idle. What it
+  // would ignore must not change what the user is told or which Seat is expected.
+  [[nodiscard]] bool idle() const { return state_ == session::State::Idle; }
+  void entering() { state_ = session::State::Connecting; }
+
   // UI thread: the user leaves. The Seat stays held for a while.
   void leaving();
 
@@ -76,6 +81,7 @@ class Bridge final : public client::Observer {
   bool keep_seat_ = false;
   std::string room_code_;
   std::string resume_code_;
+  session::State state_ = session::State::Idle;
 };
 
 }  // namespace crpp::gui

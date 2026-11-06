@@ -55,7 +55,7 @@ void UpdatePopup::paint(Painter& p) {
   if (const auto layout = ui_.gfx.layout(widen(text), body, std::max(40.0f, max_w - chrome))) layout->GetMetrics(&size);
   const float text_w = std::min(size.widthIncludingTrailingWhitespace + 1, std::max(40.0f, max_w - chrome));
   const float inner_h = label_w > 0 ? button_h : 22;
-  const Rect card{margin, ui_.height - margin - inner_h - 2 * pad_y, text_w + chrome, inner_h + 2 * pad_y};
+  const Rect card{margin, margin, text_w + chrome, inner_h + 2 * pad_y};
 
   if (t.dark) p.shadow_round(card, 14, 38, 12, rgb(0x000000, 0.33f));
   else p.shadow_round(card, 14, 16, 4, rgb(0x2e78aa, 0.22f));

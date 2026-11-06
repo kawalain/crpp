@@ -73,7 +73,7 @@ void the_button_starts_the_update_and_goes_away_while_busy() {
   CHECK(pressed == 2);
 }
 
-void the_popup_sits_at_the_bottom_on_every_view() {
+void the_popup_sits_at_the_top_left_on_every_view() {
   UiHarness h;
   CHECK(h.start());
   UpdatePopup& popup = h.app.update_popup();
@@ -82,7 +82,7 @@ void the_popup_sits_at_the_bottom_on_every_view() {
     h.render();
     const Ui::Hit* card = h.app.ui().find_hit(&popup, UpdatePopup::Card);
     CHECK(card != nullptr);
-    if (card) CHECK(card->rect.bottom() == 692 - 14);
+    if (card) CHECK(card->rect.x == 14 && card->rect.y == 14);
     CHECK(h.drawn(popup, UpdatePopup::Button));
   };
   h.app.show_home();
@@ -312,7 +312,7 @@ void nothing_beneath_it_takes_the_wheel_or_a_click() {
 int main() {
   the_popup_is_hidden_until_told();
   the_button_starts_the_update_and_goes_away_while_busy();
-  the_popup_sits_at_the_bottom_on_every_view();
+  the_popup_sits_at_the_top_left_on_every_view();
   a_check_waits_with_a_single_wake_up();
   the_version_button_says_what_it_does_and_opens();
   opens_closes_and_keeps_nothing();

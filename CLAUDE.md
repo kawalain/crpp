@@ -111,9 +111,8 @@ per subagent, never to production. Never create accounts on production.
   3 s forever; it does not ask `/health` first. A connection error names no reason in
   parentheses, because the transport reports none.
 - A Room that cannot be resumed at startup says so; upstream returns to Home silently.
-- The update popup sits at the bottom left, not the top left. The changelog comes from
-  GitHub release notes, so an empty one says it could not be loaded, and a first run
-  ever does not open it.
+- The changelog comes from GitHub release notes, so an empty one says it could not be
+  loaded, and a first run ever does not open it.
 
 ## Build
 

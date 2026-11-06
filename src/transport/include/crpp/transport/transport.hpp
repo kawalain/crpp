@@ -16,8 +16,8 @@
 //  - send_*() and ping() are safe to call from any thread while connected, and
 //    return false if the message could not be sent (the connection is then
 //    ending; closed() follows).
-//  - heard() reports every frame received, including the WebSocket ping/pong
-//    control frames the transport answers by itself.
+//  - heard() reports every text/binary frame received, and control frames too
+//    if capabilities().reports_control_frames.
 //  - Only the cloudroom-v2 subprotocol is offered. If the server picks none,
 //    the open fails.
 #include <cstdint>
@@ -41,9 +41,18 @@ class Sink {
   ~Sink() = default;
 };
 
+// What a transport can do for liveness. A driver that gets false must disable
+// the matching Session timers (Timing::ping_interval / liveness_timeout = 0).
+struct Capabilities {
+  bool can_ping = false;                // ping() really sends a WebSocket ping
+  bool reports_control_frames = false;  // heard() also fires for ping/pong frames
+};
+
 class Transport {
  public:
   virtual ~Transport() = default;
+
+  [[nodiscard]] virtual Capabilities capabilities() const noexcept = 0;
 
   // bearer_token may be empty (guest). Opening while a connection exists is a
   // programming error; call close() first.

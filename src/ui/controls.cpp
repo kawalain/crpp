@@ -163,6 +163,26 @@ Rect paint_modal(Ui& ui, Surface* owner, Painter& p, float w, float h, float sho
   return card;
 }
 
+EdgeFade push_edge_fade(Painter& p, Rect area, bool top, bool bottom) {
+  EdgeFade fade;
+  if (!top && !bottom) return fade;
+  const float edge = 27 / area.h;
+  const auto stop = [](float at, float alpha) { return D2D1::GradientStop(at, D2D1::ColorF(0, 0, 0, alpha)); };
+  const D2D1_GRADIENT_STOP stops[4] = {stop(0, top ? 0.0f : 1.0f), stop(edge, 1), stop(1 - edge, 1), stop(1, bottom ? 0.0f : 1.0f)};
+  ComPtr<ID2D1GradientStopCollection> collection;
+  if (FAILED(p.rt()->CreateGradientStopCollection(stops, 4, collection.put())) ||
+      FAILED(p.rt()->CreateLinearGradientBrush(
+          D2D1::LinearGradientBrushProperties(D2D1::Point2F(0, area.y), D2D1::Point2F(0, area.bottom())), collection.get(),
+          fade.mask.put())) ||
+      FAILED(p.rt()->CreateLayer(nullptr, fade.layer.put()))) {
+    return {};
+  }
+  p.rt()->PushLayer(D2D1::LayerParameters(D2D1::RectF(area.x, area.y, area.right(), area.bottom()), nullptr,
+                                          D2D1_ANTIALIAS_MODE_PER_PRIMITIVE, D2D1::IdentityMatrix(), 1.0f, fade.mask.get()),
+                    fade.layer.get());
+  return fade;
+}
+
 void paint_modal_button(Ui& ui, Surface* owner, Painter& p, Rect r, std::string_view label, bool primary, float shown, int id) {
   const Theme& t = ui.theme;
   const bool hot = ui.hot(owner, id);

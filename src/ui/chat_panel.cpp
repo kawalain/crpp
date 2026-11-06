@@ -243,6 +243,7 @@ void ChatPanel::paint(Painter& p, Rect panel) {
       const D2D1_SIZE_F time_size = p.text(time, {x, row.y_head + 2.5f, list_w, 20},
                                            {.size = 14, .line_height = 20, .align = Align::Right}, t.hl_text);
       p.text(e.nick.empty() ? "게스트" : e.nick,
+  const EdgeFade fade = push_edge_fade(p, area, scroll_ > 0, scroll_ < max_scroll);
              {x + 25 + 7, row.y_head + 2.5f, std::max(20.0f, list_w - 25 - 7 - time_size.width - 7), 20},
              {.size = 15, .line_height = 20, .ellipsis = true}, t.hl_text);
     }
@@ -304,6 +305,7 @@ void ChatPanel::paint(Painter& p, Rect panel) {
   paint_calm(p, anchor);
   if (show_tip && tip.anchor.y - 6 - 32 < panel.y + 4) {
     tip.anchor.y = tip.anchor.bottom() + 6 + 32 + 6;  // no room above: below it
+  pop_edge_fade(p, fade);
   }
   link_tip_.paint(ui_, p, show_tip ? &tip : nullptr);
 }

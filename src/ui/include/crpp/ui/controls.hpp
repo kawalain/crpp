@@ -71,6 +71,18 @@ void paint_scrollbar(Painter& p, const Theme& t, const Scroll& scroll, Rect trac
 // Registers the backdrop under backdrop_id, so nothing beneath can be clicked.
 // Returns the card's rectangle.
 Rect paint_modal(Ui& ui, Surface* owner, Painter& p, float w, float h, float shown, int backdrop_id, int card_id);
+
+// What is cut off at the top or bottom of a list fades out over 27 px (.scroll-area's
+// mask). Nothing is pushed when neither edge cuts anything. Pair with pop_edge_fade.
+struct EdgeFade {
+  ComPtr<ID2D1Layer> layer;
+  ComPtr<ID2D1LinearGradientBrush> mask;
+};
+[[nodiscard]] EdgeFade push_edge_fade(Painter& p, Rect area, bool top, bool bottom);
+inline void pop_edge_fade(Painter& p, const EdgeFade& fade) {
+  if (fade.layer) p.rt()->PopLayer();
+}
+
 // .modal-confirm when primary, else .modal-cancel.
 void paint_modal_button(Ui& ui, Surface* owner, Painter& p, Rect r, std::string_view label, bool primary, float shown, int id);
 

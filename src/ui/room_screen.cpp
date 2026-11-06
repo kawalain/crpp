@@ -250,28 +250,8 @@ void RoomScreen::paint_members(Painter& p, const Layout& l) {
 
   const D2D1_RECT_F bounds = D2D1::RectF(members_area_.x, members_area_.y, members_area_.right(), members_area_.bottom());
   p.rt()->PushAxisAlignedClip(bounds, D2D1_ANTIALIAS_MODE_PER_PRIMITIVE);
-  // Whatever is cut off fades out over 27 px (.scroll-area's mask).
-  ComPtr<ID2D1Layer> layer;
-  ComPtr<ID2D1LinearGradientBrush> mask;
-  if (members_scroll_.max_offset() > 0) {
-    const float edge = 27 / l.members_h;
-    const float top_alpha = members_scroll_.offset > 0 ? 0.0f : 1.0f;
-    const float bottom_alpha = members_scroll_.offset < members_scroll_.max_offset() ? 0.0f : 1.0f;
-    const auto stop = [](float at, float alpha) { return D2D1::GradientStop(at, D2D1::ColorF(0, 0, 0, alpha)); };
-    const D2D1_GRADIENT_STOP stops[4] = {stop(0, top_alpha), stop(edge, 1), stop(1 - edge, 1), stop(1, bottom_alpha)};
-    ComPtr<ID2D1GradientStopCollection> collection;
-    if (SUCCEEDED(p.rt()->CreateGradientStopCollection(stops, 4, collection.put())) &&
-        SUCCEEDED(p.rt()->CreateLinearGradientBrush(
-            D2D1::LinearGradientBrushProperties(D2D1::Point2F(0, members_area_.y), D2D1::Point2F(0, members_area_.bottom())),
-            collection.get(), mask.put())) &&
-        SUCCEEDED(p.rt()->CreateLayer(nullptr, layer.put()))) {
-      p.rt()->PushLayer(D2D1::LayerParameters(bounds, nullptr, D2D1_ANTIALIAS_MODE_PER_PRIMITIVE,
-                                              D2D1::IdentityMatrix(), 1.0f, mask.get()),
-                        layer.get());
-    } else {
-      layer.reset();
-    }
-  }
+  const EdgeFade fade = push_edge_fade(p, members_area_, members_scroll_.offset > 0,
+                                       members_scroll_.offset < members_scroll_.max_offset());
   ui_.push_hit_clip(members_area_);
   member_rects_.clear();
   for (int i = 0; i < n; ++i) {
@@ -295,7 +275,7 @@ void RoomScreen::paint_members(Painter& p, const Layout& l) {
     member_rects_.emplace_back(m.slot, box);
   }
   ui_.pop_hit_clip();
-  if (layer) p.rt()->PopLayer();
+  pop_edge_fade(p, fade);
   p.rt()->PopAxisAlignedClip();
 }
 

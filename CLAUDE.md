@@ -66,6 +66,9 @@ and developer communities, not from memory.
 5. Accounts and the HTTP API.
 6. CI, Releases and `update`.
 
+Next after `input` + `sound`: real DPI support (Per-Monitor v2). Upstream ignores
+DPI; this client must scale correctly.
+
 ## Build
 
 ```
@@ -94,10 +97,10 @@ exist (real + test).
   adapter for tests.
 - `input`: Raw Input (`RIDEV_INPUTSINK`) adapter on its own thread with a
   message-only window; scripted adapter for tests. This is the lowest level
-  reachable without a driver; drivers and low-level hooks are rejected. Key codes
-  live only inside the classify function, the raw buffer is wiped, and only
-  `Kind` crosses the seam. Coordinates are never read; Pen reads only the tip and
-  in-range bits. There is no input log.
+  reachable without a driver; drivers and low-level hooks are rejected. It runs
+  only while in a Room. The raw buffer is wiped, held-key bits are the only key
+  state, and only `Kind` crosses the seam. Coordinates are never read; Pen reads
+  only the tip and in-range bits. There is no input log.
 - `sound`: pack loading and a pure `render(span<float>)` mixer; device adapter
   behind it.
 - `store`: settings, Seats and chat cache in the Protected or Shared store; a

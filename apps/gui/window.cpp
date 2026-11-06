@@ -283,7 +283,7 @@ HWND create_window(Shell& s) {
 
   // The monitor's DPI is known only once the window exists, so it is sized while
   // still hidden.
-  HWND hwnd = CreateWindowExW(0, wc.lpszClassName, L"Cloudroom", window_style, CW_USEDEFAULT, CW_USEDEFAULT,
+  HWND hwnd = CreateWindowExW(0, wc.lpszClassName, L"Cloudroom++", window_style, CW_USEDEFAULT, CW_USEDEFAULT,
                               CW_USEDEFAULT, CW_USEDEFAULT, nullptr, nullptr, wc.hInstance, &s);
   if (!hwnd) return nullptr;
   s.dpi = GetDpiForWindow(hwnd);

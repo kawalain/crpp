@@ -1,5 +1,5 @@
 #pragma once
-// The Cloudroom UI: the surfaces on screen, independent of the window they are
+// The Cloudroom++ UI: the surfaces on screen, independent of the window they are
 // shown in. All coordinates are device-independent pixels (1/96 inch), and the
 // render target's DPI maps them to the monitor. The shell converts what comes from
 // window messages.

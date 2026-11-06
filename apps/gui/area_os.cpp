@@ -144,7 +144,7 @@ void show_window(Shell& s) {
 // Input timing keeps being shared with the Room while the window is away.
 void hint_room_stays_connected(Shell& s) {
   if (!os_policy::hide_needs_hint(s.app.view() == View::Session, s.store->bool_or(hint_shown_key, false))) return;
-  if (show_notification(s, L"Cloudroom", L"창을 숨겨도 구름에 계속 연결되어 있어요. 키보드와 마우스 입력 시점도 계속 공유돼요.",
+  if (show_notification(s, L"Cloudroom++", L"창을 숨겨도 구름에 계속 연결되어 있어요. 키보드와 마우스 입력 시점도 계속 공유돼요.",
                         nullptr, NIIF_NOSOUND)) {
     s.store->set(hint_shown_key, store::Json(true));
   }
@@ -159,7 +159,7 @@ void show_menu(Shell& s, int x, int y) {
   HMENU menu = CreatePopupMenu();
   if (!menu) return;
   constexpr UINT_PTR exit_item = 1;
-  AppendMenuW(menu, MF_STRING, exit_item, L"Cloudroom 종료");
+  AppendMenuW(menu, MF_STRING, exit_item, L"Cloudroom++ 종료");
   // Without both of these the menu does not close on a click elsewhere, or closes
   // at once the second time it opens (TrackPopupMenu's documentation).
   SetForegroundWindow(s.hwnd);

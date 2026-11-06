@@ -126,7 +126,7 @@ bool TrayIcon::add() {
   data.uFlags = NIF_MESSAGE | NIF_ICON | NIF_TIP | NIF_SHOWTIP;
   data.uCallbackMessage = wm_tray;
   data.hIcon = icon;
-  copy_text(data.szTip, L"Cloudroom");
+  copy_text(data.szTip, L"Cloudroom++");
   present_ = Shell_NotifyIconW(NIM_ADD, &data) != FALSE;
   DestroyIcon(icon);
   if (!present_) return false;

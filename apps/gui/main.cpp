@@ -1,4 +1,4 @@
-// crpp: the native Cloudroom window.
+// crpp: the Cloudroom++ window.
 //   crpp                          run the app
 //   crpp --minimized              run it hidden in the tray, as a logon does
 //   crpp --shot out.png [WxH] [hour] [scene] [notice]

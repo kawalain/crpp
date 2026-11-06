@@ -7,7 +7,7 @@ namespace crpp::gui {
 namespace {
 
 constexpr const wchar_t* run_key = L"Software\\Microsoft\\Windows\\CurrentVersion\\Run";
-constexpr const wchar_t* value_name = L"Cloudroom";
+constexpr const wchar_t* value_name = L"Cloudroom++";
 
 }  // namespace
 

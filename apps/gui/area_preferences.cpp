@@ -133,11 +133,7 @@ bool scene(Shell& s, std::string_view name) {
     panel.notify().set_sounds(load_sounds(s));
     panel.display().set_sample("크롬이", "1f600");
   };
-  if (name == "settings") {
-    panel.open(SettingsPage::Sound);
-    panel.set_version("v0.0.0");
-    return true;
-  }
+  if (name == "settings") return sound::scene(s, "settings-sound");
   if (name == "home-dark" || name == "home-pastel") {
     name == "home-dark" ? dark() : pastel();
     return true;

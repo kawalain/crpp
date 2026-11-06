@@ -64,6 +64,7 @@ class App {
   void add_chat(ChatEntry entry);
   void clear_chat();
   void set_notice(std::optional<Notice> notice) { notice_ = std::move(notice); }
+  void set_volume(int percent) { volume_ = percent; }
   [[nodiscard]] View view() const { return view_; }
   [[nodiscard]] std::size_t member_count() const { return members_.size(); }
 

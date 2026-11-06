@@ -9,6 +9,7 @@
 #include <windowsx.h>
 
 #include <algorithm>
+#include <atomic>
 #include <chrono>
 #include <cstdio>
 #include <cstdlib>
@@ -23,6 +24,9 @@
 #include <string>
 
 #include "crpp/client/client.hpp"
+#include "crpp/input/raw_input_source.hpp"
+#include "crpp/sound/engine.hpp"
+#include "crpp/sound/wasapi_device.hpp"
 #include "crpp/store/store.hpp"
 #include "crpp/store/windows_platform.hpp"
 #include "crpp/transport/winhttp_transport.hpp"
@@ -106,10 +110,13 @@ class UiTasks {
 // touched on the UI thread, inside posted tasks and the methods marked so.
 class Bridge final : public client::Observer {
  public:
-  Bridge(App& app, UiTasks& tasks, store::Store& store) : app_(app), tasks_(tasks), store_(store) {}
+  Bridge(App& app, UiTasks& tasks, store::Store& store, sound::Engine& engine)
+      : app_(app), tasks_(tasks), store_(store), engine_(engine) {}
 
   // Called when the token is rejected; the client cannot go on with it.
   std::function<void()> on_unauthorized;
+  // UI thread: input is observed only while in a Room.
+  std::function<void(bool in_room)> on_room_changed;
 
   // UI thread: remember which held Seat a resume is for, to forget it if refused.
   void expect_resume(std::string code) { resume_code_ = std::move(code); }
@@ -121,6 +128,7 @@ class Bridge final : public client::Observer {
     store_.clear_resume();
     store_.mark_left(room_code_, now);
     room_code_.clear();
+    if (on_room_changed) on_room_changed(false);
     (void)store_.save();
   }
 
@@ -137,6 +145,7 @@ class Bridge final : public client::Observer {
       store_.clear_resume();
       keep_seat_ = false;
       resume_code_.clear();
+      if (on_room_changed) on_room_changed(false);
       app_.show_home();
       (void)store_.save();
     });
@@ -162,11 +171,16 @@ class Bridge final : public client::Observer {
       return;
     }
     if (!room) return;
+    my_slot_.store(me, std::memory_order_relaxed);
     std::vector<MemberView> members;
+    std::vector<sound::Member> sounds;
     for (const auto& info : room->members) {
       members.push_back({info.slot, std::string(info.nick), info.emoji ? std::string(*info.emoji) : std::string{},
                          info.offline});
+      sounds.push_back({info.slot, std::string(info.key.value_or("")), std::string(info.mouse.value_or("")),
+                        std::string(info.pen.value_or(""))});
     }
+    engine_.set_members(std::move(sounds));
     const auto host = room->host;
     const bool is_public = room->is_public, chat = room->chat;
     tasks_.post([=, this, members = std::move(members), code = std::move(code)]() mutable {
@@ -178,7 +192,11 @@ class Bridge final : public client::Observer {
   }
   void on_peer_input(std::span<const wire::ServerEvent> events) override {
     std::vector<std::uint32_t> slots;
-    for (const auto& e : events) slots.push_back(e.slot);
+    const std::uint32_t me = my_slot_.load(std::memory_order_relaxed);
+    for (const auto& e : events) {
+      slots.push_back(e.slot);
+      if (e.slot != me) engine_.play_peer(e.slot, e.kind);
+    }
     tasks_.post([this, slots = std::move(slots)] {
       for (const auto s : slots) app_.pulse(s);
     });
@@ -218,6 +236,7 @@ class Bridge final : public client::Observer {
     store_.forget_seat(code);
     app_.show_session(code);
     if (same_room) return;
+    if (on_room_changed) on_room_changed(true);
     app_.clear_chat();
     for (auto& r : store_.enter_room(code)) {
       app_.add_chat({r.slot.value_or(0), std::move(r.cid), std::move(r.nick), std::move(r.emoji), std::move(r.text), r.time_ms});
@@ -227,11 +246,28 @@ class Bridge final : public client::Observer {
   App& app_;
   UiTasks& tasks_;
   store::Store& store_;
+  sound::Engine& engine_;
+  std::atomic<std::uint32_t> my_slot_{0xFFFFFFFF};
   std::uint32_t me_ = 0;
   bool is_public_ = false;
   bool keep_seat_ = false;
   std::string room_code_;
   std::string resume_code_;
+};
+
+// Every input goes to the server and, if the user wants, to their own speakers.
+class InputSink final : public input::Sink {
+ public:
+  InputSink(std::unique_ptr<client::Client>& client, std::unique_ptr<sound::Engine>& engine)
+      : client_(client), engine_(engine) {}
+  void on_input(wire::Kind kind) noexcept override {
+    client_->input(kind);
+    engine_->play_own(kind);
+  }
+
+ private:
+  std::unique_ptr<client::Client>& client_;
+  std::unique_ptr<sound::Engine>& engine_;
 };
 
 struct Shell {
@@ -251,7 +287,29 @@ struct Shell {
   std::unique_ptr<transport::WinHttpTransport> transport;
   std::unique_ptr<Bridge> bridge;
   std::unique_ptr<client::Client> client;
+  sound::WasapiDevice audio_device;
+  sound::Settings audio;
+  std::unique_ptr<sound::Engine> engine;
+  InputSink input_sink{client, engine};
+  std::unique_ptr<input::RawInputSource> input;
 };
+
+sound::Settings load_audio_settings(const store::Store& data) {
+  sound::Settings audio;
+  const auto percent = [&](const char* key, int fallback) { return static_cast<int>(data.i64_or(key, fallback)); };
+  audio.volume = percent("volume", audio.volume);
+  audio.keyboard_volume = percent("keyboardVolume", audio.keyboard_volume);
+  audio.mouse_volume = percent("mouseVolume", audio.mouse_volume);
+  audio.pen_volume = percent("tabletVolume", audio.pen_volume);
+  audio.keyboard_pack = data.string_or("keyboardSound", "plastic");
+  audio.mouse_pack = data.string_or("mouseSound", "plastic");
+  audio.pen_pack = data.string_or("tabletSound", "paper");
+  audio.listen_self = data.bool_or("listenSelf", audio.listen_self);
+  audio.others_use_my_sounds = data.bool_or("othersUseMySounds", audio.others_use_my_sounds);
+  audio.spatial = data.bool_or("spatialAudio", audio.spatial);
+  audio.balance = data.bool_or("channelBalanceEnabled", true) ? percent("channelBalance", audio.balance) : 0;
+  return audio;
+}
 
 void start_client(Shell& s) {
   s.client.reset();  // before the transport it uses
@@ -261,11 +319,12 @@ void start_client(Shell& s) {
   const std::string gid = s.store->string_or("gid", "");
   if (!gid.empty()) s.client->restore_gid(gid);
   const std::string emoji = s.store->string_or("emoji", "");
-  if (!emoji.empty()) {
-    session::event::SetSounds sounds;
-    sounds.emoji = emoji;
-    s.client->set_sounds(sounds);
-  }
+  session::event::SetSounds sounds;
+  sounds.key = s.audio.keyboard_pack;
+  sounds.mouse = s.audio.mouse_pack;
+  sounds.pen = s.audio.pen_pack;
+  if (!emoji.empty()) sounds.emoji = emoji;
+  s.client->set_sounds(sounds);
 }
 
 // --- moving away from the Shared store ---
@@ -617,13 +676,35 @@ int main(int argc, char** argv) {
   shell.config.token = data.string_or("token", "");
   show_store_notice(shell);
 
-  shell.bridge = std::make_unique<Bridge>(shell.app, shell.tasks, data);
+  shell.audio = load_audio_settings(data);
+  shell.app.set_volume(shell.audio.volume);
+  shell.engine = std::make_unique<sound::Engine>(shell.audio_device, assets / "sounds");
+  shell.engine->set_settings(shell.audio);
+  shell.engine->start();
+  shell.input = std::make_unique<input::RawInputSource>(shell.input_sink);
+  shell.input->set_privacy(data.bool_or("inputDetail", false) ? input::Privacy::Detail : input::Privacy::Presence);
+
+  shell.bridge = std::make_unique<Bridge>(shell.app, shell.tasks, data, *shell.engine);
 
   Shell* sp = &shell;
+  shell.bridge->on_room_changed = [sp](bool in_room) {
+    if (in_room) (void)sp->input->start();
+    else sp->input->stop();
+  };
+  shell.app.on_mute = [sp](bool muted) {
+    sp->audio.muted = muted;
+    sp->engine->set_settings(sp->audio);
+  };
+  shell.app.on_volume = [sp](int percent) {
+    sp->audio.volume = percent;
+    sp->engine->set_settings(sp->audio);
+    sp->store->set("volume", store::Json(percent));
+  };
   // There is no sign-in screen yet, so continue as a guest; the token stays saved.
   shell.bridge->on_unauthorized = [sp] {
     if (sp->config.token.empty()) return;
     sp->config.token.clear();
+    sp->input->stop();  // it calls into the client being replaced
     sp->client->stop();
     start_client(*sp);
     sp->app.on_notice_action = nullptr;
@@ -680,8 +761,10 @@ int main(int argc, char** argv) {
     TranslateMessage(&msg);
     DispatchMessageW(&msg);
   }
+  shell.input->stop();
   shell.client->stop();
   shell.tasks.run_all();  // what the client reported last must still reach the store
+  shell.engine->stop();
   (void)data.save();
   return 0;
 }

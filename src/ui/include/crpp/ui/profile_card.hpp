@@ -7,6 +7,7 @@
 #include <string>
 
 #include "crpp/ui/surface.hpp"
+#include "crpp/ui/tip.hpp"
 
 namespace crpp::ui {
 
@@ -61,6 +62,7 @@ class ProfileCard final : public Surface {
   std::optional<std::uint32_t> pending_;  // the slot asked for
   unsigned long long give_up_at_ = 0, refresh_at_ = 0, opened_at_ = 0;
   bool was_animating_ = false;
+  HoverTip tip_;
 };
 
 }  // namespace crpp::ui

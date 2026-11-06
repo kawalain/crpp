@@ -10,7 +10,9 @@
 #include "crpp/ui/chat_panel.hpp"
 #include "crpp/ui/controls.hpp"
 #include "crpp/ui/dialogs.hpp"
+#include "crpp/ui/member_menu.hpp"
 #include "crpp/ui/prefs.hpp"
+#include "crpp/ui/profile_card.hpp"
 #include "crpp/ui/surface.hpp"
 #include "crpp/ui/tip.hpp"
 
@@ -37,16 +39,27 @@ class RoomScreen final : public Surface {
   // False if the clipboard refused it.
   std::function<bool(std::string)> on_copy;
 
+  std::function<void(std::uint32_t slot)> on_request_profile;
+  // One member's loudness here. `on_member_muted` fires when it crosses 0%.
+  std::function<void(const std::string& cid, int percent)> on_member_volume;
+  std::function<void(const std::string& cid, bool muted)> on_member_muted;
+  // The user picked a new emoji for themselves on their card.
+  std::function<void(const std::string& id)> on_pick_emoji;
+
   // Hit ids tests click by.
   enum Id : int { Leave, Mute, More, OptCode, OptPublic, OptChat, VolumeSlider, Popup, MemberBase = 1000 };
 
   [[nodiscard]] ChatPanel& chat() { return chat_panel_; }
+  [[nodiscard]] ProfileCard& profile_card() { return profile_; }
+  [[nodiscard]] MemberMenu& member_menu() { return menu_; }
 
   void enter_room(std::string room_code);
   void reset();
   // Replaces the member list and room flags (from joined/members messages).
   void set_room(std::vector<MemberView> members, std::uint32_t me, std::optional<std::uint32_t> host,
                 bool is_public, bool chat, std::uint64_t chat_lock_ms = 0);
+  // The server's answer to a profile request.
+  void show_profile(ProfileView profile);
   // A member made a sound: their emoji ring lights up briefly.
   void pulse(std::uint32_t slot);
   void pulse_me() { pulse(me_); }
@@ -56,11 +69,14 @@ class RoomScreen final : public Surface {
   [[nodiscard]] std::size_t member_count() const { return members_.size(); }
 
   void paint(Painter& p);
+  // The card and the menu, over the settings droplet as they are over everything else.
+  void paint_overlay(Painter& p);
   void before_click(const Surface* owner, int id) override;
   void click(int id, float x, float y, bool shift) override;
   bool right_click(int id, float x, float y) override;
   void drag(float x, float y) override;
   bool wheel(float x, float y, float delta) override;
+  bool escape() override;
   [[nodiscard]] Cursor cursor(int id) const override;
   [[nodiscard]] bool animating() const override;
   bool tick(unsigned long long now_ms) override;
@@ -97,11 +113,18 @@ class RoomScreen final : public Surface {
   // A hovered thing's label, if it has one.
   [[nodiscard]] std::optional<HoverTip::Spec> tip_for_hover() const;
   void copy_code();
+  void change_icon();
+  void set_member_volume(std::uint32_t slot, int percent);
+  [[nodiscard]] int member_volume(const std::string& cid) const;
   void set_volume_from(float x);
   [[nodiscard]] bool is_host() const { return host_ && *host_ == me_; }
   [[nodiscard]] bool speaking(std::uint32_t slot) const;
 
   ChatPanel chat_panel_;
+  ProfileCard profile_;
+  MemberMenu menu_;
+  // This session's loudness per member; absent means 100%.
+  std::vector<std::pair<std::string, int>> member_volumes_;
   ComPtr<ID2D1Geometry> cloud_;
   std::string room_code_;
   std::vector<MemberView> members_;

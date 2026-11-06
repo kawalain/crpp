@@ -4,6 +4,8 @@
 
 #include <algorithm>
 
+#include "crpp/ui/emoji_picker.hpp"
+
 namespace crpp::ui {
 
 namespace {
@@ -20,6 +22,7 @@ constexpr float speaker_level_shift[4] = {0, 3.05f, 1.1f, -1.4f};
 
 constexpr float cloud_dy = 33;  // main.js SESSION_CLOUD_DY
 constexpr float fab_size = 42;
+constexpr const char* muted_emoji = "1f507";  // shown only to whoever muted them
 
 constexpr const char* pin_tip_blocked = "우클릭하여 기본값 고정 해제 후\n조작할 수 있습니다.";
 constexpr const char* chat_tip_locked = "이 구름에서는 이제 채팅을\n비활성화 할 수 없습니다.";
@@ -30,7 +33,14 @@ constexpr float tip_shake_ms = 320;
 
 }  // namespace
 
-RoomScreen::RoomScreen(Ui& ui) : Surface(ui), chat_panel_(ui) {}
+RoomScreen::RoomScreen(Ui& ui) : Surface(ui), chat_panel_(ui), profile_(ui), menu_(ui) {
+  profile_.on_request = [this](std::uint32_t slot) {
+    if (on_request_profile) on_request_profile(slot);
+  };
+  profile_.on_change_icon = [this] { change_icon(); };
+  menu_.on_profile = [this](std::uint32_t slot) { profile_.request(slot); };
+  menu_.on_volume = [this](std::uint32_t slot, int percent) { set_member_volume(slot, percent); };
+}
 
 bool RoomScreen::init() {
   // The room cloud: four circles and a rectangle, unioned (main.js sessionCloudSvg).
@@ -68,6 +78,11 @@ void RoomScreen::reset() {
   copy_until_ = hint_muted_until_ = 0;
   lock_pending_ = false;
   blocked_id_ = -1;
+  // The picker is modal over the card, so an open card means it is the card's.
+  if (profile_.is_open()) ui_.emoji_picker->close();
+  profile_.close();
+  menu_.close();
+  member_volumes_.clear();
   // A question about this Room means nothing once it is gone.
   if (dialog_open_) ui_.dialogs->close();
   dialog_open_ = false;
@@ -102,6 +117,34 @@ bool RoomScreen::speaking(std::uint32_t slot) const {
   return false;
 }
 
+void RoomScreen::show_profile(ProfileView profile) {
+  const bool mine = profile.slot == me_;
+  profile_.answer(std::move(profile), mine);
+}
+
+void RoomScreen::change_icon() {
+  const std::string& emoji = profile_.profile().emoji;
+  ui_.emoji_picker->show(emoji.empty() ? "1f4a7" : emoji, [this](std::string id) {
+    profile_.set_emoji(id);
+    if (on_pick_emoji) on_pick_emoji(id);
+  });
+}
+
+int RoomScreen::member_volume(const std::string& cid) const {
+  const auto it = std::ranges::find(member_volumes_, cid, [](const auto& v) -> const std::string& { return v.first; });
+  return it == member_volumes_.end() ? 100 : it->second;
+}
+
+void RoomScreen::set_member_volume(std::uint32_t slot, int percent) {
+  const auto member = std::ranges::find(members_, slot, &MemberView::slot);
+  if (member == members_.end()) return;
+  const int before = member_volume(member->cid);
+  std::erase_if(member_volumes_, [&](const auto& v) { return v.first == member->cid; });
+  if (percent != 100) member_volumes_.emplace_back(member->cid, percent);
+  if (on_member_volume) on_member_volume(member->cid, percent);
+  if ((before == 0) != (percent == 0) && on_member_muted) on_member_muted(member->cid, percent == 0);
+}
+
 bool RoomScreen::chat_locked() const { return chat_ && GetTickCount64() >= chat_lock_at_; }
 
 bool RoomScreen::shaking() const {
@@ -109,14 +152,16 @@ bool RoomScreen::shaking() const {
 }
 
 bool RoomScreen::animating() const {
-  return !pulses_.empty() || tip_.animating(ui_) || copy_tip_.animating(ui_) || shaking();
+  return !pulses_.empty() || tip_.animating(ui_) || copy_tip_.animating(ui_) || shaking() || profile_.animating() ||
+         menu_.animating();
 }
 
 bool RoomScreen::tick(unsigned long long now_ms) {
   const auto before = pulses_.size();
   std::erase_if(pulses_, [&](const auto& p) { return p.second <= now_ms; });
   bool changed = pulses_.size() != before;
-  if (tip_.animating(ui_) || copy_tip_.animating(ui_) || shaking()) changed = true;
+  if (tip_.animating(ui_) || copy_tip_.animating(ui_) || shaking() || menu_.animating()) changed = true;
+  changed = profile_.tick(now_ms) || changed;
   // The chat switch locks 5 minutes after chat was turned on.
   if (lock_pending_ && now_ms >= chat_lock_at_) {
     lock_pending_ = false;
@@ -136,7 +181,7 @@ bool RoomScreen::tick(unsigned long long now_ms) {
 
 unsigned long long RoomScreen::wake_at() const {
   unsigned long long at = 0;
-  for (const auto wake : {copy_until_, hint_muted_until_, lock_pending_ ? chat_lock_at_ : 0ULL}) {
+  for (const auto wake : {copy_until_, hint_muted_until_, lock_pending_ ? chat_lock_at_ : 0ULL, profile_.wake_at()}) {
     if (wake != 0 && (at == 0 || wake < at)) at = wake;
   }
   return at;
@@ -176,6 +221,12 @@ void RoomScreen::paint(Painter& p) {
   if (chat_) chat_panel_.paint(p, l.chat);
   if (controls_shown_) paint_controls(p);
   paint_tips(p);
+}
+
+void RoomScreen::paint_overlay(Painter& p) {
+  p.set_base(D2D1::Matrix3x2F::Identity());
+  profile_.paint(p);
+  menu_.paint(p);
 }
 
 void RoomScreen::paint_members(Painter& p, const Layout& l) {
@@ -228,7 +279,8 @@ void RoomScreen::paint_members(Painter& p, const Layout& l) {
     if (ui_.hot(this, id)) p.fill_round(box, 14, with_alpha(t.hl, 0.2f));
     const float cx = x + 6 + 22, cy = y + 1.5f + 22;
     if (speaking(m.slot)) p.fill_ellipse(cx, cy, 22, 22, t.hl);
-    draw_svg(p, ui_.emoji_image(m.emoji), {cx - 18, cy - 18, 36, 36}, m.offline ? 0.55f : 1.0f);
+    const bool muted_here = m.slot != me_ && member_volume(m.cid) == 0;
+    draw_svg(p, ui_.emoji_image(muted_here ? muted_emoji : m.emoji), {cx - 18, cy - 18, 36, 36}, m.offline ? 0.55f : 1.0f);
     Color name = t.hl_text;
     if (m.offline) name = with_alpha(t.hl_text, 0.5f);
     p.text(m.nick.empty() ? "게스트" : m.nick, {x + 58, y + (47 - 26) / 2.0f, col_w - 58 - 12, 26},
@@ -540,6 +592,7 @@ void RoomScreen::toggle_pin(pref::Bool key, bool on) {
 }
 
 void RoomScreen::before_click(const Surface* owner, int id) {
+  menu_.before_click(owner, id);
   // Popups close when anything outside them is clicked, except a notice's buttons,
   // which leave the switches in view.
   const bool own = owner == this;
@@ -576,11 +629,20 @@ void RoomScreen::click(int id, float x, float, bool) {
       set_volume_from(x);
       break;
     default:
+      if (id >= MemberBase) profile_.request(static_cast<std::uint32_t>(id - MemberBase));
       break;
   }
 }
 
-bool RoomScreen::right_click(int id, float, float) {
+bool RoomScreen::right_click(int id, float x, float y) {
+  if (id >= MemberBase) {
+    const auto slot = static_cast<std::uint32_t>(id - MemberBase);
+    const auto member = std::ranges::find(members_, slot, &MemberView::slot);
+    if (member == members_.end()) return false;
+    options_open_ = false;
+    menu_.open(slot, slot == me_, member_volume(member->cid), x, y);
+    return true;
+  }
   if (id == OptPublic || id == OptChat) {
     toggle_pin(id == OptPublic ? pref::pin_public : pref::pin_chat, id == OptPublic ? public_ : chat_);
     return true;
@@ -594,7 +656,17 @@ bool RoomScreen::right_click(int id, float, float) {
 
 void RoomScreen::drag(float x, float) { set_volume_from(x); }
 
+bool RoomScreen::escape() {
+  if (menu_.escape()) return true;
+  if (mute_popup_open_) {
+    mute_popup_open_ = false;
+    return true;
+  }
+  return profile_.escape();
+}
+
 bool RoomScreen::wheel(float x, float y, float delta) {
+  if (profile_.is_open()) return true;  // modal
   if (chat_ && chat_panel_.wheel(x, y, delta)) return true;
   if (!members_area_.contains(x, y) || members_scroll_.max_offset() <= 0) return false;
   members_scroll_.wheel(delta);

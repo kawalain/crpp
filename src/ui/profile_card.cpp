@@ -96,13 +96,11 @@ void ProfileCard::paint(Painter& p) {
 
   const Rect icon{card.x + pad_x, card.y + pad_top, icon_size, icon_size};
   const bool hot = mine_ && ui_.hot(this, Icon);
-  if (hot) p.push(scale_about(icon.x + icon_size / 2, icon.y + icon_size / 2, 1.05f));
-  p.fill_ellipse(icon.x + icon_size / 2, icon.y + icon_size / 2, icon_size / 2, icon_size / 2,
-                 with_alpha(hot ? t.hl_pale2 : t.hl_pale, shown));
-  const float inset = (icon_size - icon_emoji) / 2;
-  // draw_svg moves the transform itself, so a hovered icon is only scaled on its circle.
-  draw_svg(p, ui_.emoji_image(profile_.emoji), {icon.x + inset, icon.y + inset, icon_emoji, icon_emoji}, shown);
-  if (hot) p.pop();
+  const float grow = hot ? 1.05f : 1.0f;
+  const float cx = icon.x + icon_size / 2, cy = icon.y + icon_size / 2;
+  p.fill_ellipse(cx, cy, icon_size / 2 * grow, icon_size / 2 * grow, with_alpha(hot ? t.hl_pale2 : t.hl_pale, shown));
+  const float emoji = icon_emoji * grow;
+  draw_svg(p, ui_.emoji_image(profile_.emoji), {cx - emoji / 2, cy - emoji / 2, emoji, emoji}, shown);
   if (mine_) ui_.add_hit_window(this, icon, Icon);
 
   const std::string nick = profile_.nick.empty() ? "게스트" : profile_.nick;
@@ -129,6 +127,11 @@ void ProfileCard::paint(Painter& p) {
   if (profile_.created) row("가입 시기: " + format_date(*profile_.created));
   row("이 구름에서 머무른 시간: " + format_stay(profile_.stayed));
   row("이 구름에서 입력한 횟수: " + format_count(profile_.events));
+
+  HoverTip::Spec spec;
+  spec.text = "아이콘 변경";
+  spec.anchor = icon;
+  tip_.paint(ui_, p, hot ? &spec : nullptr);
 }
 
 void ProfileCard::click(int id, float, float, bool) {
@@ -142,10 +145,10 @@ bool ProfileCard::escape() {
   return true;
 }
 
-bool ProfileCard::animating() const { return ui_.animations && was_animating_; }
+bool ProfileCard::animating() const { return open_ && ((ui_.animations && was_animating_) || tip_.animating(ui_)); }
 
 bool ProfileCard::tick(unsigned long long now_ms) {
-  bool changed = false;
+  bool changed = open_ && tip_.animating(ui_);
   if (was_animating_) {
     changed = true;
     if (static_cast<float>(now_ms - std::min(now_ms, opened_at_)) >= modal_pop_ms) was_animating_ = false;

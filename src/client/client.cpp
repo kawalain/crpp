@@ -5,6 +5,7 @@
 #include <condition_variable>
 #include <deque>
 #include <mutex>
+#include <random>
 #include <thread>
 #include <utility>
 #include <vector>
@@ -51,7 +52,13 @@ struct Client::Impl final : transport::Sink {
     const transport::Capabilities caps = transport.capabilities();
     if (!caps.can_ping) config.timing.ping_interval = std::chrono::milliseconds{0};
     if (!caps.reports_control_frames) config.timing.liveness_timeout = std::chrono::milliseconds{0};
-    session = std::make_unique<session::Session>(config.timing);
+    session = std::make_unique<session::Session>(config.timing, session::Jitter{&next_jitter, this});
+  }
+
+  // Driver thread only: Session asks from inside on().
+  static double next_jitter(void* self) noexcept {
+    auto& random = static_cast<Impl*>(self)->random;
+    return static_cast<double>(random() - random.min()) / static_cast<double>(random.max() - random.min() + 1);
   }
 
   // ---- mailbox ----
@@ -208,6 +215,7 @@ struct Client::Impl final : transport::Sink {
   Config config;
   Observer& observer;
   std::unique_ptr<session::Session> session;
+  std::minstd_rand random{std::random_device{}()};
 
   std::mutex mutex;
   std::condition_variable cv;

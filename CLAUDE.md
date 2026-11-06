@@ -63,8 +63,7 @@ The goal is every user-visible interface of upstream's `client/` on Windows.
 macOS-only UI, `installer/` and developer-build tools are out of scope for now.
 
 0. Foundation: one file per screen, shared controls, dialogs, toasts, settings keys.
-1. Feedback and reconnect: failure reasons, offline popup, backoff (see `session`
-   below; the code still waits a fixed 3 s).
+1. Feedback and reconnect: failure reasons, offline popup.
 2. The rest of the room and home screens: dialogs, profile card, member menu,
    emoji picker, public room search, return-to-Seat dialog.
 3. Settings: sound, display, notification and system tabs, and the guest part of

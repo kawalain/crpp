@@ -37,6 +37,8 @@ const char* name(session::Failure f) {
     case session::Failure::RoomGone: return "RoomGone";
     case session::Failure::ServerError: return "ServerError";
     case session::Failure::InvalidArgument: return "InvalidArgument";
+    case session::Failure::RoomClosed: return "RoomClosed";
+    case session::Failure::GraceExpired: return "GraceExpired";
   }
   return "?";
 }
@@ -158,7 +160,7 @@ client::Config config_for(const mock::Server& server, std::string token = {}) {
   c.server_url = "http://127.0.0.1:" + std::to_string(server.port());
   c.nickname = "bob";
   c.token = std::move(token);
-  c.timing.reconnect_delay = 200ms;
+  c.timing.reconnect_first = 200ms;
   return c;
 }
 

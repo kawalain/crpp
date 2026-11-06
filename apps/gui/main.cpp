@@ -49,6 +49,7 @@ constexpr UINT_PTR smoke_timer = 3;
 constexpr UINT_PTR save_timer = 4;
 constexpr UINT save_delay_ms = 2000;  // chat arrives in bursts; write once per burst
 constexpr UINT wm_ui_task = WM_APP + 1;
+constexpr UINT wm_own_input = WM_APP + 2;
 
 std::int64_t unix_ms() {
   using namespace std::chrono;
@@ -265,14 +266,22 @@ class InputSink final : public input::Sink {
  public:
   InputSink(std::unique_ptr<client::Client>& client, std::unique_ptr<sound::Engine>& engine)
       : client_(client), engine_(engine) {}
+  void attach(HWND hwnd) noexcept { hwnd_ = hwnd; }
   void on_input(wire::Kind kind) noexcept override {
     client_->input(kind);
     engine_->play_own(kind);
+    // The server never sends a member's input back, so their ring is lit from
+    // here. One message at a time, and no heap on this path.
+    if (!pulse_posted_.exchange(true, std::memory_order_relaxed)) PostMessageW(hwnd_, wm_own_input, 0, 0);
   }
+  // UI thread: the next input may post again.
+  void pulse_taken() noexcept { pulse_posted_.store(false, std::memory_order_relaxed); }
 
  private:
   std::unique_ptr<client::Client>& client_;
   std::unique_ptr<sound::Engine>& engine_;
+  HWND hwnd_ = nullptr;
+  std::atomic<bool> pulse_posted_{false};
 };
 
 struct Shell {
@@ -447,6 +456,14 @@ void sync_blink(Shell& s, HWND hwnd) {
   s.blink_timer_on = wanted;
 }
 
+// The frame timer runs only while an effect is animating.
+void sync_frames(Shell& s, HWND hwnd) {
+  if (s.app.animating() && !s.frame_timer_on) {
+    SetTimer(hwnd, frame_timer, 16, nullptr);
+    s.frame_timer_on = true;
+  }
+}
+
 LRESULT CALLBACK wnd_proc(HWND hwnd, UINT msg, WPARAM wp, LPARAM lp) {
   auto* s = reinterpret_cast<Shell*>(GetWindowLongPtrW(hwnd, GWLP_USERDATA));
   if (msg == WM_NCCREATE) {
@@ -494,15 +511,17 @@ LRESULT CALLBACK wnd_proc(HWND hwnd, UINT msg, WPARAM wp, LPARAM lp) {
       s->tasks.run_all();
       InvalidateRect(hwnd, nullptr, FALSE);
       sync_blink(*s, hwnd);
-      // Run the frame timer only while an effect is animating.
-      if (s->app.animating() && !s->frame_timer_on) {
-        SetTimer(hwnd, frame_timer, 16, nullptr);
-        s->frame_timer_on = true;
-      }
+      sync_frames(*s, hwnd);
       if (s->store && s->store->has_unsaved() && !s->save_timer_on) {
         SetTimer(hwnd, save_timer, save_delay_ms, nullptr);
         s->save_timer_on = true;
       }
+      return 0;
+    case wm_own_input:
+      s->input_sink.pulse_taken();
+      s->app.pulse_me();
+      InvalidateRect(hwnd, nullptr, FALSE);
+      sync_frames(*s, hwnd);
       return 0;
     case WM_MOUSEMOVE:
       if (!s->tracking) {
@@ -806,6 +825,7 @@ int main(int argc, char** argv) {
                               &shell);
   if (!hwnd) return 1;
   shell.tasks.attach(hwnd);
+  shell.input_sink.attach(hwnd);
   shell.app.on_copy = [hwnd](std::string text) { copy_to_clipboard(hwnd, text); };
   if (argc >= 3 && std::string(argv[1]) == "--smoke") shell.smoke_path = widen(argv[2]);
   shell.app.on_retry_setup = [sp, hwnd] { start_install(*sp, hwnd); };

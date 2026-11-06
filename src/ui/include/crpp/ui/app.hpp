@@ -65,6 +65,7 @@ class App {
                 bool is_public, bool chat);
   // A member made a sound: their emoji ring lights up briefly.
   void pulse(std::uint32_t slot);
+  void pulse_me() { pulse(me_); }
   void add_chat(ChatEntry entry);
   void clear_chat();
   void set_notice(std::optional<Notice> notice) { notice_ = std::move(notice); }

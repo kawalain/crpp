@@ -128,6 +128,7 @@ struct Shell {
   InputSink input_sink{client, engine};
   std::unique_ptr<input::RawInputSource> input;
   std::shared_ptr<area::sound::State> sound_state;
+  std::shared_ptr<void> account;  // area_account.cpp's own state
   bool throwaway_data = false;  // --data: a scripted or test run
   std::shared_ptr<ConnectionArea> connection;  // last: stops its thread before the rest goes
 };
@@ -136,6 +137,8 @@ struct Shell {
 void start_client(Shell& s);
 void enter_app(Shell& s);
 void start_install(Shell& s);
+// A nickname like the upstream one: "<adjective> <animal>".
+std::string random_nickname(const std::filesystem::path& words);
 
 // --- window.cpp ---
 HWND create_window(Shell& s);

@@ -85,6 +85,8 @@ void wire(Shell& s);
 // Startup, once assets are in place: true if the first-run flow took over the
 // screen, and the Home screen must not be shown yet.
 [[nodiscard]] bool begin_first_run(Shell& s);
+// The server refused the saved token: forgets the account and asks to sign in again.
+void token_rejected(Shell& s);
 }  // namespace account
 
 namespace update {  // version check, update popup, changelog viewer

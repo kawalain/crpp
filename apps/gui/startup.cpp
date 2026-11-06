@@ -14,30 +14,6 @@ namespace crpp::gui {
 
 namespace {
 
-// A guest nickname like the upstream one: "<adjective> <animal>".
-std::string random_nickname(const std::filesystem::path& words) {
-  const auto load = [&](const char* name) {
-    std::vector<std::string> list;
-    FILE* f = std::fopen((words / name).string().c_str(), "rb");
-    if (!f) return list;
-    std::string text;
-    char buf[512];
-    for (std::size_t n; (n = std::fread(buf, 1, sizeof buf, f)) > 0;) text.append(buf, n);
-    std::fclose(f);
-    for (std::size_t i = 0; (i = text.find('\'', i)) != std::string::npos;) {
-      const auto end = text.find('\'', i + 1);
-      if (end == std::string::npos) break;
-      list.push_back(text.substr(i + 1, end - i - 1));
-      i = end + 1;
-    }
-    return list;
-  };
-  const auto adjectives = load("adjectives.txt"), animals = load("animals.txt");
-  if (adjectives.empty() || animals.empty()) return "게스트";
-  std::random_device rd;
-  return adjectives[rd() % adjectives.size()] + " " + animals[rd() % animals.size()];
-}
-
 // --- moving away from the Shared store ---
 
 void show_cleanup_offer(Shell& s) {
@@ -89,6 +65,29 @@ void restore_seat(Shell& s) {
 
 }  // namespace
 
+std::string random_nickname(const std::filesystem::path& words) {
+  const auto load = [&](const char* name) {
+    std::vector<std::string> list;
+    FILE* f = std::fopen((words / name).string().c_str(), "rb");
+    if (!f) return list;
+    std::string text;
+    char buf[512];
+    for (std::size_t n; (n = std::fread(buf, 1, sizeof buf, f)) > 0;) text.append(buf, n);
+    std::fclose(f);
+    for (std::size_t i = 0; (i = text.find('\'', i)) != std::string::npos;) {
+      const auto end = text.find('\'', i + 1);
+      if (end == std::string::npos) break;
+      list.push_back(text.substr(i + 1, end - i - 1));
+      i = end + 1;
+    }
+    return list;
+  };
+  const auto adjectives = load("adjectives.txt"), animals = load("animals.txt");
+  if (adjectives.empty() || animals.empty()) return "게스트";
+  std::random_device rd;
+  return adjectives[rd() % adjectives.size()] + " " + animals[rd() % animals.size()];
+}
+
 void start_client(Shell& s) {
   s.client.reset();  // before the transport it uses
   s.transport = std::make_unique<transport::WinHttpTransport>();
@@ -108,17 +107,21 @@ void start_client(Shell& s) {
 // The part of startup that needs the assets in place.
 void enter_app(Shell& s) {
   store::Store& data = *s.store;
+  // First: it decides on what is stored, before the default below is.
+  const bool first_run = area::account::begin_first_run(s);
   std::string nickname = data.string_or("nickname", "");
-  if (nickname.empty()) {
+  if (const std::string handle = data.string_or("handle", ""); nickname.empty() && !handle.empty()) {
+    nickname = "@" + handle;  // an account can go by its handle alone
+  } else if (nickname.empty()) {
     nickname = random_nickname(s.assets_dir / "words");
-    data.set("nickname", store::Json(nickname));
+    if (!first_run) data.set("nickname", store::Json(nickname));
   }
   s.app.home().set_nickname(nickname);
   s.config.server_url = data.string_or("serverUrl", store::default_server_url);
   s.config.nickname = nickname;
   s.config.token = data.string_or("token", "");
   show_store_notice(s);
-  if (!area::account::begin_first_run(s)) s.app.show_home();
+  if (!first_run) s.app.show_home();
   start_client(s);
   if (!s.smoke_path.empty()) {
     s.smoke_start = GetTickCount64();

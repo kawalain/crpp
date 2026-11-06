@@ -145,7 +145,10 @@ struct Client::Impl final : transport::Sink {
         return;
       case T::Chat: apply(session::event::Forward{wire::cmd::Chat{i.s[0]}}); return;
       case T::Profile: apply(session::event::Forward{wire::cmd::Profile{i.number}}); return;
-      case T::Nick: apply(session::event::Forward{wire::cmd::Nick{i.s[0]}}); return;
+      case T::Nick:
+        config.nickname = i.s[0];  // what a reconnect introduces itself with
+        apply(session::event::Forward{wire::cmd::Nick{i.s[0]}});
+        return;
       case T::Visibility: apply(session::event::Forward{wire::cmd::Visibility{i.flag_a}}); return;
       case T::ChatEnable: apply(session::event::Forward{wire::cmd::ChatEnable{}}); return;
       case T::ChatDisable: apply(session::event::Forward{wire::cmd::ChatDisable{}}); return;

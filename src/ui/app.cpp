@@ -30,20 +30,44 @@ void App::show_setup(int percent, std::string error) {
 }
 
 void App::show_home() {
-  view_ = View::Home;
-  ui_.set_focus(nullptr, nullptr);
+  if (view_ == View::Prompt) {
+    prompt_return_ = View::Home;
+  } else {
+    view_ = View::Home;
+    ui_.set_focus(nullptr, nullptr);
+  }
   room_.reset();
 }
 
 void App::show_session(std::string room_code) {
-  view_ = View::Session;
-  ui_.set_focus(nullptr, nullptr);
   home_.left_home();
+  if (view_ == View::Prompt) {
+    prompt_return_ = View::Session;
+  } else {
+    view_ = View::Session;
+    ui_.set_focus(nullptr, nullptr);
+  }
   room_.enter_room(std::move(room_code));
+}
+
+void App::show_prompt(Prompt prompt) {
+  if (view_ != View::Prompt) {
+    prompt_return_ = view_ == View::Setup ? View::Home : view_;
+    view_ = View::Prompt;
+    settings_.close();
+  }
+  prompt_.show(std::move(prompt));
+}
+
+void App::close_prompt() {
+  if (view_ != View::Prompt) return;
+  view_ = prompt_return_;
+  ui_.set_focus(nullptr, nullptr);
 }
 
 std::vector<Surface*> App::layers() {
   if (view_ == View::Setup) return {&setup_};
+  if (view_ == View::Prompt) return {&dialogs_, &toasts_, &notice_, &prompt_};
   Surface* screen = view_ == View::Home ? static_cast<Surface*>(&home_) : &room_;
   return {&dialogs_, &toasts_, &emoji_picker_, &notice_, &settings_, &offline_, screen};
 }
@@ -55,6 +79,13 @@ void App::paint(ID2D1RenderTarget* rt, float width, float height) {
   p.clear(ui_.theme.sky);
   if (view_ == View::Setup) {
     setup_.paint(p);
+    return;
+  }
+  if (view_ == View::Prompt) {  // no droplet here, so no way into the settings
+    prompt_.paint(p);
+    notice_.paint(p);
+    toasts_.paint(p);
+    dialogs_.paint(p);
     return;
   }
   room_.set_controls_shown(!settings_.is_open());

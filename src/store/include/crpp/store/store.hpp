@@ -107,6 +107,7 @@ class Store {
   void forget_seat(std::string_view code);
   [[nodiscard]] std::optional<SeatReturn> find_seat(std::string_view code, std::int64_t now_ms) const;
   [[nodiscard]] std::optional<SeatReturn> latest_seat(std::int64_t now_ms) const;
+  void forget_all_seats() { store_seats({}); }
 
   // --- chat cache ---
   // Marks the Room as entered and returns its kept chat, oldest first.
@@ -114,6 +115,8 @@ class Store {
   void record_chat(std::string_view code, const ChatRecord& record);
   // The Room's chat expires chat_ttl_ms after this.
   void mark_left(std::string_view code, std::int64_t now_ms);
+  // Forgets every Room's chat, when the account signs out.
+  void clear_chat();
 
   // --- writing ---
   [[nodiscard]] bool has_unsaved() const noexcept { return plain_dirty_ || secret_dirty_ || session_dirty_ || chat_dirty_; }

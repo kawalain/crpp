@@ -13,7 +13,9 @@ class TextField {
  public:
   std::size_t max_length = 0;  // 0 = unlimited (UTF-16 units)
   bool uppercase = false;
-  bool password = false;
+  bool lowercase = false;
+  bool (*accept)(wchar_t) = nullptr;  // when set, what it refuses cannot be typed
+  bool password = false;              // shown masked, and cannot be copied while it is
   bool multiline = false;  // allows line breaks (Shift+Enter); the owner decides what Enter does
 
   [[nodiscard]] const std::wstring& text() const { return text_; }

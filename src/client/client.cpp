@@ -18,7 +18,7 @@ namespace {
 // One queued command or transport event, owning its data.
 struct Item {
   enum class Type : std::uint8_t {
-    Create, Join, JoinRandom, Resume, Leave, SetSounds, Input, Chat, Profile, Nick, Visibility,
+    Create, Join, JoinRandom, Resume, Leave, SetSounds, Chat, Profile, Nick, Visibility,
     ChatEnable, ChatDisable, SetGid,
     Connected, ConnectFailed, Closed, Text, Binary, Heard,
   };
@@ -97,21 +97,28 @@ struct Client::Impl final : transport::Sink {
   // ---- driver thread ----
   void run() {
     std::deque<Item> batch;
+    std::array<wire::Kind, max_pending_inputs> kinds{};
     for (;;) {
+      std::size_t kind_count = 0;
       {
         std::unique_lock lock(mutex);
-        if (queue.empty() && !stopping) {
+        const auto ready = [&] { return !queue.empty() || input_count > 0 || stopping; };
+        if (!ready()) {
           if (const auto deadline = session->deadline()) {
-            cv.wait_until(lock, *deadline, [&] { return !queue.empty() || stopping; });
+            cv.wait_until(lock, *deadline, ready);
           } else {
-            cv.wait(lock, [&] { return !queue.empty() || stopping; });
+            cv.wait(lock, ready);
           }
         }
         if (stopping) return;
         batch.swap(queue);
+        kinds = inputs;
+        kind_count = input_count;
+        input_count = 0;
       }
       for (Item& item : batch) handle(item);
       batch.clear();
+      for (std::size_t i = 0; i < kind_count; ++i) apply(session::event::Input{kinds[i]});
       if (const auto deadline = session->deadline(); deadline && session::Clock::now() >= *deadline) {
         apply(session::event::Tick{});
       }
@@ -129,7 +136,6 @@ struct Client::Impl final : transport::Sink {
       case T::SetSounds:
         apply(session::event::SetSounds{opt(i, 0), opt(i, 1), opt(i, 2), opt(i, 3)});
         return;
-      case T::Input: apply(session::event::Input{static_cast<wire::Kind>(i.number)}); return;
       case T::Chat: apply(session::event::Forward{wire::cmd::Chat{i.s[0]}}); return;
       case T::Profile: apply(session::event::Forward{wire::cmd::Profile{i.number}}); return;
       case T::Nick: apply(session::event::Forward{wire::cmd::Nick{i.s[0]}}); return;
@@ -206,6 +212,10 @@ struct Client::Impl final : transport::Sink {
   std::mutex mutex;
   std::condition_variable cv;
   std::deque<Item> queue;
+  // Input takes no heap: it comes from the input thread on every key press.
+  static constexpr std::size_t max_pending_inputs = 32;
+  std::array<wire::Kind, max_pending_inputs> inputs{};
+  std::size_t input_count = 0;
   bool stopping = false;
   std::atomic<std::uint32_t> generation{0};
   std::thread thread;
@@ -266,9 +276,13 @@ void Client::set_sounds(const session::event::SetSounds& sounds) {
   impl_->push(std::move(i));
 }
 void Client::input(wire::Kind kind) {
-  Item i = impl_->command(Item::Type::Input);
-  i.number = static_cast<std::uint32_t>(kind);
-  impl_->push(std::move(i));
+  {
+    std::lock_guard lock(impl_->mutex);
+    // A full list means the driver is far behind; Session would drop these anyway.
+    if (impl_->input_count == impl_->inputs.size()) return;
+    impl_->inputs[impl_->input_count++] = kind;
+  }
+  impl_->cv.notify_one();
 }
 void Client::send_chat(std::string_view text) {
   Item i = impl_->command(Item::Type::Chat);

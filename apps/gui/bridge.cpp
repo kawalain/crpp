@@ -84,7 +84,7 @@ void Bridge::on_deliver(const wire::ServerMessage& m) {
   std::vector<sound::Member> sounds;
   for (const auto& info : room->members) {
     members.push_back({info.slot, std::string(info.nick), info.emoji ? std::string(*info.emoji) : std::string{},
-                       info.offline});
+                       info.offline, std::string(info.cid), info.reconnected});
     sounds.push_back({info.slot, std::string(info.key.value_or("")), std::string(info.mouse.value_or("")),
                       std::string(info.pen.value_or(""))});
   }

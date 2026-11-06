@@ -24,6 +24,8 @@ void set_member_volume(Shell&, std::string_view, int) {}
 
 void set_member_muted(Shell&, std::string_view, bool) {}
 
+bool member_muted(Shell&, std::string_view) { return false; }
+
 void play_notification(Shell&, std::string_view) {}
 
 }  // namespace crpp::gui::area::sound

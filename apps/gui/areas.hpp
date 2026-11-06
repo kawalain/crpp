@@ -38,6 +38,8 @@ void pref_changed(Shell& s, std::string_view key);
 // reconnects.
 void set_member_volume(Shell& s, std::string_view cid, int percent);
 void set_member_muted(Shell& s, std::string_view cid, bool muted);
+// Whether this member's volume is 0, which also silences their notifications.
+[[nodiscard]] bool member_muted(Shell& s, std::string_view cid);
 // A notification sound by its file name stem ("01_cloud_chat"). Honors nothing but
 // the mute settings: whether this sound is enabled is the caller's question.
 void play_notification(Shell& s, std::string_view name);

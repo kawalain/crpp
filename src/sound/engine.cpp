@@ -334,7 +334,7 @@ void Engine::play_cue(const Cue& cue) {
       (settings_.idle_muted || (settings_.muted && settings_.mute_notifications))) {
     return;
   }
-  const auto file = cue.kind == CueKind::System ? std::optional(sounds_dir_ / "System" / (cue.name + ".wav"))
+  const auto file = cue.kind == CueKind::System ? std::optional(sounds_dir_ / "system" / (cue.name + ".wav"))
                                                 : notification_file(sounds_dir_, cue.name);
   if (!file || !ensure_open()) return;
   start_voice(recording(*file), own_mix(), 1.0f);

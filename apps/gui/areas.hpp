@@ -48,7 +48,7 @@ void set_member_muted(Shell& s, std::string_view cid, bool muted);
 [[nodiscard]] int member_volume(Shell& s, std::string_view cid);
 // Whether this member's volume is 0, which also silences their notifications.
 [[nodiscard]] bool member_muted(Shell& s, std::string_view cid);
-// A notification sound by its file name stem ("01_cloud_chat"). Honors nothing but
+// A notification sound by its file name stem ("cloud_chat"). Honors nothing but
 // the mute settings: whether this sound is enabled is the caller's question.
 void play_notification(Shell& s, std::string_view name);
 // The notification tab's "미리 듣기": plays even while muted.

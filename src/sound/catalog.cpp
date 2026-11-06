@@ -18,7 +18,8 @@ std::string lower(std::string s) {
   return s;
 }
 
-// A file for the sound is <stem>.wav or <stem>_<digits>.wav (a variation of it).
+// A file for the sound is <stem>.wav or <stem>_<digits>.wav (a variation of it). A sound
+// with several plays one of them at random.
 bool stem_matches(std::string_view file, std::string_view stem) {
   if (!file.ends_with(".wav")) return false;
   file.remove_suffix(4);
@@ -33,7 +34,7 @@ bool stem_matches(std::string_view file, std::string_view stem) {
 std::vector<std::string_view> matching(const std::vector<std::string>& files, const std::string& stem) {
   std::vector<std::string_view> found;
   for (const std::string& file : files) {
-    if (stem_matches(lower(file), stem)) found.push_back(file);
+    if (stem_matches(file, stem)) found.push_back(file);
   }
   return found;
 }
@@ -54,10 +55,6 @@ std::string pack_name(const fs::path& json, std::string fallback) {
   return end == std::string::npos ? fallback : text.substr(at + 1, end - at - 1);
 }
 
-bool numbered(std::string_view text) {
-  return !text.empty() && std::ranges::all_of(text, [](char c) { return c >= '0' && c <= '9'; });
-}
-
 }  // namespace
 
 std::optional<std::string_view> sound_name(wire::Kind kind) noexcept {
@@ -74,7 +71,6 @@ std::optional<std::string_view> sound_name(wire::Kind kind) noexcept {
     case 11: return "left_hold";
     case 12: return "middle_hold";
     case 13: return "right_hold";
-    case 16: return "key_normal";
     case 17: return "mod_tab";
     case 18: return "mod_caps";
     case 19: return "mod_shift_hold";
@@ -87,10 +83,10 @@ std::optional<std::string_view> sound_name(wire::Kind kind) noexcept {
     case 26: return "mod_alt";
     case 32: return "pen_tap";
     case 33: return "pen_stroke";
-    case 40: return "alpha_R1";
-    case 41: return "alpha_R2";
-    case 42: return "alpha_R3";
-    case 43: return "alpha_R4";
+    case 40: return "alpha_r1";
+    case 41: return "alpha_r2";
+    case 42: return "alpha_r3";
+    case 43: return "alpha_r4";
     case 44: return "mod_space";
     case 45: return "mod_backspace";
     case 46: return "mod_shift_release";
@@ -102,18 +98,16 @@ std::optional<std::string_view> sound_name(wire::Kind kind) noexcept {
 }
 
 std::optional<fs::path> notification_file(const fs::path& root, std::string_view name) {
-  const std::string wanted = lower_name(name) + ".wav";
-  std::error_code ec;
-  for (const auto& entry : fs::directory_iterator(root / "Notifications", ec)) {
-    const std::string file = lower(entry.path().filename().string());
-    if (file == wanted) return entry.path();
-    const auto underscore = file.find('_');
-    if (underscore != std::string::npos && numbered(std::string_view(file).substr(0, underscore)) &&
-        std::string_view(file).substr(underscore + 1) == wanted) {
-      return entry.path();
-    }
+  std::string wanted = lower_name(name);
+  if (const auto underscore = wanted.find('_');
+      underscore != std::string::npos && underscore > 0 &&
+      std::all_of(wanted.begin(), wanted.begin() + static_cast<std::ptrdiff_t>(underscore), [](char c) { return c >= '0' && c <= '9'; })) {
+    wanted.erase(0, underscore + 1);  // upstream's names keep their order in a leading number
   }
-  return std::nullopt;
+  fs::path file = root / "notifications" / (wanted + ".wav");
+  std::error_code ec;
+  if (!fs::is_regular_file(file, ec)) return std::nullopt;
+  return file;
 }
 
 Device device_of(wire::Kind kind) noexcept {
@@ -126,21 +120,16 @@ Device device_of(wire::Kind kind) noexcept {
 Catalog Catalog::scan(const fs::path& root) {
   Catalog catalog;
   const std::array<std::pair<const char*, Device>, 3> folders{
-      {{"Device_Keyboard", Device::Keyboard}, {"Device_Mouse", Device::Mouse}, {"Device_Pen", Device::Pen}}};
+      {{"keyboard", Device::Keyboard}, {"mouse", Device::Mouse}, {"pen", Device::Pen}}};
   for (const auto& [folder, device] : folders) {
     std::vector<fs::path> dirs;
     std::error_code ec;
     for (const auto& entry : fs::directory_iterator(root / folder, ec)) {
       if (entry.is_directory(ec) && fs::is_regular_file(entry.path() / "pack.json", ec)) dirs.push_back(entry.path());
     }
-    std::ranges::sort(dirs);  // the number in front of the name is the display order
+    std::ranges::sort(dirs);  // the display order
     for (const fs::path& dir : dirs) {
       std::string id = lower(dir.filename().string());
-      if (const auto underscore = id.find('_');
-          underscore != std::string::npos && underscore > 0 &&
-          std::all_of(id.begin(), id.begin() + static_cast<std::ptrdiff_t>(underscore), [](char c) { return c >= '0' && c <= '9'; })) {
-        id.erase(0, underscore + 1);
-      }
       std::string name = pack_name(dir / "pack.json", id);
       Pack pack{device, std::move(id), std::move(name), dir, {}};
       for (const auto& file : fs::directory_iterator(dir, ec)) {
@@ -187,8 +176,7 @@ std::optional<fs::path> Catalog::pick(wire::Kind kind, std::string_view pack_id,
   const std::string_view name = *name_opt;
   const Pack* pack = find(device_of(kind), pack_id);
   if (!pack) return std::nullopt;
-  const std::string prefix = pack->id + "_";
-  const auto files_of = [&](std::string_view sound) { return matching(pack->files, prefix + lower_name(sound)); };
+  const auto files_of = [&](std::string_view sound) { return matching(pack->files, std::string(sound)); };
 
   std::vector<std::string_view> found;
   const auto paired = [&](std::string_view base) {
@@ -206,9 +194,9 @@ std::optional<fs::path> Catalog::pick(wire::Kind kind, std::string_view pack_id,
   }
 
   // Letter keys carry no row, or the pack lacks this row: any letter sound will do.
-  const bool letter = name == "any" || name.starts_with("alpha_R");
+  const bool letter = name == "any" || name.starts_with("alpha_r");
   if (found.empty() && letter) {
-    std::array<std::string_view, 3> rows{"alpha_R1", "alpha_R2", "alpha_R3"};
+    std::array<std::string_view, 3> rows{"alpha_r1", "alpha_r2", "alpha_r3"};
     for (std::size_t i = rows.size() - 1; i > 0; --i) std::swap(rows[i], rows[random.below(i + 1)]);
     for (const std::string_view row : rows) {
       found = files_of(row);

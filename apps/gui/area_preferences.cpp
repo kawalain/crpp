@@ -40,7 +40,7 @@ void apply_chat(Shell& s) {
 
 std::vector<NotifySound> load_sounds(const Shell& s) {
   std::vector<NotifySound> sounds;
-  for (auto& found : find_notification_sounds(s.assets_dir / "sounds" / "Notifications", pref::notification_id)) {
+  for (auto& found : find_notification_sounds(s.assets_dir / "sounds" / "notifications", pref::notification_id)) {
     sounds.push_back({std::move(found.stem), std::move(found.id), std::move(found.name)});
   }
   return sounds;

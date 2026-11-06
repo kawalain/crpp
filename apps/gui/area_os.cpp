@@ -26,8 +26,8 @@ namespace {
 
 constexpr const char* hint_shown_key = "roomStaysConnectedShown";  // not upstream's
 
-constexpr std::string_view chat_sound_key = "cloud_chat", chat_sound_file = "01_cloud_chat";
-constexpr std::string_view enter_sound_key = "cloud_enter", enter_sound_file = "02_cloud_enter";
+constexpr std::string_view chat_sound_key = "cloud_chat", chat_sound_file = "cloud_chat";
+constexpr std::string_view enter_sound_key = "cloud_enter", enter_sound_file = "cloud_enter";
 
 struct State {
   TrayIcon tray;

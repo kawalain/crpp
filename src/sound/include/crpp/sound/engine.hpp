@@ -102,7 +102,7 @@ class Engine final : private Renderer {
   void play_own(wire::Kind kind) noexcept;
   void play_peer(std::uint32_t slot, wire::Kind kind) noexcept;
 
-  // By the name of the file in Notifications, with or without its leading number.
+  // By the name of the file in notifications, with or without a leading number.
   // Silent while muted as Settings asks; a preview only needs the volume.
   void play_notification(std::string_view name);
   void preview_notification(std::string_view name);

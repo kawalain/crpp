@@ -1,9 +1,7 @@
 #pragma once
 // Finds the notification sounds in a pack folder: each .wav is one, in the order of
-// its number prefix, named by pack.json under its key (upstream's discoverNotifications).
+// their names, named by pack.json under its key.
 #include <algorithm>
-#include <cctype>
-#include <climits>
 #include <cstdlib>
 #include <filesystem>
 #include <fstream>
@@ -18,7 +16,6 @@ namespace crpp::gui {
 
 struct FoundSound {
   std::string stem, id, name;  // id: pref::notification_id(stem)
-  int order = INT_MAX;
 };
 
 template <typename IdOf>
@@ -46,12 +43,9 @@ template <typename IdOf>
         }
       }
     }
-    if (std::isdigit(static_cast<unsigned char>(sound.stem.front()))) sound.order = std::atoi(sound.stem.c_str());
     found.push_back(std::move(sound));
   }
-  std::ranges::sort(found, [](const FoundSound& a, const FoundSound& b) {
-    return a.order != b.order ? a.order < b.order : a.stem < b.stem;
-  });
+  std::ranges::sort(found, {}, &FoundSound::stem);
   return found;
 }
 

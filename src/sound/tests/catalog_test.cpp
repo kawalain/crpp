@@ -36,10 +36,10 @@ void kinds_reach_their_devices() {
 void plain_sounds_match_by_name() {
   const auto catalog = Catalog::scan(CRPP_SOUNDS_DIR);
   Random random(1);
-  CHECK(pick_name(catalog, Kind::KeySpace, "plastic", random) == "plastic_mod_space.wav");
-  CHECK(pick_name(catalog, Kind::KeyEscape, "plastic", random) == "plastic_mod_esc.wav");
-  CHECK(pick_name(catalog, Kind::MouseSideBack, "rubber", random) == "rubber_side_back.wav");
-  CHECK(pick_name(catalog, Kind::PenTap, "paper", random).starts_with("paper_pen_tap_"));
+  CHECK(pick_name(catalog, Kind::KeySpace, "plastic", random) == "mod_space.wav");
+  CHECK(pick_name(catalog, Kind::KeyEscape, "plastic", random) == "mod_esc.wav");
+  CHECK(pick_name(catalog, Kind::MouseSideBack, "rubber", random) == "side_back.wav");
+  CHECK(pick_name(catalog, Kind::PenTap, "paper", random).starts_with("pen_tap_"));
 }
 
 void variations_are_chosen_at_random() {
@@ -59,7 +59,7 @@ void the_any_key_gets_some_letter_sound() {
   std::vector<std::string> seen;
   for (int i = 0; i < 200; ++i) {
     const std::string name = pick_name(catalog, Kind::KeyAny, "plastic", random);
-    CHECK(name.starts_with("plastic_alpha_R"));
+    CHECK(name.starts_with("alpha_r"));
     if (std::ranges::find(seen, name) == seen.end()) seen.push_back(name);
   }
   CHECK(seen.size() == 3);
@@ -68,10 +68,10 @@ void the_any_key_gets_some_letter_sound() {
 void hold_and_release_come_in_pairs() {
   const auto catalog = Catalog::scan(CRPP_SOUNDS_DIR);
   Random random(1);
-  CHECK(pick_name(catalog, Kind::KeyShiftHold, "plastic", random) == "plastic_mod_shift_hold.wav");
-  CHECK(pick_name(catalog, Kind::KeyShiftUp, "plastic", random) == "plastic_mod_shift_release.wav");
-  CHECK(pick_name(catalog, Kind::MouseLeftHold, "walnut", random) == "walnut_left_hold.wav");
-  CHECK(pick_name(catalog, Kind::MouseLeftUp, "walnut", random) == "walnut_left_release.wav");
+  CHECK(pick_name(catalog, Kind::KeyShiftHold, "plastic", random) == "mod_shift_hold.wav");
+  CHECK(pick_name(catalog, Kind::KeyShiftUp, "plastic", random) == "mod_shift_release.wav");
+  CHECK(pick_name(catalog, Kind::MouseLeftHold, "walnut", random) == "left_hold.wav");
+  CHECK(pick_name(catalog, Kind::MouseLeftUp, "walnut", random) == "left_release.wav");
 }
 
 void missing_sounds_stay_silent() {
@@ -85,8 +85,8 @@ void missing_sounds_stay_silent() {
 void an_unknown_pack_means_the_default() {
   const auto catalog = Catalog::scan(CRPP_SOUNDS_DIR);
   Random random(1);
-  CHECK(pick_name(catalog, Kind::KeySpace, "gone", random) == "plastic_mod_space.wav");
-  CHECK(pick_name(catalog, Kind::KeySpace, "", random) == "plastic_mod_space.wav");
+  CHECK(pick_name(catalog, Kind::KeySpace, "gone", random) == "mod_space.wav");
+  CHECK(pick_name(catalog, Kind::KeySpace, "", random) == "mod_space.wav");
 }
 
 void a_missing_folder_is_empty() {
@@ -108,9 +108,9 @@ void choices_have_the_names_in_pack_json() {
 
 void notification_files_are_found_with_or_without_the_number() {
   const std::filesystem::path root(CRPP_SOUNDS_DIR);
-  CHECK(notification_file(root, "cloud_chat")->filename() == "01_cloud_chat.wav");
-  CHECK(notification_file(root, "01_cloud_chat")->filename() == "01_cloud_chat.wav");
-  CHECK(notification_file(root, "02_cloud_enter")->filename() == "02_cloud_enter.wav");
+  CHECK(notification_file(root, "cloud_chat")->filename() == "cloud_chat.wav");
+  CHECK(notification_file(root, "01_cloud_chat")->filename() == "cloud_chat.wav");
+  CHECK(notification_file(root, "02_cloud_enter")->filename() == "cloud_enter.wav");
   CHECK(!notification_file(root, "none"));
   CHECK(!notification_file(root / "none", "cloud_chat"));
 }

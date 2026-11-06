@@ -54,7 +54,7 @@ if(WIN32)
   target_link_libraries(crpp_gui_parts_test PRIVATE crpp_store)
   target_include_directories(crpp_gui_parts_test PRIVATE . ${PROJECT_SOURCE_DIR}/tests/support)
   crpp_target_defaults(crpp_gui_parts_test)
-  add_test(NAME gui.parts COMMAND crpp_gui_parts_test ${PROJECT_SOURCE_DIR}/assets/sounds/Notifications)
+  add_test(NAME gui.parts COMMAND crpp_gui_parts_test ${PROJECT_SOURCE_DIR}/assets/sounds/notifications)
 
   add_executable(crpp_gui_os_test tests/os_test.cpp tray.cpp)
   target_link_libraries(crpp_gui_os_test PRIVATE crpp_ui)

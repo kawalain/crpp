@@ -1,7 +1,7 @@
 #pragma once
 // Which recording plays for an Input kind: the Sound packs on disk and the rules
-// for choosing among their files. A pack is a folder like
-// Device_Keyboard/01_Plastic holding pack.json and <pack>_<sound>[_N].wav.
+// for choosing among their files. A pack is a folder like keyboard/plastic holding
+// pack.json and any of the <sound>[_(hold|release)][_N].wav it has a recording for.
 #include <cstdint>
 #include <filesystem>
 #include <optional>
@@ -34,8 +34,8 @@ class Random {
   std::uint64_t state_;
 };
 
-// A notification sound, by its file's name with or without the leading number:
-// "cloud_chat" and "01_cloud_chat" both find Notifications/01_cloud_chat.wav.
+// A notification sound, by its file's name, or by that name with the number upstream
+// puts in front: "cloud_chat" and "01_cloud_chat" both find notifications/cloud_chat.wav.
 [[nodiscard]] std::optional<std::filesystem::path> notification_file(const std::filesystem::path& root, std::string_view name);
 
 struct PackInfo {

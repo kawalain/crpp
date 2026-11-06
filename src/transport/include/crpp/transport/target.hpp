@@ -29,4 +29,7 @@ enum class TargetError : std::uint8_t {
 [[nodiscard]] std::expected<Target, TargetError> make_target(std::string_view server_url,
                                                              std::string_view nickname);
 
+// Where upstream asks whether the server is there: the base path plus "/health".
+[[nodiscard]] std::expected<Target, TargetError> make_health_target(std::string_view server_url);
+
 }  // namespace crpp::transport

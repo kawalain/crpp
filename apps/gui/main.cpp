@@ -240,6 +240,7 @@ struct Shell {
   ComPtr<ID2D1HwndRenderTarget> target;
   bool tracking = false;
   bool frame_timer_on = false;
+  bool blink_timer_on = false;
   std::wstring smoke_path;  // --smoke: create a room, save a screenshot, leave, exit
   ULONGLONG smoke_start = 0;
   bool smoke_left = false;
@@ -370,6 +371,15 @@ void copy_to_clipboard(HWND hwnd, const std::string& text) {
   CloseClipboard();
 }
 
+// The caret timer runs only while a text field can actually take typing.
+void sync_blink(Shell& s, HWND hwnd) {
+  const bool wanted = s.app.wants_blink() && GetFocus() == hwnd;
+  if (wanted == s.blink_timer_on) return;
+  if (wanted) SetTimer(hwnd, blink_timer, 530, nullptr);
+  else KillTimer(hwnd, blink_timer);
+  s.blink_timer_on = wanted;
+}
+
 LRESULT CALLBACK wnd_proc(HWND hwnd, UINT msg, WPARAM wp, LPARAM lp) {
   auto* s = reinterpret_cast<Shell*>(GetWindowLongPtrW(hwnd, GWLP_USERDATA));
   if (msg == WM_NCCREATE) {
@@ -381,8 +391,9 @@ LRESULT CALLBACK wnd_proc(HWND hwnd, UINT msg, WPARAM wp, LPARAM lp) {
     if (needed) InvalidateRect(hwnd, nullptr, FALSE);
   };
   switch (msg) {
-    case WM_CREATE:
-      SetTimer(hwnd, blink_timer, 530, nullptr);
+    case WM_SETFOCUS:
+    case WM_KILLFOCUS:
+      sync_blink(*s, hwnd);
       return 0;
     case WM_DESTROY:
       KillTimer(hwnd, blink_timer);
@@ -415,6 +426,7 @@ LRESULT CALLBACK wnd_proc(HWND hwnd, UINT msg, WPARAM wp, LPARAM lp) {
     case wm_ui_task:
       s->tasks.run_all();
       InvalidateRect(hwnd, nullptr, FALSE);
+      sync_blink(*s, hwnd);
       // Run the frame timer only while an effect is animating.
       if (s->app.animating() && !s->frame_timer_on) {
         SetTimer(hwnd, frame_timer, 16, nullptr);
@@ -442,6 +454,7 @@ LRESULT CALLBACK wnd_proc(HWND hwnd, UINT msg, WPARAM wp, LPARAM lp) {
       SetCapture(hwnd);
       repaint(s->app.mouse_down(static_cast<float>(GET_X_LPARAM(lp)), static_cast<float>(GET_Y_LPARAM(lp)),
                                 (wp & MK_SHIFT) != 0));
+      sync_blink(*s, hwnd);
       return 0;
     case WM_LBUTTONUP:
       ReleaseCapture();

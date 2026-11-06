@@ -54,6 +54,7 @@ void Bridge::on_deliver(const wire::ServerMessage& m) {
                     std::string(c->text), c->time};
     tasks_.post([this, entry = std::move(entry), slot = c->slot]() mutable {
       store_.record_chat(room_code_, {slot, entry.cid, entry.nick, entry.emoji, entry.text, entry.time_ms});
+      if (on_chat) on_chat(entry);
       app_.room().chat().add(std::move(entry));
     });
     return;
@@ -94,6 +95,7 @@ void Bridge::on_deliver(const wire::ServerMessage& m) {
     me_ = me;
     is_public_ = is_public;
     if (!code.empty()) enter(code);
+    if (on_members) on_members(members);
     app_.room().set_room(std::move(members), me, host, is_public, chat);
   });
 }

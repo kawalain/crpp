@@ -14,4 +14,6 @@ bool scene(Shell& s, std::string_view name) {
 
 void pref_changed(Shell&, std::string_view) {}
 
+bool notification_enabled(Shell&, std::string_view) { return true; }
+
 }  // namespace crpp::gui::area::preferences

@@ -38,12 +38,17 @@ void pref_changed(Shell& s, std::string_view key);
 // reconnects.
 void set_member_volume(Shell& s, std::string_view cid, int percent);
 void set_member_muted(Shell& s, std::string_view cid, bool muted);
+// A notification sound by its file name stem ("01_cloud_chat"). Honors nothing but
+// the mute settings: whether this sound is enabled is the caller's question.
+void play_notification(Shell& s, std::string_view name);
 }  // namespace sound
 
 namespace preferences {  // display, notification and system tabs
 void wire(Shell& s);
 [[nodiscard]] bool scene(Shell& s, std::string_view name);
 void pref_changed(Shell& s, std::string_view key);
+// Whether the notification tab has this sound on ("notificationSounds").
+[[nodiscard]] bool notification_enabled(Shell& s, std::string_view name);
 }  // namespace preferences
 
 namespace os {  // tray, chat notifications, taskbar flash, autostart, reopening

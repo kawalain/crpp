@@ -1,5 +1,7 @@
 #include "crpp/ui/settings_panel.hpp"
 
+#include <windows.h>
+
 namespace crpp::ui {
 
 namespace {
@@ -135,15 +137,42 @@ void SettingsPanel::paint_droplet(Painter& p) {
   const Theme& t = ui_.theme;
   p.set_base(D2D1::Matrix3x2F::Identity());
   const Rect drop{ui_.width - 18 - 35, 16, 35, 49};
-  const bool hot = ui_.hot(this, Droplet);
+  const unsigned long long now = ui_.now_ms;
+  drop_scale_.aim(ui_.hot(this, Droplet), now, ui_.animations);
+  drop_color_.aim(ui_.hot(this, Droplet), now, ui_.animations);
+  drop_tip_.aim(ui_.hot(this, Droplet) && !open_, now, ui_.animations);
+  const float hot = drop_color_.value(now) * 100;
   const float s = 35 / 36.f;
-  D2D1_MATRIX_3X2_F m = D2D1::Matrix3x2F::Scale(s, s) * D2D1::Matrix3x2F::Translation(drop.x, drop.y + (49 - 49 * s) / 2);
-  if (hot) m = m * scale_about(drop.x + 17.5f, drop.y + 24.5f, 1.08f);
-  p.push(m);
-  p.fill_geometry(droplet_.get(), hot ? mix(t.droplet, t.hl_text_dark, 92) : t.droplet);
-  if (open_) p.stroke_geometry(droplet_x_.get(), hot ? t.hl_text_dark : t.hl_text, 4.4f, false);
+  const D2D1_MATRIX_3X2_F grown = scale_about(drop.x + 17.5f, drop.y + 24.5f, 1 + 0.08f * drop_scale_.value(now));
+  p.push(D2D1::Matrix3x2F::Scale(s, s) * D2D1::Matrix3x2F::Translation(drop.x, drop.y + (49 - 49 * s) / 2) * grown);
+  p.fill_geometry(droplet_.get(), mix(mix(t.droplet, t.hl_text_dark, 92), t.droplet, hot));
+  if (open_) p.stroke_geometry(droplet_x_.get(), mix(t.hl_text_dark, t.hl_text, hot), 4.4f, false);
   p.pop();
+  if (const float shown = drop_tip_.value(now); shown > 0) {
+    // .droplet .tip hangs below, right-aligned, and scales with the droplet.
+    constexpr const char* label = "설정";
+    const float w = tip_width(ui_, label), h = tip_height();
+    const Rect r{drop.right() - w, drop.bottom() + 8 - 4 * (1 - shown), w, h};
+    p.push(grown);
+    p.shadow_round(r, 11, 8, 2, rgb(0x2e648c, 0.2f * shown));
+    paint_tip(p, r, label, t.surface, t.hl_text, shown);
+    p.pop();
+  }
   ui_.add_hit_window(this, drop, Droplet);
+}
+
+bool SettingsPanel::drop_moving(unsigned long long now) const {
+  const bool hot = ui_.hot(this, Droplet);
+  return drop_scale_.moving(hot, now) || drop_color_.moving(hot, now) || drop_tip_.moving(hot && !open_, now);
+}
+
+bool SettingsPanel::animating() const { return ui_.animations && drop_moving(GetTickCount64()); }
+
+bool SettingsPanel::tick(unsigned long long now_ms) {
+  const bool moving = ui_.animations && drop_moving(now_ms);
+  const bool changed = moving || drop_was_moving_;
+  drop_was_moving_ = moving;
+  return changed;
 }
 
 void SettingsPanel::before_click(const Surface* owner, int id) {

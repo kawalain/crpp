@@ -60,6 +60,11 @@ class Bridge final : public client::Observer {
   // UI thread: whether a message can be sent at all right now.
   [[nodiscard]] bool can_send() const { return in_room_; }
 
+  // UI thread: the Session takes a command to enter a Room only when idle. What it
+  // would ignore must not change what the user is told or which Seat is expected.
+  [[nodiscard]] bool idle() const { return state_ == session::State::Idle; }
+  void entering() { state_ = session::State::Connecting; }
+
   // UI thread: the user leaves. The Seat stays held for a while.
   void leaving();
 
@@ -83,6 +88,7 @@ class Bridge final : public client::Observer {
   bool in_room_ = false;
   std::string room_code_;
   std::string resume_code_;
+  session::State state_ = session::State::Idle;
 };
 
 }  // namespace crpp::gui

@@ -6,6 +6,7 @@
 #include <string>
 
 #include "crpp/ui/controls.hpp"
+#include "crpp/ui/hover.hpp"
 #include "crpp/ui/settings_tabs.hpp"
 #include "crpp/ui/surface.hpp"
 
@@ -46,8 +47,11 @@ class SettingsPanel final : public Surface {
   bool wheel(float x, float y, float delta) override;
   bool escape() override;
   [[nodiscard]] Cursor cursor(int id) const override;
+  [[nodiscard]] bool animating() const override;
+  bool tick(unsigned long long now_ms) override;
 
  private:
+  [[nodiscard]] bool drop_moving(unsigned long long now) const;
   [[nodiscard]] SettingsTab& tab();
   void paint_panel(Painter& p);
   void paint_droplet(Painter& p);
@@ -62,6 +66,10 @@ class SettingsPanel final : public Surface {
   SettingsPage page_ = SettingsPage::Sound;
   Scroll scroll_;
   std::string version_;
+  Tween drop_scale_{140};  // .droplet transition
+  Tween drop_color_{150};
+  Tween drop_tip_{tip_ms};
+  bool drop_was_moving_ = false;
 };
 
 }  // namespace crpp::ui

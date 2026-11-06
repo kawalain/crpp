@@ -38,6 +38,7 @@ void App::show_home() {
 void App::show_session(std::string room_code) {
   view_ = View::Session;
   ui_.set_focus(nullptr, nullptr);
+  home_.left_home();
   room_.enter_room(std::move(room_code));
 }
 
@@ -65,6 +66,7 @@ void App::paint(ID2D1RenderTarget* rt, float width, float height) {
   if (view_ == View::Session) room_.paint_overlay(p);
   notice_.paint(p);
   emoji_picker_.paint(p);
+  if (view_ == View::Home) home_.paint_return(p);
   toasts_.paint(p);
   dialogs_.paint(p);
 }

@@ -84,9 +84,148 @@ void test_busy_buttons_do_nothing() {
   CHECK(calls == 0);
 }
 
+void test_return_decisions() {
+  using Kind = home::Entry::Kind;
+  CHECK(home::find_step(true) == home::FindStep::AskReturn);
+  CHECK(home::find_step(false) == home::FindStep::Random);
+  CHECK(home::entry_for_return(std::nullopt).kind == Kind::Random);  // expired meanwhile
+  const auto back = home::entry_for_return(home::HeldSeat{"ABC234", "KEY"});
+  CHECK(back.kind == Kind::Resume && back.code == "ABC234" && back.key == "KEY");
+}
+
+struct ReturnRig {
+  UiHarness h;
+  int found = 0, returned = 0;
+  std::optional<std::uint64_t> seat = 60000;
+  bool start() {
+    if (!h.start()) return false;
+    HomeScreen& home = h.app.home();
+    home.on_find_public = [this] { ++found; };
+    home.on_return = [this] { ++returned; };
+    home.held_seat_ms = [this] { return seat; };
+    h.render();
+    return true;
+  }
+  bool ask() { return h.click(h.app.home(), HomeScreen::Find); }
+};
+
+void test_held_seat_asks_first() {
+  ReturnRig r;
+  CHECK(r.start());
+  HomeScreen& home = r.h.app.home();
+  CHECK(home.returning());
+  CHECK(r.ask());
+  CHECK(home.asking_return());
+  CHECK(r.found == 0 && r.returned == 0);
+  CHECK(r.h.drawn(home, HomeScreen::ReturnConfirm));
+  CHECK(r.h.click(home, HomeScreen::ReturnConfirm));
+  CHECK(!home.asking_return());
+  CHECK(r.returned == 1 && r.found == 0);
+  CHECK(!r.h.drawn(home, HomeScreen::ReturnConfirm));
+}
+
+void test_second_choice_joins_at_random() {
+  ReturnRig r;
+  CHECK(r.start());
+  CHECK(r.ask());
+  CHECK(r.h.click(r.h.app.home(), HomeScreen::ReturnRandom));
+  CHECK(r.found == 1 && r.returned == 0);
+}
+
+void test_escape_and_backdrop_only_cancel() {
+  ReturnRig r;
+  CHECK(r.start());
+  HomeScreen& home = r.h.app.home();
+  CHECK(r.ask());
+  r.h.key(VK_ESCAPE);
+  CHECK(!home.asking_return());
+  CHECK(r.ask());
+  r.h.app.mouse_down(5, 5, false);
+  r.h.render();
+  CHECK(!home.asking_return());
+  CHECK(r.found == 0 && r.returned == 0);
+}
+
+void test_question_covers_the_droplet_and_the_card_keeps_it_open() {
+  ReturnRig r;
+  CHECK(r.start());
+  HomeScreen& home = r.h.app.home();
+  CHECK(r.ask());
+  const Ui::Hit* drop = r.h.app.ui().find_hit(&r.h.app.settings(), SettingsPanel::Droplet);
+  CHECK(drop != nullptr);
+  r.h.app.mouse_down(drop->rect.x + 5, drop->rect.y + 20, false);
+  r.h.render();
+  CHECK(!r.h.app.settings().is_open());
+  CHECK(!home.asking_return());
+  CHECK(r.ask());
+  CHECK(r.h.click(home, HomeScreen::ReturnCard));
+  CHECK(home.asking_return());
+}
+
+void test_question_is_shown_only_on_home() {
+  ReturnRig r;
+  CHECK(r.start());
+  HomeScreen& home = r.h.app.home();
+  CHECK(r.ask());
+  r.h.app.show_session("ABC234");  // an earlier attempt got through
+  r.h.render();
+  CHECK(!r.h.drawn(home, HomeScreen::ReturnConfirm));
+  r.h.app.show_home();
+  r.h.render();
+  CHECK(!home.asking_return());
+  CHECK(!r.h.drawn(home, HomeScreen::ReturnConfirm));
+}
+
+void test_no_question_while_busy() {
+  ReturnRig r;
+  CHECK(r.start());
+  HomeScreen& home = r.h.app.home();
+  home.busy = [] { return true; };
+  CHECK(r.ask());
+  CHECK(!home.asking_return());
+  home.busy = nullptr;
+  CHECK(r.ask());
+  home.busy = [] { return true; };
+  CHECK(r.h.click(home, HomeScreen::ReturnConfirm));
+  CHECK(!home.asking_return() && r.returned == 0);
+}
+
+void test_seat_gone_goes_straight_to_random() {
+  ReturnRig r;
+  CHECK(r.start());
+  r.seat.reset();
+  CHECK(r.ask());
+  CHECK(!r.h.app.home().asking_return());
+  CHECK(r.found == 1);
+}
+
+void test_seat_expiry_needs_no_paint_and_no_spinning() {
+  ReturnRig r;
+  CHECK(r.start());
+  HomeScreen& home = r.h.app.home();
+  const auto at = home.wake_at();
+  CHECK(at != 0);
+  r.seat.reset();
+  CHECK(!home.tick(at - 1));
+  CHECK(home.returning());
+  CHECK(home.tick(at));  // no render in between, as in a hidden window
+  CHECK(!home.returning());
+  CHECK(home.wake_at() == 0);
+  CHECK(!home.tick(at + 1));
+}
+
 }  // namespace
 
 int main() {
+  test_return_decisions();
+  test_held_seat_asks_first();
+  test_second_choice_joins_at_random();
+  test_escape_and_backdrop_only_cancel();
+  test_question_covers_the_droplet_and_the_card_keeps_it_open();
+  test_question_is_shown_only_on_home();
+  test_no_question_while_busy();
+  test_seat_gone_goes_straight_to_random();
+  test_seat_expiry_needs_no_paint_and_no_spinning();
   test_code_is_trimmed_and_upper_case();
   test_entry_for_code();
   test_join_on_enter_and_on_the_arrow();

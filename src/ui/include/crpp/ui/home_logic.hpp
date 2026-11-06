@@ -44,4 +44,18 @@ struct Entry {
   return {Entry::Kind::Join, std::move(code), {}};
 }
 
+// The search button: a held Seat is offered first, public or not.
+enum class FindStep : unsigned char { AskReturn, Random };
+[[nodiscard]] constexpr FindStep find_step(bool seat_held) { return seat_held ? FindStep::AskReturn : FindStep::Random; }
+
+struct HeldSeat {
+  std::string code, key;
+};
+
+// "돌아가기": the Seat may have expired while the question was open.
+[[nodiscard]] inline Entry entry_for_return(std::optional<HeldSeat> latest) {
+  if (!latest) return {};
+  return {Entry::Kind::Resume, std::move(latest->code), std::move(latest->key)};
+}
+
 }  // namespace crpp::ui::home

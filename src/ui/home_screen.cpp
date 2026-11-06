@@ -1,5 +1,10 @@
 #include "crpp/ui/home_screen.hpp"
 
+#include <windows.h>
+
+#include <algorithm>
+
+#include "crpp/ui/controls.hpp"
 #include "crpp/ui/home_logic.hpp"
 #include "crpp/ui/toasts.hpp"
 
@@ -21,6 +26,7 @@ HomeScreen::HomeScreen(Ui& ui) : Surface(ui) {
 }
 
 void HomeScreen::paint(Painter& p) {
+  refresh_seat(ui_.now_ms);
   const Theme& t = ui_.theme;
   // Sky: the large cloud at lower right, then the create cloud at upper left.
   p.cloud(ui_.cloud.get(), 306.33f, 295.56f, 1.3906f, 0.09f, 6, t);
@@ -72,9 +78,11 @@ void HomeScreen::paint(Painter& p) {
   const Rect search{759, 522, 92, 80};
   const bool search_hot = ui_.hot(this, Find);
   if (search_hot) p.push(scale_about(search.x + search.w / 2, search.y + search.h / 2, 1.05f));
-  p.fill_round(search, 18, search_hot ? t.hl_dark : t.entry);
+  // A held Seat lights the button (.search-button.returning).
+  p.fill_round(search, 18, search_hot ? t.hl_dark : returning() ? t.hl : t.entry);
   {
-    const Color icon = search_hot ? t.on_accent : (t.dark ? t.hl_text_soft : faint);
+    const Color rest = t.dark ? (returning() ? t.on_accent : t.hl_text_soft) : faint;
+    const Color icon = search_hot ? t.on_accent : rest;
     p.push(D2D1::Matrix3x2F::Scale(42 / 44.f, 42 / 44.f) *
            D2D1::Matrix3x2F::Translation(search.x + 46 - 21, search.y + 40 - 21));
     p.stroke_ellipse(19, 19, 11, 11, icon, 3.2f);
@@ -83,6 +91,41 @@ void HomeScreen::paint(Painter& p) {
   }
   if (search_hot) p.pop();
   ui_.add_hit(this, search, Find);
+}
+
+void HomeScreen::paint_return(Painter& p) {
+  if (!return_open_) return;
+  constexpr const char* question = "이전에 참가했던 구름으로\n돌아갈까요?";
+  constexpr const char* confirm = "돌아가기";
+  constexpr const char* random = "무작위 참가";
+  // .modal-card p, .modal-card button: a button grows past its minimum with its label.
+  constexpr float pad_top = 24, pad_x = 25, pad_bottom = 20, gap = 20, button_h = 38, button_gap = 10;
+  const TextStyle body{.size = 18, .weight = 700, .line_height = 27, .align = Align::Center, .wrap = true};
+  const auto button_width = [&](const char* label) {
+    DWRITE_TEXT_METRICS m{};
+    if (const auto layout = ui_.gfx.layout(widen(label), {.size = 16, .weight = 700}, 400)) layout->GetMetrics(&m);
+    return std::max(96.0f, m.widthIncludingTrailingWhitespace + 28);
+  };
+  const float w = std::min(320.0f, ui_.width - 40);
+  const float text_w = w - 2 * pad_x;
+  DWRITE_TEXT_METRICS size{};
+  if (const auto layout = ui_.gfx.layout(widen(question), body, text_w)) layout->GetMetrics(&size);
+  const float h = pad_top + size.height + gap + button_h + pad_bottom;
+
+  const float shown = transition(ui_, return_opened_at_, modal_pop_ms);
+  const Rect card = paint_modal(ui_, this, p, w, h, shown, ReturnBackdrop, ReturnCard);
+  p.text(question, {card.x + pad_x, card.y + pad_top, text_w, size.height}, body, with_alpha(ui_.theme.hl_text, shown));
+
+  const float confirm_w = button_width(confirm), random_w = button_width(random);
+  const float x = card.x + (w - confirm_w - button_gap - random_w) / 2;
+  const float y = card.bottom() - pad_bottom - button_h;
+  paint_modal_button(ui_, this, p, {x, y, confirm_w, button_h}, confirm, true, shown, ReturnConfirm);
+  paint_modal_button(ui_, this, p, {x + confirm_w + button_gap, y, random_w, button_h}, random, false, shown, ReturnRandom);
+}
+
+void HomeScreen::refresh_seat(unsigned long long now) {
+  const auto left = held_seat_ms ? held_seat_ms() : std::nullopt;
+  seat_wake_ = left ? now + *left : 0;
 }
 
 bool HomeScreen::accepts(int id, float x, float y) const {
@@ -103,6 +146,24 @@ void HomeScreen::join() {
     return;
   }
   if (on_join) on_join(narrow(*code));
+}
+
+void HomeScreen::find() {
+  if (is_busy()) return;
+  refresh_seat(GetTickCount64());
+  if (home::find_step(returning()) == home::FindStep::AskReturn) {
+    return_open_ = true;
+    return_opened_at_ = GetTickCount64();
+    was_moving_ = true;
+    return;
+  }
+  last_action_ = Find;
+  if (on_find_public) on_find_public();
+}
+
+void HomeScreen::left_home() {
+  return_open_ = false;
+  code_.clear();
 }
 
 void HomeScreen::show_error(std::string text) {
@@ -131,6 +192,19 @@ void HomeScreen::click(int id, float x, float, bool shift) {
       code_.click_at(ui_.gfx, code_style, ui_.to_stage_x(x) - (469 + 18), shift);
       break;
     case Find:
+      find();
+      break;
+    case ReturnBackdrop:
+      return_open_ = false;
+      break;
+    case ReturnConfirm:
+      return_open_ = false;
+      if (is_busy()) break;
+      last_action_ = Join;
+      if (on_return) on_return();
+      break;
+    case ReturnRandom:
+      return_open_ = false;
       if (is_busy()) break;
       last_action_ = Find;
       if (on_find_public) on_find_public();
@@ -142,6 +216,36 @@ void HomeScreen::click(int id, float x, float, bool shift) {
 
 void HomeScreen::enter(bool) { join(); }
 
-Cursor HomeScreen::cursor(int id) const { return id == Code ? Cursor::IBeam : Cursor::Hand; }
+bool HomeScreen::escape() {
+  if (!return_open_) return false;
+  return_open_ = false;
+  return true;
+}
+
+Cursor HomeScreen::cursor(int id) const {
+  if (id == ReturnBackdrop || id == ReturnCard) return Cursor::Arrow;
+  return id == Code ? Cursor::IBeam : Cursor::Hand;
+}
+
+bool HomeScreen::moving(unsigned long long now) const {
+  return return_open_ && static_cast<float>(now - return_opened_at_) < modal_pop_ms;
+}
+
+bool HomeScreen::animating() const { return ui_.animations && moving(GetTickCount64()); }
+
+bool HomeScreen::tick(unsigned long long now_ms) {
+  const bool is_moving = ui_.animations && moving(now_ms);
+  bool changed = is_moving || was_moving_;
+  was_moving_ = is_moving;
+  // Here and not only in paint: a hidden window never paints, and must not be woken
+  // again at once for the same moment.
+  if (seat_wake_ != 0 && now_ms >= seat_wake_) {
+    refresh_seat(now_ms);
+    changed = true;
+  }
+  return changed;
+}
+
+unsigned long long HomeScreen::wake_at() const { return seat_wake_; }
 
 }  // namespace crpp::ui

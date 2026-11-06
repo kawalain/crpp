@@ -41,9 +41,42 @@ void wire(Shell& s) {
     enter_room(*sp, ui::home::entry_for_code(std::move(code), seat ? std::optional(seat->key) : std::nullopt));
   };
   home.on_find_public = [sp] { enter_room(*sp, {}); };
+  home.on_return = [sp] {
+    const auto seat = sp->store->latest_seat(unix_ms());
+    enter_room(*sp, ui::home::entry_for_return(seat ? std::optional(ui::home::HeldSeat{seat->code, seat->key}) : std::nullopt));
+  };
+  home.held_seat_ms = [sp]() -> std::optional<std::uint64_t> {
+    const auto now = unix_ms();
+    const auto seat = sp->store->latest_seat(now);
+    if (!seat) return std::nullopt;
+    return static_cast<std::uint64_t>(seat->expires_at - now);
+  };
 }
 
+namespace {
+
+// A Seat that lasts past any screenshot.
+void hold_a_seat(Shell& s) {
+  s.app.home().held_seat_ms = []() -> std::optional<std::uint64_t> { return 60000; };
+}
+
+}  // namespace
+
 bool scene(Shell& s, std::string_view name) {
+  // "home-return@dark": any of this area's scenes in another theme.
+  if (const auto at = name.find('@'); at != std::string_view::npos && name.starts_with("home")) {
+    s.app.set_theme(name.substr(at + 1) == "dark" ? ThemeId::DarkCloud : ThemeId::Pastel);
+    name = name.substr(0, at);
+  }
+  if (name == "home-returning") {
+    hold_a_seat(s);
+    return true;
+  }
+  if (name == "home-return") {
+    hold_a_seat(s);
+    s.app.home().click(HomeScreen::Find, 0, 0, false);
+    return true;
+  }
   if (name == "toast") {
     s.app.toasts().toast("서버 연결이 종료되었습니다.");
     return true;

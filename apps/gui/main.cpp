@@ -8,6 +8,9 @@
 //                                 DIPs, so the image grows with it
 //   ... --asset-url <url>         fetch assets from <url>, not the published
 //                                 ones; the manifest still decides what is kept
+//   ... --update-url <url>        (not in official builds) look for updates at <url>,
+//                                 which must be signed with the key built in
+//   ... --updated-from <pid>      started by the update of process <pid>
 //   ... --data <dir>              (last) keep data in <dir>, not the user's
 //                                 folders; other instances are then allowed
 #include <cstdio>
@@ -85,6 +88,16 @@ int main(int argc, char** argv) {
     argc -= 2;
   }
   Shell shell;
+  shell.data_override = data_dir.wstring();
+  unsigned long updated_from = 0;
+  if (argc >= 3 && std::string(argv[argc - 2]) == "--update-url") {
+    shell.update_url = argv[argc - 1];
+    argc -= 2;
+  }
+  if (argc >= 3 && std::string(argv[argc - 2]) == "--updated-from") {
+    updated_from = std::strtoul(argv[argc - 1], nullptr, 10);
+    argc -= 2;
+  }
   const assets::Manifest manifest = assets::built_in_manifest();
   shell.asset_url = assets::published_url(manifest);
   if (argc >= 3 && std::string(argv[argc - 2]) == "--asset-url") {
@@ -115,8 +128,10 @@ int main(int argc, char** argv) {
   shell.app.home().set_hour(local.tm_hour);
 
   if (argc >= 3 && std::string(argv[1]) == "--shot") return run_shot(shell, argc, argv, shot_dpi);
+  if (updated_from != 0) area::update::took_over(updated_from);
   if (data_dir.empty() && another_instance_running()) return 0;
 
+  shell.data_dir = locations->protected_dir;
   shell.store.emplace(store::Store::open(*locations, shell.platform, unix_ms()));
   store::Store& data = *shell.store;
   shell.prefs.emplace(data);
@@ -160,5 +175,6 @@ int main(int argc, char** argv) {
   shell.tasks.run_all();  // what the client reported last must still reach the store
   shell.engine->stop();
   (void)data.save();
+  area::update::shutdown(shell);
   return 0;
 }

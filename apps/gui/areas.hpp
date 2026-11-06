@@ -70,6 +70,12 @@ void wire(Shell& s);
 namespace update {  // version check, update popup, changelog viewer
 void wire(Shell& s);
 [[nodiscard]] bool scene(Shell& s, std::string_view name);
+// In a new exe started by the old one, once it has come up: tells the old one, which
+// then exits, and waits for that. Comes before the store and the single-instance check.
+void took_over(unsigned long old_pid);
+// Last thing before the process ends. A check or download still running would take
+// long to give up, and files are only replaced whole, so this may end it here.
+void shutdown(Shell& s);
 }  // namespace update
 
 }  // namespace crpp::gui::area

@@ -102,6 +102,9 @@ struct Shell {
   std::filesystem::path assets_dir;
   std::string asset_url;
   std::thread assets_worker;
+  std::filesystem::path data_dir;  // the Protected store's folder
+  std::wstring data_override;      // --data, so a restart keeps it
+  std::string update_url;          // --update-url, only for builds that are not official
   std::wstring smoke_path;  // --smoke: create a room, save a screenshot, leave, exit
   ULONGLONG smoke_start = 0;
   bool smoke_left = false;

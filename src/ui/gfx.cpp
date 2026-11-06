@@ -1,6 +1,7 @@
 #include "crpp/ui/gfx.hpp"
 
 #include <dwrite_1.h>
+#include <dwrite_3.h>
 #include <windows.h>
 
 #include <cctype>
@@ -31,7 +32,8 @@ std::string narrow(std::wstring_view w) {
 
 namespace {
 
-constexpr const wchar_t* ui_font = L"Malgun Gothic";
+constexpr const wchar_t* ui_font = L"Malgun Gothic";            // fallback
+constexpr const wchar_t* custom_font = L"Pretendard GOV Variable";  // family name inside the bundled font
 
 D2D1_COLOR_F to_d2d(Color c) { return D2D1::ColorF(c.r, c.g, c.b, c.a); }
 
@@ -82,18 +84,41 @@ class PathReader {
 
 }  // namespace
 
-bool Gfx::init() {
+bool Gfx::init(const std::filesystem::path& font_file) {
   if (FAILED(D2D1CreateFactory(D2D1_FACTORY_TYPE_SINGLE_THREADED, d2d_.put()))) return false;
   if (FAILED(DWriteCreateFactory(DWRITE_FACTORY_TYPE_SHARED, __uuidof(IDWriteFactory),
                                  reinterpret_cast<IUnknown**>(dwrite_.put())))) {
     return false;
   }
+  family_ = ui_font;
+  if (!font_file.empty()) {
+    // A private font collection built from the file (DirectWrite 3; Windows 10 1703+).
+    ComPtr<IDWriteFactory5> factory5;
+    ComPtr<IDWriteFontSetBuilder1> builder;
+    ComPtr<IDWriteFontFile> file;
+    ComPtr<IDWriteFontSet> set;
+    ComPtr<IDWriteFontCollection1> collection;
+    if (SUCCEEDED(dwrite_->QueryInterface(__uuidof(IDWriteFactory5), reinterpret_cast<void**>(factory5.put()))) &&
+        SUCCEEDED(factory5->CreateFontSetBuilder(builder.put())) &&
+        SUCCEEDED(dwrite_->CreateFontFileReference(font_file.c_str(), nullptr, file.put())) &&
+        SUCCEEDED(builder->AddFontFile(file.get())) && SUCCEEDED(builder->CreateFontSet(set.put())) &&
+        SUCCEEDED(factory5->CreateFontCollectionFromFontSet(set.get(), collection.put()))) {
+      UINT32 index = 0;
+      BOOL exists = FALSE;
+      if (SUCCEEDED(collection->FindFamilyName(custom_font, &index, &exists)) && exists) {
+        fonts_ = collection.upcast<IDWriteFontCollection>();
+        family_ = custom_font;
+      }
+    }
+  }
   // Font metrics, to place text the way a CSS line box does.
-  ComPtr<IDWriteFontCollection> fonts;
-  if (SUCCEEDED(dwrite_->GetSystemFontCollection(fonts.put(), FALSE))) {
+  ComPtr<IDWriteFontCollection> system_fonts;
+  IDWriteFontCollection* fonts = fonts_.get();
+  if (!fonts && SUCCEEDED(dwrite_->GetSystemFontCollection(system_fonts.put(), FALSE))) fonts = system_fonts.get();
+  if (fonts) {
     UINT32 index = 0;
     BOOL exists = FALSE;
-    if (SUCCEEDED(fonts->FindFamilyName(ui_font, &index, &exists)) && exists) {
+    if (SUCCEEDED(fonts->FindFamilyName(family_.c_str(), &index, &exists)) && exists) {
       ComPtr<IDWriteFontFamily> family;
       ComPtr<IDWriteFont> font;
       if (SUCCEEDED(fonts->GetFontFamily(index, family.put())) &&
@@ -219,7 +244,7 @@ ComPtr<ID2D1PathGeometry> Gfx::parse_path(std::string_view d) const {
 ComPtr<IDWriteTextLayout> Gfx::layout(std::wstring_view text, const TextStyle& style, float max_w,
                                       float max_h) const {
   ComPtr<IDWriteTextFormat> format;
-  if (FAILED(dwrite_->CreateTextFormat(ui_font, nullptr, static_cast<DWRITE_FONT_WEIGHT>(style.weight),
+  if (FAILED(dwrite_->CreateTextFormat(family_.c_str(), fonts_.get(), static_cast<DWRITE_FONT_WEIGHT>(style.weight),
                                        DWRITE_FONT_STYLE_NORMAL, DWRITE_FONT_STRETCH_NORMAL, style.size,
                                        L"ko-kr", format.put()))) {
     return {};

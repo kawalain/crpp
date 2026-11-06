@@ -3,6 +3,7 @@
 #include <d2d1.h>
 #include <dwrite.h>
 
+#include <filesystem>
 #include <string>
 #include <string_view>
 #include <utility>
@@ -37,7 +38,9 @@ std::string narrow(std::wstring_view wide);
 
 class Gfx {
  public:
-  bool init();
+  // font_file: an optional TTF/OTF (a variable font works) used as the UI font;
+  // falls back to Malgun Gothic if it cannot be loaded.
+  bool init(const std::filesystem::path& font_file = {});
 
   [[nodiscard]] ID2D1Factory* d2d() const { return d2d_.get(); }
   [[nodiscard]] IDWriteFactory* dwrite() const { return dwrite_.get(); }
@@ -52,6 +55,8 @@ class Gfx {
  private:
   ComPtr<ID2D1Factory> d2d_;
   ComPtr<IDWriteFactory> dwrite_;
+  ComPtr<IDWriteFontCollection> fonts_;  // null = the system collection
+  std::wstring family_;
   float ascent_ = 0.8f;   // of the em, for the UI font
   float descent_ = 0.2f;
 };

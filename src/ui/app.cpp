@@ -38,7 +38,7 @@ constexpr float fab_size = 42;
 }  // namespace
 
 bool App::init(const std::filesystem::path& assets_dir) {
-  if (!gfx_.init()) return false;
+  if (!gfx_.init(assets_dir / "fonts" / "PretendardGOVVariable.ttf")) return false;
   emoji_.emplace(assets_dir);
   cloud_ = gfx_.parse_path(cloud_path_data);
   droplet_ = gfx_.parse_path(droplet_path);

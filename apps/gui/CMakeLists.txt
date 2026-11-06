@@ -1,7 +1,13 @@
 if(WIN32)
   add_executable(crpp main.cpp)
+  # Releases use MSVC, whose linker embeds this. A GCC build runs unaware of DPI,
+  # which Windows scales for it; it exists to keep the code portable.
+  if(MSVC)
+    target_sources(crpp PRIVATE crpp.manifest)
+  endif()
   target_link_libraries(crpp PRIVATE crpp_ui crpp_client crpp_store_windows crpp_assets_windows crpp_assets_built_in crpp_input_raw crpp_sound_wasapi crpp_transport_winhttp imm32)
-  target_compile_definitions(crpp PRIVATE _CRT_SECURE_NO_WARNINGS)
+  # Per-Monitor v2 starts at Windows 10 1703, which the UI's font loading needs too.
+  target_compile_definitions(crpp PRIVATE _CRT_SECURE_NO_WARNINGS _WIN32_WINNT=0x0A00)
   crpp_target_defaults(crpp)
   # A development build runs from an assets folder next to the exe. A release is
   # the exe alone, and fetches them into the user's data folder.

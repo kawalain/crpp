@@ -3,6 +3,8 @@
 //   crpp --shot out.png [WxH] [hour] [home|session|chat|setup|setup-failed] [notice]
 //                                 render a screen offscreen and exit
 //   crpp --smoke out.png          create a room, save a screenshot and exit
+//   ... --dpi <n>                 (with --shot) render at that DPI; WxH stay in
+//                                 DIPs, so the image grows with it
 //   ... --asset-url <url>         fetch assets from <url>, not the published
 //                                 ones; the manifest still decides what is kept
 //   ... --data <dir>              (last) keep data in <dir>, not the user's
@@ -291,6 +293,7 @@ struct Shell {
   bool tracking = false;
   bool frame_timer_on = false;
   bool blink_timer_on = false;
+  UINT dpi = USER_DEFAULT_SCREEN_DPI;
   std::filesystem::path assets_dir;
   std::string asset_url;
   std::thread assets_worker;
@@ -396,15 +399,17 @@ void restore_seat(Shell& s) {
 void save_window_size(Shell& s, HWND hwnd) {
   RECT rc;
   if (IsIconic(hwnd) || !GetClientRect(hwnd, &rc) || rc.right <= 0 || rc.bottom <= 0) return;
-  s.store->set("windowWidth", store::Json(static_cast<std::int64_t>(rc.right)));
-  s.store->set("windowHeight", store::Json(static_cast<std::int64_t>(rc.bottom)));
+  // Without the scale, so the window keeps its size on any monitor.
+  s.store->set("windowWidth", store::Json(static_cast<std::int64_t>(MulDiv(rc.right, 96, static_cast<int>(s.dpi)))));
+  s.store->set("windowHeight", store::Json(static_cast<std::int64_t>(MulDiv(rc.bottom, 96, static_cast<int>(s.dpi)))));
 }
 
 void ensure_target(Shell& s, HWND hwnd) {
   if (s.target) return;
   RECT rc;
   GetClientRect(hwnd, &rc);
-  const auto props = D2D1::RenderTargetProperties(D2D1_RENDER_TARGET_TYPE_DEFAULT, D2D1::PixelFormat(), 96, 96);
+  const auto dpi = static_cast<float>(s.dpi);
+  const auto props = D2D1::RenderTargetProperties(D2D1_RENDER_TARGET_TYPE_DEFAULT, D2D1::PixelFormat(), dpi, dpi);
   const auto hwnd_props = D2D1::HwndRenderTargetProperties(
       hwnd, D2D1::SizeU(static_cast<UINT32>(rc.right - rc.left), static_cast<UINT32>(rc.bottom - rc.top)));
   s.app.factory()->CreateHwndRenderTarget(props, hwnd_props, s.target.put());
@@ -414,13 +419,14 @@ void place_ime(Shell& s, HWND hwnd) {
   HIMC imc = ImmGetContext(hwnd);
   if (!imc) return;
   const Rect c = s.app.caret_rect();
+  const auto pixels = [&](float dips) { return static_cast<LONG>(dips * static_cast<float>(s.dpi) / 96); };
   COMPOSITIONFORM cf{};
   cf.dwStyle = CFS_POINT;
-  cf.ptCurrentPos = {static_cast<LONG>(c.x), static_cast<LONG>(c.y)};
+  cf.ptCurrentPos = {pixels(c.x), pixels(c.y)};
   ImmSetCompositionWindow(imc, &cf);
   CANDIDATEFORM cand{};
   cand.dwStyle = CFS_CANDIDATEPOS;
-  cand.ptCurrentPos = {static_cast<LONG>(c.x), static_cast<LONG>(c.bottom())};
+  cand.ptCurrentPos = {pixels(c.x), pixels(c.bottom())};
   ImmSetCandidateWindow(imc, &cand);
   ImmReleaseContext(hwnd, imc);
 }
@@ -474,7 +480,17 @@ LRESULT CALLBACK wnd_proc(HWND hwnd, UINT msg, WPARAM wp, LPARAM lp) {
   const auto repaint = [&](bool needed) {
     if (needed) InvalidateRect(hwnd, nullptr, FALSE);
   };
+  const auto dips = [&](int pixels) { return static_cast<float>(pixels) * 96 / static_cast<float>(s->dpi); };
   switch (msg) {
+    case WM_DPICHANGED: {
+      s->dpi = HIWORD(wp);
+      if (s->target) s->target->SetDpi(static_cast<float>(s->dpi), static_cast<float>(s->dpi));
+      const auto* suggested = reinterpret_cast<const RECT*>(lp);
+      SetWindowPos(hwnd, nullptr, suggested->left, suggested->top, suggested->right - suggested->left,
+                   suggested->bottom - suggested->top, SWP_NOZORDER | SWP_NOACTIVATE);
+      InvalidateRect(hwnd, nullptr, FALSE);
+      return 0;
+    }
     case WM_SETFOCUS:
     case WM_KILLFOCUS:
       sync_blink(*s, hwnd);
@@ -497,10 +513,9 @@ LRESULT CALLBACK wnd_proc(HWND hwnd, UINT msg, WPARAM wp, LPARAM lp) {
       BeginPaint(hwnd, &ps);
       ensure_target(*s, hwnd);
       if (s->target) {
-        RECT rc;
-        GetClientRect(hwnd, &rc);
+        const D2D1_SIZE_F size = s->target->GetSize();  // in DIPs
         s->target->BeginDraw();
-        s->app.paint(s->target.get(), static_cast<float>(rc.right), static_cast<float>(rc.bottom));
+        s->app.paint(s->target.get(), size.width, size.height);
         if (s->target->EndDraw() == D2DERR_RECREATE_TARGET) s->target.reset();
       }
       EndPaint(hwnd, &ps);
@@ -529,7 +544,7 @@ LRESULT CALLBACK wnd_proc(HWND hwnd, UINT msg, WPARAM wp, LPARAM lp) {
         TrackMouseEvent(&t);
         s->tracking = true;
       }
-      repaint(s->app.mouse_move(static_cast<float>(GET_X_LPARAM(lp)), static_cast<float>(GET_Y_LPARAM(lp))));
+      repaint(s->app.mouse_move(dips(GET_X_LPARAM(lp)), dips(GET_Y_LPARAM(lp))));
       return 0;
     case WM_MOUSELEAVE:
       s->tracking = false;
@@ -538,8 +553,7 @@ LRESULT CALLBACK wnd_proc(HWND hwnd, UINT msg, WPARAM wp, LPARAM lp) {
     case WM_LBUTTONDOWN:
       SetFocus(hwnd);
       SetCapture(hwnd);
-      repaint(s->app.mouse_down(static_cast<float>(GET_X_LPARAM(lp)), static_cast<float>(GET_Y_LPARAM(lp)),
-                                (wp & MK_SHIFT) != 0));
+      repaint(s->app.mouse_down(dips(GET_X_LPARAM(lp)), dips(GET_Y_LPARAM(lp)), (wp & MK_SHIFT) != 0));
       sync_blink(*s, hwnd);
       return 0;
     case WM_LBUTTONUP:
@@ -549,12 +563,11 @@ LRESULT CALLBACK wnd_proc(HWND hwnd, UINT msg, WPARAM wp, LPARAM lp) {
     case WM_MOUSEWHEEL: {
       POINT pt{GET_X_LPARAM(lp), GET_Y_LPARAM(lp)};
       ScreenToClient(hwnd, &pt);
-      repaint(s->app.wheel(static_cast<float>(pt.x), static_cast<float>(pt.y),
-                           static_cast<float>(GET_WHEEL_DELTA_WPARAM(wp)) / WHEEL_DELTA));
+      repaint(s->app.wheel(dips(pt.x), dips(pt.y), static_cast<float>(GET_WHEEL_DELTA_WPARAM(wp)) / WHEEL_DELTA));
       return 0;
     }
     case WM_RBUTTONDOWN:
-      repaint(s->app.right_click(static_cast<float>(GET_X_LPARAM(lp)), static_cast<float>(GET_Y_LPARAM(lp))));
+      repaint(s->app.right_click(dips(GET_X_LPARAM(lp)), dips(GET_Y_LPARAM(lp))));
       return 0;
     case WM_SETCURSOR:
       if (LOWORD(lp) == HTCLIENT) {
@@ -593,7 +606,8 @@ LRESULT CALLBACK wnd_proc(HWND hwnd, UINT msg, WPARAM wp, LPARAM lp) {
         if (!s->smoke_left && s->app.view() == View::Session && s->app.member_count() > 0) {
           RECT rc;
           GetClientRect(hwnd, &rc);
-          const bool saved = save_png(s->app, s->smoke_path, static_cast<unsigned>(rc.right), static_cast<unsigned>(rc.bottom));
+          const bool saved = save_png(s->app, s->smoke_path, static_cast<unsigned>(dips(rc.right)),
+                                      static_cast<unsigned>(dips(rc.bottom)), static_cast<float>(s->dpi));
           std::printf("smoke: in room, screenshot %s\n", saved ? "saved" : "FAILED");
           s->smoke_left = true;
           s->client->leave();
@@ -703,7 +717,6 @@ void start_install(Shell& s, HWND hwnd) {
 }  // namespace
 
 int main(int argc, char** argv) {
-  SetProcessDPIAware();
   std::filesystem::path data_dir;
   if (argc >= 3 && std::string(argv[argc - 2]) == "--data") {
     data_dir = widen(argv[argc - 1]);
@@ -714,6 +727,11 @@ int main(int argc, char** argv) {
   shell.asset_url = assets::published_url(manifest);
   if (argc >= 3 && std::string(argv[argc - 2]) == "--asset-url") {
     shell.asset_url = argv[argc - 1];
+    argc -= 2;
+  }
+  float shot_dpi = 96;
+  if (argc >= 3 && std::string(argv[argc - 2]) == "--dpi") {
+    shot_dpi = static_cast<float>(std::atof(argv[argc - 1]));
     argc -= 2;
   }
   auto locations = data_dir.empty() ? store::default_locations()
@@ -750,7 +768,7 @@ int main(int argc, char** argv) {
                                   "저장돼요.",
                                   "안전한 저장소로 옮기기", "닫기"});
     }
-    return save_png(shell.app, widen(argv[2]), w, h) ? 0 : 1;
+    return save_png(shell.app, widen(argv[2]), w, h, shot_dpi) ? 0 : 1;
   }
   if (data_dir.empty() && another_instance_running()) return 0;
 
@@ -817,13 +835,18 @@ int main(int argc, char** argv) {
   wc.lpszClassName = L"CrppWindow";
   RegisterClassExW(&wc);
 
-  RECT rc{0, 0, static_cast<LONG>(std::clamp<std::int64_t>(data.i64_or("windowWidth", 951), 480, 16384)),
-          static_cast<LONG>(std::clamp<std::int64_t>(data.i64_or("windowHeight", 692), 360, 16384))};
-  AdjustWindowRect(&rc, WS_OVERLAPPEDWINDOW, FALSE);
-  HWND hwnd = CreateWindowExW(0, wc.lpszClassName, L"Cloudroom", WS_OVERLAPPEDWINDOW | WS_VISIBLE, CW_USEDEFAULT,
-                              CW_USEDEFAULT, rc.right - rc.left, rc.bottom - rc.top, nullptr, nullptr, wc.hInstance,
-                              &shell);
+  // The monitor's DPI is known only once the window exists, so it is sized while
+  // still hidden.
+  HWND hwnd = CreateWindowExW(0, wc.lpszClassName, L"Cloudroom", WS_OVERLAPPEDWINDOW, CW_USEDEFAULT, CW_USEDEFAULT,
+                              CW_USEDEFAULT, CW_USEDEFAULT, nullptr, nullptr, wc.hInstance, &shell);
   if (!hwnd) return 1;
+  shell.dpi = GetDpiForWindow(hwnd);
+  const auto scaled = [&](std::int64_t dips) { return MulDiv(static_cast<int>(dips), static_cast<int>(shell.dpi), 96); };
+  RECT rc{0, 0, scaled(std::clamp<std::int64_t>(data.i64_or("windowWidth", 951), 480, 16384)),
+          scaled(std::clamp<std::int64_t>(data.i64_or("windowHeight", 692), 360, 16384))};
+  AdjustWindowRectExForDpi(&rc, WS_OVERLAPPEDWINDOW, FALSE, 0, shell.dpi);
+  SetWindowPos(hwnd, nullptr, 0, 0, rc.right - rc.left, rc.bottom - rc.top, SWP_NOMOVE | SWP_NOZORDER | SWP_NOACTIVATE);
+  ShowWindow(hwnd, SW_SHOWDEFAULT);
   shell.tasks.attach(hwnd);
   shell.input_sink.attach(hwnd);
   shell.app.on_copy = [hwnd](std::string text) { copy_to_clipboard(hwnd, text); };

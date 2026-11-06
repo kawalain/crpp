@@ -59,13 +59,11 @@ and developer communities, not from memory.
 
 ## Roadmap
 
-1. Real DPI support (Per-Monitor v2). Upstream ignores DPI; this client must
-   scale correctly.
-2. Reconnect backoff (see `session` below; the code still waits a fixed 3 s).
-3. Settings screen, the rest of the room screen, the return-to-Seat dialog.
-4. Pen input, as its own step.
-5. Accounts and the HTTP API.
-6. CI, Releases and `update`.
+1. Reconnect backoff (see `session` below; the code still waits a fixed 3 s).
+2. Settings screen, the rest of the room screen, the return-to-Seat dialog.
+3. Pen input, as its own step.
+4. Accounts and the HTTP API.
+5. CI, Releases and `update`.
 
 ## Build
 
@@ -119,7 +117,12 @@ exist (real + test).
   GitHub before a release can install. `Platform` is the seam for WinHTTP and BCrypt.
 - `update`: version check, download, signature and SHA-256 (BCrypt) verify,
   self-replace.
-- `ui`: view-model driven native rendering; redraw on demand only.
+- `ui`: view-model driven native rendering; redraw on demand only. Per-Monitor
+  v2, set by manifest: `App` works entirely in DIPs and the render target's DPI
+  maps them, so only the shell in `apps/gui` converts pixels. The saved window
+  size is in DIPs. `--shot ... --dpi <n>` renders any scale. `WM_DPICHANGED`
+  cannot be sent from another process; test it by moving the window between
+  monitors of different DPI.
 
 ## Performance rules
 
@@ -148,6 +151,8 @@ exist (real + test).
   device, suppress clicks briefly after tip activity; add this only once
   reproduced.
 - Confirm Raw Input still reports while a game or an elevated window has focus.
+- IME composition and candidate windows at a scale above 100%: they get physical
+  client pixels, which Microsoft's DPI pages do not state for the IME calls.
 - The sound of spatial audio and reverb needs ears: run
   `crpp_soundtest assets/sounds`, which walks every seat.
 - A full install from GitHub is untested until the assets are pushed. So far:

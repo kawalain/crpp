@@ -1,6 +1,8 @@
 #pragma once
 // The Cloudroom UI: screens, hit testing and input handling, independent of the
-// window it is shown in. All coordinates passed in are window pixels.
+// window it is shown in. All coordinates are device-independent pixels (1/96
+// inch), and the render target's DPI maps them to the monitor. The shell converts
+// what comes from window messages.
 //
 // Layout follows the upstream web UI: a fixed 951x692 "stage" scaled to cover
 // the window (the cloud art), content areas that follow the window but keep
@@ -107,7 +109,7 @@ class App {
   [[nodiscard]] bool animating() const { return !pulses_.empty(); }
   bool tick(unsigned long long now_ms);  // expires effects; true if the view changed
   [[nodiscard]] Cursor cursor() const;
-  [[nodiscard]] Rect caret_rect() const { return caret_; }  // window pixels, for IME placement
+  [[nodiscard]] Rect caret_rect() const { return caret_; }  // for IME placement
   [[nodiscard]] bool wants_blink() const { return focus_ != Focus::None; }
 
  private:
@@ -118,13 +120,13 @@ class App {
   };
   enum class Focus : std::uint8_t { None, Code, Chat };
   struct Hit {
-    Rect rect;  // window pixels
+    Rect rect;  // window coordinates, not stage ones
     int id;
   };
   struct SessionLayout {
-    float members_x, members_y, members_h;  // window pixels
+    float members_x, members_y, members_h;  // window coordinates
     bool single_column;
-    Rect chat;  // the chat panel, window pixels
+    Rect chat;  // the chat panel, window coordinates
   };
 
   void paint_setup(Painter& p);

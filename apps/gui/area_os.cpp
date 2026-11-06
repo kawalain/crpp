@@ -193,6 +193,9 @@ void sync_hidden(Shell& s) {
   if (hidden) {
     s.target.reset();
     if (s.app.ui().emoji) s.app.ui().emoji.emplace(s.assets_dir);
+    // Freed memory stays in the working set until asked for. What is still in use comes
+    // back on the next touch, at the price of one soft fault per page.
+    SetProcessWorkingSetSize(GetCurrentProcess(), static_cast<SIZE_T>(-1), static_cast<SIZE_T>(-1));
   } else {
     InvalidateRect(s.hwnd, nullptr, FALSE);
   }

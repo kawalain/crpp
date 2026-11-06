@@ -63,8 +63,7 @@ The goal is every user-visible interface of upstream's `client/` on Windows.
 macOS-only UI, `installer/` and developer-build tools are out of scope for now.
 
 0. Foundation: one file per screen, shared controls, dialogs, toasts, settings keys.
-1. Feedback and reconnect: failure reasons, offline popup, backoff (see `session`
-   below; the code still waits a fixed 3 s).
+1. Feedback and reconnect: failure reasons, offline popup.
 2. The rest of the room and home screens: dialogs, profile card, member menu,
    emoji picker, public room search, return-to-Seat dialog.
 3. Settings: sound, display, notification and system tabs, and the guest part of
@@ -99,6 +98,13 @@ per subagent, never to production. Never create accounts on production.
   handle can be changed without leaving.
 - The first time the window hides to the tray while in a Room, a notification says
   the Room is still connected, because input timing keeps being shared.
+- Reachability is not polled in the background. `GET /health` runs at startup, after a
+  connection that failed without reaching the server, and every 5 s while the offline
+  popup is up. A server lost while on Home shows at the next attempt.
+- Reconnecting backs off and gives up at the server's grace instead of retrying every
+  3 s forever; it does not ask `/health` first. A connection error names no reason in
+  parentheses, because the transport reports none.
+- A Room that cannot be resumed at startup says so; upstream returns to Home silently.
 
 ## Build
 
@@ -111,7 +117,9 @@ MSVC needs a developer environment (vcvars); `cl` is not on PATH by default.
 Run GCC-built tests from PowerShell: Git Bash's PATH finds another
 `libstdc++-6.dll` first and they die with `0xc0000139`.
 
-`crpp --data <dir>` keeps a run's data out of the user's folders. An exe with an
+`crpp --data <dir>` keeps a run's data out of the user's folders, and with no
+`serverUrl` in it skips the startup `/health`, so scripted runs stay off the default
+server; seed `serverUrl` in its `crpp/settings.json` to test the offline popup. An exe with an
 `assets/` folder beside it, as every build has, runs from that folder; copy the
 exe elsewhere to test fetching, with `--asset-url` for a local server.
 

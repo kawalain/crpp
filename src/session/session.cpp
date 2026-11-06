@@ -46,6 +46,7 @@ void Session::reset_room() noexcept {
   got_resume_ = false;
   established_ = false;
   has_last_input_ = false;
+  next_wait_ = std::chrono::milliseconds{0};
 }
 
 void Session::fail(Failure reason, std::string_view detail) noexcept {
@@ -73,6 +74,7 @@ void Session::begin_connect(Time now) noexcept {
 
 void Session::become_ready(Time now) noexcept {
   established_ = true;
+  next_wait_ = std::chrono::milliseconds{0};
   next_ping_ = after(now, timing_.ping_interval);
   touch(now);
   set_state(State::InRoom);
@@ -80,18 +82,39 @@ void Session::become_ready(Time now) noexcept {
 
 // The connection dropped or timed out. An established room is re-entered after
 // a delay; anything else is reported to the user.
-void Session::lost(Time now, bool close_needed) noexcept {
+void Session::lost(Time now, bool close_needed, std::string_view detail) noexcept {
   if (close_needed) {
     close_transport();
   } else {
     transport_ = false;
   }
-  if (established_ && !key_.empty()) {
-    retry_at_ = now + timing_.reconnect_delay;
-    set_state(State::Waiting);
-  } else {
-    fail(Failure::ConnectFailed, {});
+  if (!established_ || key_.empty()) {
+    fail(Failure::ConnectFailed, detail);
+    return;
   }
+  if (next_wait_.count() == 0) {  // the first loss starts the server's grace too
+    next_wait_ = timing_.reconnect_first;
+    give_up_at_ = now + timing_.reconnect_limit;
+  }
+  if (now >= give_up_at_) {
+    fail(Failure::GraceExpired, {});
+    return;
+  }
+  schedule_retry(now);
+  set_state(State::Waiting);
+}
+
+// Equal jitter: half of the wait is fixed and half random, so clients dropped together
+// by a server restart spread out without any of them retrying at once.
+void Session::schedule_retry(Time now) noexcept {
+  const auto wait = next_wait_;
+  next_wait_ = std::min(wait * 2, timing_.reconnect_longest);
+  double fraction = 1;
+  if (jitter_.next != nullptr) fraction = std::clamp(jitter_.next(jitter_.context), 0.0, 1.0);
+  const auto half = wait / 2;
+  const auto random_part =
+      std::chrono::milliseconds(static_cast<std::int64_t>(static_cast<double>((wait - half).count()) * fraction));
+  retry_at_ = std::min(now + half + random_part, give_up_at_);
 }
 
 wire::cmd::Sounds Session::sounds() const noexcept {
@@ -272,7 +295,7 @@ void Session::handle(const event::ConnectFailed& e, Time now) {
     fail(Failure::Unauthorized, {});
     return;
   }
-  lost(now, false);
+  lost(now, false, {});
 }
 
 void Session::handle(const event::Closed&, Time now) {
@@ -280,7 +303,7 @@ void Session::handle(const event::Closed&, Time now) {
     case State::Connecting:
     case State::Joining:
     case State::InRoom:
-      lost(now, false);
+      lost(now, false, state_ == State::Connecting ? std::string_view{} : detail_closed);
       return;
     case State::Leaving:
       transport_ = false;
@@ -319,13 +342,15 @@ void Session::handle(const event::Tick&, Time now) {
     case State::Idle:
       return;
     case State::Connecting:
-      if (now >= connect_deadline_) lost(now, true);
+      if (now >= connect_deadline_) lost(now, true, {});
       return;
     case State::Joining:
-      if (now >= join_deadline_) lost(now, true);
+      if (now >= join_deadline_) lost(now, true, detail_no_reply);
       return;
     case State::Waiting:
-      if (now >= retry_at_) {
+      if (now >= give_up_at_) {
+        fail(Failure::GraceExpired, {});
+      } else if (now >= retry_at_) {
         intent_ = Intent::Resume;
         fallback_to_join_ = false;
         begin_connect(now);
@@ -338,7 +363,7 @@ void Session::handle(const event::Tick&, Time now) {
         return;
       }
       if (now >= liveness_) {
-        lost(now, true);
+        lost(now, true, detail_closed);
         return;
       }
       if (now >= next_ping_) {
@@ -390,6 +415,10 @@ void Session::on_server_message(const wire::ServerMessage& m, Time now) {
 }
 
 void Session::on_server_error(std::string_view detail, Time now) {
+  if (established_ && state_ == State::Joining) {
+    fail(Failure::RoomClosed, detail);
+    return;
+  }
   if (detail == "not_found" && intent_ == Intent::Resume && state_ == State::Joining) {
     if (fallback_to_join_ && !code_.empty()) {
       // The held seat is gone: join the same room normally on a new connection.

@@ -90,6 +90,8 @@ class InputSink final : public input::Sink {
   std::atomic<bool> pulse_posted_{false};
 };
 
+struct ConnectionArea;  // area_connection.cpp
+
 struct Shell {
   ui::App app;
   UiTasks tasks;
@@ -118,6 +120,8 @@ struct Shell {
   std::unique_ptr<sound::Engine> engine;
   InputSink input_sink{client, engine};
   std::unique_ptr<input::RawInputSource> input;
+  bool throwaway_data = false;  // --data: a scripted or test run
+  std::shared_ptr<ConnectionArea> connection;  // last: stops its thread before the rest goes
 };
 
 // --- startup.cpp ---

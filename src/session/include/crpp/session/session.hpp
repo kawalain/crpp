@@ -4,7 +4,7 @@
 // Session never does I/O and never reads a clock. A driver feeds it events
 // (user commands, transport results, received frames, timer ticks) together
 // with the current time, and performs the actions it returns. This makes every
-// timing rule (15 s connect/join timeouts, 20 s ping, reconnect delay,
+// timing rule (15 s connect/join timeouts, 20 s ping, reconnect backoff,
 // 100 ms input throttle) testable without a network.
 //
 // Driver contract:
@@ -50,8 +50,12 @@ struct Timing {
   // Server pings every 25 s; silence for three periods means a dead link.
   std::chrono::milliseconds liveness_timeout{75000};
   std::chrono::milliseconds leave_timeout{5000};
-  // Delay before retrying after the connection of an established room drops.
-  std::chrono::milliseconds reconnect_delay{3000};
+  // After the connection of an established room drops: the first wait, doubled on
+  // every failed attempt up to the longest, each cut by jitter.
+  std::chrono::milliseconds reconnect_first{1000};
+  std::chrono::milliseconds reconnect_longest{30000};
+  // The server's OFFLINE_GRACE: past this the Seat is gone, so retrying is pointless.
+  std::chrono::milliseconds reconnect_limit{15 * 60 * 1000};
   // The server accepts 10 input events per second per member.
   std::chrono::milliseconds input_interval{100};
 };
@@ -71,6 +75,20 @@ enum class Failure : std::uint8_t {
   RoomGone,         // resume found no room and no usable ticket
   ServerError,      // the server refused (detail holds its error code)
   InvalidArgument,  // a command argument did not fit its limits
+  RoomClosed,       // while reconnecting, the server refused the Seat
+  GraceExpired,     // reconnecting went on until the server gave up the Seat
+};
+
+// Failed::detail of a ConnectFailed that got as far as the server. An empty detail
+// means the server may not be there at all.
+inline constexpr std::string_view detail_closed = "closed";      // closed before the join
+inline constexpr std::string_view detail_no_reply = "no_reply";  // never answered the join
+
+// Where reconnect jitter comes from: a fraction in [0, 1). Injected to keep Session
+// pure. With no source, every wait is its full length.
+struct Jitter {
+  double (*next)(void* context) noexcept = nullptr;
+  void* context = nullptr;
 };
 
 // Capacities of the strings Session keeps. Longer values are protocol errors.
@@ -153,7 +171,7 @@ struct Persistent {
 
 class Session {
  public:
-  explicit Session(Timing timing = {}) noexcept : timing_(timing) {}
+  explicit Session(Timing timing = {}, Jitter jitter = {}) noexcept : timing_(timing), jitter_(jitter) {}
 
   [[nodiscard]] std::span<const Action> on(const Event& event, Time now) noexcept;
 
@@ -200,7 +218,8 @@ class Session {
   void set_state(State s) noexcept;
   void begin_connect(Time now) noexcept;
   void become_ready(Time now) noexcept;
-  void lost(Time now, bool close_needed) noexcept;
+  void lost(Time now, bool close_needed, std::string_view detail) noexcept;
+  void schedule_retry(Time now) noexcept;
   void fail(Failure reason, std::string_view detail) noexcept;
   void finish_leave() noexcept;
   void close_transport() noexcept;
@@ -214,6 +233,7 @@ class Session {
   [[nodiscard]] wire::ClientMessage control() const noexcept;
 
   Timing timing_;
+  Jitter jitter_;
   State state_ = State::Idle;
 
   Intent intent_ = Intent::Join;
@@ -237,6 +257,8 @@ class Session {
   Time liveness_{};
   Time leave_deadline_{};
   Time retry_at_{};
+  Time give_up_at_{};
+  std::chrono::milliseconds next_wait_{0};  // zero: not reconnecting
   Time last_input_{};
   bool has_last_input_ = false;
 

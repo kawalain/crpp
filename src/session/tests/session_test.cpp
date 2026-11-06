@@ -3,6 +3,7 @@
 #include <memory>
 #include <string>
 #include <string_view>
+#include <utility>
 #include <vector>
 
 #include "check.hpp"
@@ -217,10 +218,10 @@ void ping_and_reconnect() {
   CHECK(count<action::Close>(a) == 1);
   CHECK(states_are(a, {State::Waiting}));
   CHECK(r.s().reconnecting());
-  CHECK(r.s().deadline() == r.now + 3s);
+  CHECK(r.s().deadline() == r.now + 1s);
 
-  CHECK(r.advance(2s).empty());
-  a = r.advance(1s);
+  CHECK(r.advance(500ms).empty());
+  a = r.advance(500ms);
   CHECK(states_are(a, {State::Connecting}));
   CHECK(count<action::Connect>(a) == 1);
 
@@ -256,13 +257,150 @@ void repeated_reconnect_failures_keep_retrying() {
   (void)r.step(event::Closed{});
   CHECK(r.s().state() == State::Waiting);
   for (int i = 0; i < 5; ++i) {
-    (void)r.advance(3s);
+    (void)r.advance(30s);
     CHECK(r.s().state() == State::Connecting);
     const auto a = r.step(event::ConnectFailed{false});
     CHECK(r.s().state() == State::Waiting);
     CHECK(find<action::Failed>(a) == nullptr);
   }
   CHECK(r.s().persistent().key == "K1");
+}
+
+// Takes a Rig in Waiting through one failed attempt; the wait that follows it.
+std::chrono::milliseconds fail_one_attempt(Rig& r) {
+  r.now = *r.s().deadline();
+  (void)r.step(event::Tick{});
+  CHECK(r.s().state() == State::Connecting);
+  (void)r.step(event::ConnectFailed{false});
+  CHECK(r.s().state() == State::Waiting);
+  return std::chrono::duration_cast<std::chrono::milliseconds>(*r.s().deadline() - r.now);
+}
+
+void backoff_doubles_up_to_the_longest_wait() {
+  Rig r;
+  enter_room(r);
+  (void)r.step(event::Closed{});
+  CHECK(r.s().deadline() == r.now + 1s);
+  for (const std::chrono::seconds expected : {2s, 4s, 8s, 16s, 30s, 30s, 30s}) CHECK(fail_one_attempt(r) == expected);
+}
+
+void backoff_starts_over_after_a_reconnect() {
+  Rig r;
+  enter_room(r);
+  (void)r.step(event::Closed{});
+  CHECK(fail_one_attempt(r) == 2s);
+  CHECK(fail_one_attempt(r) == 4s);
+  r.now = *r.s().deadline();
+  (void)r.step(event::Tick{});
+  (void)r.step(event::Connected{});
+  (void)r.text(joined_json);
+  (void)r.text(resume_json);
+  CHECK(r.s().state() == State::InRoom);
+  (void)r.step(event::Closed{});
+  CHECK(r.s().deadline() == r.now + 1s);
+}
+
+void jitter_cuts_each_wait_by_up_to_half() {
+  double fraction = 0;
+  const Jitter jitter{[](void* context) noexcept { return *static_cast<double*>(context); }, &fraction};
+  using Waits = std::pair<std::chrono::milliseconds, std::chrono::milliseconds>;
+  const auto waits_with = [&](double f) {
+    fraction = f;
+    Rig r;
+    r.session = std::make_unique<Session>(Timing{}, jitter);
+    enter_room(r);
+    (void)r.step(event::Closed{});
+    const auto first = std::chrono::duration_cast<std::chrono::milliseconds>(*r.s().deadline() - r.now);
+    return Waits{first, fail_one_attempt(r)};
+  };
+  CHECK((waits_with(0) == Waits{500ms, 1000ms}));
+  CHECK((waits_with(0.5) == Waits{750ms, 1500ms}));
+  // A source that breaks its promise cannot stretch the wait or make it negative.
+  CHECK((waits_with(-5) == Waits{500ms, 1000ms}));
+  CHECK((waits_with(7) == Waits{1000ms, 2000ms}));
+}
+
+void reconnecting_stops_at_the_servers_grace() {
+  Rig r;
+  enter_room(r);
+  (void)r.step(event::Closed{});
+  const Time limit = r.now + 15min;
+  while (*r.s().deadline() < limit) (void)fail_one_attempt(r);
+  CHECK(r.s().deadline() == limit);  // the last wait is cut to end at the limit
+  r.now = limit;
+  const auto a = r.step(event::Tick{});
+  const auto* f = find<action::Failed>(a);
+  CHECK(f && f->reason == Failure::GraceExpired);
+  CHECK(states_are(a, {State::Idle}));
+  CHECK(!r.s().deadline());
+  CHECK(r.s().persistent().key.empty());
+}
+
+void attempt_failing_after_the_grace_gives_up_at_once() {
+  Rig r;
+  enter_room(r);
+  (void)r.step(event::Closed{});
+  r.now = *r.s().deadline();
+  (void)r.step(event::Tick{});
+  r.now += 16min;  // the attempt hung until after the limit
+  const auto a = r.step(event::ConnectFailed{false});
+  const auto* f = find<action::Failed>(a);
+  CHECK(f && f->reason == Failure::GraceExpired);
+  CHECK(r.s().state() == State::Idle);
+}
+
+void reconnecting_stops_when_the_token_is_refused() {
+  Rig r;
+  enter_room(r);
+  (void)r.step(event::Closed{});
+  (void)r.advance(1s);
+  const auto a = r.step(event::ConnectFailed{true});
+  const auto* f = find<action::Failed>(a);
+  CHECK(f && f->reason == Failure::Unauthorized);
+  CHECK(r.s().state() == State::Idle);
+}
+
+void reconnecting_stops_when_the_room_is_closed() {
+  for (const auto error : {R"({"t":"error","error":"not_found"})"sv, R"({"t":"error","error":"room_full"})"sv}) {
+    Rig r;
+    enter_room(r);
+    (void)r.step(event::Closed{});
+    (void)r.advance(1s);
+    (void)r.step(event::Connected{});
+    const auto a = r.text(error);
+    const auto* f = find<action::Failed>(a);
+    CHECK(f && f->reason == Failure::RoomClosed);
+    CHECK(r.s().state() == State::Idle);
+  }
+}
+
+void failures_say_how_far_the_connection_got() {
+  const auto detail = [](Actions a) {
+    const auto* f = find<action::Failed>(a);
+    return f ? f->detail : "(none)"sv;
+  };
+  {
+    Rig r;
+    (void)r.step(event::Create{});
+    CHECK(detail(r.step(event::ConnectFailed{false})).empty());
+  }
+  {
+    Rig r;
+    (void)r.step(event::Create{});
+    CHECK(detail(r.advance(15s)).empty());
+  }
+  {
+    Rig r;
+    (void)r.step(event::Create{});
+    (void)r.step(event::Connected{});
+    CHECK(detail(r.step(event::Closed{})) == detail_closed);
+  }
+  {
+    Rig r;
+    (void)r.step(event::Create{});
+    (void)r.step(event::Connected{});
+    CHECK(detail(r.advance(15s)) == detail_no_reply);
+  }
 }
 
 void initial_connection_failures() {
@@ -316,10 +454,10 @@ void server_errors() {
     Rig r;
     enter_room(r);
     (void)r.step(event::Closed{});
-    (void)r.advance(3s);
+    (void)r.advance(1s);
     (void)r.step(event::Connected{});
     const auto a = r.text(R"({"t":"error","error":"not_found"})"sv);
-    CHECK(find<action::Failed>(a) && find<action::Failed>(a)->reason == Failure::RoomGone);
+    CHECK(find<action::Failed>(a) && find<action::Failed>(a)->reason == Failure::RoomClosed);
     CHECK(r.s().persistent().key.empty());
     CHECK(r.s().state() == State::Idle);
   }
@@ -480,6 +618,14 @@ int main() {
   ping_and_reconnect();
   disabled_keepalive_timers();
   repeated_reconnect_failures_keep_retrying();
+  backoff_doubles_up_to_the_longest_wait();
+  backoff_starts_over_after_a_reconnect();
+  jitter_cuts_each_wait_by_up_to_half();
+  reconnecting_stops_at_the_servers_grace();
+  attempt_failing_after_the_grace_gives_up_at_once();
+  reconnecting_stops_when_the_token_is_refused();
+  reconnecting_stops_when_the_room_is_closed();
+  failures_say_how_far_the_connection_got();
   initial_connection_failures();
   server_errors();
   resume_with_fallback_to_join();

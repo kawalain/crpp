@@ -125,7 +125,11 @@ void enter_app(Shell& s) {
     s.client->create(false, false);
     SetTimer(s.hwnd, smoke_timer, 200, nullptr);
   } else {
-    restore_seat(s);
+    // As upstream: nothing is resumed until the server is known to be there.
+    area::connection::check_server(s, [&s] {
+      restore_seat(s);
+      (void)s.store->save();
+    });
   }
   (void)data.save();
 }

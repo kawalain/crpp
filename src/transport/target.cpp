@@ -100,4 +100,12 @@ std::expected<Target, TargetError> make_target(std::string_view url, std::string
   return t;
 }
 
+std::expected<Target, TargetError> make_health_target(std::string_view url) {
+  auto target = make_target(url, "");
+  if (!target) return target;
+  target->path_and_query.resize(target->path_and_query.size() - std::string_view("ws?nick=").size());
+  target->path_and_query += "health";
+  return target;
+}
+
 }  // namespace crpp::transport

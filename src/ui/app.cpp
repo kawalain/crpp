@@ -44,7 +44,7 @@ void App::show_session(std::string room_code) {
 std::vector<Surface*> App::layers() {
   if (view_ == View::Setup) return {&setup_};
   Surface* screen = view_ == View::Home ? static_cast<Surface*>(&home_) : &room_;
-  return {&dialogs_, &toasts_, &emoji_picker_, &notice_, &settings_, screen};
+  return {&dialogs_, &toasts_, &emoji_picker_, &notice_, &settings_, &offline_, screen};
 }
 
 void App::paint(ID2D1RenderTarget* rt, float width, float height) {
@@ -59,6 +59,8 @@ void App::paint(ID2D1RenderTarget* rt, float width, float height) {
   room_.set_controls_shown(!settings_.is_open());
   if (view_ == View::Home) home_.paint(p);
   else room_.paint(p);
+  offline_.set_covered(settings_.is_open());
+  offline_.paint(p);  // under the settings droplet, the one thing usable above it
   settings_.paint(p);
   notice_.paint(p);
   emoji_picker_.paint(p);

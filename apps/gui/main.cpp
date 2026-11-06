@@ -85,6 +85,7 @@ int main(int argc, char** argv) {
     argc -= 2;
   }
   Shell shell;
+  shell.throwaway_data = !data_dir.empty();
   const assets::Manifest manifest = assets::built_in_manifest();
   shell.asset_url = assets::published_url(manifest);
   if (argc >= 3 && std::string(argv[argc - 2]) == "--asset-url") {

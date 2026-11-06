@@ -1,4 +1,4 @@
-add_library(crpp_store STATIC json.cpp)
+add_library(crpp_store STATIC json.cpp store.cpp)
 target_include_directories(crpp_store PUBLIC include)
 crpp_target_defaults(crpp_store)
 
@@ -11,3 +11,4 @@ function(crpp_store_test name)
 endfunction()
 
 crpp_store_test(json)
+crpp_store_test(store)

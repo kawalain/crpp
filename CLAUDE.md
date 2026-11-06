@@ -128,12 +128,12 @@ MSVC needs a developer environment (vcvars); `cl` is not on PATH by default.
 Run GCC-built tests from PowerShell: Git Bash's PATH finds another
 `libstdc++-6.dll` first and they die with `0xc0000139`.
 
-`crpp --data <dir>` keeps a run's data out of the user's folders, and with no
-`serverUrl` in it skips the startup `/health`, so scripted runs stay off the default
 Options are read from the end of the command line: `crpp --shot <png> <size> <ms> <scene>
 --data <dir>`. Put first, `--data` is ignored and the real app opens on the user's desktop
 with their data.
 
+`crpp --data <dir>` keeps a run's data out of the user's folders, and with no
+`serverUrl` in it skips the startup `/health`, so scripted runs stay off the default
 server; seed `serverUrl` in its `crpp/settings.json` to test the offline popup. An exe with an
 `assets/` folder beside it, as every build has, runs from that folder; copy the
 exe elsewhere to test fetching, with `--asset-url` for a local server.

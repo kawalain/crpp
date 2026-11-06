@@ -59,9 +59,9 @@ and developer communities, not from memory.
 
 ## Roadmap
 
-1. `store`: settings, session and cache files, seat return.
-2. `input` + `sound`: keyboard and mouse sound end to end, with `assets`.
-3. Settings screen and the rest of the room screen.
+1. `input` + `sound`: keyboard and mouse sound end to end, with `assets`.
+2. Reconnect backoff (see `session` below; the code still waits a fixed 3 s).
+3. Settings screen, the rest of the room screen, the return-to-Seat dialog.
 4. Pen input, as its own step.
 5. Accounts and the HTTP API.
 6. CI, Releases and `update`.
@@ -74,6 +74,10 @@ cmake --build build && ctest --test-dir build --output-on-failure
 ```
 
 MSVC needs a developer environment (vcvars); `cl` is not on PATH by default.
+Run GCC-built tests from PowerShell: Git Bash's PATH finds another
+`libstdc++-6.dll` first and they die with `0xc0000139`.
+
+`crpp --data <dir>` keeps a run's data out of the user's folders.
 
 ## Module design
 
@@ -96,7 +100,9 @@ exist (real + test).
   in-range bits. There is no input log.
 - `sound`: pack loading and a pure `render(span<float>)` mixer; device adapter
   behind it.
-- `store`: settings and chat cache, atomic write via temp file + rename.
+- `store`: settings, Seats and chat cache in the Protected or Shared store; a
+  flushed temp file + rename for every write. `Platform` is the seam for DPAPI
+  and file replacement.
 - `assets`: fetch and verify files against the manifest built into the exe.
 - `update`: version check, download, signature and SHA-256 (BCrypt) verify,
   self-replace.
@@ -130,5 +136,6 @@ exist (real + test).
   reproduced.
 - Confirm Raw Input still reports while a game or an elevated window has focus.
 - Dead-peer detection (network cut) is untested.
-- Confirm the GUI builds with MSVC from Build Tools 2022.
+- Shared store compatibility is tested against upstream's format as read from
+  its source, not yet against the upstream client itself.
 - Re-check C++26 status against WG21 primary records.

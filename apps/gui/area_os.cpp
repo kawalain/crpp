@@ -32,6 +32,7 @@ constexpr std::string_view enter_sound_key = "cloud_enter", enter_sound_file = "
 struct State {
   TrayIcon tray;
   UINT taskbar_created = 0;
+  UINT show_window_requested = 0;
   std::unique_ptr<RunKey> run_key;
   bool reverting_autostart = false;
   bool flashing = false;
@@ -225,6 +226,7 @@ void sync_hidden(Shell& s) {
 void wire(Shell& s) {
   state.tray.attach(s.hwnd, s.app.ui().gfx);
   state.taskbar_created = RegisterWindowMessageW(L"TaskbarCreated");
+  state.show_window_requested = RegisterWindowMessageW(show_window_message);
   if (s.isolated) state.run_key = std::make_unique<MemoryRunKey>();
   else state.run_key = std::make_unique<WindowsRunKey>();
   if (tray_wanted(s)) state.tray.add();
@@ -271,6 +273,11 @@ void first_show(Shell& s, bool minimized) {
 bool on_message(Shell& s, UINT msg, WPARAM wp, LPARAM lp, LRESULT& result) {
   if (msg == wm_tray) {
     if (HIWORD(lp) == tray_icon_id) on_tray_event(s, wp, lp);
+    result = 0;
+    return true;
+  }
+  if (msg != 0 && msg == state.show_window_requested) {
+    show_window(s);
     result = 0;
     return true;
   }

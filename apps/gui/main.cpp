@@ -49,13 +49,17 @@ sound::Settings load_audio_settings(const store::Store& data) {
   return audio;
 }
 
-// Only one window per user session; a second start brings the first forward.
+// Only one window per user session; a second start brings the first forward, also from
+// the tray. That window does it itself, and this process lends it the right to come to
+// the foreground.
 bool another_instance_running() {
   CreateMutexW(nullptr, FALSE, L"Local\\crpp.single-instance");  // released at exit
   if (GetLastError() != ERROR_ALREADY_EXISTS) return false;
   if (HWND existing = FindWindowW(L"CrppWindow", nullptr)) {
-    if (IsIconic(existing)) ShowWindow(existing, SW_RESTORE);
-    SetForegroundWindow(existing);
+    DWORD owner = 0;
+    GetWindowThreadProcessId(existing, &owner);
+    AllowSetForegroundWindow(owner);
+    PostMessageW(existing, RegisterWindowMessageW(area::os::show_window_message), 0, 0);
   }
   return true;
 }

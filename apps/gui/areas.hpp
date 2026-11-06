@@ -54,6 +54,8 @@ void pref_changed(Shell& s, std::string_view key);
 }  // namespace preferences
 
 namespace os {  // tray, chat notifications, taskbar flash, autostart, reopening
+// The registered message another start of the app posts to this window.
+inline constexpr const wchar_t* show_window_message = L"crpp.show-window";
 void wire(Shell& s);
 [[nodiscard]] bool scene(Shell& s, std::string_view name);
 void pref_changed(Shell& s, std::string_view key);

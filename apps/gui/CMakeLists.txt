@@ -1,0 +1,6 @@
+if(WIN32)
+  add_executable(crpp main.cpp)
+  target_link_libraries(crpp PRIVATE crpp_ui imm32)
+  target_compile_definitions(crpp PRIVATE _CRT_SECURE_NO_WARNINGS)
+  crpp_target_defaults(crpp)
+endif()

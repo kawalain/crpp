@@ -1,0 +1,2 @@
+# The exe pins every asset's SHA-256, so checkouts must keep their exact bytes.
+assets/** -text

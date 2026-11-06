@@ -95,6 +95,10 @@ class App {
  private:
   // The surfaces on screen now, topmost first.
   [[nodiscard]] std::vector<Surface*> layers();
+  void view_left(View from);
+  void finish_leaving_room();
+  void paint_screen(Painter& p, View view);
+  void paint_screens(Painter& p);
 
   Ui ui_;
   MemoryPrefs memory_prefs_;
@@ -112,6 +116,10 @@ class App {
   PromptScreen prompt_{ui_};
   View view_ = View::Home;
   View prompt_return_ = View::Home;
+  // The screen fading out while left_at_ is set. A Room fading out resets after that.
+  View left_view_ = View::Home;
+  unsigned long long left_at_ = 0;
+  bool room_leaving_ = false;
 };
 
 }  // namespace crpp::ui

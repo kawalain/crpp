@@ -71,6 +71,7 @@ void RoomScreen::enter_room(std::string room_code) {
 
 void RoomScreen::reset() {
   members_.clear();
+  arrivals_.clear();
   members_scroll_ = {};
   chat_panel_.clear();
   options_open_ = mute_popup_open_ = false;
@@ -94,6 +95,14 @@ void RoomScreen::close_member_popups() {
 
 void RoomScreen::set_room(std::vector<MemberView> members, std::uint32_t me, std::optional<std::uint32_t> host,
                           bool is_public, bool chat, std::uint64_t chat_lock_ms) {
+  // Those already here at the first list are not arriving; everyone after it is.
+  if (!members_.empty() && ui_.animations) {
+    const auto now = clock_ms();
+    for (const MemberView& member : members) {
+      const auto same = [&](const MemberView& known) { return known.slot == member.slot && known.cid == member.cid; };
+      if (std::ranges::none_of(members_, same)) arrivals_.emplace_back(member.slot, now);
+    }
+  }
   members_ = std::move(members);
   me_ = me;
   host_ = host;
@@ -254,12 +263,20 @@ void RoomScreen::paint_members(Painter& p, const Layout& l) {
   const bool fade = push_edge_fade(ui_, p, members_area_, members_scroll_.fade_top(), members_scroll_.fade_bottom());
   ui_.push_hit_clip(members_area_);
   member_rects_.clear();
+  constexpr float arrive_ms = 300, arrive_rise = 8;  // .member.entering
+  std::erase_if(arrivals_, [&](const auto& a) { return static_cast<float>(ui_.now_ms - std::min(ui_.now_ms, a.second)) >= arrive_ms; });
+  if (!arrivals_.empty()) ui_.more_frames = true;
   for (int i = 0; i < n; ++i) {
     const MemberView& m = members_[static_cast<std::size_t>(i)];
+    float arrived = 1;
+    for (const auto& [slot, at] : arrivals_) {
+      if (slot == m.slot) arrived = transition(ui_, at, arrive_ms);
+    }
     const int col = i % cols, row = i / cols;
     const float x = l.members_x + static_cast<float>(col) * (col_w + 24);
-    const float y = l.members_y + pad + static_cast<float>(row) * 49 + 1 - members_scroll_.drawn();
+    const float y = l.members_y + pad + static_cast<float>(row) * 49 + 1 - members_scroll_.drawn() + arrive_rise * (1 - arrived);
     if (y + 47 <= members_area_.y || y >= members_area_.bottom()) continue;
+    if (arrived < 1) p.push_opacity(arrived);
     const Rect box{x, y, col_w, 47};
     const int id = MemberBase + static_cast<int>(m.slot);
     if (ui_.hot(this, id)) p.fill_round(box, 14, with_alpha(t.hl, 0.2f));
@@ -273,6 +290,7 @@ void RoomScreen::paint_members(Painter& p, const Layout& l) {
            {.size = 21, .weight = 700, .line_height = 26, .ellipsis = true}, name);
     ui_.add_hit_window(this, box, id);
     member_rects_.emplace_back(m.slot, box);
+    if (arrived < 1) p.pop_opacity();
   }
   ui_.pop_hit_clip();
   pop_edge_fade(p, fade);

@@ -21,6 +21,8 @@ constexpr unsigned long long thumb_hide_ms = 2000;
 
 void EmojiPicker::show(std::string current, std::function<void(std::string id)> on_pick) {
   open_ = true;
+  closed_at_ = 0;
+  opened_at_ = clock_ms();
   current_ = std::move(current);
   on_pick_ = std::move(on_pick);
   scroll_ = {};
@@ -38,9 +40,16 @@ void EmojiPicker::show(std::string current, std::function<void(std::string id)> 
 void EmojiPicker::close() {
   open_ = false;
   on_pick_ = nullptr;
+  if (ui_.capture == this) ui_.capture = nullptr;
+  // It fades out as it was, so what it shows stays until then.
+  if (ui_.animations && cache_) closed_at_ = clock_ms();
+  else release_shown();
+}
+
+void EmojiPicker::release_shown() {
+  closed_at_ = 0;
   cache_.reset();
   ids_ = {};
-  if (ui_.capture == this) ui_.capture = nullptr;
 }
 
 void EmojiPicker::reveal_thumb() {
@@ -51,7 +60,28 @@ void EmojiPicker::reveal_thumb() {
 }
 
 void EmojiPicker::paint(Painter& p) {
-  if (!open_) return;
+  if (!open_ && closed_at_ == 0) return;
+  const float shown = open_ ? transition(ui_, opened_at_, modal_pop_ms) : 1 - transition(ui_, closed_at_, modal_pop_ms);
+  if (!open_ && shown <= 0) {
+    release_shown();
+    return;
+  }
+  const bool moving = shown < 1;
+  if (moving) {
+    ui_.more_frames = true;
+    p.push_opacity(shown);
+    p.set_moved(0, 6 * (1 - shown));
+  }
+  ui_.hits_enabled = open_;
+  paint_shown(p);
+  ui_.hits_enabled = true;
+  if (moving) {
+    p.set_moved(0, 0);
+    p.pop_opacity();
+  }
+}
+
+void EmojiPicker::paint_shown(Painter& p) {
   const Theme& t = ui_.theme;
   p.set_base(D2D1::Matrix3x2F::Identity());
   const Rect window{0, 0, ui_.width, ui_.height};

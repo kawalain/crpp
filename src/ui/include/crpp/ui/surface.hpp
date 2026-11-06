@@ -66,6 +66,9 @@ class Ui {
   bool caret_on = true;
   Rect caret;  // window coordinates, for IME placement
 
+  // Off while drawing what is on its way out: only what stays takes clicks.
+  bool hits_enabled = true;
+
   // A surface that set this in click() gets drag() until the button goes up.
   Surface* capture = nullptr;
 

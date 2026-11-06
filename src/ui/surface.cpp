@@ -22,6 +22,7 @@ void Ui::begin_frame(float window_w, float window_h, unsigned long long now) {
 void Ui::add_hit(Surface* owner, Rect r, int id) { add_hit_window(owner, to_window(r), id); }
 
 void Ui::add_hit_window(Surface* owner, Rect r, int id) {
+  if (!hits_enabled) return;
   for (const Rect& clip : hit_clips_) {
     const float left = std::max(r.x, clip.x), top = std::max(r.y, clip.y);
     const float right = std::min(r.right(), clip.right()), bottom = std::min(r.bottom(), clip.bottom());

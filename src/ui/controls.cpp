@@ -227,7 +227,8 @@ void paint_scrollbar(Painter& p, const Theme& t, const Scroll& scroll, Rect trac
 Rect paint_modal(Ui& ui, Surface* owner, Painter& p, float w, float h, float shown, int backdrop_id, int card_id) {
   p.set_base(D2D1::Matrix3x2F::Identity());
   const Rect window{0, 0, ui.width, ui.height};
-  p.fill_rect(window, rgb(0x365669, 0.34f * shown));
+  // .modal-backdrop's fade is a little shorter than the card's rise.
+  p.fill_rect(window, rgb(0x365669, 0.34f * std::min(1.0f, shown * modal_pop_ms / modal_fade_ms)));
   ui.add_hit_window(owner, window, backdrop_id);
   const Rect settled{(ui.width - w) / 2, (ui.height - h) / 2, w, h};
   const Rect card{settled.x, settled.y + 6 * (1 - shown), w, h};

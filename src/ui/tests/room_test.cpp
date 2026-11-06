@@ -342,6 +342,72 @@ void with_assets(UiHarness& h) {
   h.app.reload_assets(dir);
 }
 
+void test_a_room_stays_as_it_was_while_it_fades_out() {
+  UiHarness h;
+  CHECK(h.start());
+  h.app.show_session("ABC234");
+  h.app.room().set_room({{0, "a", "", false}}, 0, 0, false, true);
+  h.app.ui().animations = true;
+  hold_clock_at(1000000);
+  h.render();
+  hold_clock_at(1100000);
+  h.render();
+  h.app.show_home();
+  CHECK(h.app.view() == View::Home);  // input goes to the new screen at once
+  CHECK(h.app.room().member_count() == 1);
+  h.render();
+  CHECK(h.app.ui().more_frames);
+  CHECK(h.app.ui().find_hit(&h.app.room(), RoomScreen::MemberBase) == nullptr);  // it takes no clicks
+  hold_clock_at(1100000 + 200);
+  h.render();
+  CHECK(h.app.room().member_count() == 0);
+  CHECK(!h.app.ui().more_frames);
+  hold_clock_at(0);
+}
+
+void test_a_member_arrives_and_a_settled_room_asks_for_no_frames() {
+  UiHarness h;
+  CHECK(h.start());
+  h.app.show_session("ABC234");
+  h.app.room().set_room({{0, "a", "", false}}, 0, 0, false, true);
+  h.app.ui().animations = true;
+  hold_clock_at(1000000);
+  h.render();
+  hold_clock_at(1100000);
+  h.render();
+  CHECK(!h.app.ui().more_frames);
+
+  h.app.room().set_room({{0, "a", "", false}, {1, "b", "", false}}, 0, 0, false, true);
+  h.render();
+  CHECK(h.app.ui().more_frames);
+  hold_clock_at(1100000 + 400);
+  h.render();
+  CHECK(!h.app.ui().more_frames);
+  hold_clock_at(0);
+}
+
+void test_the_settings_panel_fades_out_after_it_closed() {
+  UiHarness h;
+  CHECK(h.start());
+  h.app.ui().animations = true;
+  hold_clock_at(1000000);
+  h.render();
+  h.app.settings().open(SettingsPage::Sound);
+  h.render();
+  hold_clock_at(1100000);
+  h.render();
+  CHECK(!h.app.animating());
+
+  h.app.settings().close();
+  CHECK(!h.app.settings().is_open());  // it takes no more input
+  h.render();
+  CHECK(h.app.animating());
+  hold_clock_at(1100000 + 400);
+  h.render();
+  CHECK(!h.app.animating());
+  hold_clock_at(0);
+}
+
 void test_only_plain_ids_name_an_emoji_file() {
   CHECK(valid_emoji_id("1f4a7"));
   CHECK(valid_emoji_id("1f408-200d-2b1b"));
@@ -918,6 +984,9 @@ int main() {
   test_member_menu_for_someone_else();
   test_member_menu_for_myself();
   test_right_click_elsewhere_closes_the_menu();
+  test_a_room_stays_as_it_was_while_it_fades_out();
+  test_a_member_arrives_and_a_settled_room_asks_for_no_frames();
+  test_the_settings_panel_fades_out_after_it_closed();
   test_only_plain_ids_name_an_emoji_file();
   test_picker_hides_what_it_cannot_show();
   test_picker_lists_every_emoji_and_parses_only_what_shows();

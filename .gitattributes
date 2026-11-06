@@ -1,2 +1,5 @@
 # The exe pins every asset's SHA-256, so checkouts must keep their exact bytes.
 assets/** -text
+*.sh text eol=lf
+*.cmd text eol=crlf
+.github/workflows/*.yml text eol=lf

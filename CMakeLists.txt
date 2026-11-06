@@ -8,7 +8,11 @@ set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 
 include(cmake/warnings.cmake)
 
+find_package(Threads REQUIRED)
+
 enable_testing()
 add_subdirectory(src/wire)
 add_subdirectory(src/session)
 add_subdirectory(src/transport)
+add_subdirectory(src/client)
+add_subdirectory(apps/cli)

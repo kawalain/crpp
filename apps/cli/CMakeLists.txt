@@ -1,0 +1,5 @@
+if(WIN32)
+  add_executable(crpp_cli main.cpp)
+  target_link_libraries(crpp_cli PRIVATE crpp_client crpp_transport_winhttp)
+  crpp_target_defaults(crpp_cli)
+endif()

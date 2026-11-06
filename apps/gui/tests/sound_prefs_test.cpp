@@ -59,6 +59,12 @@ void only_the_keys_of_this_area_count() {
   CHECK(!is_pack_key("mouseVolume"));
 }
 
+void the_emoji_others_see_shows_being_away() {
+  CHECK(presence_emoji("1f600", false) == "1f600");
+  CHECK(presence_emoji("1f600", true) == "1f634");
+  CHECK(presence_emoji("", false) == "1f4a7");
+}
+
 void a_member_with_an_account_is_saved_by_uid() {
   MemberVolumes volumes;
   volumes.identify("cid-a", "uid-a");
@@ -110,6 +116,7 @@ void a_volume_set_before_the_uid_arrived_goes_with_it() {
 int main() {
   settings_come_from_the_prefs();
   only_the_keys_of_this_area_count();
+  the_emoji_others_see_shows_being_away();
   a_member_with_an_account_is_saved_by_uid();
   a_guest_lasts_as_long_as_the_room();
   saved_volumes_return_in_a_later_room();

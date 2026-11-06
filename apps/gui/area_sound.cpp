@@ -40,7 +40,7 @@ void apply(Shell& s) {
 
 void tell_server_my_sounds(Shell& s) {
   if (!s.client) return;
-  const std::string emoji = s.store->string_or("emoji", "");
+  const std::string emoji = presence_emoji(s.store->string_or("emoji", ""), s.sound_state->idle.idle());
   session::event::SetSounds sounds;
   sounds.key = s.audio.keyboard_pack;
   sounds.mouse = s.audio.mouse_pack;
@@ -68,15 +68,18 @@ void arm_idle(Shell& s, const crpp::sound::IdleWatch::Step& step) {
   else KillTimer(s.hwnd, idle_timer);
 }
 
-void set_idle_mute(Shell& s, bool was_idle) {
-  if (s.sound_state->idle.idle() != was_idle) apply(s);
+void idle_changed(Shell& s, bool was_idle) {
+  if (s.sound_state->idle.idle() == was_idle) return;
+  apply(s);
+  tell_server_my_sounds(s);
 }
 
-// Only in a Room and only if the user wants it: otherwise there is no timer at all.
+// Only in a Room: otherwise there is no timer at all. The mute also depends on the
+// setting, the away emoji does not.
 void sync_idle(Shell& s) {
   State& state = *s.sound_state;
   const bool was_idle = state.idle.idle();
-  if (!state.in_room || !s.prefs->get(pref::mute_on_idle)) {
+  if (!state.in_room) {
     KillTimer(s.hwnd, idle_timer);
     state.idle.reset();
   } else {
@@ -85,7 +88,7 @@ void sync_idle(Shell& s) {
     if (!GetLastInputInfo(&last)) last.dwTime = now;
     arm_idle(s, state.idle.check(now, last.dwTime, idle_limit_ms(s)));
   }
-  set_idle_mute(s, was_idle);
+  idle_changed(s, was_idle);
 }
 
 // --- the tab's lists ---
@@ -147,8 +150,6 @@ void wire(Shell& s) {
   s.app.room().set_volume(s.audio.volume);
 
   s.app.room().on_mute = [sp](bool muted) {
-    sp->audio.muted = muted;
-    sp->engine->set_settings(sp->audio);
     sp->engine->play_system(muted ? "mute" : "unmute");
   };
   s.app.room().on_volume = [sp](int percent) { sp->prefs->set(pref::volume, percent); };
@@ -221,7 +222,7 @@ void own_input(Shell& s) {
   State& state = *s.sound_state;
   if (!state.idle.idle()) return;  // the timer looks at the OS's last input when due
   arm_idle(s, state.idle.input(GetTickCount(), idle_limit_ms(s)));
-  apply(s);
+  idle_changed(s, true);
 }
 
 void set_member_volume(Shell& s, std::string_view cid, int percent) {

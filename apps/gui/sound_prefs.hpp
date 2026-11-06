@@ -43,6 +43,13 @@ inline void read_sound_settings(const ui::Prefs& prefs, sound::Settings& out) {
   return false;
 }
 
+// The emoji others see: SLEEP_EMOJI while away, without touching the saved one. Never
+// empty, as sending none would leave the sleeping face up after coming back.
+[[nodiscard]] inline std::string presence_emoji(std::string saved, bool away) {
+  if (away) return "1f634";
+  return saved.empty() ? "1f4a7" : saved;
+}
+
 [[nodiscard]] inline bool is_pack_key(std::string_view key) {
   return key == ui::pref::keyboard_sound.name || key == ui::pref::mouse_sound.name || key == ui::pref::pen_sound.name;
 }

@@ -1,0 +1,5 @@
+if(WIN32)
+  add_executable(crpp_soundtest main.cpp)
+  target_link_libraries(crpp_soundtest PRIVATE crpp_sound_wasapi)
+  crpp_target_defaults(crpp_soundtest)
+endif()

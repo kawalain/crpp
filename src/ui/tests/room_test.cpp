@@ -939,6 +939,59 @@ void test_link_opens_through_the_seam_and_shows_its_tip() {
   CHECK(!chat.link_tip().visible());
 }
 
+void test_a_drawn_link_opens_its_own_message_when_the_log_dropped_one() {
+  UiHarness h;
+  CHECK(h.start());
+  enter(h, 3, true);
+  ChatPanel& chat = h.app.room().chat();
+  std::vector<std::string> opened;
+  chat.on_open_link = [&](const std::string& url) {
+    opened.push_back(url);
+    return true;
+  };
+  for (int i = 0; i < 1000; ++i) chat.add(entry_with("https://example.com/" + std::to_string(i)));
+  h.render();
+  const int link = ChatPanel::LinkBase + 998 * ChatPanel::links_per_entry;
+  CHECK(h.drawn(chat, link));
+  // The oldest goes before the next paint; what is on screen is still the old list.
+  chat.add(entry_with("https://example.com/new"));
+  CHECK(h.click(chat, link));
+  CHECK(opened.size() == 1 && opened[0] == "https://example.com/998");
+  // Drawn again, the same message keeps its id.
+  CHECK(h.drawn(chat, link));
+  CHECK(h.click(chat, link));
+  CHECK(opened.size() == 2 && opened[1] == "https://example.com/998");
+}
+
+void test_a_drawn_link_opens_its_own_message_when_a_page_was_added_above() {
+  UiHarness h;
+  CHECK(h.start());
+  enter(h, 3, true);
+  ChatPanel& chat = h.app.room().chat();
+  std::vector<std::string> opened;
+  chat.on_open_link = [&](const std::string& url) {
+    opened.push_back(url);
+    return true;
+  };
+  // Every other link starts further in, so a span of the wrong row cuts it wrongly.
+  for (int i = 0; i < 131; ++i) chat.add(entry_with((i % 2 ? "말 " : "") + ("https://example.com/" + std::to_string(i))));
+  h.render();
+  CHECK(chat.shown() == 100);
+  const Ui::Hit* area = h.app.ui().find_hit(&chat, ChatPanel::Area);
+  CHECK(area != nullptr);
+  const float x = area->rect.x + 30, y = area->rect.y + 30;
+  while (chat.scroll_offset() >= 140) {  // a notch is 80, and under 60 the page above comes
+    h.app.wheel(x, y, 1);
+    h.render();
+  }
+  // This wheel lays out the page above at the next paint, which has not come.
+  h.app.wheel(x, y, 1);
+  const int link = ChatPanel::LinkBase + 36 * ChatPanel::links_per_entry;
+  CHECK(h.click(chat, link));
+  CHECK(opened.size() == 1 && opened[0] == "https://example.com/36");
+  CHECK(chat.shown() == 131);
+}
+
 void test_cursors_of_the_chat() {
   UiHarness h;
   CHECK(h.start());
@@ -1014,6 +1067,8 @@ int main() {
   test_an_unforeseen_block_brings_the_message_back();
   test_send_failure_keeps_the_text_and_says_so();
   test_link_opens_through_the_seam_and_shows_its_tip();
+  test_a_drawn_link_opens_its_own_message_when_the_log_dropped_one();
+  test_a_drawn_link_opens_its_own_message_when_a_page_was_added_above();
   test_cursors_of_the_chat();
   test_older_messages_come_by_the_page_and_nothing_jumps();
   test_clearing_the_chat_starts_over();

@@ -1,5 +1,8 @@
 cmake_minimum_required(VERSION 3.28)
 project(crpp LANGUAGES CXX)
+if(WIN32)
+  enable_language(RC)
+endif()
 
 set(CMAKE_CXX_STANDARD 23)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)

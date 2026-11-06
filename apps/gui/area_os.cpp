@@ -224,7 +224,7 @@ void sync_hidden(Shell& s) {
 }  // namespace
 
 void wire(Shell& s) {
-  state.tray.attach(s.hwnd, s.app.ui().gfx);
+  state.tray.attach(s.hwnd);
   state.taskbar_created = RegisterWindowMessageW(L"TaskbarCreated");
   state.show_window_requested = RegisterWindowMessageW(show_window_message);
   if (s.throwaway_data) state.run_key = std::make_unique<MemoryRunKey>();

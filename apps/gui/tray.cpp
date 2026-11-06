@@ -14,9 +14,6 @@ namespace crpp::gui {
 
 namespace {
 
-// The settings droplet's outline (settings_panel.cpp), in a 36x48 box.
-constexpr std::string_view droplet_path = "M18 1C13 10 2 20 2 31a16 16 0 0 0 32 0C34 20 23 10 18 1Z";
-
 NOTIFYICONDATAW base_data(HWND hwnd) {
   NOTIFYICONDATAW data{};
   data.cbSize = sizeof data;
@@ -72,17 +69,8 @@ std::vector<std::uint32_t> render_pixels(ID2D1Factory* factory, int size,
   return pixels;
 }
 
-std::vector<std::uint32_t> render_droplet(const ui::Gfx& gfx, int size) {
-  const auto shape = gfx.parse_path(droplet_path);
-  if (!shape) return {};
-  return render_pixels(gfx.d2d(), size, [&](ID2D1RenderTarget* rt) {
-    const float s = static_cast<float>(size);
-    const float scale = s / 48;
-    rt->SetTransform(D2D1::Matrix3x2F::Scale(scale, scale) * D2D1::Matrix3x2F::Translation((s - 36 * scale) / 2, 0));
-    ui::ComPtr<ID2D1SolidColorBrush> brush;
-    // Readable on the taskbar's dark and light themes alike.
-    if (SUCCEEDED(rt->CreateSolidColorBrush(D2D1::ColorF(0x5DADEC), brush.put()))) rt->FillGeometry(shape.get(), brush.get());
-  });
+HICON load_app_icon(int size) {
+  return static_cast<HICON>(LoadImageW(GetModuleHandleW(nullptr), MAKEINTRESOURCEW(app_icon_id), IMAGE_ICON, size, size, 0));
 }
 
 HICON icon_from_pixels(const std::vector<std::uint32_t>& pixels, int size) {
@@ -120,7 +108,7 @@ HICON icon_from_pixels(const std::vector<std::uint32_t>& pixels, int size) {
 bool TrayIcon::add() {
   if (present_) return true;
   const int size = GetSystemMetrics(SM_CXSMICON);
-  HICON icon = icon_from_pixels(render_droplet(*gfx_, size), size);
+  HICON icon = load_app_icon(size);
   if (!icon) return false;
   auto data = base_data(hwnd_);
   data.uFlags = NIF_MESSAGE | NIF_ICON | NIF_TIP | NIF_SHOWTIP;

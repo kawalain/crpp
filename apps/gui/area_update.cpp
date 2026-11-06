@@ -265,7 +265,7 @@ void wire(Shell& s) {
   up::WindowsPlatform platform;
   up::remove_leftovers(up::running_exe(), platform);
 
-  s.app.settings().set_version(std::string(up::built_version()));
+  s.app.settings().set_version("v" + std::string(up::built_version()) + " (" + std::string(up::built_hash()) + ")");
   s.app.settings().on_version = [&s] { on_version(s); };
   s.app.update_popup().on_update = [&s] { start_update(s); };
   s.app.update_popup().on_check_due = [&s] { start_check(s); };

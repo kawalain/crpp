@@ -9,6 +9,9 @@ namespace crpp::update {
 
 // The version this exe was built as.
 [[nodiscard]] std::string_view built_version() noexcept;
+// The commit it was built from, the build metadata of its version. Updates ignore it,
+// as SemVer does.
+[[nodiscard]] std::string_view built_hash() noexcept;
 // A build made by the release workflow. Only these ask GitHub for anything.
 [[nodiscard]] bool official_build() noexcept;
 // The key releases are signed with; empty while the repository has only its

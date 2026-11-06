@@ -6,6 +6,7 @@
 #include "areas.hpp"
 #include "crpp/ui/png.hpp"
 #include "shell.hpp"
+#include "tray.hpp"
 
 using namespace crpp::ui;
 
@@ -278,6 +279,8 @@ HWND create_window(Shell& s) {
   wc.lpfnWndProc = wnd_proc;
   wc.hInstance = GetModuleHandleW(nullptr);
   wc.hCursor = LoadCursorW(nullptr, MAKEINTRESOURCEW(32512));
+  wc.hIcon = load_app_icon(GetSystemMetrics(SM_CXICON));
+  wc.hIconSm = load_app_icon(GetSystemMetrics(SM_CXSMICON));
   wc.lpszClassName = L"CrppWindow";
   RegisterClassExW(&wc);
 

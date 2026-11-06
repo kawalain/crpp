@@ -284,8 +284,8 @@ void RoomScreen::paint_members(Painter& p, const Layout& l) {
     const int id = MemberBase + static_cast<int>(m.slot);
     if (ui_.hot(this, id)) p.fill_round(box, 14, with_alpha(t.hl, 0.2f));
     const float cx = x + 6 + 22, cy = y + 1.5f + 22;
-    if (speaking(m.slot)) p.fill_ellipse(cx, cy, 22, 22, t.hl);
     const bool muted_here = m.slot != me_ && member_volume(m.cid) == 0;
+    if (speaking(m.slot) && !muted_here) p.fill_ellipse(cx, cy, 22, 22, t.hl);
     draw_svg(p, ui_.emoji_image(muted_here ? muted_emoji : m.emoji), {cx - 18, cy - 18, 36, 36}, m.offline ? 0.55f : 1.0f);
     Color name = t.hl_text;
     if (m.offline) name = with_alpha(t.hl_text, 0.5f);

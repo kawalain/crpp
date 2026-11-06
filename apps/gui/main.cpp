@@ -1,7 +1,10 @@
 // crpp: the native Cloudroom window.
 //   crpp                          run the app
-//   crpp --shot out.png [WxH] [hour] [home|session]
+//   crpp --shot out.png [WxH] [hour] [home|session|chat|notice]
 //                                 render a screen offscreen and exit
+//   crpp --smoke out.png          create a room, save a screenshot and exit
+//   ... --data <dir>              (last) keep data in <dir>, not the user's
+//                                 folders; other instances are then allowed
 #include <windows.h>
 #include <windowsx.h>
 
@@ -361,10 +364,26 @@ void demo_session(App& app, bool chat) {
                0, 0, false, chat);
 }
 
+// Only one window per user session; a second start brings the first forward.
+bool another_instance_running() {
+  CreateMutexW(nullptr, FALSE, L"Local\\crpp.single-instance");  // released at exit
+  if (GetLastError() != ERROR_ALREADY_EXISTS) return false;
+  if (HWND existing = FindWindowW(L"CrppWindow", nullptr)) {
+    if (IsIconic(existing)) ShowWindow(existing, SW_RESTORE);
+    SetForegroundWindow(existing);
+  }
+  return true;
+}
+
 }  // namespace
 
 int main(int argc, char** argv) {
   SetProcessDPIAware();
+  std::filesystem::path data_dir;
+  if (argc >= 3 && std::string(argv[argc - 2]) == "--data") {
+    data_dir = widen(argv[argc - 1]);
+    argc -= 2;
+  }
   const auto assets = exe_dir() / "assets";
   Shell shell;
   if (!shell.app.init(assets)) {
@@ -387,6 +406,7 @@ int main(int argc, char** argv) {
     if (argc >= 6 && std::string(argv[5]) == "chat") demo_session(shell.app, true);
     return save_png(shell.app, widen(argv[2]), w, h) ? 0 : 1;
   }
+  if (data_dir.empty() && another_instance_running()) return 0;
 
   shell.bridge = std::make_unique<Bridge>(shell.app, shell.tasks);
   shell.transport = std::make_unique<transport::WinHttpTransport>();

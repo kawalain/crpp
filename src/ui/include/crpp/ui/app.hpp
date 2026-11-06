@@ -32,6 +32,13 @@ struct MemberView {
   bool offline = false;
 };
 
+// A message at the top of the window that never blocks the screen under it.
+struct Notice {
+  std::string text;
+  std::string action;   // empty = no action button
+  std::string dismiss;  // the label of the closing button
+};
+
 struct ChatEntry {
   std::uint32_t slot = 0;
   std::string cid, nick, emoji, text;
@@ -56,6 +63,7 @@ class App {
   void pulse(std::uint32_t slot);
   void add_chat(ChatEntry entry);
   void clear_chat();
+  void set_notice(std::optional<Notice> notice) { notice_ = std::move(notice); }
   [[nodiscard]] View view() const { return view_; }
   [[nodiscard]] std::size_t member_count() const { return members_.size(); }
 
@@ -71,6 +79,8 @@ class App {
   std::function<void(bool)> on_mute;
   std::function<void(std::string)> on_copy;
   std::function<void(std::string text)> on_send_chat;
+  std::function<void()> on_notice_action;
+  std::function<void()> on_notice_dismiss;
 
   // --- drawing ---
   void paint(ID2D1RenderTarget* rt, float width, float height);
@@ -96,7 +106,7 @@ class App {
  private:
   // Hit ids: fixed values plus MemberBase + slot.
   enum Id : int {
-    None, Create, Join, Code, Find, Settings, Leave, Mute, More, OptCode, OptPublic, OptChat, VolumeSlider, Popup, ChatInput, ChatSend, ChatArea,
+    None, Create, Join, Code, Find, Settings, Leave, Mute, More, OptCode, OptPublic, OptChat, VolumeSlider, Popup, ChatInput, ChatSend, ChatArea, NoticeAction, NoticeDismiss,
     MemberBase = 1000,
   };
   enum class Focus : std::uint8_t { None, Code, Chat };
@@ -118,6 +128,7 @@ class App {
   void paint_session_controls(Painter& p);
   void paint_options_popup(Painter& p);
   void paint_mute_popup(Painter& p);
+  void paint_notice(Painter& p);
   void paint_switch(Painter& p, Rect r, bool on, bool disabled, bool hot);
   [[nodiscard]] SessionLayout session_layout() const;
   [[nodiscard]] D2D1_MATRIX_3X2_F code_focus_scale() const;
@@ -138,6 +149,7 @@ class App {
   std::string nickname_;
   int hour_ = 12;
   View view_ = View::Home;
+  std::optional<Notice> notice_;
 
   float scale_ = 1, ox_ = 0, oy_ = 0, width_ = stage_w, height_ = stage_h;
   std::vector<Hit> hits_;

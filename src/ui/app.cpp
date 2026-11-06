@@ -190,6 +190,40 @@ void App::paint(ID2D1RenderTarget* rt, float width, float height) {
   if (view_ == View::Home) paint_home(p);
   else paint_session(p);
   paint_corner_controls(p);
+  paint_notice(p);
+}
+
+void App::paint_notice(Painter& p) {
+  if (!notice_) return;
+  const Theme& t = theme_;
+  p.set_base(D2D1::Matrix3x2F::Identity());
+  constexpr float pad = 18, gap = 14, button_h = 34, button_pad = 14;
+  const float w = std::min(460.0f, width_ - 32);
+  const TextStyle body{.size = 16, .line_height = 23, .wrap = true};
+  DWRITE_TEXT_METRICS text_size{};
+  if (const auto layout = gfx_.layout(widen(notice_->text), body, w - 2 * pad)) layout->GetMetrics(&text_size);
+  const Rect card{(width_ - w) / 2, 16, w, pad + text_size.height + gap + button_h + pad};
+  p.shadow_round(card, 14, 16, 4, rgb(0x2e78aa, 0.22f));
+  p.fill_round(card, 14, t.surface);
+  add_hit_window(card, Popup);
+  p.text(notice_->text, {card.x + pad, card.y + pad, w - 2 * pad, text_size.height}, body, t.hl_text_dark);
+
+  const TextStyle label{.size = 15, .weight = 700, .line_height = button_h, .align = Align::Center};
+  float right = card.right() - pad;
+  const auto button = [&](const std::string& text, int id, bool primary) {
+    DWRITE_TEXT_METRICS size{};
+    if (const auto layout = gfx_.layout(widen(text), label, w)) layout->GetMetrics(&size);
+    const float bw = size.widthIncludingTrailingWhitespace + 2 * button_pad;
+    const Rect r{right - bw, card.bottom() - pad - button_h, bw, button_h};
+    const bool hot = hover_ == id;
+    if (primary) p.fill_round(r, button_h / 2, hot ? t.hl_dark : t.hl);
+    else if (hot) p.fill_round(r, button_h / 2, t.hl_pale);
+    p.text(text, r, label, primary ? t.on_accent : t.hl_text_dark);
+    add_hit_window(r, id);
+    right = r.x - 6;
+  };
+  if (!notice_->action.empty()) button(notice_->action, NoticeAction, true);
+  button(notice_->dismiss, NoticeDismiss, notice_->action.empty());
 }
 
 void App::paint_home(Painter& p) {
@@ -680,6 +714,13 @@ bool App::mouse_down(float x, float y, bool shift) {
       break;
     case ChatSend:
       send_chat();
+      break;
+    case NoticeAction:
+      if (on_notice_action) on_notice_action();
+      break;
+    case NoticeDismiss:
+      notice_.reset();
+      if (on_notice_dismiss) on_notice_dismiss();
       break;
     case VolumeSlider:
       dragging_volume_ = true;

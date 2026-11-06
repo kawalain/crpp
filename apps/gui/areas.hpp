@@ -6,6 +6,7 @@
 // scene(): sets up a named --shot scene; false if the name is not this area's.
 #include <windows.h>
 
+#include <functional>
 #include <string_view>
 
 namespace crpp::gui {
@@ -17,6 +18,10 @@ namespace crpp::gui::area {
 namespace connection {  // failures, reconnecting, the offline popup
 void wire(Shell& s);
 [[nodiscard]] bool scene(Shell& s, std::string_view name);
+// Runs `then` once the server answers; until then the offline popup says it does not.
+void check_server(Shell& s, std::function<void()> then);
+// An HTTP API call failed on the network: asks, and shows the popup if the server is gone.
+void server_unreachable(Shell& s);
 }  // namespace connection
 
 namespace home {  // create, join, find a public Room, return to a Seat

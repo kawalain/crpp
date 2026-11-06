@@ -16,6 +16,7 @@
 #include "crpp/ui/emoji_picker.hpp"
 #include "crpp/ui/home_screen.hpp"
 #include "crpp/ui/notice_card.hpp"
+#include "crpp/ui/offline_popup.hpp"
 #include "crpp/ui/prefs.hpp"
 #include "crpp/ui/room_screen.hpp"
 #include "crpp/ui/settings_panel.hpp"
@@ -41,6 +42,7 @@ class App {
   [[nodiscard]] HomeScreen& home() { return home_; }
   [[nodiscard]] RoomScreen& room() { return room_; }
   [[nodiscard]] NoticeCard& notice() { return notice_; }
+  [[nodiscard]] OfflinePopup& offline() { return offline_; }
   [[nodiscard]] SettingsPanel& settings() { return settings_; }
   [[nodiscard]] Dialogs& dialogs() { return dialogs_; }
   [[nodiscard]] Toasts& toasts() { return toasts_; }
@@ -87,6 +89,7 @@ class App {
   HomeScreen home_{ui_};
   RoomScreen room_{ui_};
   NoticeCard notice_{ui_};
+  OfflinePopup offline_{ui_};
   SettingsPanel settings_{ui_};
   EmojiPicker emoji_picker_{ui_};
   Toasts toasts_{ui_};

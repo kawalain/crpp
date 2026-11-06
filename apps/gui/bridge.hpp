@@ -54,6 +54,9 @@ class Bridge final : public client::Observer {
   // UI thread: remember which held Seat a resume is for, to forget it if refused.
   void expect_resume(std::string code) { resume_code_ = std::move(code); }
 
+  // UI thread: a Room has been entered and not yet ended.
+  [[nodiscard]] bool in_room() const { return !room_code_.empty(); }
+
   // UI thread: the user leaves. The Seat stays held for a while.
   void leaving();
 

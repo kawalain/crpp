@@ -92,6 +92,9 @@ LRESULT CALLBACK wnd_proc(HWND hwnd, UINT msg, WPARAM wp, LPARAM lp) {
       InvalidateRect(hwnd, nullptr, FALSE);
       return 0;
     }
+    case WM_SETTINGCHANGE:
+      area::preferences::system_settings_changed(*s);
+      return 0;
     case WM_SETFOCUS:
     case WM_KILLFOCUS:
       sync_blink(*s, hwnd);

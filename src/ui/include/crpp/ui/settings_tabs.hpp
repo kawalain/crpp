@@ -1,5 +1,14 @@
 #pragma once
 // One class per settings tab. Each tab reads and changes settings through ui.prefs.
+#include <array>
+#include <functional>
+#include <string>
+#include <string_view>
+#include <vector>
+
+#include "crpp/ui/controls.hpp"
+#include "crpp/ui/prefs.hpp"
+#include "crpp/ui/settings_rows.hpp"
 #include "crpp/ui/surface.hpp"
 
 namespace crpp::ui {
@@ -26,11 +35,40 @@ class SoundTab final : public SettingsTab {
   [[nodiscard]] float content_height() const override;
 };
 
+// The theme in use: upstream's effectiveTheme, with an unknown name taken as the default.
+[[nodiscard]] ThemeId effective_theme(const Prefs& prefs, bool system_dark);
+
 class DisplayTab final : public SettingsTab {
  public:
-  using SettingsTab::SettingsTab;
+  explicit DisplayTab(Ui& ui);
+  enum Id : int { SystemTheme = 1, ScaleSlider, ThemeList = 100, LightList = 110, DarkList = 120 };
+
+  // Asked whenever the tab comes on screen, for who the chat sample shows.
+  std::function<void()> on_shown;
+  void set_sample(std::string nick, std::string emoji);
+
   void paint(Painter& p, Rect area) override;
+  void paint_popups(Painter& p, Rect area) override;
   [[nodiscard]] float content_height() const override;
+  void shown() override;
+  void before_click(const Surface* owner, int id) override;
+  void click(int id, float x, float y, bool shift) override;
+  void drag(float x, float y) override;
+  bool wheel(float x, float y, float delta) override;
+  bool escape() override;
+  [[nodiscard]] Cursor cursor(int /*id*/) const override { return Cursor::Hand; }
+  [[nodiscard]] bool animating() const override;
+
+ private:
+  void paint_sample(Painter& p, Rect box, float zoom);
+  [[nodiscard]] float chat_top() const;
+
+  Dropdown theme_, light_, dark_;
+  Rect list_rect_[3];
+  ToggleAnim system_anim_;
+  Fade slider_tip_;
+  Rect slider_;  // stage coordinates
+  std::string sample_nick_, sample_emoji_;
 };
 
 class NotifyTab final : public SettingsTab {

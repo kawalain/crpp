@@ -49,6 +49,8 @@ void wire(Shell& s);
 void pref_changed(Shell& s, std::string_view key);
 // Whether the notification tab has this sound on ("notificationSounds").
 [[nodiscard]] bool notification_enabled(Shell& s, std::string_view name);
+// WM_SETTINGCHANGE: the OS's light or dark setting may have changed.
+void system_settings_changed(Shell& s);
 }  // namespace preferences
 
 namespace os {  // tray, chat notifications, taskbar flash, autostart, reopening

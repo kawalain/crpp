@@ -4,6 +4,7 @@
 #include <fstream>
 #include <iterator>
 #include <map>
+#include <mutex>
 #include <random>
 
 #include "check.hpp"
@@ -17,8 +18,9 @@ namespace {
 class Fake final : public Platform {
  public:
   std::expected<std::vector<std::uint8_t>, Error> fetch(const Entry& entry, const OnBytes& on_bytes) override {
+    const std::lock_guard lock(mutex);
     fetched.emplace_back(entry.path);
-    if (fail_at && fetched.size() == fail_at) return std::unexpected(Error::Network);
+    if (entry.path == fail_path) return std::unexpected(Error::Network);
     const std::string& body = served[std::string(entry.path)];
     if (on_bytes) on_bytes(body.size() / 2);
     return std::vector<std::uint8_t>(body.begin(), body.end());
@@ -27,7 +29,8 @@ class Fake final : public Platform {
 
   std::map<std::string, std::string> served;
   std::vector<std::string> fetched;
-  std::size_t fail_at = 0;
+  std::string fail_path;
+  std::mutex mutex;
 };
 
 class TempDir {
@@ -51,11 +54,9 @@ std::string read(const fs::path& path) {
 const Entry a{"fonts/a.bin", 3, "aaa"};
 const Entry b{"sounds/pack/b.bin", 2, "bb"};
 
-Fake serving_both() {
-  Fake fake;
+void serve_both(Fake& fake) {
   fake.served["fonts/a.bin"] = "aaa";
   fake.served["sounds/pack/b.bin"] = "bb";
-  return fake;
 }
 
 void installs_everything_once() {
@@ -64,7 +65,8 @@ void installs_everything_once() {
   const Manifest manifest{"c", entries};
   CHECK(missing(manifest, dir.path).size() == 2);
 
-  Fake fake = serving_both();
+  Fake fake;
+  serve_both(fake);
   std::uint64_t last_done = 0, last_total = 0;
   CHECK(install(manifest, dir.path, fake, [&](std::uint64_t done, std::uint64_t total) {
     CHECK(done >= last_done);
@@ -85,7 +87,8 @@ void installs_everything_once() {
 void a_new_manifest_fetches_only_what_changed() {
   TempDir dir;
   const std::array entries{a, b};
-  Fake fake = serving_both();
+  Fake fake;
+  serve_both(fake);
   CHECK(install(Manifest{"c", entries}, dir.path, fake, nullptr));
 
   const Entry changed{"fonts/a.bin", 4, "AAAA"};
@@ -125,13 +128,14 @@ void a_failed_run_keeps_what_arrived() {
   TempDir dir;
   const std::array entries{a, b};
   const Manifest manifest{"c", entries};
-  Fake fake = serving_both();
-  fake.fail_at = 2;
+  Fake fake;
+  serve_both(fake);
+  fake.fail_path = "sounds/pack/b.bin";
   CHECK(install(manifest, dir.path, fake, nullptr).error() == Error::Network);
-  CHECK(read(dir.path / "fonts/a.bin") == "aaa");
+  CHECK(read(dir.path / "fonts/a.bin") == "aaa");  // it comes first, so it was under way
   CHECK(missing(manifest, dir.path).size() == 2);  // not listed as installed yet
 
-  fake.fail_at = 0;
+  fake.fail_path.clear();
   fake.fetched.clear();
   CHECK(install(manifest, dir.path, fake, nullptr));
   CHECK(fake.fetched == std::vector<std::string>{"sounds/pack/b.bin"});
@@ -142,7 +146,8 @@ void a_damaged_file_is_fetched_again() {
   TempDir dir;
   const std::array entries{a};
   const Manifest manifest{"c", entries};
-  Fake fake = serving_both();
+  Fake fake;
+  serve_both(fake);
   CHECK(install(manifest, dir.path, fake, nullptr));
 
   // Deleted: the size check sees it.
@@ -158,9 +163,42 @@ void a_damaged_file_is_fetched_again() {
   CHECK(read(dir.path / "fonts/a.bin") == "aaa");
 }
 
+void many_files_arrive_with_progress_in_order() {
+  TempDir dir;
+  // Paths and hashes outlive the entries, which only view them.
+  std::vector<std::string> paths, bodies;
+  for (int i = 0; i < 100; ++i) {
+    paths.push_back("many/" + std::to_string(i) + ".bin");
+    bodies.push_back(std::string(static_cast<std::size_t>(i) + 1, 'x'));
+  }
+  Fake fake;
+  std::vector<Entry> entries;
+  std::uint64_t expected = 0;
+  for (std::size_t i = 0; i < paths.size(); ++i) {
+    entries.push_back({paths[i], bodies[i].size(), bodies[i]});
+    fake.served[paths[i]] = bodies[i];
+    expected += bodies[i].size();
+  }
+  const Manifest manifest{"c", entries};
+  std::uint64_t last = 0;
+  int calls = 0;
+  CHECK(install(manifest, dir.path, fake, [&](std::uint64_t done, std::uint64_t total) {
+    CHECK(total == expected);
+    CHECK(done >= last && done <= total);
+    last = done;
+    ++calls;
+  }));
+  CHECK(last == expected);
+  CHECK(calls >= 100);
+  CHECK(fake.fetched.size() == 100);
+  CHECK(missing(manifest, dir.path).empty());
+  for (std::size_t i = 0; i < paths.size(); ++i) CHECK(read(dir.path / paths[i]) == bodies[i]);
+}
+
 }  // namespace
 
 int main() {
+  many_files_arrive_with_progress_in_order();
   installs_everything_once();
   a_new_manifest_fetches_only_what_changed();
   what_does_not_match_is_never_kept();

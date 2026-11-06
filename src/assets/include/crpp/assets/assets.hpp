@@ -27,6 +27,7 @@ struct Manifest {
 // Network: no answer from the server. Unavailable: it answered, without the file.
 enum class Error : std::uint8_t { Network, Unavailable, BadContent, Disk };
 
+// Called from several threads at once.
 class Platform {
  public:
   // Told how many bytes of the file have arrived so far.
@@ -45,8 +46,9 @@ class Platform {
 
 using OnProgress = std::function<void(std::uint64_t done, std::uint64_t total)>;
 
-// Fetches what is missing and removes files older manifests installed. After a
-// failure, calling again keeps what already arrived.
+// Fetches what is missing, a few files at a time, and removes files older
+// manifests installed. After a failure, calling again keeps what already arrived.
+// progress is called in turn, from the working threads, and only moves forward.
 std::expected<void, Error> install(const Manifest& manifest, const std::filesystem::path& dir, Platform& platform,
                                    const OnProgress& progress);
 

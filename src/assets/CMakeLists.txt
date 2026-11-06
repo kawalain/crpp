@@ -1,5 +1,6 @@
 add_library(crpp_assets STATIC assets.cpp)
 target_include_directories(crpp_assets PUBLIC include)
+target_link_libraries(crpp_assets PUBLIC Threads::Threads)
 crpp_target_defaults(crpp_assets)
 
 add_executable(crpp_assets_test tests/assets_test.cpp)

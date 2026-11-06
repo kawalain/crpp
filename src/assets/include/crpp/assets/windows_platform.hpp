@@ -1,5 +1,6 @@
 #pragma once
-// Fetches over WinHTTP and hashes with BCrypt. One worker at a time.
+// Fetches over WinHTTP, with a request of its own for each call on one shared
+// session, and hashes with BCrypt.
 #include <memory>
 
 #include "crpp/assets/assets.hpp"

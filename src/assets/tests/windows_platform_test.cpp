@@ -42,6 +42,24 @@ void fetches_a_file_and_reports_progress() {
   CHECK(line.starts_with("GET /base/sounds/a.wav "));
 }
 
+void fetches_from_several_threads_at_once() {
+  mock::Server server([](mock::Conn& c) { reply_with(c, std::string(5000, 'x')); });
+  WindowsPlatform platform(base_url(server));
+  std::atomic<int> good{0};
+  {
+    std::vector<std::jthread> threads;
+    for (int i = 0; i < 8; ++i) {
+      threads.emplace_back([&] {
+        for (int n = 0; n < 20; ++n) {
+          const auto bytes = platform.fetch({"a", 5000, ""}, nullptr);
+          if (bytes && bytes->size() == 5000 && platform.sha256(*bytes).size() == 64) ++good;
+        }
+      });
+    }
+  }
+  CHECK(good == 160);
+}
+
 void a_longer_reply_stops_one_byte_past_the_file() {
   mock::Server server([](mock::Conn& c) { reply_with(c, std::string(5000, 'x')); });
   WindowsPlatform platform(base_url(server));
@@ -86,6 +104,7 @@ void the_built_in_manifest_describes_the_assets_folder() {
 int main() {
   hashes_like_the_standard();
   fetches_a_file_and_reports_progress();
+  fetches_from_several_threads_at_once();
   a_longer_reply_stops_one_byte_past_the_file();
   failures_say_where_they_happened();
   the_built_in_manifest_describes_the_assets_folder();

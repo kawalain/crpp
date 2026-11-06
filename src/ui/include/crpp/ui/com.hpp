@@ -20,6 +20,16 @@ class ComPtr {
   [[nodiscard]] T* get() const { return p_; }
   T* operator->() const { return p_; }
   explicit operator bool() const { return p_ != nullptr; }
+  // A base-interface pointer to the same object.
+  template <class U>
+  [[nodiscard]] ComPtr<U> upcast() const {
+    ComPtr<U> r;
+    if (p_) {
+      p_->AddRef();
+      *r.put() = static_cast<U*>(p_);
+    }
+    return r;
+  }
   // For out-parameters: releases the current pointer first.
   [[nodiscard]] T** put() {
     reset();

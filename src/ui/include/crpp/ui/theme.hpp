@@ -27,7 +27,7 @@ struct Theme {
   bool dark = false;
   Color sky, hl, hl_text, hl_text_soft, hl_text_dark, hl_soft, hl_dark, hl_pale, hl_pale2, hl_mid;
   Color surface, on_accent, droplet, entry, error_text;
-  Color cloud_top, cloud_base, cloud_bottom, cloud_shadow;
+  Color cloud_top, cloud_base, cloud_bottom, cloud_mid, cloud_low, cloud_foot, cloud_shadow;
   float cloud_shadow_scale = 1;  // 0 for the dark theme (no glow)
 };
 
@@ -52,6 +52,7 @@ constexpr Theme make_theme(ThemeId id) {
     t.error_text = rgb(0xf39b9b);
     t.entry = rgb(0x344a63);
     t.cloud_top = t.cloud_base = t.cloud_bottom = rgb(0x27374c);
+    t.cloud_mid = t.cloud_low = t.cloud_foot = rgb(0x27374c);
     t.cloud_shadow = rgb(0x000000);
     t.cloud_shadow_scale = 0;
     return t;
@@ -74,6 +75,9 @@ constexpr Theme make_theme(ThemeId id) {
   t.cloud_top = white;
   t.cloud_base = rgb(0xf3f9ff);
   t.cloud_bottom = rgb(0xeff8ff);
+  t.cloud_mid = rgb(0xf3f8fe);
+  t.cloud_low = rgb(0xf1f8ff);
+  t.cloud_foot = rgb(0xe0eefb);
   t.cloud_shadow = rgb(0x4f7b99);
   return t;
 }

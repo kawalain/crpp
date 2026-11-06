@@ -5,6 +5,8 @@
 
 #include <string>
 #include <string_view>
+#include <utility>
+#include <vector>
 
 #include "crpp/ui/com.hpp"
 #include "crpp/ui/theme.hpp"
@@ -88,6 +90,11 @@ class Painter {
     text(widen(utf8), r, style, c);
   }
 
+  // A soft shadow under any shape, drawn with the current transform.
+  void shadow_geometry(ID2D1Geometry* g, float blur, float dy, Color c);
+  // A vertical gradient fill over y0..y1 with the given stops (offset, color).
+  void fill_vertical_gradient(ID2D1Geometry* g, float y0, float y1,
+                              const std::vector<std::pair<float, Color>>& stops);
   // The upstream cloud shape (see main.js drawCloud) at x,y with the given scale.
   void cloud(ID2D1PathGeometry* shape, float x, float y, float scale, float shadow_alpha, float sigma,
              const Theme& theme);

@@ -1,5 +1,5 @@
 if(WIN32)
-  add_library(crpp_ui STATIC gfx.cpp textfield.cpp app.cpp png.cpp)
+  add_library(crpp_ui STATIC gfx.cpp svg.cpp textfield.cpp app.cpp png.cpp)
   target_include_directories(crpp_ui PUBLIC include)
   target_link_libraries(crpp_ui PUBLIC d2d1 dwrite windowscodecs ole32 user32 gdi32)
   target_compile_definitions(crpp_ui PUBLIC NOMINMAX WIN32_LEAN_AND_MEAN)

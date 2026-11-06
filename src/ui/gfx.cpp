@@ -340,36 +340,48 @@ D2D1_SIZE_F Painter::text(std::wstring_view s, Rect r, const TextStyle& style, C
   return D2D1::SizeF(m.widthIncludingTrailingWhitespace, m.height);
 }
 
+void Painter::shadow_geometry(ID2D1Geometry* g, float blur, float dy, Color c) {
+  // Layered translucent copies, growing outwards, approximate a Gaussian blur.
+  constexpr int steps = 10;
+  const D2D1_MATRIX_3X2_F saved = [&] {
+    D2D1_MATRIX_3X2_F m;
+    rt_->GetTransform(&m);
+    return m;
+  }();
+  ComPtr<ID2D1StrokeStyle> round = round_stroke(gfx_.d2d());
+  for (int i = steps; i >= 1; --i) {
+    const float grow = blur * static_cast<float>(i) / steps;
+    brush_->SetColor(to_d2d(with_alpha(c, c.a * 0.5f / steps)));
+    rt_->SetTransform(D2D1::Matrix3x2F::Translation(0, dy) * saved);
+    rt_->FillGeometry(g, brush_.get());
+    rt_->DrawGeometry(g, brush_.get(), 2 * grow, round.get());
+  }
+  rt_->SetTransform(saved);
+}
+
+void Painter::fill_vertical_gradient(ID2D1Geometry* g, float y0, float y1,
+                                     const std::vector<std::pair<float, Color>>& stops) {
+  std::vector<D2D1_GRADIENT_STOP> list;
+  for (const auto& [offset, color] : stops) list.push_back({offset, to_d2d(color)});
+  ComPtr<ID2D1GradientStopCollection> collection;
+  ComPtr<ID2D1LinearGradientBrush> gradient;
+  if (SUCCEEDED(rt_->CreateGradientStopCollection(list.data(), static_cast<UINT32>(list.size()), collection.put())) &&
+      SUCCEEDED(rt_->CreateLinearGradientBrush(
+          D2D1::LinearGradientBrushProperties(D2D1::Point2F(0, y0), D2D1::Point2F(0, y1)), collection.get(),
+          gradient.put()))) {
+    rt_->FillGeometry(g, gradient.get());
+  }
+}
+
 void Painter::cloud(ID2D1PathGeometry* shape, float x, float y, float scale, float shadow_alpha, float sigma,
                     const Theme& theme) {
   push(D2D1::Matrix3x2F::Scale(scale, scale) * D2D1::Matrix3x2F::Translation(x, y));
   if (theme.cloud_shadow_scale > 0) {
-    // Canvas shadowBlur = sigma * 3 with a 6 px vertical offset: layer translucent copies.
-    const float blur = sigma * 3;
-    constexpr int steps = 10;
-    for (int i = steps; i >= 1; --i) {
-      const float grow = blur * static_cast<float>(i) / steps;
-      const Color shadow = with_alpha(theme.cloud_shadow, shadow_alpha * 1.6f / steps);
-      rt_->SetTransform(D2D1::Matrix3x2F::Translation(0, 6 / scale) *
-                        D2D1::Matrix3x2F::Scale(scale, scale) * D2D1::Matrix3x2F::Translation(x, y) * base_);
-      brush_->SetColor(to_d2d(shadow));
-      rt_->FillGeometry(shape, brush_.get());
-      ComPtr<ID2D1StrokeStyle> round = round_stroke(gfx_.d2d());
-      rt_->DrawGeometry(shape, brush_.get(), 2 * grow / scale, round.get());
-    }
-    push(D2D1::Matrix3x2F::Scale(scale, scale) * D2D1::Matrix3x2F::Translation(x, y));
+    // Canvas shadowBlur = sigma * 3 with a 6 px vertical offset (in screen px).
+    shadow_geometry(shape, sigma * 3, 6 / scale, with_alpha(theme.cloud_shadow, shadow_alpha));
   }
   fill_geometry(shape, theme.cloud_base);
-  // Vertical gradient top -> bottom as in drawCloud.
-  D2D1_GRADIENT_STOP stops[2] = {{0.0f, to_d2d(theme.cloud_top)}, {1.0f, to_d2d(theme.cloud_bottom)}};
-  ComPtr<ID2D1GradientStopCollection> collection;
-  ComPtr<ID2D1LinearGradientBrush> gradient;
-  if (SUCCEEDED(rt_->CreateGradientStopCollection(stops, 2, collection.put())) &&
-      SUCCEEDED(rt_->CreateLinearGradientBrush(
-          D2D1::LinearGradientBrushProperties(D2D1::Point2F(0, 8), D2D1::Point2F(0, 318)), collection.get(),
-          gradient.put()))) {
-    rt_->FillGeometry(shape, gradient.get());
-  }
+  fill_vertical_gradient(shape, 8, 318, {{0, theme.cloud_top}, {1, theme.cloud_bottom}});
   rt_->SetTransform(base_);
 }
 

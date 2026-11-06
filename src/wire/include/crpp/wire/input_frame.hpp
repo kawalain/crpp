@@ -21,14 +21,20 @@ enum class Kind : std::uint8_t {
   MouseLeftUp = 8,
   MouseMiddleUp = 9,
   MouseRightUp = 10,
+  MouseLeftHold = 11,
+  MouseMiddleHold = 12,
+  MouseRightHold = 13,
   KeyNormal = 16,
   KeyTab = 17,
   KeyCaps = 18,
-  KeyShift = 19,
-  KeyCtrl = 20,
-  KeyAlt = 21,
+  KeyShiftHold = 19,
+  KeyCtrlHold = 20,
+  KeyAltHold = 21,
   KeyEnter = 22,
   KeyEscape = 23,
+  KeyShift = 24,
+  KeyCtrl = 25,
+  KeyAlt = 26,
   PenTap = 32,
   PenStroke = 33,
   KeyR1 = 40,
@@ -40,12 +46,12 @@ enum class Kind : std::uint8_t {
   KeyShiftUp = 46,
   KeyCtrlUp = 47,
   KeyAltUp = 48,
+  KeyAny = 49,  // a key press that says nothing about the key
 };
 
 inline constexpr std::size_t max_frame_events = 32;
 
-// True for every kind the server accepts. The server also accepts 11-13,
-// 24-26 and 49, which have no name yet.
+// True for every kind the server accepts.
 [[nodiscard]] constexpr bool is_known(Kind kind) noexcept {
   switch (static_cast<std::uint8_t>(kind)) {
     case 0: case 1: case 2: case 3: case 4: case 5:

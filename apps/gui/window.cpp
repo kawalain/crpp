@@ -14,6 +14,10 @@ namespace crpp::gui {
 
 namespace {
 
+// As upstream's tauri.conf.json: the client area in DIPs, and no maximize.
+constexpr DWORD window_style = WS_OVERLAPPEDWINDOW & ~static_cast<DWORD>(WS_MAXIMIZEBOX);
+constexpr int min_client_width = 517, min_client_height = 450;
+
 void save_window_size(Shell& s, HWND hwnd) {
   RECT rc;
   if (IsIconic(hwnd) || !GetClientRect(hwnd, &rc) || rc.right <= 0 || rc.bottom <= 0) return;
@@ -106,6 +110,12 @@ LRESULT CALLBACK wnd_proc(HWND hwnd, UINT msg, WPARAM wp, LPARAM lp) {
       return 0;
     case WM_ERASEBKGND:
       return 1;
+    case WM_GETMINMAXINFO: {
+      RECT rc{0, 0, MulDiv(min_client_width, static_cast<int>(s->dpi), 96), MulDiv(min_client_height, static_cast<int>(s->dpi), 96)};
+      AdjustWindowRectExForDpi(&rc, window_style, FALSE, 0, s->dpi);
+      reinterpret_cast<MINMAXINFO*>(lp)->ptMinTrackSize = {rc.right - rc.left, rc.bottom - rc.top};
+      return 0;
+    }
     case WM_SIZE:
       if (s->target) s->target->Resize(D2D1::SizeU(LOWORD(lp), HIWORD(lp)));
       InvalidateRect(hwnd, nullptr, FALSE);
@@ -268,14 +278,14 @@ HWND create_window(Shell& s) {
 
   // The monitor's DPI is known only once the window exists, so it is sized while
   // still hidden.
-  HWND hwnd = CreateWindowExW(0, wc.lpszClassName, L"Cloudroom", WS_OVERLAPPEDWINDOW, CW_USEDEFAULT, CW_USEDEFAULT,
+  HWND hwnd = CreateWindowExW(0, wc.lpszClassName, L"Cloudroom", window_style, CW_USEDEFAULT, CW_USEDEFAULT,
                               CW_USEDEFAULT, CW_USEDEFAULT, nullptr, nullptr, wc.hInstance, &s);
   if (!hwnd) return nullptr;
   s.dpi = GetDpiForWindow(hwnd);
   const auto scaled = [&](std::int64_t dips) { return MulDiv(static_cast<int>(dips), static_cast<int>(s.dpi), 96); };
-  RECT rc{0, 0, scaled(std::clamp<std::int64_t>(s.store->i64_or("windowWidth", 951), 480, 16384)),
-          scaled(std::clamp<std::int64_t>(s.store->i64_or("windowHeight", 692), 360, 16384))};
-  AdjustWindowRectExForDpi(&rc, WS_OVERLAPPEDWINDOW, FALSE, 0, s.dpi);
+  RECT rc{0, 0, scaled(std::clamp<std::int64_t>(s.store->i64_or("windowWidth", 951), min_client_width, 16384)),
+          scaled(std::clamp<std::int64_t>(s.store->i64_or("windowHeight", 692), min_client_height, 16384))};
+  AdjustWindowRectExForDpi(&rc, window_style, FALSE, 0, s.dpi);
   SetWindowPos(hwnd, nullptr, 0, 0, rc.right - rc.left, rc.bottom - rc.top, SWP_NOMOVE | SWP_NOZORDER | SWP_NOACTIVATE);
   return hwnd;
 }

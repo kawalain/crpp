@@ -342,6 +342,48 @@ void with_assets(UiHarness& h) {
   h.app.reload_assets(dir);
 }
 
+void test_a_new_message_rises_but_a_history_does_not() {
+  UiHarness h;
+  CHECK(h.start());
+  h.app.show_session("ABC234");
+  h.app.room().set_room({{0, "a", "", false}}, 0, 0, false, true);
+  ChatPanel& chat = h.app.room().chat();
+  chat.add({0, "c0", "a", "", "before", 1700000000000});
+  hold_clock_at(1000000);
+  h.app.ui().animations = true;
+  h.render();
+  hold_clock_at(1100000);
+  h.render();  // the view's own transition is long over
+  CHECK(!h.app.ui().more_frames);
+
+  chat.add({0, "c0", "a", "", "new", 1700000060000});
+  h.render();
+  CHECK(h.app.ui().more_frames);
+  hold_clock_at(1100000 + 400);
+  h.render();
+  hold_clock_at(1100000 + 800);
+  h.render();
+  CHECK(!h.app.ui().more_frames);  // settled, it asks for nothing
+  CHECK(chat.shown() == 2);
+
+  // Reading older messages: what arrives does not move the list.
+  for (int i = 0; i < 60; ++i) chat.add({0, "c0", "a", "", "line", 1700000120000});
+  hold_clock_at(1200000);
+  h.render();
+  hold_clock_at(1300000);
+  h.render();
+  h.app.wheel(800, 200, 1);
+  hold_clock_at(1400000);
+  h.render();
+  hold_clock_at(1500000);
+  h.render();
+  const float reading = chat.scroll_offset();
+  chat.add({0, "c0", "a", "", "while reading", 1700000180000});
+  h.render();
+  CHECK(chat.scroll_offset() == reading);
+  hold_clock_at(0);
+}
+
 void test_a_room_stays_as_it_was_while_it_fades_out() {
   UiHarness h;
   CHECK(h.start());
@@ -984,6 +1026,7 @@ int main() {
   test_member_menu_for_someone_else();
   test_member_menu_for_myself();
   test_right_click_elsewhere_closes_the_menu();
+  test_a_new_message_rises_but_a_history_does_not();
   test_a_room_stays_as_it_was_while_it_fades_out();
   test_a_member_arrives_and_a_settled_room_asks_for_no_frames();
   test_the_settings_panel_fades_out_after_it_closed();

@@ -37,7 +37,10 @@ class ChatPanel final : public Surface {
 
   // chatScale, percent: the whole list zooms, the compose box does not (.chat-list).
   void set_scale(int percent) { zoom_ = static_cast<float>(percent) / 100; }
-  void set_use_24h(bool on) { use_24h_ = on; }
+  void set_use_24h(bool on) {
+    if (on != use_24h_) dirty_ = true;  // the rows hold their times, laid out
+    use_24h_ = on;
+  }
 
   void add(ChatEntry entry);
   void clear();
@@ -68,11 +71,15 @@ class ChatPanel final : public Surface {
     float y_head = 0, y_text = 0, h_text = 0;
     bool head = false;
     std::vector<LinkSpan> links;
+    unsigned long long arrived_at = 0;  // rises and fades in from then; 0: it is just there
+    // Kept while the row is in view, which is what painting every frame costs least with.
+    ComPtr<IDWriteTextLayout> text, nick, time;
+    float time_w = 0;
   };
 
   void send();
   void sync_rows(float list_w);
-  void append_row(std::size_t index, float list_w);
+  void append_row(std::size_t index, float list_w, bool arriving);
   void paint_send(Painter& p, Rect anchor, float out);
   // How far the send button has gone out of the box, 0 to 1.
   [[nodiscard]] float multi_progress() const;
@@ -92,6 +99,9 @@ class ChatPanel final : public Surface {
   float next_y_ = 24;   // where the next row starts
   Scroll scroll_;
   bool stick_ = true;
+  unsigned long long arrivals_at_ = 0;  // when the messages rising together began
+  std::size_t kept_from_ = 0, kept_to_ = 0;  // the rows holding layouts
+  ComPtr<ID2D1PathGeometry> send_arrow_;
   float content_h_ = 0;
   float zoom_ = 1;
   bool use_24h_ = false;

@@ -128,6 +128,10 @@ Run GCC-built tests from PowerShell: Git Bash's PATH finds another
 
 `crpp --data <dir>` keeps a run's data out of the user's folders, and with no
 `serverUrl` in it skips the startup `/health`, so scripted runs stay off the default
+Options are read from the end of the command line: `crpp --shot <png> <size> <ms> <scene>
+--data <dir>`. Put first, `--data` is ignored and the real app opens on the user's desktop
+with their data.
+
 server; seed `serverUrl` in its `crpp/settings.json` to test the offline popup. An exe with an
 `assets/` folder beside it, as every build has, runs from that folder; copy the
 exe elsewhere to test fetching, with `--asset-url` for a local server.

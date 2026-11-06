@@ -522,6 +522,25 @@ void test_the_card_covers_the_settings_droplet() {
   CHECK(!h.app.settings().is_open());
 }
 
+void test_two_lines_move_the_send_button_out_of_the_box() {
+  UiHarness h;
+  CHECK(h.start());
+  enter(h, 3, true);
+  ChatPanel& chat = h.app.room().chat();
+  h.render();
+  const Ui::Hit* send = h.app.ui().find_hit(&chat, ChatPanel::Send);
+  const Ui::Hit* box = h.app.ui().find_hit(&chat, ChatPanel::Input);
+  CHECK(send && box);
+  if (!send || !box) return;
+  CHECK(send->rect.bottom() <= box->rect.bottom());
+  chat.input().set_text(L"첫 줄\n둘째 줄");
+  h.render();
+  send = h.app.ui().find_hit(&chat, ChatPanel::Send);
+  box = h.app.ui().find_hit(&chat, ChatPanel::Input);
+  CHECK(send && box);
+  if (send && box) CHECK(send->rect.y >= box->rect.bottom());
+}
+
 void test_mute_is_a_saved_setting() {
   UiHarness h;
   CHECK(h.start());
@@ -834,6 +853,7 @@ void test_clearing_the_chat_starts_over() {
 }  // namespace
 
 int main() {
+  test_two_lines_move_the_send_button_out_of_the_box();
   test_mute_is_a_saved_setting();
   test_links_are_https_with_punctuation_left_out();
   test_limiter_allows_a_burst_then_cools_down();

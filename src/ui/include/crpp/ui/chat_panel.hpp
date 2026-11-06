@@ -72,7 +72,10 @@ class ChatPanel final : public Surface {
   void send();
   void sync_rows(float list_w);
   void append_row(std::size_t index, float list_w);
-  void paint_send(Painter& p, Rect anchor);
+  void paint_send(Painter& p, Rect anchor, float out);
+  // How far the send button has gone out of the box, 0 to 1.
+  [[nodiscard]] float multi_progress() const;
+  [[nodiscard]] bool send_moving() const;
   void paint_calm(Painter& p, Rect anchor);
   void shake();
   [[nodiscard]] bool shaking() const;
@@ -92,6 +95,8 @@ class ChatPanel final : public Surface {
   float zoom_ = 1;
   bool use_24h_ = false;
   Rect area_;
+  bool multi_ = false;  // the text takes two lines or more
+  unsigned long long multi_since_ = 0;
   bool older_pending_ = false;  // a page was added above since the last paint
 
   ChatLimiter limiter_;

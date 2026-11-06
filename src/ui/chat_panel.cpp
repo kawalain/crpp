@@ -53,6 +53,7 @@ constexpr TextStyle body_style{.size = 17, .line_height = 19, .wrap = true};
 constexpr std::pair<float, float> send_shake[] = {{0, 0},      {0.15f, -7}, {0.3f, 7}, {0.45f, -5},
                                                   {0.6f, 5},   {0.75f, -3}, {0.9f, 3}, {1, 0}};
 constexpr float send_shake_ms = 420;
+constexpr float send_move_ms = 240;
 
 // .calm-bubble: springs out of the send button, and shrinks back faster.
 constexpr float calm_in_ms = 420, calm_out_ms = 140;
@@ -104,6 +105,8 @@ void ChatPanel::clear() {
   shake_at_ = 0;
   calm_shown_ = false;
   calm_since_ = 0;
+  multi_ = false;
+  multi_since_ = 0;
 }
 
 void ChatPanel::send() {
@@ -148,7 +151,18 @@ bool ChatPanel::calm_moving() const {
   return calm_since_ != 0 && static_cast<float>(ui_.now_ms - std::min(ui_.now_ms, calm_since_)) < (calm_shown_ ? calm_in_ms : calm_out_ms);
 }
 
-bool ChatPanel::animating() const { return shaking() || calm_moving() || link_tip_.animating(ui_); }
+float ChatPanel::multi_progress() const {
+  const bool moving = ui_.animations && multi_since_ != 0;
+  const float elapsed = moving ? static_cast<float>(ui_.now_ms - std::min(ui_.now_ms, multi_since_)) : send_move_ms;
+  const float moved = bezier_ease(0.22f, 0.9f, 0.3f, 1, elapsed / send_move_ms);
+  return multi_ ? moved : 1 - moved;
+}
+
+bool ChatPanel::send_moving() const {
+  return ui_.animations && multi_since_ != 0 && static_cast<float>(ui_.now_ms - std::min(ui_.now_ms, multi_since_)) < send_move_ms;
+}
+
+bool ChatPanel::animating() const { return shaking() || calm_moving() || send_moving() || link_tip_.animating(ui_); }
 
 bool ChatPanel::tick(unsigned long long now_ms) {
   const bool moving = animating();
@@ -200,7 +214,14 @@ void ChatPanel::sync_rows(float list_w) {
 void ChatPanel::paint(Painter& p, Rect panel) {
   const Theme& t = ui_.theme;
   const TextStyle input_style{.size = 17, .line_height = 22, .wrap = true};
-  const float text_w = panel.w - 11 - 17 - 36;
+  // .chat-panel.multi: from two lines on the button moves out and the text takes its place.
+  const float one_button_w = panel.w - 11 - 17 - 36;
+  const bool multi = input_.measure_height(ui_.gfx, input_style, one_button_w) + 20 > 42;
+  if (multi != multi_) {
+    multi_ = multi;
+    multi_since_ = ui_.now_ms;
+  }
+  const float text_w = multi ? panel.w - 11 - 17 - 17 : one_button_w;
   const float input_h = std::clamp(input_.measure_height(ui_.gfx, input_style, text_w) + 20, 42.0f, 130.0f);
   const Rect compose{panel.x + 5, panel.bottom() - 4 - input_h, panel.w - 11, input_h};
   const Rect area{panel.x, panel.y, panel.w, panel.h - 10 - input_h};
@@ -222,6 +243,7 @@ void ChatPanel::paint(Painter& p, Rect panel) {
 
   p.rt()->PushAxisAlignedClip(D2D1::RectF(area.x, area.y, area.right(), area.bottom()),
                               D2D1_ANTIALIAS_MODE_PER_PRIMITIVE);
+  const EdgeFade fade = push_edge_fade(p, area, scroll_ > 0, scroll_ < max_scroll);
   ui_.add_hit_window(this, area, Area);
   ui_.push_hit_clip(area);
   const float list_top = area.y - scroll_;
@@ -243,7 +265,6 @@ void ChatPanel::paint(Painter& p, Rect panel) {
       const D2D1_SIZE_F time_size = p.text(time, {x, row.y_head + 2.5f, list_w, 20},
                                            {.size = 14, .line_height = 20, .align = Align::Right}, t.hl_text);
       p.text(e.nick.empty() ? "게스트" : e.nick,
-  const EdgeFade fade = push_edge_fade(p, area, scroll_ > 0, scroll_ < max_scroll);
              {x + 25 + 7, row.y_head + 2.5f, std::max(20.0f, list_w - 25 - 7 - time_size.width - 7), 20},
              {.size = 15, .line_height = 20, .ellipsis = true}, t.hl_text);
     }
@@ -284,6 +305,7 @@ void ChatPanel::paint(Painter& p, Rect panel) {
   }
   ui_.pop_hit_clip();
   p.set_base(D2D1::Matrix3x2F::Identity());
+  pop_edge_fade(p, fade);
   p.rt()->PopAxisAlignedClip();
 
   // --- compose box ---
@@ -300,26 +322,27 @@ void ChatPanel::paint(Painter& p, Rect panel) {
   if (shaking()) {
     shake_dx = keyframes(static_cast<float>(ui_.now_ms - std::min(ui_.now_ms, shake_at_)) / send_shake_ms, send_shake);
   }
-  const Rect anchor{panel.right() - 12 - 30 + shake_dx, panel.bottom() - 10 - 30, 30, 30};
-  paint_send(p, anchor);
+  // .chat-send-anchor: bottom goes from 10 px to -34 px.
+  const float out = multi_progress();
+  const Rect anchor{panel.right() - 12 - 30 + shake_dx, panel.bottom() - 10 - 30 + 44 * out, 30, 30};
+  paint_send(p, anchor, out);
   paint_calm(p, anchor);
   if (show_tip && tip.anchor.y - 6 - 32 < panel.y + 4) {
     tip.anchor.y = tip.anchor.bottom() + 6 + 32 + 6;  // no room above: below it
-  pop_edge_fade(p, fade);
   }
   link_tip_.paint(ui_, p, show_tip ? &tip : nullptr);
 }
 
-void ChatPanel::paint_send(Painter& p, Rect send_rect) {
+void ChatPanel::paint_send(Painter& p, Rect send_rect, float out) {
   const Theme& t = ui_.theme;
   const bool hot = ui_.hot(this, Send);
   if (hot) p.push(scale_about(send_rect.x + 15, send_rect.y + 15, 1.08f));
   const float a = input_.text().empty() || limiter_.cooling() ? 0.55f : 1.0f;
-  p.fill_ellipse(send_rect.x + 15, send_rect.y + 15, 15, 15, with_alpha(t.surface, a));
+  p.fill_ellipse(send_rect.x + 15, send_rect.y + 15, 15, 15, with_alpha(mix(t.hl, t.surface, out * 100), a));
   {
     const auto arrow = ui_.gfx.parse_path("M5 12h14M13 6l6 6-6 6");
     p.push(D2D1::Matrix3x2F::Scale(18 / 24.f, 18 / 24.f) * D2D1::Matrix3x2F::Translation(send_rect.x + 6, send_rect.y + 6));
-    p.stroke_geometry(arrow.get(), with_alpha(t.hl_text, a), 3);
+    p.stroke_geometry(arrow.get(), with_alpha(mix(t.on_accent, t.hl_text, out * 100), a), 3);
     p.pop();
   }
   if (hot) p.pop();

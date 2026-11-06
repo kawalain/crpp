@@ -98,6 +98,7 @@ void ConnectionFeedback::state_changed(session::State state) {
     reconnecting_ = true;
     // What was open in the Room no longer means anything. Settings stay as they are.
     if (app_.view() == View::Session && !app_.settings().is_open()) app_.dialogs().close();
+    app_.room().close_member_popups();
     app_.offline().show();
   } else if (state == session::State::InRoom || (state == session::State::Idle && reconnecting_)) {
     reconnecting_ = false;

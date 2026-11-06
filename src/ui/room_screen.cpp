@@ -78,14 +78,18 @@ void RoomScreen::reset() {
   copy_until_ = hint_muted_until_ = 0;
   lock_pending_ = false;
   blocked_id_ = -1;
-  // The picker is modal over the card, so an open card means it is the card's.
-  if (profile_.is_open()) ui_.emoji_picker->close();
-  profile_.close();
-  menu_.close();
+  close_member_popups();
   member_volumes_.clear();
   // A question about this Room means nothing once it is gone.
   if (dialog_open_) ui_.dialogs->close();
   dialog_open_ = false;
+}
+
+void RoomScreen::close_member_popups() {
+  // The picker is modal over the card, so an open card means it is the card's.
+  if (profile_.is_open()) ui_.emoji_picker->close();
+  profile_.close();
+  menu_.close();
 }
 
 void RoomScreen::set_room(std::vector<MemberView> members, std::uint32_t me, std::optional<std::uint32_t> host,

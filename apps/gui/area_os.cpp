@@ -300,7 +300,12 @@ bool on_message(Shell& s, UINT msg, WPARAM wp, LPARAM lp, LRESULT& result) {
       sync_hidden(s);
       return false;
     case WM_ACTIVATE:
-      if (LOWORD(wp) != WA_INACTIVE) on_seen(s);
+      if (LOWORD(wp) != WA_INACTIVE) {
+        on_seen(s);
+      } else if (s.app.room().member_menu().is_open()) {
+        s.app.room().member_menu().close();  // window.addEventListener("blur", closeMemberMenu)
+        InvalidateRect(s.hwnd, nullptr, FALSE);
+      }
       return false;
     case WM_DESTROY:
       state.tray.remove();

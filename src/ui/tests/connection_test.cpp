@@ -189,10 +189,12 @@ void a_lost_room_shows_the_popup_until_it_is_back() {
   r.h.app.dialogs().show({"떠날까요?", "떠나기", "취소", false, nullptr, nullptr});
   r.feedback->state_changed(State::InRoom);
   CHECK(!r.popup_drawn());
+  r.h.app.room().member_menu().open(1, false, 100, 10, 10);
 
   r.feedback->state_changed(State::Waiting);
   CHECK(r.popup_drawn());
   CHECK(!r.h.app.dialogs().is_open());
+  CHECK(!r.h.app.room().member_menu().is_open());
   CHECK(r.h.app.view() == View::Session);  // the Room stays on screen
   CHECK(r.probe.asked == 0);               // Session does its own retrying
   CHECK(r.h.app.wake_at() == 0);

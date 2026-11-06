@@ -56,6 +56,44 @@ void streams_stop_and_reopen() {
   device.close();
 }
 
+// Counts what the engine asks of the real device.
+class Counting final : public AudioDevice {
+ public:
+  std::expected<std::uint32_t, DeviceError> open(Renderer& r) override { return real.open(r); }
+  bool start() override {
+    ++starts;
+    return real.start();
+  }
+  void stop() override {
+    ++stops;
+    real.stop();
+  }
+  void close() override { real.close(); }
+  void set_on_changed(std::function<void()> changed) override { real.set_on_changed(std::move(changed)); }
+  WasapiDevice real;
+  std::atomic<int> starts{0}, stops{0};
+};
+
+void the_engine_stops_the_stream_when_quiet() {
+  {
+    WasapiDevice probe;
+    Silence silence;
+    if (!probe.open(silence)) return;
+  }
+  Counting device;
+  Engine engine(device, CRPP_SOUNDS_DIR);
+  Settings settings;
+  settings.volume = 1;  // about -80 dB: the whole path runs, nothing is audible
+  engine.set_settings(settings);
+  engine.start();
+  engine.play_peer(1, crpp::wire::Kind::KeySpace);
+  for (int i = 0; i < 100 && device.starts == 0; ++i) std::this_thread::sleep_for(10ms);
+  CHECK(device.starts == 1);
+  for (int i = 0; i < 1000 && device.stops == 0; ++i) std::this_thread::sleep_for(10ms);
+  CHECK(device.stops == 1);
+  engine.stop();
+}
+
 void not_opened_means_not_started() {
   WasapiDevice device;
   CHECK(!device.start());
@@ -68,5 +106,6 @@ void not_opened_means_not_started() {
 int main() {
   not_opened_means_not_started();
   streams_stop_and_reopen();
+  the_engine_stops_the_stream_when_quiet();
   return crpp_test_result();
 }

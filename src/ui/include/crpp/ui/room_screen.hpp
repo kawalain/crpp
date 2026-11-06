@@ -8,7 +8,9 @@
 #include <vector>
 
 #include "crpp/ui/chat_panel.hpp"
+#include "crpp/ui/controls.hpp"
 #include "crpp/ui/surface.hpp"
+#include "crpp/ui/tip.hpp"
 
 namespace crpp::ui {
 
@@ -17,6 +19,7 @@ struct MemberView {
   std::string nick;
   std::string emoji;  // Twemoji file id; empty = the default droplet
   bool offline = false;
+  std::string cid;  // identifies them across reconnects
 };
 
 class RoomScreen final : public Surface {
@@ -29,7 +32,11 @@ class RoomScreen final : public Surface {
   std::function<void(bool)> on_set_chat;
   std::function<void(int percent)> on_volume;
   std::function<void(bool)> on_mute;
-  std::function<void(std::string)> on_copy;
+  // False if the clipboard refused it.
+  std::function<bool(std::string)> on_copy;
+
+  // Hit ids tests click by.
+  enum Id : int { Leave, Mute, More, OptCode, OptPublic, OptChat, VolumeSlider, Popup, MemberBase = 1000 };
 
   [[nodiscard]] ChatPanel& chat() { return chat_panel_; }
 
@@ -53,12 +60,16 @@ class RoomScreen final : public Surface {
   void drag(float x, float y) override;
   bool wheel(float x, float y, float delta) override;
   [[nodiscard]] Cursor cursor(int id) const override;
-  [[nodiscard]] bool animating() const override { return !pulses_.empty(); }
+  [[nodiscard]] bool animating() const override;
   bool tick(unsigned long long now_ms) override;
+  [[nodiscard]] unsigned long long wake_at() const override;
+
+  // What the hover or the last copy shows now, for tests.
+  [[nodiscard]] const HoverTip& hover_tip() const { return tip_; }
+  [[nodiscard]] const HoverTip& copy_tip() const { return copy_tip_; }
+  [[nodiscard]] float members_offset() const { return members_scroll_.offset; }
 
  private:
-  // Fixed values plus MemberBase + slot.
-  enum Id : int { Leave, Mute, More, OptCode, OptPublic, OptChat, VolumeSlider, Popup, MemberBase = 1000 };
   struct Layout {
     float members_x, members_y, members_h;  // window coordinates
     bool single_column;
@@ -69,6 +80,11 @@ class RoomScreen final : public Surface {
   void paint_controls(Painter& p);
   void paint_options_popup(Painter& p);
   void paint_mute_popup(Painter& p);
+  void paint_members(Painter& p, const Layout& l);
+  void paint_tips(Painter& p);
+  // A hovered thing's label, if it has one.
+  [[nodiscard]] std::optional<HoverTip::Spec> tip_for_hover() const;
+  void copy_code();
   void set_volume_from(float x);
   [[nodiscard]] bool is_host() const { return host_ && *host_ == me_; }
   [[nodiscard]] bool speaking(std::uint32_t slot) const;
@@ -86,6 +102,14 @@ class RoomScreen final : public Surface {
   int volume_ = 30;
   Rect volume_track_;
   std::vector<std::pair<std::uint32_t, unsigned long long>> pulses_;  // slot, expiry (ms)
+  Scroll members_scroll_;
+  Rect members_area_;  // window coordinates
+  // Where the labelled things were last drawn, window coordinates.
+  Rect fab_rects_[3], code_rect_;
+  std::vector<std::pair<std::uint32_t, Rect>> member_rects_;
+  HoverTip tip_, copy_tip_;
+  std::string copy_text_;
+  unsigned long long copy_until_ = 0, hint_muted_until_ = 0;
 };
 
 }  // namespace crpp::ui

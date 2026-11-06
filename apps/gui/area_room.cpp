@@ -10,18 +10,21 @@ namespace crpp::gui::area::room {
 
 namespace {
 
-void copy_to_clipboard(HWND hwnd, const std::string& text) {
+bool copy_to_clipboard(HWND hwnd, const std::string& text) {
   const std::wstring w = widen(text);
-  if (!OpenClipboard(hwnd)) return;
+  if (!OpenClipboard(hwnd)) return false;
+  bool copied = false;
   if (HGLOBAL mem = GlobalAlloc(GMEM_MOVEABLE, (w.size() + 1) * sizeof(wchar_t))) {
     auto* dst = static_cast<wchar_t*>(GlobalLock(mem));
     std::copy(w.begin(), w.end(), dst);
     dst[w.size()] = L'\0';
     GlobalUnlock(mem);
     EmptyClipboard();
-    if (!SetClipboardData(CF_UNICODETEXT, mem)) GlobalFree(mem);
+    copied = SetClipboardData(CF_UNICODETEXT, mem) != nullptr;
+    if (!copied) GlobalFree(mem);
   }
   CloseClipboard();
+  return copied;
 }
 
 void demo_session(App& app, bool chat) {
@@ -32,10 +35,10 @@ void demo_session(App& app, bool chat) {
     app.room().chat().add({0, "c0", "크롬이", "1f600", "같은 사람이 5분 안에 보낸 메시지는 묶여요.", now - 390000});
     app.room().chat().add({1, "c1", "하늘", "1f431", "반가워요 :)\n두 줄짜리 메시지도 잘 보이나요?", now - 120000});
   }
-  app.room().set_room({{0, "크롬이", "1f600", false},
-                       {1, "하늘", "1f431", false},
-                       {2, "구름빵", "1f436", false},
-                       {3, "졸린 곰", "1f43b", true}},
+  app.room().set_room({{0, "크롬이", "1f600", false, "c0"},
+                       {1, "하늘", "1f431", false, "c1"},
+                       {2, "구름빵", "1f436", false, "c2"},
+                       {3, "졸린 곰", "1f43b", true, "c3"}},
                       0, 0, false, chat);
 }
 
@@ -50,7 +53,7 @@ void wire(Shell& s) {
   s.app.room().on_set_public = [sp](bool v) { sp->client->set_visibility(v); };
   s.app.room().on_set_chat = [sp](bool v) { sp->client->set_chat_enabled(v); };
   s.app.room().chat().on_send = [sp](std::string text) { sp->client->send_chat(text); };
-  s.app.room().on_copy = [sp](std::string text) { copy_to_clipboard(sp->hwnd, text); };
+  s.app.room().on_copy = [sp](std::string text) { return copy_to_clipboard(sp->hwnd, text); };
 }
 
 bool scene(Shell& s, std::string_view name) {

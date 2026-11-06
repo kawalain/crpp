@@ -4,8 +4,6 @@
 
 #include <algorithm>
 
-#include "crpp/ui/controls.hpp"
-
 namespace crpp::ui {
 
 namespace {
@@ -56,9 +54,11 @@ void RoomScreen::enter_room(std::string room_code) {
 
 void RoomScreen::reset() {
   members_.clear();
+  members_scroll_ = {};
   chat_panel_.clear();
   options_open_ = mute_popup_open_ = false;
   pulses_.clear();
+  copy_until_ = hint_muted_until_ = 0;
 }
 
 void RoomScreen::set_room(std::vector<MemberView> members, std::uint32_t me, std::optional<std::uint32_t> host,
@@ -88,10 +88,33 @@ bool RoomScreen::speaking(std::uint32_t slot) const {
   return false;
 }
 
+bool RoomScreen::animating() const {
+  return !pulses_.empty() || tip_.animating(ui_) || copy_tip_.animating(ui_);
+}
+
 bool RoomScreen::tick(unsigned long long now_ms) {
   const auto before = pulses_.size();
   std::erase_if(pulses_, [&](const auto& p) { return p.second <= now_ms; });
-  return pulses_.size() != before;
+  bool changed = pulses_.size() != before;
+  if (tip_.animating(ui_) || copy_tip_.animating(ui_)) changed = true;
+  // A waiting copy tip or muted hint: one repaint when its time comes.
+  if (copy_until_ != 0 && now_ms >= copy_until_) {
+    copy_until_ = 0;
+    changed = true;
+  }
+  if (hint_muted_until_ != 0 && now_ms >= hint_muted_until_) {
+    hint_muted_until_ = 0;
+    changed = true;
+  }
+  return changed;
+}
+
+unsigned long long RoomScreen::wake_at() const {
+  unsigned long long at = 0;
+  for (const auto wake : {copy_until_, hint_muted_until_}) {
+    if (wake != 0 && (at == 0 || wake < at)) at = wake;
+  }
+  return at;
 }
 
 // Where the member list goes (main.js layoutSession). The area follows the
@@ -123,19 +146,58 @@ void RoomScreen::paint(Painter& p) {
   // Members live in window pixels, not stage pixels.
   const Layout l = layout();
   p.set_base(D2D1::Matrix3x2F::Identity());
+  paint_members(p, l);
+
+  if (chat_) chat_panel_.paint(p, l.chat);
+  if (controls_shown_) paint_controls(p);
+  paint_tips(p);
+}
+
+void RoomScreen::paint_members(Painter& p, const Layout& l) {
+  const Theme& t = ui_.theme;
   const float col_w = l.single_column ? 227.0f : 274.0f;
   const int cols = l.single_column ? 1 : 2;
   const int n = static_cast<int>(members_.size());
   const int rows = (n + cols - 1) / cols;
-  const float pad = (l.members_h - static_cast<float>(std::min(rows, 8)) * 49) / 2;
+  const float pad = std::max(0.0f, (l.members_h - static_cast<float>(std::min(rows, 8)) * 49) / 2);
   const float area_w = static_cast<float>(cols) * col_w + static_cast<float>(cols - 1) * 24;
-  p.rt()->PushAxisAlignedClip(D2D1::RectF(l.members_x, l.members_y, l.members_x + area_w, l.members_y + l.members_h),
-                              D2D1_ANTIALIAS_MODE_PER_PRIMITIVE);
+  members_area_ = {l.members_x, l.members_y, area_w, l.members_h};
+  members_scroll_.view_h = l.members_h;
+  members_scroll_.content_h = 2 * pad + static_cast<float>(rows) * 49;
+  members_scroll_.clamp();
+
+  const D2D1_RECT_F bounds = D2D1::RectF(members_area_.x, members_area_.y, members_area_.right(), members_area_.bottom());
+  p.rt()->PushAxisAlignedClip(bounds, D2D1_ANTIALIAS_MODE_PER_PRIMITIVE);
+  // Whatever is cut off fades out over 27 px (.scroll-area's mask).
+  ComPtr<ID2D1Layer> layer;
+  ComPtr<ID2D1LinearGradientBrush> mask;
+  if (members_scroll_.max_offset() > 0) {
+    const float edge = 27 / l.members_h;
+    const float top_alpha = members_scroll_.offset > 0 ? 0.0f : 1.0f;
+    const float bottom_alpha = members_scroll_.offset < members_scroll_.max_offset() ? 0.0f : 1.0f;
+    const auto stop = [](float at, float alpha) { return D2D1::GradientStop(at, D2D1::ColorF(0, 0, 0, alpha)); };
+    const D2D1_GRADIENT_STOP stops[4] = {stop(0, top_alpha), stop(edge, 1), stop(1 - edge, 1), stop(1, bottom_alpha)};
+    ComPtr<ID2D1GradientStopCollection> collection;
+    if (SUCCEEDED(p.rt()->CreateGradientStopCollection(stops, 4, collection.put())) &&
+        SUCCEEDED(p.rt()->CreateLinearGradientBrush(
+            D2D1::LinearGradientBrushProperties(D2D1::Point2F(0, members_area_.y), D2D1::Point2F(0, members_area_.bottom())),
+            collection.get(), mask.put())) &&
+        SUCCEEDED(p.rt()->CreateLayer(nullptr, layer.put()))) {
+      p.rt()->PushLayer(D2D1::LayerParameters(bounds, nullptr, D2D1_ANTIALIAS_MODE_PER_PRIMITIVE,
+                                              D2D1::IdentityMatrix(), 1.0f, mask.get()),
+                        layer.get());
+    } else {
+      layer.reset();
+    }
+  }
+  ui_.push_hit_clip(members_area_);
+  member_rects_.clear();
   for (int i = 0; i < n; ++i) {
     const MemberView& m = members_[static_cast<std::size_t>(i)];
     const int col = i % cols, row = i / cols;
     const float x = l.members_x + static_cast<float>(col) * (col_w + 24);
-    const float y = l.members_y + std::max(0.0f, pad) + static_cast<float>(row) * 49 + 1;
+    const float y = l.members_y + pad + static_cast<float>(row) * 49 + 1 - members_scroll_.offset;
+    if (y + 47 <= members_area_.y || y >= members_area_.bottom()) continue;
     const Rect box{x, y, col_w, 47};
     const int id = MemberBase + static_cast<int>(m.slot);
     if (ui_.hot(this, id)) p.fill_round(box, 14, with_alpha(t.hl, 0.2f));
@@ -147,11 +209,11 @@ void RoomScreen::paint(Painter& p) {
     p.text(m.nick.empty() ? "게스트" : m.nick, {x + 58, y + (47 - 26) / 2.0f, col_w - 58 - 12, 26},
            {.size = 21, .weight = 700, .line_height = 26, .ellipsis = true}, name);
     ui_.add_hit_window(this, box, id);
+    member_rects_.emplace_back(m.slot, box);
   }
+  ui_.pop_hit_clip();
+  if (layer) p.rt()->PopLayer();
   p.rt()->PopAxisAlignedClip();
-
-  if (chat_) chat_panel_.paint(p, l.chat);
-  if (controls_shown_) paint_controls(p);
 }
 
 void RoomScreen::paint_controls(Painter& p) {
@@ -164,6 +226,7 @@ void RoomScreen::paint_controls(Painter& p) {
   const Fab fabs[3] = {{18, Leave}, {ui_.width - 68 - fab_size, Mute}, {ui_.width - 18 - fab_size, More}};
   for (const Fab& f : fabs) {
     const Rect r{f.x, y, fab_size, fab_size};
+    fab_rects_[f.id == Leave ? 0 : f.id == Mute ? 1 : 2] = r;
     const bool hot = ui_.hot(this, f.id);
     const bool alarm = f.id == Mute && muted_;
     if (hot) p.push(scale_about(r.x + 21, r.y + 21, 1.08f));
@@ -226,6 +289,7 @@ void RoomScreen::paint_options_popup(Painter& p) {
   p.text(room_code_, code_rect, {.size = 20, .weight = 700, .line_height = 41, .align = Align::Right, .letter_spacing = 0.4f},
          ui_.hot(this, OptCode) ? t.hl_text_dark : t.hl_text);
   ui_.add_hit_window(this, code_rect, OptCode);
+  code_rect_ = code_rect;
   y += 41 + 5;
   p.fill_round({r.x + 25, y, w - 50, 2}, 1, t.hl_pale2);
   y += 2 + 5;
@@ -256,9 +320,70 @@ void RoomScreen::paint_mute_popup(Painter& p) {
   ui_.add_hit_window(this, volume_track_, VolumeSlider);
 }
 
+std::optional<HoverTip::Spec> RoomScreen::tip_for_hover() const {
+  if (ui_.hover_owner != this) return std::nullopt;
+  const int id = ui_.hover_id;
+  HoverTip::Spec spec;
+  if (id == Leave && controls_shown_) {
+    spec.text = "구름에서 떠나기";
+    spec.anchor = fab_rects_[0];
+    spec.place = HoverTip::Place::Left;
+  } else if (id == Mute && controls_shown_ && !mute_popup_open_) {
+    spec.text = muted_ ? "음소거 해제" : "음소거";
+    spec.anchor = fab_rects_[1];
+  } else if (id == More && controls_shown_ && !options_open_) {
+    spec.text = "더보기";
+    spec.anchor = fab_rects_[2];
+    spec.place = HoverTip::Place::Right;
+  } else if (id == OptCode && options_open_ && hint_muted_until_ == 0) {
+    spec.text = "클릭해 복사";
+    spec.anchor = code_rect_;
+    spec.place = HoverTip::Place::Right;
+  } else if (id >= MemberBase) {
+    const auto slot = static_cast<std::uint32_t>(id - MemberBase);
+    const auto member = std::ranges::find(members_, slot, &MemberView::slot);
+    const auto rect = std::ranges::find(member_rects_, slot, [](const auto& r) { return r.first; });
+    if (member == members_.end() || rect == member_rects_.end()) return std::nullopt;
+    if (host_ && *host_ == slot) spec.text = "이 구름의 호스트에요.";
+    if (member->offline) spec.text += spec.text.empty() ? "오프라인" : " · 오프라인";
+    if (spec.text.empty()) return std::nullopt;
+    // .member > .tip: 6 from the left, its bottom 2 inside the row.
+    spec.anchor = {rect->second.x + 6, rect->second.y, rect->second.w, rect->second.h};
+    spec.place = HoverTip::Place::Left;
+    spec.size = 15;
+    spec.gap = -2;
+  } else {
+    return std::nullopt;
+  }
+  return spec;
+}
+
+void RoomScreen::paint_tips(Painter& p) {
+  const auto want = tip_for_hover();
+  tip_.paint(ui_, p, want ? &*want : nullptr);
+  HoverTip::Spec copied;
+  const bool copying = options_open_ && copy_until_ != 0;
+  if (copying) {
+    copied.text = copy_text_;
+    copied.anchor = code_rect_;
+    copied.place = HoverTip::Place::Right;
+    copied.out_ms = 350;
+  }
+  copy_tip_.paint(ui_, p, copying ? &copied : nullptr);
+}
+
 void RoomScreen::set_volume_from(float x) {
   volume_ = slider_value(volume_track_, x, 0, 100);
   if (on_volume) on_volume(volume_);
+}
+
+void RoomScreen::copy_code() {
+  const bool copied = on_copy && on_copy(room_code_);
+  copy_text_ = copied ? "복사 완료 !" : "복사 실패";
+  const auto now = GetTickCount64();
+  copy_until_ = now + 1000;
+  // Right after copying the hint stays away, even under the cursor.
+  hint_muted_until_ = now + 5000;
 }
 
 void RoomScreen::before_click(const Surface* owner, int id) {
@@ -284,7 +409,7 @@ void RoomScreen::click(int id, float x, float, bool) {
       if (on_mute) on_mute(muted_);
       break;
     case OptCode:
-      if (on_copy) on_copy(room_code_);
+      copy_code();
       break;
     case OptPublic:
       if (is_host() && on_set_public) on_set_public(!public_);
@@ -311,7 +436,12 @@ bool RoomScreen::right_click(int id, float, float) {
 
 void RoomScreen::drag(float x, float) { set_volume_from(x); }
 
-bool RoomScreen::wheel(float x, float y, float delta) { return chat_ && chat_panel_.wheel(x, y, delta); }
+bool RoomScreen::wheel(float x, float y, float delta) {
+  if (chat_ && chat_panel_.wheel(x, y, delta)) return true;
+  if (!members_area_.contains(x, y) || members_scroll_.max_offset() <= 0) return false;
+  members_scroll_.wheel(delta);
+  return true;
+}
 
 Cursor RoomScreen::cursor(int id) const { return id == Popup ? Cursor::Arrow : Cursor::Hand; }
 

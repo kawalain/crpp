@@ -86,10 +86,14 @@ void balance_controls_the_lean() {
   const SeatMix none = seat_mix(4, rate, {true, 0});
   CHECK(std::abs(none.left - none.right) < 1e-5f);
   CHECK(none.delay_left == 0 && none.delay_right == 0);
-  const SeatMix full = seat_mix(4, rate, {true, 100});
+  const SeatMix full = seat_mix(4, rate, {true, 90});
   // A seat straight to the side would be 90:10; this one is a little off axis.
   CHECK(full.left / full.right > 3);
   CHECK(full.left / full.right < 9.01f);
+  // What the slider's label says, at its default.
+  const SeatMix label = seat_mix(4, rate, {true, 60});
+  CHECK(label.left / label.right > 1.3f);
+  CHECK(label.left / label.right < 1.51f);
 }
 
 void without_spatial_audio_everything_is_centred() {

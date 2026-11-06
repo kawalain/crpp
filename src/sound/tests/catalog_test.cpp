@@ -96,6 +96,25 @@ void a_missing_folder_is_empty() {
   CHECK(!catalog.pick(Kind::KeySpace, "plastic", random));
 }
 
+void choices_have_the_names_in_pack_json() {
+  const Catalog catalog = Catalog::scan(CRPP_SOUNDS_DIR);
+  const auto keyboard = catalog.choices(Device::Keyboard);
+  CHECK(keyboard.size() == 3);
+  CHECK(keyboard[0].id == "plastic" && keyboard[0].name == "\xED\x94\x8C\xEB\x9D\xBC\xEC\x8A\xA4\xED\x8B\xB1");
+  CHECK(keyboard[2].id == "walnut");
+  const auto pen = catalog.choices(Device::Pen);
+  CHECK(pen.size() == 1 && pen[0].id == "paper");
+}
+
+void notification_files_are_found_with_or_without_the_number() {
+  const std::filesystem::path root(CRPP_SOUNDS_DIR);
+  CHECK(notification_file(root, "cloud_chat")->filename() == "01_cloud_chat.wav");
+  CHECK(notification_file(root, "01_cloud_chat")->filename() == "01_cloud_chat.wav");
+  CHECK(notification_file(root, "02_cloud_enter")->filename() == "02_cloud_enter.wav");
+  CHECK(!notification_file(root, "none"));
+  CHECK(!notification_file(root / "none", "cloud_chat"));
+}
+
 }  // namespace
 
 int main() {
@@ -108,5 +127,7 @@ int main() {
   missing_sounds_stay_silent();
   an_unknown_pack_means_the_default();
   a_missing_folder_is_empty();
+  choices_have_the_names_in_pack_json();
+  notification_files_are_found_with_or_without_the_number();
   return crpp_test_result();
 }

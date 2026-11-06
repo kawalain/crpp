@@ -16,6 +16,7 @@ crpp_sound_test(pcm)
 crpp_sound_test(catalog)
 crpp_sound_test(mixer)
 crpp_sound_test(engine)
+crpp_sound_test(idle)
 
 if(WIN32)
   add_library(crpp_sound_wasapi STATIC wasapi_device.cpp)

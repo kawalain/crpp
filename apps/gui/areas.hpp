@@ -35,6 +35,7 @@ void wire(Shell& s);
 }  // namespace room
 
 namespace sound {  // the sound tab and everything it changes in the engine
+struct State;
 void wire(Shell& s);
 [[nodiscard]] bool scene(Shell& s, std::string_view name);
 // A setting under this area's keys changed.
@@ -43,9 +44,15 @@ void pref_changed(Shell& s, std::string_view key);
 // reconnects.
 void set_member_volume(Shell& s, std::string_view cid, int percent);
 void set_member_muted(Shell& s, std::string_view cid, bool muted);
+// What the member menu shows; muted is 0.
+[[nodiscard]] int member_volume(Shell& s, std::string_view cid);
 // A notification sound by its file name stem ("01_cloud_chat"). Honors nothing but
 // the mute settings: whether this sound is enabled is the caller's question.
 void play_notification(Shell& s, std::string_view name);
+// The notification tab's "미리 듣기": plays even while muted.
+void preview_notification(Shell& s, std::string_view name);
+// The user pressed something, which ends being away.
+void own_input(Shell& s);
 }  // namespace sound
 
 namespace preferences {  // display, notification and system tabs

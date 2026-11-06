@@ -24,7 +24,9 @@ struct SeatMix {
 
 struct SpatialConfig {
   bool spatial = true;
-  int balance = 60;  // 0 = no leaning to a side, 100 = at most 90:10
+  // The louder ear's share of a seat straight to one side, in percent: 60 is the
+  // slider's "60:40". 50 or less does not lean; 0 also drops the other side cues.
+  int balance = 60;
 };
 
 // Where a sound of this member plays from. Without spatial audio, the middle.

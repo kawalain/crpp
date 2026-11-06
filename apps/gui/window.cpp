@@ -136,6 +136,7 @@ LRESULT CALLBACK wnd_proc(HWND hwnd, UINT msg, WPARAM wp, LPARAM lp) {
       return 0;
     case wm_own_input:
       s->input_sink.pulse_taken();
+      area::sound::own_input(*s);
       s->app.room().pulse_me();
       InvalidateRect(hwnd, nullptr, FALSE);
       sync_frames(*s);

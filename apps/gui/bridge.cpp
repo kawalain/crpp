@@ -84,20 +84,23 @@ void Bridge::on_deliver(const wire::ServerMessage& m) {
   my_slot_.store(me, std::memory_order_relaxed);
   std::vector<MemberView> members;
   std::vector<sound::Member> sounds;
+  std::vector<MemberIds> ids;
   for (const auto& info : room->members) {
     members.push_back({info.slot, std::string(info.nick), info.emoji ? std::string(*info.emoji) : std::string{},
                        info.offline, std::string(info.cid)});
     sounds.push_back({info.slot, std::string(info.key.value_or("")), std::string(info.mouse.value_or("")),
-                      std::string(info.pen.value_or(""))});
+                      std::string(info.pen.value_or("")), std::string(info.cid)});
+    ids.push_back({std::string(info.cid), std::string(info.uid.value_or(""))});
   }
   engine_.set_members(std::move(sounds));
   const auto host = room->host;
   const bool is_public = room->is_public, chat = room->chat;
   const std::uint64_t chat_lock = room->chat_lock.value_or(0);
-  tasks_.post([=, this, members = std::move(members), code = std::move(code)]() mutable {
+  tasks_.post([=, this, members = std::move(members), ids = std::move(ids), code = std::move(code)]() mutable {
     me_ = me;
     is_public_ = is_public;
     if (!code.empty()) enter(code);
+    if (on_member_ids) on_member_ids(ids);
     if (on_members) on_members(members);
     app_.room().set_room(std::move(members), me, host, is_public, chat, chat_lock);
   });

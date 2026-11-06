@@ -53,10 +53,11 @@ SeatMix seat_mix(std::size_t seat, std::uint32_t rate, const SpatialConfig& conf
   const double side = distance > 0 ? x / distance : 0;  // -1 left, +1 right
   const double theta = std::asin(std::abs(side));
 
-  // Leaning: at balance 100 and straight to one side, the amplitudes are 90:10.
-  const double extent = std::clamp(config.balance, 0, 100) / 100.0;
-  const double full_lean = 2 / std::numbers::pi * std::atan(9.0);
-  const double pan = 0.5 + 0.5 * side * extent * (2 * full_lean - 1);
+  // Leaning: straight to one side, the two amplitudes are balance : 100 - balance.
+  const int balance = std::clamp(config.balance, 0, 100);
+  const double extent = balance / 100.0;
+  const double full_lean = balance > 50 ? 2 / std::numbers::pi * std::atan2(balance, 100 - balance) : 0.5;
+  const double pan = 0.5 + 0.5 * side * (2 * full_lean - 1);
   const double angle = pan * std::numbers::pi / 2;
   const double distance_gain = 1 / (1 + (std::max(distance, 1.0) - 1) * distance_rolloff);
 

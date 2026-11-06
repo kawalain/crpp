@@ -207,6 +207,8 @@ bool SettingsPanel::escape() {
   return true;
 }
 
+bool SettingsPanel::animating() const { return open_ && const_cast<SettingsPanel*>(this)->tab().animating(); }
+
 Cursor SettingsPanel::cursor(int id) const { return id == Overlay ? Cursor::Arrow : Cursor::Hand; }
 
 }  // namespace crpp::ui

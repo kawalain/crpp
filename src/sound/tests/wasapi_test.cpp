@@ -69,6 +69,7 @@ class Counting final : public AudioDevice {
     real.stop();
   }
   void close() override { real.close(); }
+  void select(std::string_view id) override { real.select(id); }
   void set_on_changed(std::function<void()> changed) override { real.set_on_changed(std::move(changed)); }
   WasapiDevice real;
   std::atomic<int> starts{0}, stops{0};
@@ -101,11 +102,37 @@ void not_opened_means_not_started() {
   device.close();
 }
 
+// Opens but never starts a stream, so nothing is rendered.
+void every_listed_device_opens_and_a_missing_one_falls_back() {
+  OutputDevices devices;
+  devices.watch([] {});
+  const auto list = devices.list();
+  Silence silence;
+  WasapiDevice device;
+  const auto by_default = device.open(silence);
+  CHECK(list.empty() == !by_default.has_value());
+  device.close();
+  for (const OutputDevice& output : list) {
+    CHECK(!output.id.empty() && !output.name.empty());
+    device.select(output.id);
+    if (!device.open(silence)) std::printf("%s could not be opened\n", output.name.c_str());
+    device.close();
+  }
+  if (!by_default) return;
+  device.select("{0.0.0.00000000}.{no-such-device}");
+  CHECK(device.open(silence).has_value());
+  device.close();
+  device.select("");
+  CHECK(device.open(silence).has_value());
+  device.close();
+}
+
 }  // namespace
 
 int main() {
   not_opened_means_not_started();
   streams_stop_and_reopen();
   the_engine_stops_the_stream_when_quiet();
+  every_listed_device_opens_and_a_missing_one_falls_back();
   return crpp_test_result();
 }

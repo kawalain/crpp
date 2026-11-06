@@ -37,6 +37,8 @@ const char* name(session::Failure f) {
     case session::Failure::RoomGone: return "RoomGone";
     case session::Failure::ServerError: return "ServerError";
     case session::Failure::InvalidArgument: return "InvalidArgument";
+    case session::Failure::RoomClosed: return "RoomClosed";
+    case session::Failure::GraceExpired: return "GraceExpired";
   }
   return "?";
 }
@@ -158,7 +160,7 @@ client::Config config_for(const mock::Server& server, std::string token = {}) {
   c.server_url = "http://127.0.0.1:" + std::to_string(server.port());
   c.nickname = "bob";
   c.token = std::move(token);
-  c.timing.reconnect_delay = 200ms;
+  c.timing.reconnect_first = 200ms;
   return c;
 }
 
@@ -198,6 +200,33 @@ void join_chat_and_leave() {
   CHECK(rec.wait_for("status:Idle"));
   const std::vector<std::string> expected{"Connecting", "Joining", "InRoom", "Leaving", "Idle"};
   CHECK(rec.statuses() == expected);
+  client.stop();
+}
+
+void a_new_nickname_is_used_by_the_next_connection() {
+  Seen seen;
+  std::atomic<int> n{0};
+  std::mutex m;
+  std::string line;
+  const auto room = room_script(seen, n, false);
+  mock::Server server([&](mock::Conn& c) {
+    {
+      std::lock_guard lock(m);
+      line = c.request_line();
+    }
+    room(c);
+  });
+  Recorder rec;
+  transport::WinHttpTransport transport;
+  client::Client client(transport, config_for(server), rec);
+  client.start();
+  client.set_nick("alice");
+  client.create(false, false);
+  CHECK(rec.wait_for("status:InRoom"));
+  {
+    std::lock_guard lock(m);
+    CHECK(line.find("nick=alice") != std::string::npos);
+  }
   client.stop();
 }
 
@@ -281,6 +310,7 @@ void stop_is_prompt_even_while_connecting() {
 
 int main() {
   join_chat_and_leave();
+  a_new_nickname_is_used_by_the_next_connection();
   reconnects_with_the_held_seat();
   unauthorized_token();
   unusable_server_url();

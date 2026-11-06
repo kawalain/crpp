@@ -59,11 +59,63 @@ and developer communities, not from memory.
 
 ## Roadmap
 
-1. Reconnect backoff (see `session` below; the code still waits a fixed 3 s).
-2. Settings screen, the rest of the room screen, the return-to-Seat dialog.
-3. Pen input, as its own step.
-4. Accounts and the HTTP API.
-5. CI, Releases and `update`.
+The goal is every user-visible interface of upstream's `client/` on Windows.
+macOS-only UI, `installer/` and developer-build tools are out of scope for now.
+
+0. Foundation: one file per screen, shared controls, dialogs, toasts, settings keys.
+1. Feedback and reconnect: failure reasons, offline popup.
+2. The rest of the room and home screens: dialogs, profile card, member menu,
+   emoji picker, public room search, return-to-Seat dialog.
+3. Settings: sound, display, notification and system tabs, and the guest part of
+   the account tab. Pen volume and pack controls are built but stay hidden.
+4. OS integration: tray, chat notifications, taskbar flash, autostart, reopening
+   the running instance.
+5. Accounts: HTTP API, first-run flow, handle change, logout.
+6. CI, Releases, `update`, update popup, changelog viewer.
+7. Pen input, as its own step, verified on a real device.
+
+Steps 1-6 run as parallel subagents after step 0; the numbers are the merge order.
+Pull requests are disabled on this repository: each subagent commits to its own
+worktree branch, and the main agent merges it into `main` with `--no-ff` after a
+full build and test run.
+
+Done means: state logic has CTest coverage, `--shot` output has been compared
+with upstream by eye (pixel equality is not required), a scripted run passes on a
+hidden desktop, and idle memory and CPU have been measured.
+
+Scripted runs and tests stay off the network or use a scripted localhost server, and
+never reach production. Never create accounts on production. No part of this has run
+against a real `server/` yet; do that once a local build of it is available.
+
+## Differences from upstream
+
+- No input log. The advanced settings keep a diagnostic log without input data.
+- "키보드 문자열 구분" is replaced by the Detail mode toggle: the row of a key is
+  never sent (`docs/adr/0003-presence-mode-by-default.md`).
+- No "최소화 시 절전 모드" toggle: it switches a WebView2 memory mode. Render
+  resources are always released while the window is hidden.
+- Escape closes every dialog that has a cancel action.
+- Logging out inside a Room says it leaves the Room, then does so. Nickname and
+  handle can be changed without leaving.
+- The first-run prompt shows only to someone with no stored identity: a saved
+  nickname, Guest ID or token goes straight to Home, and an account's details are
+  refreshed in the background. Upstream waits for `api/me` before showing anything.
+- Logging out, or a rejected token, also erases the Guest ID, so the next start asks
+  again. A token refused on connecting leads to the sign-in prompt at once.
+- HTTP redirects are not followed, so a password never goes to another address.
+- The emoji picker from the account tab dims the whole window, not only the settings
+  panel, so the droplet is not usable under it.
+- The first time the window hides to the tray while in a Room, a notification says
+  the Room is still connected, because input timing keeps being shared.
+- Reachability is not polled in the background. `GET /health` runs at startup, after a
+  connection that failed without reaching the server, and every 5 s while the offline
+  popup is up. A server lost while on Home shows at the next attempt.
+- Reconnecting backs off and gives up at the server's grace instead of retrying every
+  3 s forever; it does not ask `/health` first. A connection error names no reason in
+  parentheses, because the transport reports none.
+- A Room that cannot be resumed at startup says so; upstream returns to Home silently.
+- The changelog comes from GitHub release notes, so an empty one says it could not be
+  loaded, and a first run ever does not open it.
 
 ## Build
 
@@ -76,7 +128,13 @@ MSVC needs a developer environment (vcvars); `cl` is not on PATH by default.
 Run GCC-built tests from PowerShell: Git Bash's PATH finds another
 `libstdc++-6.dll` first and they die with `0xc0000139`.
 
-`crpp --data <dir>` keeps a run's data out of the user's folders. An exe with an
+Options are read from the end of the command line: `crpp --shot <png> <size> <ms> <scene>
+--data <dir>`. Put first, `--data` is ignored and the real app opens on the user's desktop
+with their data.
+
+`crpp --data <dir>` keeps a run's data out of the user's folders, and with no
+`serverUrl` in it skips the startup `/health`, so scripted runs stay off the default
+server; seed `serverUrl` in its `crpp/settings.json` to test the offline popup. An exe with an
 `assets/` folder beside it, as every build has, runs from that folder; copy the
 exe elsewhere to test fetching, with `--asset-url` for a local server.
 
@@ -115,9 +173,21 @@ exist (real + test).
 - `assets`: fetch and verify files against the manifest CMake builds into the
   exe, pinned to the commit that last changed `assets/`. That commit must be on
   GitHub before a release can install. `Platform` is the seam for WinHTTP and BCrypt.
+- `api`: the account HTTP API as pure requests and responses, and `Flow`, the
+  prompt's steps. `HttpClient` is the seam for WinHTTP; `Worker` keeps its blocking
+  calls off the UI thread. `apps/gui/account_controller` joins it to `ui`.
 - `update`: version check, download, signature and SHA-256 (BCrypt) verify,
-  self-replace.
-- `ui`: view-model driven native rendering; redraw on demand only. Per-Monitor
+  self-replace, Markdown of the release notes. Only official builds with a real key go
+  online. Key: `docs/signing-key.md`. Releasing: `docs/releases/README.md`. To try the
+  flow, build with `-DCRPP_UPDATE_TEST_KEY=<hex>` and run with `--update-url`; never
+  start an official build in a test, as it asks GitHub.
+- `ui`: every part of the screen is a `Surface` with its own file, hit ids, state
+  and callbacks; `App` only routes input through the layers on screen. `controls.hpp`
+  has the shared controls, `Dialogs` the modal question, `Toasts` the messages that
+  expire, `Prefs` the typed settings keys. `src/ui/tests/ui_harness.hpp` drives an
+  `App` without a window. `apps/gui/area_*.cpp` is the shell's side of each feature:
+  wiring, `--shot` scenes, and reactions to changed settings.
+  Native rendering; redraw on demand only. Per-Monitor
   v2, set by manifest: `App` works entirely in DIPs and the render target's DPI
   maps them, so only the shell in `apps/gui` converts pixels. The saved window
   size is in DIPs. `--shot ... --dpi <n>` renders any scale. `WM_DPICHANGED`
@@ -153,9 +223,22 @@ exist (real + test).
 - Confirm Raw Input still reports while a game or an elevated window has focus.
 - IME composition and candidate windows at a scale above 100%: they get physical
   client pixels, which Microsoft's DPI pages do not state for the IME calls.
+- Output device changes (plug, unplug, default change) were never exercised on real
+  hardware: only listing and opening every device is. Nor has the idle mute run a
+  full idle period in a real Room. It ends on a key or click, not on mouse movement
+  alone: Raw Input only reports Input kinds.
 - The sound of spatial audio and reverb needs ears: run
   `crpp_soundtest assets/sounds`, which walks every seat.
+- Following the OS theme: `WM_SETTINGCHANGE` was only posted in a scripted run.
+  Flipping the real Windows setting and seeing the dark title bar are unverified.
+- The tray needs a real desktop: a hidden one has no taskbar, so the icon fails to
+  add and a close exits. Icon, menu, notifications, flash, the Run key and a second
+  start have only been tested as decisions, not seen.
 - Dead-peer detection (network cut) is untested.
 - Shared store compatibility is tested against upstream's format as read from
   its source, not yet against the upstream client itself.
+- Accounts are tested with a fake HTTP seam and a scripted localhost server, never
+  against a real `server/`.
 - Re-check C++26 status against WG21 primary records.
+- The workflows have never run. A first real release must also confirm GitHub's redirect
+  for release downloads through WinHTTP, and a replacement under real antivirus.

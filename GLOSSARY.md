@@ -16,7 +16,11 @@
 
 **Guest**: a member without an account. Identified only by a signed guest ID kept on their device.
 
-**Account**: an optional login (username and password) that adds a nickname and a unique handle.
+**Account**: an optional login (username and password) that adds a unique Handle.
+
+**Nickname** (별명): the name other members see. Every member has one, Guest or not, and can change it.
+
+**Handle** (사용자명): a unique `@name` that only an Account has.
 
 **Host**: the member who controls the Room's visibility and chat. When the Host leaves, another online member becomes Host.
 

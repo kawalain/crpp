@@ -53,6 +53,19 @@ void nickname_is_percent_encoded() {
   expect("http://h", "", false, "h", 80, "/ws?nick=", __LINE__);
 }
 
+void health_targets() {
+  const auto path = [](std::string_view url) {
+    const auto t = make_health_target(url);
+    return t ? t->path_and_query : std::string("(invalid)");
+  };
+  CHECK(path("https://cr.example.com/") == "/health");
+  CHECK(path("cr.example.com") == "/health");
+  CHECK(path("https://h:8443/base/path///") == "/base/path/health");
+  CHECK(path("ftp://h/") == "(invalid)");
+  const auto t = make_health_target("http://127.0.0.1:8008");
+  CHECK(t && !t->secure && t->host == "127.0.0.1" && t->port == 8008);
+}
+
 void invalid_targets() {
   expect_error("ftp://h/", TargetError::UnsupportedScheme, __LINE__);
   expect_error("ws://h/", TargetError::UnsupportedScheme, __LINE__);
@@ -75,5 +88,6 @@ int main() {
   valid_targets();
   nickname_is_percent_encoded();
   invalid_targets();
+  health_targets();
   return crpp_test_result();
 }

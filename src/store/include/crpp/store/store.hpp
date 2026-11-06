@@ -93,6 +93,8 @@ class Store {
   [[nodiscard]] std::string string_or(std::string_view key, std::string_view fallback) const;
   [[nodiscard]] std::int64_t i64_or(std::string_view key, std::int64_t fallback) const;
   [[nodiscard]] bool bool_or(std::string_view key, bool fallback) const;
+  // A value of another shape than those, or null if there is none.
+  [[nodiscard]] const Json* find(std::string_view key) const noexcept { return values_.find(key); }
   // Upstream rejects its whole file if one known key has the wrong type, so
   // keep to the types upstream uses for that key.
   void set(std::string_view key, Json value);
@@ -105,6 +107,7 @@ class Store {
   void forget_seat(std::string_view code);
   [[nodiscard]] std::optional<SeatReturn> find_seat(std::string_view code, std::int64_t now_ms) const;
   [[nodiscard]] std::optional<SeatReturn> latest_seat(std::int64_t now_ms) const;
+  void forget_all_seats() { store_seats({}); }
 
   // --- chat cache ---
   // Marks the Room as entered and returns its kept chat, oldest first.
@@ -112,6 +115,8 @@ class Store {
   void record_chat(std::string_view code, const ChatRecord& record);
   // The Room's chat expires chat_ttl_ms after this.
   void mark_left(std::string_view code, std::int64_t now_ms);
+  // Forgets every Room's chat, when the account signs out.
+  void clear_chat();
 
   // --- writing ---
   [[nodiscard]] bool has_unsaved() const noexcept { return plain_dirty_ || secret_dirty_ || session_dirty_ || chat_dirty_; }

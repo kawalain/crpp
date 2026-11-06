@@ -18,6 +18,10 @@ class FakeDevice final : public AudioDevice {
   std::atomic<std::uint32_t> rate{48000};
   std::atomic<bool> fail_open{false}, fail_start{false};
   std::atomic<int> opens{0}, closes{0}, starts{0}, stops{0};
+  std::string selected() {
+    std::lock_guard lock(mutex_);
+    return selected_;
+  }
 
   std::expected<std::uint32_t, DeviceError> open(Renderer& r) override {
     ++opens;
@@ -40,6 +44,10 @@ class FakeDevice final : public AudioDevice {
     ++closes;
     std::lock_guard lock(mutex_);
     renderer_ = nullptr;
+  }
+  void select(std::string_view device) override {
+    std::lock_guard lock(mutex_);
+    selected_ = std::string(device);
   }
   void set_on_changed(std::function<void()> changed) override {
     std::lock_guard lock(mutex_);
@@ -67,6 +75,7 @@ class FakeDevice final : public AudioDevice {
  private:
   std::mutex mutex_;
   Renderer* renderer_ = nullptr;
+  std::string selected_;
   std::function<void()> changed_;
   std::atomic<bool> running_{false};
 };
@@ -113,7 +122,7 @@ void a_peer_sounds_and_the_stream_stops_afterwards() {
   FakeDevice device;
   Engine engine(device, CRPP_SOUNDS_DIR);
   engine.set_settings(full_volume());
-  engine.set_members({{3, "walnut", "walnut", ""}});
+  engine.set_members({{3, "walnut", "walnut", "", ""}});
   engine.start();
   engine.play_peer(3, Kind::KeySpace);
   CHECK(eventually(device, [&] { return device.starts.load() == 1; }));
@@ -251,7 +260,7 @@ void a_burst_never_blocks_or_fails() {
   FakeDevice device;
   Engine engine(device, CRPP_SOUNDS_DIR);
   engine.set_settings(full_volume());
-  engine.set_members({{1, "", "", ""}, {2, "thocky", "", ""}});
+  engine.set_members({{1, "", "", "", ""}, {2, "thocky", "", "", ""}});
   engine.start();
   for (int i = 0; i < 5000; ++i) engine.play_peer(1 + static_cast<std::uint32_t>(i % 2), Kind::KeyAny);
   CHECK(eventually(device, [&] { return device.starts.load() >= 1; }));
@@ -273,6 +282,224 @@ void restarts_cleanly() {
   engine.stop();
 }
 
+void a_member_at_zero_is_silent_and_stays_so_across_reconnects() {
+  FakeDevice device;
+  Engine engine(device, CRPP_SOUNDS_DIR);
+  engine.set_settings(full_volume());
+  engine.set_members({{1, "", "", "", "cid-a"}, {2, "", "", "", "cid-b"}});
+  engine.set_member_volume("cid-a", 0);
+  engine.start();
+  engine.play_peer(1, Kind::KeySpace);
+  std::this_thread::sleep_for(100ms);
+  CHECK(device.opens == 0);
+  // Back with another slot, as after a reconnect.
+  engine.set_members({{5, "", "", "", "cid-a"}});
+  engine.play_peer(5, Kind::KeySpace);
+  std::this_thread::sleep_for(100ms);
+  CHECK(device.opens == 0);
+  engine.set_member_volume("cid-a", 100);
+  engine.play_peer(5, Kind::KeySpace);
+  CHECK(eventually(device, [&] { return device.starts.load() == 1; }));
+  engine.stop();
+}
+
+void a_member_volume_scales_only_that_member() {
+  const auto peak_at = [](int percent) {
+    FakeDevice device;
+    Engine engine(device, CRPP_SOUNDS_DIR);
+    Settings settings = full_volume();
+    settings.spatial = false;
+    engine.set_settings(settings);
+    engine.set_members({{1, "plastic", "", "", "cid-a"}});
+    engine.set_member_volume("cid-a", percent);
+    engine.set_member_volume("someone-else", 0);
+    engine.start();
+    engine.play_peer(1, Kind::KeySpace);
+    (void)eventually(device, [&] { return device.starts.load() == 1; });
+    const float peak = loudest(device);
+    engine.stop();
+    return peak;
+  };
+  const float full = peak_at(100), half = peak_at(50);
+  CHECK(full > 0.001f);
+  // The same curve as every other volume: a quarter of the amplitude.
+  CHECK(half > full * 0.2f && half < full * 0.3f);
+}
+
+void clearing_member_volumes_forgets_them() {
+  FakeDevice device;
+  Engine engine(device, CRPP_SOUNDS_DIR);
+  engine.set_settings(full_volume());
+  engine.set_members({{1, "", "", "", "cid-a"}});
+  engine.set_member_volume("cid-a", 0);
+  engine.clear_member_volumes();
+  engine.start();
+  engine.play_peer(1, Kind::KeySpace);
+  CHECK(eventually(device, [&] { return device.starts.load() == 1; }));
+  engine.stop();
+}
+
+void notifications_follow_the_mute_settings() {
+  FakeDevice device;
+  Engine engine(device, CRPP_SOUNDS_DIR);
+  Settings settings = full_volume();
+  settings.muted = true;
+  settings.mute_notifications = true;
+  engine.set_settings(settings);
+  engine.start();
+  engine.play_notification("01_cloud_chat");
+  std::this_thread::sleep_for(100ms);
+  CHECK(device.opens == 0);
+  settings = full_volume();
+  settings.idle_muted = true;
+  engine.set_settings(settings);
+  engine.play_notification("cloud_chat");
+  std::this_thread::sleep_for(100ms);
+  CHECK(device.opens == 0);
+  // Muted without the setting: notifications go on.
+  settings = full_volume();
+  settings.muted = true;
+  engine.set_settings(settings);
+  engine.play_notification("cloud_enter");
+  CHECK(eventually(device, [&] { return device.starts.load() == 1; }));
+  CHECK(loudest(device) > 0.001f);
+  engine.stop();
+}
+
+void previews_and_system_sounds_need_only_the_volume() {
+  FakeDevice device;
+  Engine engine(device, CRPP_SOUNDS_DIR);
+  Settings settings = full_volume();
+  settings.muted = true;
+  settings.mute_notifications = true;
+  settings.idle_muted = true;
+  engine.set_settings(settings);
+  engine.start();
+  engine.preview_notification("cloud_chat");
+  CHECK(eventually(device, [&] { return device.starts.load() == 1; }));
+  CHECK(eventually(device, [&] { return device.stops.load() == 1; }, 15s));
+  engine.play_system("mute");
+  CHECK(eventually(device, [&] { return device.starts.load() == 2; }));
+  CHECK(eventually(device, [&] { return device.stops.load() == 2; }, 15s));
+  settings.volume = 0;
+  engine.set_settings(settings);
+  engine.play_system("unmute");
+  engine.preview_notification("cloud_chat");
+  std::this_thread::sleep_for(100ms);
+  CHECK(device.starts == 2);
+  engine.stop();
+}
+
+void an_unknown_cue_is_silent() {
+  FakeDevice device;
+  Engine engine(device, CRPP_SOUNDS_DIR);
+  engine.set_settings(full_volume());
+  engine.start();
+  engine.play_notification("none");
+  std::this_thread::sleep_for(100ms);
+  CHECK(device.opens == 0);
+  engine.stop();
+}
+
+void idle_mute_silences_everyone_until_lifted() {
+  FakeDevice device;
+  Engine engine(device, CRPP_SOUNDS_DIR);
+  Settings settings = full_volume();
+  settings.listen_self = true;
+  settings.idle_muted = true;
+  engine.set_settings(settings);
+  engine.start();
+  engine.play_peer(1, Kind::KeySpace);
+  engine.play_own(Kind::KeySpace);
+  std::this_thread::sleep_for(100ms);
+  CHECK(device.opens == 0);
+  settings.idle_muted = false;
+  engine.set_settings(settings);
+  engine.play_peer(1, Kind::KeySpace);
+  CHECK(eventually(device, [&] { return device.starts.load() == 1; }));
+  engine.stop();
+}
+
+void picking_a_device_reopens_on_it() {
+  FakeDevice device;
+  Engine engine(device, CRPP_SOUNDS_DIR);
+  Settings settings = full_volume();
+  engine.set_settings(settings);
+  engine.start();
+  engine.play_peer(1, Kind::KeySpace);
+  CHECK(eventually(device, [&] { return device.starts.load() == 1; }));
+  settings.device = "speaker-2";
+  engine.set_settings(settings);
+  CHECK(eventually(device, [&] { return device.closes.load() == 1 && device.selected() == "speaker-2"; }));
+  CHECK(device.opens == 1);  // not until something plays
+  engine.play_peer(1, Kind::KeySpace);
+  CHECK(eventually(device, [&] { return device.opens.load() == 2 && device.starts.load() == 2; }));
+  // Changing anything else leaves the stream alone.
+  settings.volume = 50;
+  engine.set_settings(settings);
+  (void)loudest(device, 50ms);
+  CHECK(device.closes == 1);
+  engine.stop();
+}
+
+void a_checked_device_reports_failure() {
+  FakeDevice device;
+  device.fail_open = true;
+  Engine engine(device, CRPP_SOUNDS_DIR);
+  std::atomic<int> failures{0};
+  engine.set_on_open_failed([&] { ++failures; });
+  engine.set_settings(full_volume());
+  engine.start();
+  engine.check_device();
+  CHECK(eventually(device, [&] { return failures.load() == 1; }));
+  // A sound failing to open later is not reported as a bad choice.
+  engine.play_peer(1, Kind::KeySpace);
+  std::this_thread::sleep_for(50ms);
+  CHECK(failures == 1);
+  device.fail_open = false;
+  Settings settings = full_volume();
+  settings.device = "speaker-2";  // a new choice is tried at once, without the retry wait
+  engine.set_settings(settings);
+  engine.check_device();
+  CHECK(eventually(device, [&] { return device.opens.load() == 2; }));
+  CHECK(failures == 1);
+  CHECK(device.starts == 0);  // opened, but nothing to play
+  engine.stop();
+}
+
+// set_settings from another thread while sounds play and the device renders.
+void settings_may_change_at_any_time() {
+  FakeDevice device;
+  Engine engine(device, CRPP_SOUNDS_DIR);
+  engine.set_settings(full_volume());
+  engine.set_members({{1, "", "", "", "cid-a"}});
+  engine.start();
+  std::atomic<bool> done{false};
+  std::thread changer([&] {
+    Settings settings = full_volume();
+    for (int i = 0; !done && i < 2000; ++i) {
+      settings.volume = 1 + i % 100;
+      settings.spatial = i % 2 == 0;
+      settings.balance = 55 + i % 36;
+      settings.keyboard_pack = i % 3 == 0 ? "walnut" : "plastic";
+      engine.set_settings(settings);
+      engine.set_member_volume("cid-a", i % 101);
+      std::this_thread::sleep_for(1ms);
+    }
+  });
+  const auto end = std::chrono::steady_clock::now() + 300ms;
+  while (std::chrono::steady_clock::now() < end) {
+    engine.play_peer(1, Kind::KeySpace);
+    (void)device.pump(512);
+    std::this_thread::sleep_for(1ms);
+  }
+  done = true;
+  changer.join();
+  engine.stop();
+  CHECK(device.closes.load() >= 1);
+  CHECK(device.opens.load() >= 1);
+}
+
 }  // namespace
 
 int main() {
@@ -288,5 +515,15 @@ int main() {
   a_bad_folder_is_silent();
   a_burst_never_blocks_or_fails();
   restarts_cleanly();
+  a_member_at_zero_is_silent_and_stays_so_across_reconnects();
+  a_member_volume_scales_only_that_member();
+  clearing_member_volumes_forgets_them();
+  notifications_follow_the_mute_settings();
+  previews_and_system_sounds_need_only_the_volume();
+  an_unknown_cue_is_silent();
+  idle_mute_silences_everyone_until_lifted();
+  picking_a_device_reopens_on_it();
+  a_checked_device_reports_failure();
+  settings_may_change_at_any_time();
   return crpp_test_result();
 }

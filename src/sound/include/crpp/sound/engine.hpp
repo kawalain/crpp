@@ -48,6 +48,9 @@ class AudioDevice {
   [[nodiscard]] virtual bool start() = 0;
   virtual void stop() = 0;
   virtual void close() = 0;
+  // The output to use from the next open(): an id the OS gave, or empty for the
+  // system's default.
+  virtual void select(std::string_view device) = 0;
   // `changed` may run on any thread: the device was lost or replaced, reopen it.
   virtual void set_on_changed(std::function<void()> changed) = 0;
 
@@ -62,14 +65,18 @@ struct Settings {
   bool listen_self = false;
   bool others_use_my_sounds = false;
   bool muted = false;  // the sound of other members only
+  bool mute_notifications = false;  // while muted, notification sounds too
+  bool idle_muted = false;  // away, and wanting quiet: everything but system sounds
   bool spatial = true;
   int balance = 60;
+  std::string device;  // see AudioDevice::select
 };
 
 // A member's chosen packs. Empty means the device's default.
 struct Member {
   std::uint32_t slot = 0;
   std::string keyboard_pack, mouse_pack, pen_pack;
+  std::string cid;  // stays the same across reconnects; the slot may not
 };
 
 // Reads a WAV and converts it to `rate`; empty if unreadable.
@@ -87,15 +94,40 @@ class Engine final : private Renderer {
 
   void set_settings(Settings settings);
   void set_members(std::vector<Member> members);
+  // One member's volume, on top of the others. It outlives set_members, so it holds
+  // across reconnects; 100 is what everyone starts with.
+  void set_member_volume(std::string cid, int percent);
+  void clear_member_volumes();
 
   void play_own(wire::Kind kind) noexcept;
   void play_peer(std::uint32_t slot, wire::Kind kind) noexcept;
+
+  // By the name of the file in Notifications, with or without its leading number.
+  // Silent while muted as Settings asks; a preview only needs the volume.
+  void play_notification(std::string_view name);
+  void preview_notification(std::string_view name);
+  // By the name of the file in System. Only needs the volume.
+  void play_system(std::string_view name);
+
+  // Opens the device now rather than at the next sound, so that a device the user
+  // just picked can be reported as unusable. `failed` runs on the worker thread.
+  void check_device();
+  void set_on_open_failed(std::function<void()> failed);
 
  private:
   struct Event {
     std::uint32_t slot = 0;
     wire::Kind kind{};
     bool own = false;
+  };
+  enum class CueKind : std::uint8_t { Notification, Preview, System };
+  struct Cue {
+    CueKind kind{};
+    std::string name;
+  };
+  struct VolumeChange {
+    std::string cid;  // empty: forget them all
+    int percent = 100;
   };
   static constexpr std::size_t max_pending = 128;
 
@@ -107,6 +139,10 @@ class Engine final : private Renderer {
   void apply_settings();
   void place_members();
   void play(const Event& event);
+  void play_cue(const Cue& cue);
+  void push_cue(CueKind kind, std::string_view name);
+  void start_voice(std::span<const float> samples, const SeatMix& mix, float gain);
+  [[nodiscard]] int volume_of(std::uint32_t slot) const;
   [[nodiscard]] std::span<const float> recording(const std::filesystem::path& path);
   [[nodiscard]] std::string_view pack_for(const Event& event, Device device) const;
   [[nodiscard]] std::size_t seat_of(std::uint32_t slot) const;
@@ -122,6 +158,10 @@ class Engine final : private Renderer {
   bool stopping_ = false, device_changed_ = false;
   std::optional<Settings> new_settings_;
   std::optional<std::vector<Member>> new_members_;
+  std::vector<VolumeChange> new_volumes_;
+  std::vector<Cue> new_cues_;
+  bool check_device_ = false;
+  std::function<void()> on_open_failed_;
 
   // Worker thread only.
   std::thread worker_;
@@ -129,6 +169,7 @@ class Engine final : private Renderer {
   Random random_;
   Settings settings_;
   std::vector<Member> members_;
+  std::vector<std::pair<std::string, int>> member_volumes_;  // cid, percent; 100 is left out
   std::vector<std::pair<std::uint32_t, std::size_t>> seats_;  // slot, seat
   std::array<SeatMix, seat_count> seat_mixes_{};
   std::unordered_map<std::string, std::vector<float>> recordings_;

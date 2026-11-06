@@ -36,9 +36,12 @@ void draw_svg(Painter& p, const SvgImage& image, Rect dst, float opacity = 1.0f)
 // recently used few parsed.
 class EmojiCache {
  public:
-  explicit EmojiCache(std::filesystem::path assets_dir) : dir_(std::move(assets_dir)) {}
+  explicit EmojiCache(std::filesystem::path assets_dir, std::size_t capacity = 48)
+      : dir_(std::move(assets_dir)), capacity_(capacity) {}
   // Never null; an unknown id yields an empty image.
   const SvgImage& get(const Gfx& gfx, const std::string& id);
+  [[nodiscard]] const std::filesystem::path& dir() const { return dir_; }
+  [[nodiscard]] std::size_t parsed() const { return entries_.size(); }
 
  private:
   struct Entry {
@@ -47,7 +50,7 @@ class EmojiCache {
   };
   std::filesystem::path dir_;
   std::list<Entry> entries_;  // most recently used first
-  static constexpr std::size_t capacity = 48;
+  std::size_t capacity_;
 };
 
 }  // namespace crpp::ui

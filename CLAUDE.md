@@ -69,10 +69,21 @@ exist (real + test).
 - Mixer does no work when no voice is active.
 - Measure idle memory/CPU of every UI change; do not trust third-party numbers.
 
+## Transport facts (verified on Windows 10 19044)
+
+- WinHTTP answers server pings itself, never reports them and cannot send
+  one. `WinHttpTransport::capabilities()` says so and `client::Client` then
+  disables Session's ping and liveness timers. WinHTTP's own keepalive is a
+  15 s unsolicited pong, so dead-peer detection relies on TCP failing.
+- Aborting a blocked receive by closing the handles from another thread works
+  here but is outside the documented rules; the transport tests pin it.
+- `crpp_cli` against the production server (wss) created a private room and
+  got its own chat message back, built with both MSVC and GCC.
+
 ## Verification debt
 
-- Pen input via Raw Input and WinHTTP TLS details need device/real-server
-  checks.
+- Pen input via Raw Input needs device checks.
+- Dead-peer detection (network cut) is untested.
 - Confirm the toolchain (VS 2026 or clang-cl) installs on this Windows 10 LTSC
   2021 machine.
 - Re-check C++26 status against WG21 primary records.

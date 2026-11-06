@@ -32,7 +32,7 @@ struct MemberView {
   bool offline = false;
 };
 
-// A message at the top of the window that never blocks the screen under it.
+// A message in the window's corner that never blocks the screen under it.
 struct Notice {
   std::string text;
   std::string action;   // empty = no action button
@@ -79,8 +79,8 @@ class App {
   std::function<void(bool)> on_mute;
   std::function<void(std::string)> on_copy;
   std::function<void(std::string text)> on_send_chat;
+  // Runs once, when the notice's action button is pressed; the notice closes.
   std::function<void()> on_notice_action;
-  std::function<void()> on_notice_dismiss;
 
   // --- drawing ---
   void paint(ID2D1RenderTarget* rt, float width, float height);

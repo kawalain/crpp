@@ -198,15 +198,17 @@ void App::paint_notice(Painter& p) {
   const Theme& t = theme_;
   p.set_base(D2D1::Matrix3x2F::Identity());
   constexpr float pad = 18, gap = 14, button_h = 34, button_pad = 14;
-  const float w = std::min(460.0f, width_ - 32);
+  const float w = std::min(380.0f, width_ - 32);  // leaves the chat input free
   const TextStyle body{.size = 16, .line_height = 23, .wrap = true};
   DWRITE_TEXT_METRICS text_size{};
   if (const auto layout = gfx_.layout(widen(notice_->text), body, w - 2 * pad)) layout->GetMetrics(&text_size);
-  const Rect card{(width_ - w) / 2, 16, w, pad + text_size.height + gap + button_h + pad};
+  const float h = pad + text_size.height + gap + button_h + pad;
+  const Rect card{16, height_ - 72 - h, w, h};  // above the leave button
+  const Color ink = t.dark ? t.hl_text_dark : rgb(0x2e5f80);  // a warning must be easy to read
   p.shadow_round(card, 14, 16, 4, rgb(0x2e78aa, 0.22f));
   p.fill_round(card, 14, t.surface);
   add_hit_window(card, Popup);
-  p.text(notice_->text, {card.x + pad, card.y + pad, w - 2 * pad, text_size.height}, body, t.hl_text_dark);
+  p.text(notice_->text, {card.x + pad, card.y + pad, w - 2 * pad, text_size.height}, body, ink);
 
   const TextStyle label{.size = 15, .weight = 700, .line_height = button_h, .align = Align::Center};
   float right = card.right() - pad;
@@ -218,7 +220,7 @@ void App::paint_notice(Painter& p) {
     const bool hot = hover_ == id;
     if (primary) p.fill_round(r, button_h / 2, hot ? t.hl_dark : t.hl);
     else if (hot) p.fill_round(r, button_h / 2, t.hl_pale);
-    p.text(text, r, label, primary ? t.on_accent : t.hl_text_dark);
+    p.text(text, r, label, primary ? t.on_accent : ink);
     add_hit_window(r, id);
     right = r.x - 6;
   };
@@ -715,12 +717,16 @@ bool App::mouse_down(float x, float y, bool shift) {
     case ChatSend:
       send_chat();
       break;
-    case NoticeAction:
-      if (on_notice_action) on_notice_action();
+    case NoticeAction: {
+      // Moved out first: the action may set the next notice and its action.
+      const auto action = std::move(on_notice_action);
+      on_notice_action = nullptr;
+      notice_.reset();
+      if (action) action();
       break;
+    }
     case NoticeDismiss:
       notice_.reset();
-      if (on_notice_dismiss) on_notice_dismiss();
       break;
     case VolumeSlider:
       dragging_volume_ = true;

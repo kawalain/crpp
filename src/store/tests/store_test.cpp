@@ -505,7 +505,29 @@ void chat_fields_round_trip() {
 
 }  // namespace
 
+void signing_out_forgets_chat_and_seats() {
+  TempDirs dirs;
+  FakePlatform platform;
+  {
+    auto store = Store::open(dirs.locations(), platform, t0);
+    (void)store.enter_room("ABC234");
+    store.record_chat("ABC234", {std::nullopt, "c", "n", "", "hello", t0});
+    store.remember_seat("ABC234", "key", false, true, t0);
+    CHECK(store.find_seat("ABC234", t0).has_value());
+    CHECK(store.save().has_value());
+    store.clear_chat();
+    store.forget_all_seats();
+    CHECK(store.has_unsaved());
+    CHECK(store.save().has_value());
+    CHECK(!store.find_seat("ABC234", t0).has_value());
+  }
+  auto store = Store::open(dirs.locations(), platform, t0);
+  CHECK(!store.find_seat("ABC234", t0).has_value());
+  CHECK(store.enter_room("ABC234").empty());
+}
+
 int main() {
+  signing_out_forgets_chat_and_seats();
   new_user_gets_a_protected_store();
   existing_upstream_files_select_the_shared_store();
   protected_store_wins_when_upstream_arrives_later();

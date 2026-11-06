@@ -201,6 +201,33 @@ void join_chat_and_leave() {
   client.stop();
 }
 
+void a_new_nickname_is_used_by_the_next_connection() {
+  Seen seen;
+  std::atomic<int> n{0};
+  std::mutex m;
+  std::string line;
+  const auto room = room_script(seen, n, false);
+  mock::Server server([&](mock::Conn& c) {
+    {
+      std::lock_guard lock(m);
+      line = c.request_line();
+    }
+    room(c);
+  });
+  Recorder rec;
+  transport::WinHttpTransport transport;
+  client::Client client(transport, config_for(server), rec);
+  client.start();
+  client.set_nick("alice");
+  client.create(false, false);
+  CHECK(rec.wait_for("status:InRoom"));
+  {
+    std::lock_guard lock(m);
+    CHECK(line.find("nick=alice") != std::string::npos);
+  }
+  client.stop();
+}
+
 void reconnects_with_the_held_seat() {
   Seen seen;
   std::atomic<int> n{0};
@@ -281,6 +308,7 @@ void stop_is_prompt_even_while_connecting() {
 
 int main() {
   join_chat_and_leave();
+  a_new_nickname_is_used_by_the_next_connection();
   reconnects_with_the_held_seat();
   unauthorized_token();
   unusable_server_url();

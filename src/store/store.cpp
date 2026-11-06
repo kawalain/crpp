@@ -391,6 +391,11 @@ void Store::record_chat(std::string_view code, const ChatRecord& record) {
   chat_dirty_ = true;
 }
 
+void Store::clear_chat() {
+  rooms_ = Json::object();
+  chat_dirty_ = true;
+}
+
 void Store::mark_left(std::string_view code, std::int64_t now_ms) {
   if (Json* entry = rooms_.find(code)) {
     entry->set("leftAt", Json(now_ms));

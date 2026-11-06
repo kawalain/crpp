@@ -59,15 +59,13 @@ and developer communities, not from memory.
 
 ## Roadmap
 
-1. `input` + `sound`: keyboard and mouse sound end to end, with `assets`.
+1. Real DPI support (Per-Monitor v2). Upstream ignores DPI; this client must
+   scale correctly.
 2. Reconnect backoff (see `session` below; the code still waits a fixed 3 s).
 3. Settings screen, the rest of the room screen, the return-to-Seat dialog.
 4. Pen input, as its own step.
 5. Accounts and the HTTP API.
 6. CI, Releases and `update`.
-
-Next after `input` + `sound`: real DPI support (Per-Monitor v2). Upstream ignores
-DPI; this client must scale correctly.
 
 ## Build
 
@@ -80,7 +78,14 @@ MSVC needs a developer environment (vcvars); `cl` is not on PATH by default.
 Run GCC-built tests from PowerShell: Git Bash's PATH finds another
 `libstdc++-6.dll` first and they die with `0xc0000139`.
 
-`crpp --data <dir>` keeps a run's data out of the user's folders.
+`crpp --data <dir>` keeps a run's data out of the user's folders. An exe with an
+`assets/` folder beside it, as every build has, runs from that folder; copy the
+exe elsewhere to test fetching, with `--asset-url` for a local server.
+
+Scripted runs of the app go on a hidden Win32 desktop (`CreateDesktop`,
+`STARTUPINFO.lpDesktop`, `EnumDesktopWindows`), so no window reaches the user's
+desktop. `PostMessage` still reaches it, but Raw Input arrives only on the input
+desktop: drive a Room with a windowless second member instead of injected keys.
 
 ## Module design
 
@@ -100,13 +105,18 @@ exist (real + test).
   reachable without a driver; drivers and low-level hooks are rejected. It runs
   only while in a Room. The raw buffer is wiped, held-key bits are the only key
   state, and only `Kind` crosses the seam. Coordinates are never read; Pen reads
-  only the tip and in-range bits. There is no input log.
+  only the tip and in-range bits. There is no input log. Reports are read in
+  batches: the first event after a pause at once, then every 10 ms at most. A
+  mouse move costs about 8,700 cycles this way, against 50,000 read one by one.
 - `sound`: pack loading and a pure `render(span<float>)` mixer; device adapter
-  behind it.
+  behind it. The stream uses the default period (about 10 ms), not the smallest
+  the research note suggests: CPU comes first and network delay dwarfs the gain.
 - `store`: settings, Seats and chat cache in the Protected or Shared store; a
   flushed temp file + rename for every write. `Platform` is the seam for DPAPI
   and file replacement.
-- `assets`: fetch and verify files against the manifest built into the exe.
+- `assets`: fetch and verify files against the manifest CMake builds into the
+  exe, pinned to the commit that last changed `assets/`. That commit must be on
+  GitHub before a release can install. `Platform` is the seam for WinHTTP and BCrypt.
 - `update`: version check, download, signature and SHA-256 (BCrypt) verify,
   self-replace.
 - `ui`: view-model driven native rendering; redraw on demand only.
@@ -138,6 +148,10 @@ exist (real + test).
   device, suppress clicks briefly after tip activity; add this only once
   reproduced.
 - Confirm Raw Input still reports while a game or an elevated window has focus.
+- The sound of spatial audio and reverb needs ears: run
+  `crpp_soundtest assets/sounds`, which walks every seat.
+- A full install from GitHub is untested until the assets are pushed. So far:
+  a local server for the whole flow, and real HTTPS for three files.
 - Dead-peer detection (network cut) is untested.
 - Shared store compatibility is tested against upstream's format as read from
   its source, not yet against the upstream client itself.

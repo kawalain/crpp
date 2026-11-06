@@ -10,7 +10,9 @@ were not confirmed in a primary source and need a test before relying on them.
 2. Open a shared-mode stream with `IAudioClient3::InitializeSharedAudioStream`
    (mix format, `AUDCLNT_STREAMFLAGS_EVENTCALLBACK`, the smallest period that
    `GetSharedModeEnginePeriod` allows). Do not rely on `AUTOCONVERTPCM`: the
-   documented flags of that call do not include it.
+   documented flags of that call do not include it. The implementation departs
+   from this on purpose and uses the default period: this project puts CPU
+   first, and network delay dwarfs what a smaller period would save.
 3. Event-driven render thread registered with MMCSS "Pro Audio"; write silence
    on underrun.
 4. Stop the client when idle (a small period wakes the CPU every period);

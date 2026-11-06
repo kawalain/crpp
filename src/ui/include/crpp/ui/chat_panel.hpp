@@ -31,7 +31,8 @@ class ChatPanel final : public Surface {
   // Opens a link in the browser. False if that failed.
   std::function<bool(const std::string& url)> on_open_link;
 
-  // Fixed values plus LinkBase + log index * links_per_entry + link index.
+  // Fixed values plus LinkBase + message number * links_per_entry + link index. A message's
+  // number stays when older ones leave the log, so a drawn id never means another message.
   enum Id : int { Input, Send, Area, LinkBase = 1000 };
   static constexpr int links_per_entry = 64;
 
@@ -91,6 +92,7 @@ class ChatPanel final : public Surface {
 
   TextField input_;
   std::vector<ChatEntry> log_;
+  std::size_t dropped_ = 0;  // messages gone from log_: log_[i] is message number dropped_ + i
   std::vector<Row> rows_;  // log_[first_ + i]
   std::size_t first_ = 0;
   bool fresh_ = true;   // nothing shown yet: the first paint shows the last page

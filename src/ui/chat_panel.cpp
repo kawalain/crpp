@@ -88,12 +88,14 @@ void ChatPanel::add(ChatEntry entry) {
   log_.push_back(std::move(entry));
   if (log_.size() > 1000) {
     log_.erase(log_.begin());
+    ++dropped_;
     if (first_ > 0) --first_;
     else dirty_ = true;  // the first shown one is gone
   }
 }
 
 void ChatPanel::clear() {
+  dropped_ += log_.size();
   log_.clear();
   rows_.clear();
   first_ = 0;
@@ -309,7 +311,7 @@ void ChatPanel::paint(Painter& p, Rect panel) {
     IDWriteTextLayout* const layout = row.text.get();
     for (std::size_t l = 0; l < row.links.size() && l < links_per_entry; ++l) {
       const LinkSpan link = row.links[l];
-      const int id = LinkBase + static_cast<int>(index) * links_per_entry + static_cast<int>(l);
+      const int id = LinkBase + static_cast<int>(dropped_ + index) * links_per_entry + static_cast<int>(l);
       // A link that wraps has one box per line; the tip goes over all of them.
       DWRITE_HIT_TEST_METRICS boxes[8];
       UINT32 count = 0;
@@ -435,11 +437,15 @@ void ChatPanel::paint_calm(Painter& p, Rect anchor) {
 
 void ChatPanel::click(int id, float, float, bool) {
   if (id >= LinkBase) {
-    const auto index = static_cast<std::size_t>(id - LinkBase) / links_per_entry;
+    const auto number = static_cast<std::size_t>(id - LinkBase) / links_per_entry;
     const auto link = static_cast<std::size_t>(id - LinkBase) % links_per_entry;
-    if (index < first_ || index - first_ >= rows_.size() || link >= rows_[index - first_].links.size()) return;
-    const LinkSpan span = rows_[index - first_].links[link];
-    const std::string url = narrow(widen(log_[index].text).substr(span.start, span.length));
+    if (number < dropped_ || number - dropped_ >= log_.size()) return;
+    // From the message itself: until the next paint rows_ may not match log_, and this
+    // address goes to the shell.
+    const std::wstring text = widen(log_[number - dropped_].text);
+    const std::vector<LinkSpan> links = find_links(text);
+    if (link >= links.size()) return;
+    const std::string url = narrow(text.substr(links[link].start, links[link].length));
     if (on_open_link && !on_open_link(url) && ui_.toasts) ui_.toasts->toast("링크를 열지 못했어요.");
     return;
   }

@@ -104,9 +104,25 @@ class NotifyTab final : public SettingsTab {
 
 class SystemTab final : public SettingsTab {
  public:
-  using SettingsTab::SettingsTab;
+  explicit SystemTab(Ui& ui);
+  enum Id : int { Autostart = 1, Tray, Detail, Use24h, Logging, OpenLogs, Reset, IdleList = 100 };
+
+  std::function<void()> on_open_logs;
+
   void paint(Painter& p, Rect area) override;
+  void paint_popups(Painter& p, Rect area) override;
   [[nodiscard]] float content_height() const override;
+  void before_click(const Surface* owner, int id) override;
+  void click(int id, float x, float y, bool shift) override;
+  bool wheel(float x, float y, float delta) override;
+  bool escape() override;
+  [[nodiscard]] bool animating() const override;
+
+ private:
+  Dropdown idle_;
+  Rect idle_rect_;
+  std::array<ToggleAnim, 5> toggles_;
+  Fade open_logs_, reset_;
 };
 
 class AccountTab final : public SettingsTab {

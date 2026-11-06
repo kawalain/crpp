@@ -23,6 +23,7 @@
 #include "crpp/store/windows_platform.hpp"
 #include "crpp/transport/winhttp_transport.hpp"
 #include "crpp/ui/app.hpp"
+#include "diag_log.hpp"
 #include "store_prefs.hpp"
 
 namespace crpp::gui {
@@ -109,6 +110,7 @@ struct Shell {
   store::WindowsPlatform platform;
   std::optional<store::Store> store;
   std::optional<StorePrefs> prefs;
+  DiagLog log;
   client::Config config;
   std::unique_ptr<transport::WinHttpTransport> transport;
   std::unique_ptr<Bridge> bridge;

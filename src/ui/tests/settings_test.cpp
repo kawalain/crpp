@@ -140,6 +140,133 @@ void test_notify_toggles_and_preview() {
   CHECK(!prefs.get(pref::chat_taskbar_flash));
 }
 
+void test_system_rows() {
+  UiHarness h;
+  CHECK(h.start());
+  open(h, SettingsPage::System);
+  SystemTab& tab = h.app.settings().system();
+  Prefs& prefs = *h.app.ui().prefs;
+
+  CHECK(h.click(tab, SystemTab::Autostart));
+  CHECK(prefs.get(pref::start_with_system));
+  CHECK(h.click(tab, SystemTab::Tray));
+  CHECK(!prefs.get(pref::minimize_to_tray));
+  CHECK(!prefs.get(pref::input_detail));  // Presence mode is the default
+  CHECK(h.click(tab, SystemTab::Detail));
+  CHECK(prefs.get(pref::input_detail));
+
+  h.app.settings().scroll_to(10000);
+  h.render();
+  CHECK(!h.drawn(tab, SystemTab::OpenLogs));
+  CHECK(h.click(tab, SystemTab::Logging));
+  h.render();
+  CHECK(prefs.get(pref::log_enabled));
+  CHECK(h.drawn(tab, SystemTab::OpenLogs));
+  int opened = 0;
+  tab.on_open_logs = [&] { ++opened; };
+  h.app.settings().scroll_to(10000);
+  h.render();
+  CHECK(h.click(tab, SystemTab::OpenLogs));
+  CHECK(opened == 1);
+}
+
+void test_idle_dropdown_saves_minutes() {
+  UiHarness h;
+  CHECK(h.start());
+  open(h, SettingsPage::System);
+  SystemTab& tab = h.app.settings().system();
+  Prefs& prefs = *h.app.ui().prefs;
+  h.app.settings().scroll_to(150);
+  h.render();
+  CHECK(h.click(tab, SystemTab::IdleList));
+  CHECK(h.click(tab, SystemTab::IdleList + 3));
+  CHECK(prefs.get(pref::idle_minutes) == 60);
+  prefs.set(pref::idle_minutes, 7);  // not a choice: taken as 30 minutes, as upstream does
+  h.render();
+  CHECK(h.click(tab, SystemTab::IdleList));
+  CHECK(h.click(tab, SystemTab::IdleList + 2));  // already selected, so nothing changes
+  CHECK(prefs.get(pref::idle_minutes) == 7);
+}
+
+void test_reset_goes_through_its_dialog() {
+  UiHarness h;
+  CHECK(h.start());
+  SystemTab& tab = h.app.settings().system();
+  Prefs& prefs = *h.app.ui().prefs;
+  prefs.set(pref::use_24h, true);
+  prefs.set(pref::input_detail, true);
+  prefs.set(pref::theme, "pastel");
+  prefs.set_notification_sound("cloud_chat", false);
+  open(h, SettingsPage::System);
+  h.app.settings().scroll_to(10000);
+  h.render();
+
+  CHECK(h.click(tab, SystemTab::Reset));
+  CHECK(h.app.dialogs().is_open());
+  h.key(VK_ESCAPE);  // the dialog goes first, and the panel stays
+  CHECK(!h.app.dialogs().is_open());
+  CHECK(h.app.settings().is_open());
+  CHECK(prefs.get(pref::use_24h));
+
+  CHECK(h.click(tab, SystemTab::Reset));
+  CHECK(h.click(h.app.dialogs(), Dialogs::Confirm));
+  CHECK(!prefs.get(pref::use_24h));
+  CHECK(!prefs.get(pref::input_detail));
+  CHECK(prefs.get(pref::theme) == "cloudroom");
+  CHECK(prefs.notification_sound("cloud_chat"));
+}
+
+void test_scrollbar_shows_on_scrolling_and_hides_after_a_pause() {
+  UiHarness h;
+  CHECK(h.start());
+  open(h, SettingsPage::System);
+  SettingsPanel& panel = h.app.settings();
+  CHECK(!panel.scrollbar_shown());
+  CHECK(panel.wake_at() == 0);
+
+  h.app.wheel(500, 300, -1);
+  h.render();
+  CHECK(panel.scroll_offset() > 0);
+  CHECK(panel.scrollbar_shown());
+  const auto wake = panel.wake_at();  // waits without needing frames
+  CHECK(wake != 0);
+  CHECK(!panel.animating());
+  CHECK(h.app.tick(wake));
+  CHECK(!panel.scrollbar_shown());
+  h.render();
+  CHECK(panel.wake_at() == 0);
+}
+
+void test_scrollbar_stays_under_the_pointer() {
+  UiHarness h;
+  CHECK(h.start());
+  open(h, SettingsPage::System);
+  SettingsPanel& panel = h.app.settings();
+  const Ui::Hit* track = h.app.ui().find_hit(&panel, SettingsPanel::Track);
+  CHECK(track != nullptr);
+  if (!track) return;
+  const float x = track->rect.x + 4, y = track->rect.bottom() - 2;
+  h.app.mouse_move(x, y);
+  h.render();
+  CHECK(panel.scrollbar_shown());
+  CHECK(panel.wake_at() == 0);
+  h.app.mouse_move(10, 10);
+  h.render();
+  CHECK(panel.wake_at() != 0);
+}
+
+void test_a_tab_that_fits_has_no_scrollbar() {
+  UiHarness h;
+  CHECK(h.start());
+  open(h, SettingsPage::Notify);
+  SettingsPanel& panel = h.app.settings();
+  CHECK(!h.drawn(panel, SettingsPanel::Track));
+  h.app.wheel(500, 300, -1);
+  h.render();
+  CHECK(panel.scroll_offset() == 0);
+  CHECK(!panel.scrollbar_shown());
+}
+
 void test_fade_runs_only_when_animated() {
   Ui ui;
   ui.animations = true;
@@ -179,6 +306,12 @@ int main() {
   test_slider_changes_the_chat_scale_within_its_range();
   test_notification_ids();
   test_notify_toggles_and_preview();
+  test_system_rows();
+  test_idle_dropdown_saves_minutes();
+  test_reset_goes_through_its_dialog();
+  test_scrollbar_shows_on_scrolling_and_hides_after_a_pause();
+  test_scrollbar_stays_under_the_pointer();
+  test_a_tab_that_fits_has_no_scrollbar();
   test_fade_runs_only_when_animated();
   test_chat_clock();
   return crpp_test_result();

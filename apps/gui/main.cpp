@@ -121,6 +121,7 @@ int main(int argc, char** argv) {
   store::Store& data = *shell.store;
   shell.prefs.emplace(data);
   shell.app.set_prefs(*shell.prefs);
+  shell.log.set_path(locations->protected_dir / "logs" / "crpp.log");
 
   shell.audio = load_audio_settings(data);
   shell.app.room().set_volume(shell.audio.volume);

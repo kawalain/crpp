@@ -1,4 +1,5 @@
 #include <dwmapi.h>
+#include <shellapi.h>
 
 #include "areas.hpp"
 #include "notification_sounds.hpp"
@@ -45,6 +46,61 @@ std::vector<NotifySound> load_sounds(const Shell& s) {
   return sounds;
 }
 
+void open_log_folder(Shell& s) {
+  const std::filesystem::path folder = s.log.file().parent_path();
+  std::error_code ec;
+  std::filesystem::create_directories(folder, ec);
+  // ShellExecute's result above 32 is success.
+  const auto result = reinterpret_cast<INT_PTR>(ShellExecuteW(s.hwnd, L"open", folder.c_str(), nullptr, nullptr, SW_SHOWNORMAL));
+  if (result <= 32) s.app.toasts().toast("로그 폴더를 열지 못했습니다.");
+}
+
+DiagEvent event_of(session::State state) {
+  switch (state) {
+    case session::State::Connecting:
+      return DiagEvent::Connecting;
+    case session::State::Joining:
+      return DiagEvent::Joining;
+    case session::State::InRoom:
+      return DiagEvent::InRoom;
+    case session::State::Leaving:
+      return DiagEvent::Leaving;
+    case session::State::Waiting:
+      return DiagEvent::WaitingToReconnect;
+    default:
+      return DiagEvent::ConnectionIdle;
+  }
+}
+
+DiagEvent event_of(session::Failure failure) {
+  switch (failure) {
+    case session::Failure::Unauthorized:
+      return DiagEvent::FailedUnauthorized;
+    case session::Failure::ConnectFailed:
+      return DiagEvent::FailedToConnect;
+    case session::Failure::RoomGone:
+      return DiagEvent::FailedRoomGone;
+    case session::Failure::ServerError:
+      return DiagEvent::FailedServerError;
+    default:
+      return DiagEvent::FailedInvalidArgument;
+  }
+}
+
+// Notes what the connection does, after whoever already listens.
+void log_connection(Shell& s) {
+  Shell* sp = &s;
+  s.bridge->on_state = [sp, next = std::move(s.bridge->on_state)](session::State state) {
+    sp->log.note(event_of(state));
+    if (next) next(state);
+  };
+  // The detail is left out: it comes from the server, and the log takes no text.
+  s.bridge->on_failure = [sp, next = std::move(s.bridge->on_failure)](session::Failure failure, const std::string& detail) {
+    sp->log.note(event_of(failure));
+    if (next) next(failure, detail);
+  };
+}
+
 void wire_tabs(Shell& s) {
   Shell* sp = &s;
   SettingsPanel& panel = s.app.settings();
@@ -53,14 +109,17 @@ void wire_tabs(Shell& s) {
   };
   panel.notify().on_shown = [sp] { sp->app.settings().notify().set_sounds(load_sounds(*sp)); };
   panel.notify().on_preview = [sp](const std::string& stem) { sound::play_notification(*sp, stem); };
+  panel.system().on_open_logs = [sp] { open_log_folder(*sp); };
 }
 
 }  // namespace
 
 void wire(Shell& s) {
   wire_tabs(s);
+  log_connection(s);
   apply_theme(s);
   apply_chat(s);
+  s.log.set_enabled(s.app.ui().prefs->get(pref::log_enabled));
 }
 
 bool scene(Shell& s, std::string_view name) {
@@ -124,6 +183,13 @@ bool scene(Shell& s, std::string_view name) {
       s.app.ui().hover_owner = &panel.notify();
       s.app.ui().hover_id = NotifyTab::PreviewBase;
     }
+  } else if (rest == "system") {
+    open(SettingsPage::System);
+    if (on) prefs.set(pref::log_enabled, true);
+    if (tip) {
+      s.app.ui().hover_owner = &panel;
+      s.app.ui().hover_id = SettingsPanel::Version;
+    }
   } else {
     return false;
   }
@@ -137,6 +203,10 @@ void pref_changed(Shell& s, std::string_view key) {
   } else if (key == "chatScale" || key == "use24h") {
     apply_chat(s);
     InvalidateRect(s.hwnd, nullptr, FALSE);
+  } else if (key == "inputDetail") {
+    s.input->set_privacy(s.app.ui().prefs->get(pref::input_detail) ? input::Privacy::Detail : input::Privacy::Presence);
+  } else if (key == "logEnabled") {
+    s.log.set_enabled(s.app.ui().prefs->get(pref::log_enabled));
   }
   // A changed setting is written like a burst of chat, without waiting for the exit.
   if (!s.save_timer_on) {

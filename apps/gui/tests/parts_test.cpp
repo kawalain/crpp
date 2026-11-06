@@ -8,6 +8,7 @@
 
 #include "check.hpp"
 // clang-format off
+#include "diag_log.hpp"
 #include "notification_sounds.hpp"
 // clang-format on
 
@@ -26,6 +27,47 @@ fs::path fresh_dir(const char* name) {
   fs::remove_all(dir);
   fs::create_directories(dir);
   return dir;
+}
+
+void test_log_is_written_only_while_on() {
+  const fs::path dir = fresh_dir("crpp_diag_log_test");
+  DiagLog log;
+  log.set_path(dir / "logs" / "crpp.log");
+  log.note(DiagEvent::Connecting);
+  CHECK(!fs::exists(log.file()));
+
+  log.set_enabled(true);
+  log.note(DiagEvent::InRoom);
+  const std::string text = read_all(log.file());
+  CHECK(text.find("log started") != std::string::npos);
+  CHECK(text.find("in room") != std::string::npos);
+
+  log.set_enabled(false);  // upstream's set_logging(false) deletes it
+  CHECK(!fs::exists(log.file()));
+  log.note(DiagEvent::Leaving);
+  CHECK(!fs::exists(log.file()));
+  fs::remove_all(dir);
+}
+
+void test_log_stays_under_its_limit() {
+  const fs::path dir = fresh_dir("crpp_diag_log_limit_test");
+  DiagLog log;
+  log.set_path(dir / "crpp.log");
+  log.set_enabled(true);
+  {
+    std::ofstream big(log.file(), std::ios::binary);
+    for (std::uintmax_t i = 0; i < DiagLog::limit_bytes / 10; ++i) big << "old line.\n";
+  }
+  log.note(DiagEvent::FailedRoomGone);
+  CHECK(fs::file_size(log.file()) <= DiagLog::limit_bytes / 2 + 64);
+  const std::string text = read_all(log.file());
+  CHECK(text.starts_with("old line."));  // whole lines only
+  CHECK(text.find("failed: room gone") != std::string::npos);
+  fs::remove_all(dir);
+}
+
+void test_every_event_has_a_name() {
+  for (int i = 0; i < static_cast<int>(DiagEvent::Count); ++i) CHECK(!diag_name(static_cast<DiagEvent>(i)).empty());
 }
 
 std::string lower_id(std::string_view stem) {
@@ -61,6 +103,9 @@ void test_a_sound_without_a_label_uses_its_id() {
 }  // namespace
 
 int main(int argc, char** argv) {
+  test_log_is_written_only_while_on();
+  test_log_stays_under_its_limit();
+  test_every_event_has_a_name();
   if (argc > 1) test_finds_the_shipped_sounds_in_order(argv[1]);
   test_a_sound_without_a_label_uses_its_id();
   return crpp_test_result();

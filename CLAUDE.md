@@ -155,8 +155,6 @@ exist (real + test).
   client pixels, which Microsoft's DPI pages do not state for the IME calls.
 - The sound of spatial audio and reverb needs ears: run
   `crpp_soundtest assets/sounds`, which walks every seat.
-- A full install from GitHub is untested until the assets are pushed. So far:
-  a local server for the whole flow, and real HTTPS for three files.
 - Dead-peer detection (network cut) is untested.
 - Shared store compatibility is tested against upstream's format as read from
   its source, not yet against the upstream client itself.

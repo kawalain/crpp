@@ -174,7 +174,7 @@ class Bridge final : public client::Observer {
                       std::string(c->text), c->time};
       tasks_.post([this, entry = std::move(entry), slot = c->slot]() mutable {
         store_.record_chat(room_code_, {slot, entry.cid, entry.nick, entry.emoji, entry.text, entry.time_ms});
-        app_.add_chat(std::move(entry));
+        app_.room().chat().add(std::move(entry));
       });
       return;
     }
@@ -195,7 +195,7 @@ class Bridge final : public client::Observer {
       me_ = me;
       is_public_ = is_public;
       if (!code.empty()) enter(code);
-      app_.set_room(std::move(members), me, host, is_public, chat);
+      app_.room().set_room(std::move(members), me, host, is_public, chat);
     });
   }
   void on_peer_input(std::span<const wire::ServerEvent> events) override {
@@ -206,7 +206,7 @@ class Bridge final : public client::Observer {
       if (e.slot != me) engine_.play_peer(e.slot, e.kind);
     }
     tasks_.post([this, slots = std::move(slots)] {
-      for (const auto s : slots) app_.pulse(s);
+      for (const auto s : slots) app_.room().pulse(s);
     });
   }
   void on_failed(session::Failure reason, std::string_view) override {
@@ -245,9 +245,9 @@ class Bridge final : public client::Observer {
     app_.show_session(code);
     if (same_room) return;
     if (on_room_changed) on_room_changed(true);
-    app_.clear_chat();
+    app_.room().chat().clear();
     for (auto& r : store_.enter_room(code)) {
-      app_.add_chat({r.slot.value_or(0), std::move(r.cid), std::move(r.nick), std::move(r.emoji), std::move(r.text), r.time_ms});
+      app_.room().chat().add({r.slot.value_or(0), std::move(r.cid), std::move(r.nick), std::move(r.emoji), std::move(r.text), r.time_ms});
     }
   }
 
@@ -350,32 +350,32 @@ void start_client(Shell& s) {
 // --- moving away from the Shared store ---
 
 void show_cleanup_offer(Shell& s) {
-  s.app.set_notice(Notice{"안전한 저장소로 옮겼어요. 기존 Cloudroom 파일에 남은 로그인 정보와 채팅 기록도 지울까요? "
-                          "지우면 기존 Cloudroom 클라이언트에서 다시 로그인해야 해요.",
-                          "지우기", "남겨 두기"});
-  s.app.on_notice_action = [&s] {
-    s.app.set_notice(Notice{s.store->erase_shared_secrets() ? "기존 파일의 로그인 정보와 채팅 기록을 지웠어요."
-                                                            : "기존 파일을 고치지 못했어요. 파일이 그대로 남아 있어요.",
-                            "", "닫기"});
+  s.app.notice().set(Notice{"안전한 저장소로 옮겼어요. 기존 Cloudroom 파일에 남은 로그인 정보와 채팅 기록도 지울까요? "
+                            "지우면 기존 Cloudroom 클라이언트에서 다시 로그인해야 해요.",
+                            "지우기", "남겨 두기"});
+  s.app.notice().on_action = [&s] {
+    s.app.notice().set(Notice{s.store->erase_shared_secrets() ? "기존 파일의 로그인 정보와 채팅 기록을 지웠어요."
+                                                              : "기존 파일을 고치지 못했어요. 파일이 그대로 남아 있어요.",
+                              "", "닫기"});
   };
 }
 
 void show_store_notice(Shell& s) {
   if (s.store->mode() == store::Mode::Shared) {
-    s.app.set_notice(Notice{"기존 Cloudroom의 설정 파일을 함께 쓰고 있어요. 이 파일에는 로그인 정보가 암호화되지 않은 채 "
-                            "저장돼요.",
-                            "안전한 저장소로 옮기기", "닫기"});
-    s.app.on_notice_action = [&s] {
+    s.app.notice().set(Notice{"기존 Cloudroom의 설정 파일을 함께 쓰고 있어요. 이 파일에는 로그인 정보가 암호화되지 않은 채 "
+                              "저장돼요.",
+                              "안전한 저장소로 옮기기", "닫기"});
+    s.app.notice().on_action = [&s] {
       if (s.store->convert_to_protected()) {
         show_cleanup_offer(s);
       } else {
-        s.app.set_notice(Notice{"옮기지 못했어요. 지금까지처럼 기존 파일을 계속 써요.", "", "닫기"});
+        s.app.notice().set(Notice{"옮기지 못했어요. 지금까지처럼 기존 파일을 계속 써요.", "", "닫기"});
       }
     };
   } else if (s.store->secrets_lost()) {
-    s.app.set_notice(Notice{"저장된 로그인 정보와 채팅 기록을 이 PC에서 읽지 못해 새로 시작해요.", "", "닫기"});
+    s.app.notice().set(Notice{"저장된 로그인 정보와 채팅 기록을 이 PC에서 읽지 못해 새로 시작해요.", "", "닫기"});
   } else if (s.store->data_corrupt()) {
-    s.app.set_notice(Notice{"설정 파일이 손상되어 기본값으로 시작해요. 손상된 파일은 .bad 이름으로 남겨 두었어요.", "", "닫기"});
+    s.app.notice().set(Notice{"설정 파일이 손상되어 기본값으로 시작해요. 손상된 파일은 .bad 이름으로 남겨 두었어요.", "", "닫기"});
   }
 }
 
@@ -534,7 +534,7 @@ LRESULT CALLBACK wnd_proc(HWND hwnd, UINT msg, WPARAM wp, LPARAM lp) {
       return 0;
     case wm_own_input:
       s->input_sink.pulse_taken();
-      s->app.pulse_me();
+      s->app.room().pulse_me();
       InvalidateRect(hwnd, nullptr, FALSE);
       sync_frames(*s, hwnd);
       return 0;
@@ -577,7 +577,7 @@ LRESULT CALLBACK wnd_proc(HWND hwnd, UINT msg, WPARAM wp, LPARAM lp) {
       }
       break;
     case WM_CHAR:
-      repaint(s->app.char_input(static_cast<wchar_t>(wp)));
+      repaint(s->app.char_input(static_cast<wchar_t>(wp), (GetKeyState(VK_SHIFT) & 0x8000) != 0));
       return 0;
     case WM_KEYDOWN:
       repaint(s->app.key_down(static_cast<unsigned>(wp), (GetKeyState(VK_CONTROL) & 0x8000) != 0,
@@ -603,7 +603,7 @@ LRESULT CALLBACK wnd_proc(HWND hwnd, UINT msg, WPARAM wp, LPARAM lp) {
     case WM_TIMER:
       if (wp == smoke_timer) {
         const ULONGLONG elapsed = GetTickCount64() - s->smoke_start;
-        if (!s->smoke_left && s->app.view() == View::Session && s->app.member_count() > 0) {
+        if (!s->smoke_left && s->app.view() == View::Session && s->app.room().member_count() > 0) {
           RECT rc;
           GetClientRect(hwnd, &rc);
           const bool saved = save_png(s->app, s->smoke_path, static_cast<unsigned>(dips(rc.right)),
@@ -641,15 +641,15 @@ void demo_session(App& app, bool chat) {
   app.show_session("ABC234");
   if (chat) {
     const long long now = static_cast<long long>(std::time(nullptr)) * 1000;
-    app.add_chat({0, "c0", "크롬이", "1f600", "안녕하세요! 처음 뵙겠습니다.", now - 400000});
-    app.add_chat({0, "c0", "크롬이", "1f600", "같은 사람이 5분 안에 보낸 메시지는 묶여요.", now - 390000});
-    app.add_chat({1, "c1", "하늘", "1f431", "반가워요 :)\n두 줄짜리 메시지도 잘 보이나요?", now - 120000});
+    app.room().chat().add({0, "c0", "크롬이", "1f600", "안녕하세요! 처음 뵙겠습니다.", now - 400000});
+    app.room().chat().add({0, "c0", "크롬이", "1f600", "같은 사람이 5분 안에 보낸 메시지는 묶여요.", now - 390000});
+    app.room().chat().add({1, "c1", "하늘", "1f431", "반가워요 :)\n두 줄짜리 메시지도 잘 보이나요?", now - 120000});
   }
-  app.set_room({{0, "크롬이", "1f600", false},
-                {1, "하늘", "1f431", false},
-                {2, "구름빵", "1f436", false},
-                {3, "졸린 곰", "1f43b", true}},
-               0, 0, false, chat);
+  app.room().set_room({{0, "크롬이", "1f600", false},
+                       {1, "하늘", "1f431", false},
+                       {2, "구름빵", "1f436", false},
+                       {3, "졸린 곰", "1f43b", true}},
+                      0, 0, false, chat);
 }
 
 // Only one window per user session; a second start brings the first forward.
@@ -671,7 +671,7 @@ void enter_app(Shell& s, HWND hwnd) {
     nickname = random_nickname(s.assets_dir / "words");
     data.set("nickname", store::Json(nickname));
   }
-  s.app.set_nickname(nickname);
+  s.app.home().set_nickname(nickname);
   s.config.server_url = data.string_or("serverUrl", store::default_server_url);
   s.config.nickname = nickname;
   s.config.token = data.string_or("token", "");
@@ -752,13 +752,13 @@ int main(int argc, char** argv) {
   std::time_t now = std::time(nullptr);
   std::tm local{};
   localtime_s(&local, &now);
-  shell.app.set_hour(local.tm_hour);
+  shell.app.home().set_hour(local.tm_hour);
 
   if (argc >= 3 && std::string(argv[1]) == "--shot") {
     unsigned w = 951, h = 692;
     if (argc >= 4) std::sscanf(argv[3], "%ux%u", &w, &h);
-    if (argc >= 5) shell.app.set_hour(std::atoi(argv[4]));
-    shell.app.set_nickname("크롬이");
+    if (argc >= 5) shell.app.home().set_hour(std::atoi(argv[4]));
+    shell.app.home().set_nickname("크롬이");
     if (argc >= 6 && std::string(argv[5]) == "session") demo_session(shell.app, false);
     if (argc >= 6 && std::string(argv[5]) == "chat") demo_session(shell.app, true);
     if (argc >= 6 && std::string(argv[5]) == "setup") shell.app.show_setup(42);
@@ -766,9 +766,9 @@ int main(int argc, char** argv) {
       shell.app.show_setup(0, "파일을 받지 못했어요. 인터넷 연결을 확인해 주세요.");
     }
     if (std::string(argv[argc - 1]) == "notice") {
-      shell.app.set_notice(Notice{"기존 Cloudroom의 설정 파일을 함께 쓰고 있어요. 이 파일에는 로그인 정보가 암호화되지 않은 채 "
-                                  "저장돼요.",
-                                  "안전한 저장소로 옮기기", "닫기"});
+      shell.app.notice().set(Notice{"기존 Cloudroom의 설정 파일을 함께 쓰고 있어요. 이 파일에는 로그인 정보가 암호화되지 않은 채 "
+                                    "저장돼요.",
+                                    "안전한 저장소로 옮기기", "닫기"});
     }
     return save_png(shell.app, widen(argv[2]), w, h, shot_dpi) ? 0 : 1;
   }
@@ -778,7 +778,7 @@ int main(int argc, char** argv) {
   store::Store& data = *shell.store;
 
   shell.audio = load_audio_settings(data);
-  shell.app.set_volume(shell.audio.volume);
+  shell.app.room().set_volume(shell.audio.volume);
   shell.engine = std::make_unique<sound::Engine>(shell.audio_device, assets / "sounds");
   shell.engine->set_settings(shell.audio);
   shell.engine->start();
@@ -792,11 +792,11 @@ int main(int argc, char** argv) {
     if (in_room) (void)sp->input->start();
     else sp->input->stop();
   };
-  shell.app.on_mute = [sp](bool muted) {
+  shell.app.room().on_mute = [sp](bool muted) {
     sp->audio.muted = muted;
     sp->engine->set_settings(sp->audio);
   };
-  shell.app.on_volume = [sp](int percent) {
+  shell.app.room().on_volume = [sp](int percent) {
     sp->audio.volume = percent;
     sp->engine->set_settings(sp->audio);
     sp->store->set("volume", store::Json(percent));
@@ -808,12 +808,12 @@ int main(int argc, char** argv) {
     sp->input->stop();  // it calls into the client being replaced
     sp->client->stop();
     start_client(*sp);
-    sp->app.on_notice_action = nullptr;
-    sp->app.set_notice(Notice{"로그인이 만료되어 게스트로 접속해요. 다시 시도해 주세요.", "", "닫기"});
+    sp->app.notice().on_action = nullptr;
+    sp->app.notice().set(Notice{"로그인이 만료되어 게스트로 접속해요. 다시 시도해 주세요.", "", "닫기"});
     if (!sp->smoke_path.empty()) sp->client->create(false, false);
   };
-  shell.app.on_create = [sp] { sp->client->create(false, false); };
-  shell.app.on_join = [sp](std::string code) {
+  shell.app.home().on_create = [sp] { sp->client->create(false, false); };
+  shell.app.home().on_join = [sp](std::string code) {
     if (const auto seat = sp->store->find_seat(code, unix_ms())) {
       sp->bridge->expect_resume(code);
       sp->client->resume(code, seat->key, std::nullopt, true);
@@ -821,13 +821,13 @@ int main(int argc, char** argv) {
       sp->client->join(code);
     }
   };
-  shell.app.on_leave = [sp] {
+  shell.app.room().on_leave = [sp] {
     sp->bridge->leaving();
     sp->client->leave();
   };
-  shell.app.on_set_public = [sp](bool v) { sp->client->set_visibility(v); };
-  shell.app.on_set_chat = [sp](bool v) { sp->client->set_chat_enabled(v); };
-  shell.app.on_send_chat = [sp](std::string text) { sp->client->send_chat(text); };
+  shell.app.room().on_set_public = [sp](bool v) { sp->client->set_visibility(v); };
+  shell.app.room().on_set_chat = [sp](bool v) { sp->client->set_chat_enabled(v); };
+  shell.app.room().chat().on_send = [sp](std::string text) { sp->client->send_chat(text); };
 
   WNDCLASSEXW wc{};
   wc.cbSize = sizeof wc;
@@ -851,9 +851,9 @@ int main(int argc, char** argv) {
   ShowWindow(hwnd, SW_SHOWDEFAULT);
   shell.tasks.attach(hwnd);
   shell.input_sink.attach(hwnd);
-  shell.app.on_copy = [hwnd](std::string text) { copy_to_clipboard(hwnd, text); };
+  shell.app.room().on_copy = [hwnd](std::string text) { copy_to_clipboard(hwnd, text); };
   if (argc >= 3 && std::string(argv[1]) == "--smoke") shell.smoke_path = widen(argv[2]);
-  shell.app.on_retry_setup = [sp, hwnd] { start_install(*sp, hwnd); };
+  shell.app.setup().on_retry = [sp, hwnd] { start_install(*sp, hwnd); };
   if (needs_install) start_install(shell, hwnd);
   else enter_app(shell, hwnd);
 

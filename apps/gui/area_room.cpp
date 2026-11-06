@@ -70,6 +70,11 @@ bool scene(Shell& s, std::string_view name) {
     s.app.room().click(RoomScreen::Leave, 0, 0, false);
     return true;
   }
+  if (name == "room-emoji") {
+    demo_session(s.app, false);
+    s.app.emoji_picker().show("1f600", nullptr);
+    return true;
+  }
   if (name == "room-options") {
     demo_session(s.app, true);
     s.app.ui().prefs->set(pref::pin_chat, true);

@@ -321,9 +321,93 @@ void test_other_questions_survive_leaving_the_room() {
   CHECK(h.app.dialogs().is_open());
 }
 
+void with_assets(UiHarness& h) { h.app.reload_assets(CRPP_TEST_ASSETS); }
+
+void test_picker_lists_every_emoji_and_parses_only_what_shows() {
+  UiHarness h;
+  CHECK(h.start());
+  with_assets(h);
+  EmojiPicker& picker = h.app.emoji_picker();
+  picker.show("1f600", nullptr);
+  h.render();
+  CHECK(picker.ids().size() == 172);
+  CHECK(picker.ids().front() < picker.ids()[1]);
+  CHECK(picker.ids().back() == "07");  // the hand-made ones go last
+  CHECK(picker.parsed() > 0);
+  CHECK(picker.parsed() <= 56);
+  CHECK(h.drawn(picker, EmojiPicker::CellBase));
+  CHECK(!h.drawn(picker, EmojiPicker::CellBase + 171));
+
+  // All the way down and back: never more than the cache holds.
+  for (int i = 0; i < 40; ++i) {
+    h.app.wheel(475, 346, -0.5f);
+    h.render();
+    CHECK(picker.parsed() <= EmojiPicker::cache_capacity);
+  }
+  CHECK(h.drawn(picker, EmojiPicker::CellBase + 171));
+  CHECK(!h.drawn(picker, EmojiPicker::CellBase));
+
+  picker.close();
+  CHECK(picker.parsed() == 0);
+  CHECK(picker.ids().empty());
+}
+
+void test_picker_picks_once_and_closes() {
+  UiHarness h;
+  CHECK(h.start());
+  with_assets(h);
+  EmojiPicker& picker = h.app.emoji_picker();
+  std::vector<std::string> picked;
+  picker.show("", [&](std::string id) { picked.push_back(std::move(id)); });
+  h.render();
+  const std::string second = picker.ids()[1];
+  CHECK(h.click(picker, EmojiPicker::CellBase + 1));
+  CHECK(picked.size() == 1 && picked[0] == second);
+  CHECK(!picker.is_open());
+}
+
+void test_picker_closes_without_picking() {
+  UiHarness h;
+  CHECK(h.start());
+  with_assets(h);
+  EmojiPicker& picker = h.app.emoji_picker();
+  int picks = 0;
+  picker.show("", [&](std::string) { ++picks; });
+  h.render();
+  h.key(VK_ESCAPE);
+  CHECK(!picker.is_open());
+  picker.show("", [&](std::string) { ++picks; });
+  h.render();
+  CHECK(h.click(picker, EmojiPicker::Card));  // inside, between the emoji: stays
+  CHECK(picker.is_open());
+  h.app.mouse_down(5, 5, false);  // the backdrop
+  CHECK(!picker.is_open());
+  CHECK(picks == 0);
+}
+
+void test_picker_thumb_scrolls_and_fades_on_a_wake_up() {
+  UiHarness h;
+  CHECK(h.start());
+  with_assets(h);
+  EmojiPicker& picker = h.app.emoji_picker();
+  picker.show("", nullptr);
+  h.render();
+  CHECK(h.app.wake_at() == 0);  // nothing waits until it is touched
+  CHECK(h.drawn(picker, EmojiPicker::Thumb));
+  h.app.wheel(475, 346, -1);
+  const auto wake = h.app.wake_at();
+  CHECK(wake != 0);
+  CHECK(h.app.tick(wake));
+  CHECK(h.app.wake_at() == 0);
+}
+
 }  // namespace
 
 int main() {
+  test_picker_lists_every_emoji_and_parses_only_what_shows();
+  test_picker_picks_once_and_closes();
+  test_picker_closes_without_picking();
+  test_picker_thumb_scrolls_and_fades_on_a_wake_up();
   test_leave_asks_first();
   test_leaving_host_is_told_about_delegation();
   test_chat_notice_shows_once_then_the_pin_tip_once();

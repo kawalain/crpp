@@ -2,7 +2,6 @@
 #include <windowsx.h>
 
 #include <algorithm>
-#include <cstdio>
 
 #include "areas.hpp"
 #include "crpp/ui/png.hpp"
@@ -225,12 +224,10 @@ LRESULT CALLBACK wnd_proc(HWND hwnd, UINT msg, WPARAM wp, LPARAM lp) {
           GetClientRect(hwnd, &rc);
           const bool saved = save_png(s->app, s->smoke_path, static_cast<unsigned>(dips(rc.right)),
                                       static_cast<unsigned>(dips(rc.bottom)), static_cast<float>(s->dpi));
-          std::printf("smoke: in room, screenshot %s\n", saved ? "saved" : "FAILED");
           s->smoke_left = true;
           s->client->leave();
           ExitProcess(saved ? 0 : 1);
         } else if (elapsed > 20000) {
-          std::printf("smoke: timed out before entering a room\n");
           ExitProcess(1);
         }
       } else if (wp == save_timer) {

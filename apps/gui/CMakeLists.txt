@@ -1,5 +1,6 @@
 if(WIN32)
-  add_executable(crpp
+  # The Windows subsystem: no console opens with the window.
+  add_executable(crpp WIN32
     main.cpp window.cpp startup.cpp bridge.cpp shot.cpp
     area_connection.cpp area_home.cpp area_room.cpp area_sound.cpp area_preferences.cpp area_os.cpp area_account.cpp
     area_update.cpp tray.cpp autostart_windows.cpp account_controller.cpp)
@@ -7,6 +8,7 @@ if(WIN32)
   # which Windows scales for it; it exists to keep the code portable.
   if(MSVC)
     target_sources(crpp PRIVATE crpp.manifest)
+    target_link_options(crpp PRIVATE /ENTRY:mainCRTStartup)  # the entry point stays main
   endif()
   target_link_libraries(crpp PRIVATE crpp_ui crpp_client crpp_store_windows crpp_assets_windows crpp_assets_built_in crpp_update_windows crpp_update_built_in crpp_input_raw crpp_sound_wasapi crpp_transport_winhttp crpp_api_winhttp imm32)
   target_link_libraries(crpp PRIVATE dwmapi)

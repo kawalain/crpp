@@ -4,7 +4,7 @@
 //   crpp --shot out.png [WxH] [hour] [scene] [notice]
 //                                 render a scene offscreen and exit; the area_*.cpp
 //                                 files name the scenes
-//   crpp --smoke out.png          create a room, save a screenshot and exit
+//   crpp --smoke out.png          create a room, save a screenshot and exit with 0
 //   ... --dpi <n>                 (with --shot) render at that DPI; WxH stay in
 //                                 DIPs, so the image grows with it
 //   ... --asset-url <url>         fetch assets from <url>, not the published
@@ -14,7 +14,6 @@
 //   ... --updated-from <pid>      started by the update of process <pid>
 //   ... --data <dir>              (last) keep data in <dir>, not the user's
 //                                 folders; other instances are then allowed
-#include <cstdio>
 #include <cstdlib>
 #include <ctime>
 #include <expected>
@@ -125,7 +124,8 @@ int main(int argc, char** argv) {
   const auto& assets = shell.assets_dir;
   // Nothing is opened from a folder about to change: Windows would refuse the replacement.
   if (!shell.app.init(needs_install ? std::filesystem::path{} : assets)) {
-    std::fprintf(stderr, "failed to initialise the UI\n");
+    // There is no console to report to, and the app has no way to draw yet.
+    MessageBoxW(nullptr, L"화면을 준비하지 못해 프로그램을 시작할 수 없어요.", L"Cloudroom++", MB_OK | MB_ICONERROR);
     return 1;
   }
   std::time_t now = std::time(nullptr);

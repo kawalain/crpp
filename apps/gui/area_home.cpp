@@ -32,8 +32,9 @@ void wire(Shell& s) {
   HomeScreen& home = s.app.home();
   home.busy = [sp] { return !sp->bridge->idle(); };
   home.on_create = [sp] {
+    const Prefs& prefs = *sp->app.ui().prefs;
     sp->bridge->entering();
-    sp->client->create(false, false);
+    sp->client->create(prefs.get(pref::pin_public), prefs.get(pref::pin_chat));
   };
   home.on_join = [sp](std::string code) {
     const auto seat = sp->store->find_seat(code, unix_ms());

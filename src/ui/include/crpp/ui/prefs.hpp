@@ -61,6 +61,10 @@ inline constexpr Bool log_enabled{"logEnabled", false};
 // Not upstream's: see docs/adr/0003-presence-mode-by-default.md.
 inline constexpr Bool input_detail{"inputDetail", false};
 
+// --- pinned defaults of a new Room; not settings, so "설정 초기화" leaves them ---
+inline constexpr Bool pin_public{"pinPublic", false};
+inline constexpr Bool pin_chat{"pinChat", false};
+
 // What "설정 초기화" puts back. Account and Room values are not settings.
 inline constexpr std::array all_bool{listen_self,       others_use_my_sounds, mute_on_idle,    mute_notifications_on_mute,
                                      spatial_audio,     channel_balance_enabled, system_theme, chat_tray_notify,

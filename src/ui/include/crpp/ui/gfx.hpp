@@ -41,6 +41,7 @@ class Gfx {
   // font_file: an optional TTF/OTF (a variable font works) used as the UI font;
   // falls back to Malgun Gothic if it cannot be loaded.
   bool init(const std::filesystem::path& font_file = {});
+  void load_font(const std::filesystem::path& font_file);
 
   [[nodiscard]] ID2D1Factory* d2d() const { return d2d_.get(); }
   [[nodiscard]] IDWriteFactory* dwrite() const { return dwrite_.get(); }

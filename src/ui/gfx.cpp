@@ -90,6 +90,12 @@ bool Gfx::init(const std::filesystem::path& font_file) {
                                  reinterpret_cast<IUnknown**>(dwrite_.put())))) {
     return false;
   }
+  load_font(font_file);
+  return true;
+}
+
+void Gfx::load_font(const std::filesystem::path& font_file) {
+  fonts_.reset();
   family_ = ui_font;
   if (!font_file.empty()) {
     // A private font collection built from the file (DirectWrite 3; Windows 10 1703+).
@@ -133,7 +139,6 @@ bool Gfx::init(const std::filesystem::path& font_file) {
       }
     }
   }
-  return true;
 }
 
 ComPtr<ID2D1PathGeometry> Gfx::parse_path(std::string_view d) const {

@@ -21,7 +21,7 @@ namespace crpp::ui {
 inline constexpr float stage_w = 951;
 inline constexpr float stage_h = 692;
 
-enum class View : std::uint8_t { Home, Session };
+enum class View : std::uint8_t { Setup, Home, Session };
 
 enum class Cursor : std::uint8_t { Arrow, Hand, IBeam };
 
@@ -47,13 +47,17 @@ struct ChatEntry {
 
 class App {
  public:
+  // An empty assets_dir draws with a system font until reload_assets.
   bool init(const std::filesystem::path& assets_dir);
+  void reload_assets(const std::filesystem::path& assets_dir);
   [[nodiscard]] ID2D1Factory* factory() const { return gfx_.d2d(); }
 
   // --- state the shell sets ---
   void set_theme(ThemeId id) { theme_ = make_theme(id); }
   void set_nickname(std::string nickname) { nickname_ = std::move(nickname); }
   void set_hour(int hour) { hour_ = hour; }  // 0-23, for the greeting
+  // The screen before assets are in place: progress, or an error with a retry.
+  void show_setup(int percent, std::string error = {});
   void show_home();
   void show_session(std::string room_code);
   // Replaces the member list and room flags (from joined/members messages).
@@ -82,6 +86,7 @@ class App {
   std::function<void(std::string text)> on_send_chat;
   // Runs once, when the notice's action button is pressed; the notice closes.
   std::function<void()> on_notice_action;
+  std::function<void()> on_retry_setup;
 
   // --- drawing ---
   void paint(ID2D1RenderTarget* rt, float width, float height);
@@ -107,7 +112,7 @@ class App {
  private:
   // Hit ids: fixed values plus MemberBase + slot.
   enum Id : int {
-    None, Create, Join, Code, Find, Settings, Leave, Mute, More, OptCode, OptPublic, OptChat, VolumeSlider, Popup, ChatInput, ChatSend, ChatArea, NoticeAction, NoticeDismiss,
+    None, Create, Join, Code, Find, Settings, Leave, Mute, More, OptCode, OptPublic, OptChat, VolumeSlider, Popup, ChatInput, ChatSend, ChatArea, NoticeAction, NoticeDismiss, SetupRetry,
     MemberBase = 1000,
   };
   enum class Focus : std::uint8_t { None, Code, Chat };
@@ -121,6 +126,7 @@ class App {
     Rect chat;  // the chat panel, window pixels
   };
 
+  void paint_setup(Painter& p);
   void paint_home(Painter& p);
   void paint_session(Painter& p);
   void paint_chat(Painter& p, const SessionLayout& layout);
@@ -151,6 +157,8 @@ class App {
   int hour_ = 12;
   View view_ = View::Home;
   std::optional<Notice> notice_;
+  int setup_percent_ = 0;
+  std::string setup_error_;
 
   float scale_ = 1, ox_ = 0, oy_ = 0, width_ = stage_w, height_ = stage_h;
   std::vector<Hit> hits_;

@@ -38,8 +38,9 @@ constexpr float fab_size = 42;
 }  // namespace
 
 bool App::init(const std::filesystem::path& assets_dir) {
-  if (!gfx_.init(assets_dir / "fonts" / "PretendardGOVVariable.ttf")) return false;
-  emoji_.emplace(assets_dir);
+  if (!gfx_.init()) return false;
+  if (!assets_dir.empty()) reload_assets(assets_dir);
+  else emoji_.emplace(assets_dir);
   cloud_ = gfx_.parse_path(cloud_path_data);
   droplet_ = gfx_.parse_path(droplet_path);
   code_.max_length = 6;
@@ -67,7 +68,18 @@ bool App::init(const std::filesystem::path& assets_dir) {
   return cloud_ && droplet_ && session_cloud_;
 }
 
+void App::reload_assets(const std::filesystem::path& assets_dir) {
+  gfx_.load_font(assets_dir / "fonts" / "PretendardGOVVariable.ttf");
+  emoji_.emplace(assets_dir);
+}
+
 // --- state -----------------------------------------------------------------
+
+void App::show_setup(int percent, std::string error) {
+  view_ = View::Setup;
+  setup_percent_ = percent;
+  setup_error_ = std::move(error);
+}
 
 void App::show_home() {
   view_ = View::Home;
@@ -187,10 +199,42 @@ void App::paint(ID2D1RenderTarget* rt, float width, float height) {
   Painter p(gfx_, rt);
   p.set_base(D2D1::Matrix3x2F::Scale(scale_, scale_) * D2D1::Matrix3x2F::Translation(ox_, oy_));
   p.clear(theme_.sky);
+  if (view_ == View::Setup) {
+    paint_setup(p);
+    return;
+  }
   if (view_ == View::Home) paint_home(p);
   else paint_session(p);
   paint_corner_controls(p);
   paint_notice(p);
+}
+
+void App::paint_setup(Painter& p) {
+  const Theme& t = theme_;
+  p.set_base(D2D1::Matrix3x2F::Identity());
+  const float w = std::min(380.0f, width_ - 32);
+  const float x = (width_ - w) / 2;
+  const float y = height_ / 2 - 60;
+  const Color ink = t.dark ? t.hl_text_dark : rgb(0x2e5f80);
+  const TextStyle message{.size = 18, .weight = 700, .line_height = 26, .align = Align::Center, .wrap = true};
+  if (setup_error_.empty()) {
+    p.text(std::string_view("처음 실행에 필요한 파일을 받고 있어요"), {x, y, w, 26}, message, ink);
+    const Rect track{x, y + 46, w, 8};
+    // The accent color is the sky's, so both parts are drawn in the surface color.
+    p.fill_round(track, 4, with_alpha(t.surface, 0.35f));
+    const float filled = std::max(track.h, w * static_cast<float>(setup_percent_) / 100);
+    p.fill_round({x, track.y, filled, track.h}, 4, t.surface);
+    const TextStyle percent{.size = 15, .line_height = 22, .align = Align::Center};
+    p.text(std::to_string(setup_percent_) + "%", {x, y + 64, w, 22}, percent, ink);
+    return;
+  }
+  p.text(setup_error_, {x, y, w, 52}, message, ink);
+  constexpr float button_w = 120, button_h = 40;
+  const Rect button{(width_ - button_w) / 2, y + 68, button_w, button_h};
+  p.fill_round(button, button_h / 2, hover_ == SetupRetry ? t.hl_pale : t.surface);
+  const TextStyle label{.size = 16, .weight = 700, .line_height = button_h, .align = Align::Center};
+  p.text(std::string_view("다시 시도"), button, label, ink);
+  add_hit_window(button, SetupRetry);
 }
 
 void App::paint_notice(Painter& p) {
@@ -727,6 +771,9 @@ bool App::mouse_down(float x, float y, bool shift) {
     }
     case NoticeDismiss:
       notice_.reset();
+      break;
+    case SetupRetry:
+      if (on_retry_setup) on_retry_setup();
       break;
     case VolumeSlider:
       dragging_volume_ = true;

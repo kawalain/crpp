@@ -59,11 +59,46 @@ and developer communities, not from memory.
 
 ## Roadmap
 
-1. Reconnect backoff (see `session` below; the code still waits a fixed 3 s).
-2. Settings screen, the rest of the room screen, the return-to-Seat dialog.
-3. Pen input, as its own step.
-4. Accounts and the HTTP API.
-5. CI, Releases and `update`.
+The goal is every user-visible interface of upstream's `client/` on Windows.
+macOS-only UI, `installer/` and developer-build tools are out of scope for now.
+
+0. Foundation: one file per screen, shared controls, dialogs, toasts, settings keys.
+1. Feedback and reconnect: failure reasons, offline popup, backoff (see `session`
+   below; the code still waits a fixed 3 s).
+2. The rest of the room and home screens: dialogs, profile card, member menu,
+   emoji picker, public room search, return-to-Seat dialog.
+3. Settings: sound, display, notification and system tabs, and the guest part of
+   the account tab. Pen volume and pack controls are built but stay hidden.
+4. OS integration: tray, chat notifications, taskbar flash, autostart, reopening
+   the running instance.
+5. Accounts: HTTP API, first-run flow, handle change, logout.
+6. CI, Releases, `update`, update popup, changelog viewer.
+7. Pen input, as its own step, verified on a real device.
+
+Steps 1-6 run as parallel sessions after step 0; the numbers are the merge order.
+Pull requests are disabled on this repository: each session commits to its own
+worktree branch, and the integrating session merges it into `main` with `--no-ff`
+after a full build and test run.
+
+Done means: state logic has CTest coverage, `--shot` output has been compared
+with upstream by eye (pixel equality is not required), a scripted run passes on a
+hidden desktop, and idle memory and CPU have been measured.
+
+Scripted runs and tests connect to a local build of upstream's `server/`, one port
+per session, never to production. Never create accounts on production.
+
+## Differences from upstream
+
+- No input log. The advanced settings keep a diagnostic log without input data.
+- "키보드 문자열 구분" is replaced by the Detail mode toggle: the row of a key is
+  never sent (`docs/adr/0003-presence-mode-by-default.md`).
+- No "최소화 시 절전 모드" toggle: it switches a WebView2 memory mode. Render
+  resources are always released while the window is hidden.
+- Escape closes every dialog that has a cancel action.
+- Logging out inside a Room says it leaves the Room, then does so. Nickname and
+  handle can be changed without leaving.
+- The first time the window hides to the tray while in a Room, a notification says
+  the Room is still connected, because input timing keeps being shared.
 
 ## Build
 

@@ -108,7 +108,7 @@ void wire_tabs(Shell& s) {
     sp->app.settings().display().set_sample(sp->store->string_or("nickname", ""), sp->store->string_or("emoji", ""));
   };
   panel.notify().on_shown = [sp] { sp->app.settings().notify().set_sounds(load_sounds(*sp)); };
-  panel.notify().on_preview = [sp](const std::string& stem) { sound::play_notification(*sp, stem); };
+  panel.notify().on_preview = [sp](const std::string& stem) { sound::preview_notification(*sp, stem); };
   panel.system().on_open_logs = [sp] { open_log_folder(*sp); };
 }
 

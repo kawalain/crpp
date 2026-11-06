@@ -238,6 +238,18 @@ void ping_and_reconnect() {
   CHECK(r.s().persistent().key == "K2");
 }
 
+void disabled_keepalive_timers() {
+  Rig r;
+  r.session = std::make_unique<Session>(Timing{.ping_interval = 0ms, .liveness_timeout = 0ms});
+  enter_room(r);
+  CHECK(!r.s().deadline());
+  for (int i = 0; i < 100; ++i) CHECK(r.advance(60s).empty());
+  CHECK(r.s().state() == State::InRoom);
+  // Leaving still has its own deadline.
+  (void)r.step(event::Leave{});
+  CHECK(r.s().deadline() == r.now + 5s);
+}
+
 void repeated_reconnect_failures_keep_retrying() {
   Rig r;
   enter_room(r);
@@ -466,6 +478,7 @@ int main() {
   input_throttle();
   peer_input();
   ping_and_reconnect();
+  disabled_keepalive_timers();
   repeated_reconnect_failures_keep_retrying();
   initial_connection_failures();
   server_errors();

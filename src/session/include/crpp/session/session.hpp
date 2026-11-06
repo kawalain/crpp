@@ -44,6 +44,8 @@ using Time = Clock::time_point;
 struct Timing {
   std::chrono::milliseconds connect_timeout{15000};
   std::chrono::milliseconds join_timeout{15000};
+  // Zero disables a timer. Disable both when the transport cannot send pings
+  // or report control frames (see transport::Capabilities).
   std::chrono::milliseconds ping_interval{20000};
   // Server pings every 25 s; silence for three periods means a dead link.
   std::chrono::milliseconds liveness_timeout{75000};
@@ -203,7 +205,11 @@ class Session {
   void finish_leave() noexcept;
   void close_transport() noexcept;
   void reset_room() noexcept;
-  void touch(Time now) noexcept { liveness_ = now + timing_.liveness_timeout; }
+  // now + d, or Time::max() ("never") when d is zero.
+  static Time after(Time now, std::chrono::milliseconds d) noexcept {
+    return d.count() == 0 ? Time::max() : now + d;
+  }
+  void touch(Time now) noexcept { liveness_ = after(now, timing_.liveness_timeout); }
   [[nodiscard]] wire::cmd::Sounds sounds() const noexcept;
   [[nodiscard]] wire::ClientMessage control() const noexcept;
 

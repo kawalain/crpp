@@ -73,7 +73,7 @@ void Session::begin_connect(Time now) noexcept {
 
 void Session::become_ready(Time now) noexcept {
   established_ = true;
-  next_ping_ = now + timing_.ping_interval;
+  next_ping_ = after(now, timing_.ping_interval);
   touch(now);
   set_state(State::InRoom);
 }
@@ -136,8 +136,11 @@ Persistent Session::persistent() const noexcept {
 }
 
 std::optional<Time> Session::deadline() const noexcept {
-  const auto earliest = [](std::initializer_list<Time> times) {
-    return *std::min_element(times.begin(), times.end());
+  // A disabled timer is Time::max() and never makes a deadline.
+  const auto earliest = [](std::initializer_list<Time> times) -> std::optional<Time> {
+    const Time t = *std::min_element(times.begin(), times.end());
+    if (t == Time::max()) return std::nullopt;
+    return t;
   };
   switch (state_) {
     case State::Idle: return std::nullopt;
@@ -340,7 +343,7 @@ void Session::handle(const event::Tick&, Time now) {
       }
       if (now >= next_ping_) {
         push(action::Ping{});
-        next_ping_ = now + timing_.ping_interval;
+        next_ping_ = after(now, timing_.ping_interval);
       }
       return;
   }

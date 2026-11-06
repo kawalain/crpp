@@ -46,8 +46,8 @@ void HomeScreen::paint(Painter& p) {
                       : hour_ >= 18 && hour_ < 22 ? "좋은 저녁이에요"
                                                   : "좋은 밤이에요";
   const TextStyle greeting{.size = 44, .line_height = 44, .align = Align::Center};
-  p.text(hello, {440, 108, 420, 44}, greeting, rgb(0xFFFFFF));
-  p.text(nickname_ + " 님!", {440, 108 + 44 + 13, 420, 44}, greeting, rgb(0xFFFFFF));
+  p.text(hello, {440, 108, 420, 44}, greeting, t.dark ? t.hl_text_dark : rgb(0xFFFFFF));
+  p.text(nickname_ + " 님!", {440, 108 + 44 + 13, 420, 44}, greeting, t.dark ? t.hl_text_dark : rgb(0xFFFFFF));
 
   // Find a cloud.
   p.text("구름 찾기", {470, 452, 400, 60}, {.size = 40, .line_height = 60}, t.hl_text);

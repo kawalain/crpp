@@ -24,8 +24,22 @@ class StorePrefs final : public ui::Prefs {
   void set(ui::pref::Bool key, bool value) override { change(key.name, store::Json(value)); }
   void set(ui::pref::Int key, int value) override { change(key.name, store::Json(static_cast<std::int64_t>(value))); }
   void set(ui::pref::Text key, std::string_view value) override { change(key.name, store::Json(std::string(value))); }
+  [[nodiscard]] bool notification_sound(std::string_view id) const override {
+    const store::Json* sounds = store_.find(sounds_key);
+    const store::Json* value = sounds ? sounds->find(id) : nullptr;
+    return !value || value->as_bool().value_or(true);
+  }
+  void set_notification_sound(std::string_view id, bool on) override {
+    const store::Json* sounds = store_.find(sounds_key);
+    store::Json changed = sounds && sounds->is_object() ? *sounds : store::Json::object();
+    changed.set(id, store::Json(on));
+    change(sounds_key, std::move(changed));
+  }
+  void clear_notification_sounds() override { change(sounds_key, store::Json::object()); }
 
  private:
+  static constexpr const char* sounds_key = "notificationSounds";
+
   void change(const char* name, store::Json value) {
     store_.set(name, std::move(value));
     if (on_changed) on_changed(name);

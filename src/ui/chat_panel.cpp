@@ -11,9 +11,7 @@
 
 namespace crpp::ui {
 
-namespace {
-
-std::string chat_clock(long long ms) {
+std::string chat_clock_text(long long ms, bool use_24h) {
   const std::time_t t = static_cast<std::time_t>(ms / 1000);
   std::tm tm{};
   localtime_s(&tm, &t);
@@ -26,8 +24,12 @@ std::string chat_clock(long long ms) {
     return static_cast<long long>(std::mktime(&copy)) / 86400;
   };
   char clock[32];
-  std::snprintf(clock, sizeof clock, "%s %d:%02d", tm.tm_hour < 12 ? "오전" : "오후",
-                tm.tm_hour % 12 == 0 ? 12 : tm.tm_hour % 12, tm.tm_min);
+  if (use_24h) {
+    std::snprintf(clock, sizeof clock, "%02d:%02d", tm.tm_hour, tm.tm_min);
+  } else {
+    std::snprintf(clock, sizeof clock, "%s %d:%02d", tm.tm_hour < 12 ? "오전" : "오후",
+                  tm.tm_hour % 12 == 0 ? 12 : tm.tm_hour % 12, tm.tm_min);
+  }
   const long long days = day_index(today) - day_index(tm);
   if (days <= 0) return clock;
   if (days == 1) return std::string("어제 ") + clock;
@@ -36,6 +38,8 @@ std::string chat_clock(long long ms) {
   std::snprintf(date, sizeof date, "%02d.%02d ", tm.tm_mon + 1, tm.tm_mday);
   return std::string(date) + clock;
 }
+
+namespace {
 
 bool chat_grouped(const ChatEntry& e, const ChatEntry* prev) {
   if (!prev || prev->slot != e.slot || prev->cid != e.cid) return false;
@@ -202,12 +206,12 @@ void ChatPanel::paint(Painter& p, Rect panel) {
   const Rect area{panel.x, panel.y, panel.w, panel.h - 10 - input_h};
   area_ = area;
 
-  // --- message list ---
-  const float list_w = area.w - 17 - 21;
+  // --- message list: rows are in list units, which the zoom maps to the window ---
+  const float list_w = area.w / zoom_ - 17 - 21;
   const float content_before = content_h_;
   const std::size_t shown_before = rows_.size();
   sync_rows(list_w);
-  content_h_ = next_y_ - 14 + 24;
+  content_h_ = (next_y_ - 14 + 24) * zoom_;
   area_h_ = area.h;
   const float max_scroll = std::max(0.0f, content_h_ - area.h);
   // Older messages arrived above: what is on screen stays where it is.
@@ -220,25 +224,26 @@ void ChatPanel::paint(Painter& p, Rect panel) {
                               D2D1_ANTIALIAS_MODE_PER_PRIMITIVE);
   ui_.add_hit_window(this, area, Area);
   ui_.push_hit_clip(area);
-  const float x = area.x + 17;
-  const float top = area.y - scroll_;
+  const float list_top = area.y - scroll_;
+  p.set_base(D2D1::Matrix3x2F::Scale(zoom_, zoom_) * D2D1::Matrix3x2F::Translation(area.x, list_top));
+  constexpr float x = 17;
   HoverTip::Spec tip;
   bool show_tip = false;
   for (std::size_t r = 0; r < rows_.size(); ++r) {
     const Row& row = rows_[r];
-    const float row_top = top + (row.head ? row.y_head : row.y_text);
-    const float row_bottom = top + row.y_text + row.h_text;
+    const float row_top = list_top + (row.head ? row.y_head : row.y_text) * zoom_;
+    const float row_bottom = list_top + (row.y_text + row.h_text) * zoom_;
     if (row_bottom <= area.y) continue;
     if (row_top >= area.bottom()) break;
     const std::size_t index = first_ + r;
     const ChatEntry& e = log_[index];
     if (row.head) {
-      draw_svg(p, ui_.emoji_image(e.emoji), {x, top + row.y_head, 25, 25});
-      const std::string time = chat_clock(e.time_ms);
-      const D2D1_SIZE_F time_size = p.text(time, {x, top + row.y_head + 2.5f, list_w, 20},
+      draw_svg(p, ui_.emoji_image(e.emoji), {x, row.y_head, 25, 25});
+      const std::string time = chat_clock_text(e.time_ms, use_24h_);
+      const D2D1_SIZE_F time_size = p.text(time, {x, row.y_head + 2.5f, list_w, 20},
                                            {.size = 14, .line_height = 20, .align = Align::Right}, t.hl_text);
       p.text(e.nick.empty() ? "게스트" : e.nick,
-             {x + 25 + 7, top + row.y_head + 2.5f, std::max(20.0f, list_w - 25 - 7 - time_size.width - 7), 20},
+             {x + 25 + 7, row.y_head + 2.5f, std::max(20.0f, list_w - 25 - 7 - time_size.width - 7), 20},
              {.size = 15, .line_height = 20, .ellipsis = true}, t.hl_text);
     }
     const auto layout = ui_.gfx.layout(widen(e.text), body_style, list_w, 100000);
@@ -252,7 +257,8 @@ void ChatPanel::paint(Painter& p, Rect panel) {
       if (FAILED(layout->HitTestTextRange(link.start, link.length, 0, 0, boxes, 8, &count))) continue;
       Rect bounds{};
       for (UINT32 b = 0; b < count; ++b) {
-        const Rect box{x + boxes[b].left, top + row.y_text + boxes[b].top, boxes[b].width, boxes[b].height};
+        const Rect box{area.x + (x + boxes[b].left) * zoom_, list_top + (row.y_text + boxes[b].top) * zoom_,
+                       boxes[b].width * zoom_, boxes[b].height * zoom_};
         ui_.add_hit_window(this, box, id);
         if (b == 0) {
           bounds = box;
@@ -273,9 +279,10 @@ void ChatPanel::paint(Painter& p, Rect panel) {
         show_tip = true;
       }
     }
-    p.draw_layout(layout.get(), x, top + row.y_text, t.hl_text);
+    p.draw_layout(layout.get(), x, row.y_text, t.hl_text);
   }
   ui_.pop_hit_clip();
+  p.set_base(D2D1::Matrix3x2F::Identity());
   p.rt()->PopAxisAlignedClip();
 
   // --- compose box ---

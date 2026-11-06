@@ -93,8 +93,8 @@ class Store {
   [[nodiscard]] std::string string_or(std::string_view key, std::string_view fallback) const;
   [[nodiscard]] std::int64_t i64_or(std::string_view key, std::int64_t fallback) const;
   [[nodiscard]] bool bool_or(std::string_view key, bool fallback) const;
-  // A setting that is more than one value; null if there is none.
-  [[nodiscard]] const Json* value(std::string_view key) const noexcept { return values_.find(key); }
+  // A value of another shape than those, or null if there is none.
+  [[nodiscard]] const Json* find(std::string_view key) const noexcept { return values_.find(key); }
   // Upstream rejects its whole file if one known key has the wrong type, so
   // keep to the types upstream uses for that key.
   void set(std::string_view key, Json value);

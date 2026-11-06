@@ -139,7 +139,7 @@ void wire(Shell& s) {
   s.sound_state = std::make_shared<State>();
   timer_shell = &s;
   State& state = *s.sound_state;
-  state.volumes.load(s.store->value("userVolumes"));
+  state.volumes.load(s.store->find("userVolumes"));
 
   // main.cpp read most of these for the first sound; here comes the rest.
   apply(s);

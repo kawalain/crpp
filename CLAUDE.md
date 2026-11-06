@@ -208,6 +208,8 @@ exist (real + test).
   alone: Raw Input only reports Input kinds.
 - The sound of spatial audio and reverb needs ears: run
   `crpp_soundtest assets/sounds`, which walks every seat.
+- Following the OS theme: `WM_SETTINGCHANGE` was only posted in a scripted run.
+  Flipping the real Windows setting and seeing the dark title bar are unverified.
 - Dead-peer detection (network cut) is untested.
 - Shared store compatibility is tested against upstream's format as read from
   its source, not yet against the upstream client itself.

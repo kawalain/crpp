@@ -67,7 +67,7 @@ void Dropdown::paint_button(Ui& ui, Surface* owner, Painter& p, Rect r) const {
   p.fill_round(r, 10, with_alpha(fill, a));
   if (selected >= 0 && selected < static_cast<int>(options.size())) {
     p.text(options[static_cast<std::size_t>(selected)], {r.x + 12, r.y, r.w - 48, r.h},
-           {.size = 17, .line_height = r.h, .ellipsis = true}, with_alpha(t.on_accent, a));
+           {.size = 17, .weight = 700, .line_height = r.h, .ellipsis = true}, with_alpha(t.on_accent, a));
   }
   const float cx = r.right() - 13 - 7, cy = r.y + r.h / 2;
   const Color chevron = rgb(0xFFFFFF, a);
@@ -79,25 +79,26 @@ void Dropdown::paint_button(Ui& ui, Surface* owner, Painter& p, Rect r) const {
 void Dropdown::paint_list(Ui& ui, Surface* owner, Painter& p, Rect r) {
   if (!open) return;
   const Theme& t = ui.theme;
-  constexpr float pad = 6, item_h = 36, max_h = 224;
-  const float content = static_cast<float>(options.size()) * item_h + 2 * pad;
+  constexpr float pad = 6, item_h = 38, gap = 4, max_h = 224;  // li: padding 9 12, 20 tall, 4 apart
+  const float content = static_cast<float>(options.size()) * (item_h + gap) - gap + 2 * pad;
   const float h = std::min(content, max_h);
   list_ = {r.x, up ? r.y - 6 - h : r.bottom() + 6, r.w, h};
   scroll_ = std::clamp(scroll_, 0.0f, std::max(0.0f, content - h));
-  p.shadow_round(list_, 14, 16, 4, rgb(0x2e78aa, 0.22f));
+  p.shadow_round(list_, 14, t.dark ? 38.0f : 16.0f, t.dark ? 12.0f : 4.0f, t.dark ? rgb(0x000000, 0.33f) : rgb(0x2e78aa, 0.22f));
   p.fill_round(list_, 14, t.surface);
   ui.push_hit_clip(ui.to_window(list_));
   p.rt()->PushAxisAlignedClip(D2D1::RectF(list_.x, list_.y, list_.right(), list_.bottom()),
                               D2D1_ANTIALIAS_MODE_PER_PRIMITIVE);
   float y = list_.y + pad - scroll_;
-  for (std::size_t i = 0; i < options.size(); ++i, y += item_h) {
+  for (std::size_t i = 0; i < options.size(); ++i, y += item_h + gap) {
     const int id = id_base + 1 + static_cast<int>(i);
     const Rect item{list_.x + pad, y, list_.w - 2 * pad, item_h};
     const bool is_selected = static_cast<int>(i) == selected;
     const bool hot = ui.hot(owner, id);
     if (is_selected) p.fill_round(item, 9, t.hl);
     else if (hot) p.fill_round(item, 9, t.hl_soft);
-    p.text(options[i], {item.x + 10, item.y + 8, item.w - 20, 20}, {.size = 16, .line_height = 20, .ellipsis = true},
+    p.text(options[i], {item.x + 12, item.y + 9, item.w - 24, 20},
+           {.size = 16, .weight = is_selected ? 700 : 400, .line_height = 20, .ellipsis = true},
            is_selected || hot ? t.on_accent : t.hl_text);
     ui.add_hit(owner, item, id);
   }
@@ -155,7 +156,8 @@ Rect paint_modal(Ui& ui, Surface* owner, Painter& p, float w, float h, float sho
   ui.add_hit_window(owner, window, backdrop_id);
   const Rect settled{(ui.width - w) / 2, (ui.height - h) / 2, w, h};
   const Rect card{settled.x, settled.y + 6 * (1 - shown), w, h};
-  p.shadow_round(card, 14, 16, 4, rgb(0x2e78aa, 0.22f * shown));
+  p.shadow_round(card, 14, ui.theme.dark ? 38.0f : 16.0f, ui.theme.dark ? 12.0f : 4.0f,
+                 ui.theme.dark ? rgb(0x000000, 0.33f * shown) : rgb(0x2e78aa, 0.22f * shown));
   p.fill_round(card, 14, with_alpha(ui.theme.surface, shown));
   ui.add_hit_window(owner, settled, card_id);
   return card;

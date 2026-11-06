@@ -92,6 +92,9 @@ LRESULT CALLBACK wnd_proc(HWND hwnd, UINT msg, WPARAM wp, LPARAM lp) {
       InvalidateRect(hwnd, nullptr, FALSE);
       return 0;
     }
+    case WM_SETTINGCHANGE:
+      area::preferences::system_settings_changed(*s);
+      return 0;
     case WM_SETFOCUS:
     case WM_KILLFOCUS:
       sync_blink(*s, hwnd);
@@ -122,6 +125,7 @@ LRESULT CALLBACK wnd_proc(HWND hwnd, UINT msg, WPARAM wp, LPARAM lp) {
       }
       EndPaint(hwnd, &ps);
       place_ime(*s, hwnd);
+      sync_frames(*s);  // painting is where a hover's transition starts
       return 0;
     }
     case wm_ui_task:

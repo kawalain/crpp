@@ -12,3 +12,17 @@ endfunction()
 
 crpp_store_test(json)
 crpp_store_test(store)
+
+if(WIN32)
+  add_library(crpp_store_windows STATIC windows_platform.cpp)
+  target_link_libraries(crpp_store_windows PUBLIC crpp_store crypt32 shell32 ole32)
+  target_compile_definitions(crpp_store_windows PRIVATE NOMINMAX WIN32_LEAN_AND_MEAN)
+  crpp_target_defaults(crpp_store_windows)
+
+  add_executable(crpp_store_windows_platform_test tests/windows_platform_test.cpp)
+  target_link_libraries(crpp_store_windows_platform_test PRIVATE crpp_store_windows)
+  target_include_directories(crpp_store_windows_platform_test PRIVATE ${PROJECT_SOURCE_DIR}/tests/support)
+  target_compile_definitions(crpp_store_windows_platform_test PRIVATE NOMINMAX WIN32_LEAN_AND_MEAN)
+  crpp_target_defaults(crpp_store_windows_platform_test)
+  add_test(NAME store.windows_platform COMMAND crpp_store_windows_platform_test)
+endif()

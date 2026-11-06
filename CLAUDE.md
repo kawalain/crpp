@@ -31,6 +31,18 @@ communities and upstream source, not from memory.
   reached from `session` only through interfaces.
 - Audio is raw WASAPI with a hand-written WAV parser (no third party).
 - `client-apk` and the upstream Rust `app` are out of scope.
+- Goal: the same client as upstream (same screens, behavior, settings and
+  cache file compatibility at `%LOCALAPPDATA%\Cloudroom\`), one instance at a
+  time. Only features that are visible in upstream are implemented; pen input
+  stays out until the server supports it.
+- Sound engine: raw WASAPI, same sound packs. The spatial/reverb/resampling
+  design is not copied from upstream; it is researched from public sources
+  and may be better than upstream (see `docs/research/`).
+- Every UI element is vector data (paths, SVG); no bitmaps. Animations follow
+  upstream CSS durations and easings. App font: Pretendard GOV Variable.
+- Distribution differs from upstream: GitHub Actions builds, the app checks the
+  latest GitHub Release, and release notes are shown as the changelog. No
+  custom installer first; update checking and download come before it.
 
 ## Build
 

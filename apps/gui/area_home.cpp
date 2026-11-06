@@ -7,7 +7,10 @@ namespace crpp::gui::area::home {
 
 void wire(Shell& s) {
   Shell* sp = &s;
-  s.app.home().on_create = [sp] { sp->client->create(false, false); };
+  s.app.home().on_create = [sp] {
+    const Prefs& prefs = *sp->app.ui().prefs;
+    sp->client->create(prefs.get(pref::pin_public), prefs.get(pref::pin_chat));
+  };
   s.app.home().on_join = [sp](std::string code) {
     if (const auto seat = sp->store->find_seat(code, unix_ms())) {
       sp->bridge->expect_resume(code);

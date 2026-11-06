@@ -287,7 +287,7 @@ const SvgImage& EmojiCache::get(const Gfx& gfx, const std::string& id) {
     break;
   }
   entries_.push_front({id, std::move(image)});
-  if (entries_.size() > capacity) entries_.pop_back();
+  if (entries_.size() > capacity_) entries_.pop_back();
   return entries_.front().image;
 }
 

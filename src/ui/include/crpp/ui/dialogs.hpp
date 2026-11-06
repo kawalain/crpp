@@ -26,6 +26,8 @@ class Dialogs final : public Surface {
   void show(Dialog dialog);
   void close() { dialog_.reset(); }
   [[nodiscard]] bool is_open() const { return dialog_.has_value(); }
+  // The question on screen; empty when closed.
+  [[nodiscard]] std::string_view text() const { return dialog_ ? std::string_view(dialog_->text) : std::string_view(); }
 
   void paint(Painter& p);
   void click(int id, float x, float y, bool shift) override;

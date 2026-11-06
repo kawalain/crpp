@@ -62,6 +62,7 @@ void App::paint(ID2D1RenderTarget* rt, float width, float height) {
   offline_.set_covered(settings_.is_open());
   offline_.paint(p);  // under the settings droplet, the one thing usable above it
   settings_.paint(p);
+  if (view_ == View::Session) room_.paint_overlay(p);
   notice_.paint(p);
   emoji_picker_.paint(p);
   toasts_.paint(p);
@@ -98,7 +99,10 @@ bool App::mouse_up() {
 
 bool App::right_click(float x, float y) {
   const Ui::Hit* hit = ui_.hit_at(x, y);
-  return hit && hit->owner->right_click(hit->id, x, y);
+  // Popups close on any button, as for a left click.
+  for (Surface* s : layers()) s->before_click(hit ? hit->owner : nullptr, hit ? hit->id : 0);
+  if (hit) hit->owner->right_click(hit->id, x, y);
+  return true;
 }
 
 bool App::mouse_down(float x, float y, bool shift) {

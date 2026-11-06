@@ -8,6 +8,12 @@
 
 namespace crpp::input {
 
+namespace {
+constexpr DWORD batch_ms = 10;  // no more than the audio period a sound waits for anyway
+constexpr std::size_t buffered_records = 32;
+using QWORD = unsigned long long;  // NEXTRAWINPUTBLOCK names it, and the SDK leaves it to the caller
+}  // namespace
+
 struct RawInputSource::Impl {
   Sink& sink;
   std::atomic<Privacy>& privacy;
@@ -15,17 +21,25 @@ struct RawInputSource::Impl {
   DWORD thread_id = 0;
   KeyClassifier classifier;
 
-  void handle(HRAWINPUT handle) noexcept {
+  // Reads everything queued in one call per batch and takes the matching
+  // WM_INPUT messages off the queue. False when the read failed.
+  bool drain() noexcept {
     // Large enough for keyboard and mouse; other devices are not registered.
-    alignas(RAWINPUT) std::array<unsigned char, sizeof(RAWINPUT)> buffer;
-    UINT size = static_cast<UINT>(buffer.size());
-    const UINT read = GetRawInputData(handle, RID_INPUT, buffer.data(), &size, sizeof(RAWINPUTHEADER));
-    if (read != static_cast<UINT>(-1) && read >= sizeof(RAWINPUTHEADER)) {
-      const auto& raw = *reinterpret_cast<const RAWINPUT*>(buffer.data());
-      if (raw.header.dwType == RIM_TYPEKEYBOARD) on_keyboard(raw.data.keyboard);
-      else if (raw.header.dwType == RIM_TYPEMOUSE) on_mouse(raw.data.mouse);
+    alignas(8) std::array<unsigned char, buffered_records * sizeof(RAWINPUT)> buffer;
+    bool ok = true;
+    for (;;) {
+      UINT size = static_cast<UINT>(buffer.size());
+      auto* raw = reinterpret_cast<RAWINPUT*>(buffer.data());
+      const UINT count = GetRawInputBuffer(raw, &size, sizeof(RAWINPUTHEADER));
+      if (count == static_cast<UINT>(-1)) ok = false;
+      if (count == static_cast<UINT>(-1) || count == 0) break;
+      for (UINT i = 0; i < count; ++i, raw = NEXTRAWINPUTBLOCK(raw)) {
+        if (raw->header.dwType == RIM_TYPEKEYBOARD) on_keyboard(raw->data.keyboard);
+        else if (raw->header.dwType == RIM_TYPEMOUSE) on_mouse(raw->data.mouse);
+      }
     }
     SecureZeroMemory(buffer.data(), buffer.size());
+    return ok;
   }
 
   void on_keyboard(const RAWKEYBOARD& key) noexcept {
@@ -53,25 +67,15 @@ struct RawInputSource::Impl {
     report(RI_MOUSE_WHEEL, MouseAction::Wheel);
   }
 
-  static LRESULT CALLBACK window_proc(HWND hwnd, UINT message, WPARAM wp, LPARAM lp) {
-    if (message == WM_NCCREATE) {
-      SetWindowLongPtrW(hwnd, GWLP_USERDATA,
-                        reinterpret_cast<LONG_PTR>(reinterpret_cast<CREATESTRUCTW*>(lp)->lpCreateParams));
-    } else if (message == WM_INPUT) {
-      reinterpret_cast<Impl*>(GetWindowLongPtrW(hwnd, GWLP_USERDATA))->handle(reinterpret_cast<HRAWINPUT>(lp));
-    }
-    return DefWindowProcW(hwnd, message, wp, lp);  // also required for WM_INPUT cleanup
-  }
-
   void run(std::atomic<int>& result) noexcept {
     const HINSTANCE instance = GetModuleHandleW(nullptr);
     WNDCLASSEXW wc{};
     wc.cbSize = sizeof wc;
-    wc.lpfnWndProc = window_proc;
+    wc.lpfnWndProc = DefWindowProcW;
     wc.hInstance = instance;
     wc.lpszClassName = L"CrppRawInput";
     RegisterClassExW(&wc);  // already registered after the first start
-    const HWND hwnd = CreateWindowExW(0, wc.lpszClassName, L"", 0, 0, 0, 0, 0, HWND_MESSAGE, nullptr, instance, this);
+    const HWND hwnd = CreateWindowExW(0, wc.lpszClassName, L"", 0, 0, 0, 0, 0, HWND_MESSAGE, nullptr, instance, nullptr);
     std::array<RAWINPUTDEVICE, 2> devices{};
     if (hwnd) {
       devices[0] = {0x01, 0x06, RIDEV_INPUTSINK, hwnd};  // generic desktop: keyboard
@@ -83,7 +87,24 @@ struct RawInputSource::Impl {
     result.store(registered ? 1 : -1);
     result.notify_all();
     if (registered) {
-      while (GetMessageW(&msg, nullptr, 0, 0) > 0) DispatchMessageW(&msg);
+      // A moving mouse reports up to thousands of times a second and every
+      // report is dropped here, so reading them one by one costs real CPU. The
+      // first event after a pause is handled at once; a stream goes in batches.
+      // Taking messages by range leaves WM_INPUT for the buffered read.
+      bool quit = false;
+      const auto pump = [&](UINT first, UINT last) {
+        while (PeekMessageW(&msg, nullptr, first, last, PM_REMOVE)) {
+          if (msg.message == WM_QUIT) quit = true;
+          else DispatchMessageW(&msg);
+        }
+      };
+      while (!quit) {
+        MsgWaitForMultipleObjectsEx(0, nullptr, INFINITE, QS_ALLINPUT, MWMO_INPUTAVAILABLE);
+        if (!drain()) pump(WM_INPUT, WM_INPUT);  // drop what cannot be read rather than spin on it
+        pump(0, WM_INPUT - 1);
+        pump(WM_INPUT + 1, 0xFFFFFFFF);
+        if (!quit) Sleep(batch_ms);
+      }
       devices[0] = {0x01, 0x06, RIDEV_REMOVE, nullptr};
       devices[1] = {0x01, 0x02, RIDEV_REMOVE, nullptr};
       RegisterRawInputDevices(devices.data(), static_cast<UINT>(devices.size()), sizeof devices[0]);

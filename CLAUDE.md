@@ -99,6 +99,9 @@ per subagent, never to production. Never create accounts on production.
   handle can be changed without leaving.
 - The first time the window hides to the tray while in a Room, a notification says
   the Room is still connected, because input timing keeps being shared.
+- The update popup sits at the bottom left, not the top left. The changelog comes from
+  GitHub release notes, so an empty one says it could not be loaded, and a first run
+  ever does not open it.
 
 ## Build
 
@@ -151,7 +154,10 @@ exist (real + test).
   exe, pinned to the commit that last changed `assets/`. That commit must be on
   GitHub before a release can install. `Platform` is the seam for WinHTTP and BCrypt.
 - `update`: version check, download, signature and SHA-256 (BCrypt) verify,
-  self-replace.
+  self-replace, Markdown of the release notes. Only official builds with a real key go
+  online. Key: `docs/signing-key.md`. Releasing: `docs/releases/README.md`. To try the
+  flow, build with `-DCRPP_UPDATE_TEST_KEY=<hex>` and run with `--update-url`; never
+  start an official build in a test, as it asks GitHub.
 - `ui`: every part of the screen is a `Surface` with its own file, hit ids, state
   and callbacks; `App` only routes input through the layers on screen. `controls.hpp`
   has the shared controls, `Dialogs` the modal question, `Toasts` the messages that
@@ -200,3 +206,5 @@ exist (real + test).
 - Shared store compatibility is tested against upstream's format as read from
   its source, not yet against the upstream client itself.
 - Re-check C++26 status against WG21 primary records.
+- The workflows have never run. A first real release must also confirm GitHub's redirect
+  for release downloads through WinHTTP, and a replacement under real antivirus.

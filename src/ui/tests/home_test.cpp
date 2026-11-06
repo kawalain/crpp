@@ -214,9 +214,95 @@ void test_seat_expiry_needs_no_paint_and_no_spinning() {
   CHECK(!home.tick(at + 1));
 }
 
+void test_tween_runs_turns_around_and_settles() {
+  Tween t(100);
+  CHECK(t.value(0) == 0);
+  CHECK(!t.moving(false, 0));
+  CHECK(t.moving(true, 0));  // wanted but not aimed yet: the frame timer must start
+  t.aim(true, 1000, true);
+  CHECK(t.value(1000) == 0);
+  CHECK(t.moving(true, 1050));
+  const float mid = t.value(1050);
+  CHECK(mid > 0.5f && mid < 1);  // CSS ease is past half at half time
+  t.aim(false, 1050, true);
+  CHECK(t.value(1050) == mid);  // no jump
+  CHECK(t.moving(false, 1050 + 50));
+  CHECK(!t.moving(false, 1050 + 100));  // takes only as long as the way back is
+  CHECK(t.value(1050 + 100) == 0);
+  t.aim(true, 2000, false);
+  CHECK(t.value(2000) == 1);
+  CHECK(!t.moving(true, 2000));
+}
+
+// Waits out every transition the way the frame timer does.
+void settle(UiHarness& h) {
+  for (int i = 0; i < 60 && h.app.animating(); ++i) {
+    Sleep(16);
+    (void)h.app.tick(GetTickCount64());
+    h.render();
+  }
+  CHECK(!h.app.animating());
+  (void)h.app.tick(GetTickCount64());  // the last frame's
+  CHECK(!h.app.tick(GetTickCount64()));
+}
+
+void test_hover_animates_then_goes_idle() {
+  UiHarness h;
+  CHECK(h.start());
+  h.app.ui().animations = true;
+  HomeScreen& home = h.app.home();
+  CHECK(!h.app.animating());
+  const Ui::Hit* find = h.app.ui().find_hit(&home, HomeScreen::Find);
+  CHECK(find != nullptr);
+  CHECK(h.app.mouse_move(find->rect.x + 10, find->rect.y + 10));
+  CHECK(h.app.animating());  // before any paint, or the frame timer would not start
+  h.render();
+  settle(h);
+  CHECK(h.app.mouse_leave());
+  CHECK(h.app.animating());
+  h.render();
+  settle(h);
+  CHECK(h.app.wake_at() == 0);
+}
+
+void test_focus_and_droplet_animate_then_go_idle() {
+  UiHarness h;
+  CHECK(h.start());
+  h.app.ui().animations = true;
+  CHECK(h.click(h.app.home(), HomeScreen::Code));
+  settle(h);
+  h.app.mouse_down(5, 5, false);  // focus leaves
+  CHECK(h.app.animating());
+  h.render();
+  settle(h);
+  const Ui::Hit* drop = h.app.ui().find_hit(&h.app.settings(), SettingsPanel::Droplet);
+  CHECK(drop != nullptr);
+  CHECK(h.app.mouse_move(drop->rect.x + 17, drop->rect.y + 30));
+  CHECK(h.app.animating());
+  h.render();
+  settle(h);
+}
+
+void test_bubble_mutes_the_search_label_until_it_is_gone() {
+  UiHarness h;
+  CHECK(h.start());
+  HomeScreen& home = h.app.home();
+  CHECK(h.click(home, HomeScreen::Find));
+  const auto before = GetTickCount64();
+  home.show_error("공개된 구름을 찾을 수 없어요.");
+  const auto wake = home.wake_at();
+  CHECK(wake >= before + Toasts::default_ms + 200);
+  CHECK(home.tick(wake));
+  CHECK(home.wake_at() == 0);
+}
+
 }  // namespace
 
 int main() {
+  test_tween_runs_turns_around_and_settles();
+  test_hover_animates_then_goes_idle();
+  test_focus_and_droplet_animate_then_go_idle();
+  test_bubble_mutes_the_search_label_until_it_is_gone();
   test_return_decisions();
   test_held_seat_asks_first();
   test_second_choice_joins_at_random();

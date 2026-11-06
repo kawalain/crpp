@@ -5,6 +5,7 @@
 #include <optional>
 #include <string>
 
+#include "crpp/ui/hover.hpp"
 #include "crpp/ui/surface.hpp"
 
 namespace crpp::ui {
@@ -54,6 +55,7 @@ class HomeScreen final : public Surface {
   void find();
   void refresh_seat(unsigned long long now);
   [[nodiscard]] bool moving(unsigned long long now) const;
+  [[nodiscard]] bool tip_wanted(unsigned long long now) const;
 
   std::string nickname_;
   int hour_ = 12;
@@ -63,6 +65,15 @@ class HomeScreen final : public Surface {
   bool return_open_ = false;
   unsigned long long return_opened_at_ = 0;
   bool was_moving_ = false;
+  unsigned long long tip_muted_until_ = 0;  // a bubble is where the search label would be
+  // The transitions in style.css.
+  Tween create_hover_{160};
+  Tween entry_focus_{150};
+  Tween enter_hover_{150};
+  Tween search_color_{150};
+  Tween search_scale_{140};
+  Tween seat_light_{150};
+  Tween search_tip_{tip_ms};
 };
 
 }  // namespace crpp::ui

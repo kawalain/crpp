@@ -68,6 +68,21 @@ bool scene(Shell& s, std::string_view name) {
     s.app.set_theme(name.substr(at + 1) == "dark" ? ThemeId::DarkCloud : ThemeId::Pastel);
     name = name.substr(0, at);
   }
+  if (name == "home-hover") {
+    s.app.ui().hover_owner = &s.app.home();
+    s.app.ui().hover_id = HomeScreen::Find;
+    return true;
+  }
+  if (name == "home-hover-enter") {
+    s.app.ui().hover_owner = &s.app.home();
+    s.app.ui().hover_id = HomeScreen::Join;
+    return true;
+  }
+  if (name == "home-hover-droplet") {
+    s.app.ui().hover_owner = &s.app.settings();
+    s.app.ui().hover_id = SettingsPanel::Droplet;
+    return true;
+  }
   if (name == "home-returning") {
     hold_a_seat(s);
     return true;

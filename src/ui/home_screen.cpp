@@ -6,6 +6,7 @@
 
 #include "crpp/ui/controls.hpp"
 #include "crpp/ui/home_logic.hpp"
+#include "crpp/ui/hover.hpp"
 #include "crpp/ui/toasts.hpp"
 
 namespace crpp::ui {
@@ -30,7 +31,10 @@ void HomeScreen::paint(Painter& p) {
   const Theme& t = ui_.theme;
   // Sky: the large cloud at lower right, then the create cloud at upper left.
   p.cloud(ui_.cloud.get(), 306.33f, 295.56f, 1.3906f, 0.09f, 6, t);
-  if (ui_.hot(this, Create)) p.push(scale_about(182, 260, 1.03f));
+  const unsigned long long now = ui_.now_ms;
+  const bool animate = ui_.animations;
+  create_hover_.aim(ui_.hot(this, Create), now, animate);
+  p.push(scale_about(182, 260, 1 + 0.03f * create_hover_.value(now)));
   p.cloud(ui_.cloud.get(), cloud_x, cloud_y, 1, 0.06f, 3.742f, t);
   p.text("구름 띄우기", {0, 318, 458, 110}, {.size = 44, .line_height = 110, .align = Align::Center}, t.hl_text);
   p.pop();
@@ -50,7 +54,9 @@ void HomeScreen::paint(Painter& p) {
 
   const Rect entry{469, 522, 279, 80};
   const bool focused = ui_.focus == &code_;
-  p.push(focused ? scale_about(469 + 279 / 2.f, 522 + 40, 1.012f) : D2D1::Matrix3x2F::Identity());
+  entry_focus_.aim(focused, now, animate);
+  const D2D1_MATRIX_3X2_F entry_scale = scale_about(469 + 279 / 2.f, 522 + 40, 1 + 0.012f * entry_focus_.value(now));
+  p.push(entry_scale);
   p.fill_round(entry, 18, t.entry);
   const Color faint = with_alpha(t.dark ? t.hl_text_soft : rgb(0xFFFFFF), t.dark ? 1.0f : 0.85f);
   const Color input_text = t.dark ? t.hl_text : t.on_accent;
@@ -60,13 +66,16 @@ void HomeScreen::paint(Painter& p) {
 
   // Enter arrow.
   const Rect enter{entry.x + 221, entry.y + 10, 52, 60};
-  const bool enter_hot = ui_.hot(this, Join);
-  if (enter_hot) p.fill_round(enter, 13, mix(t.entry, rgb(0xFFFFFF), 40));
-  const Color enter_color = enter_hot ? t.hl_text : (t.dark ? t.hl_text_soft : faint);
+  enter_hover_.aim(ui_.hot(this, Join), now, animate);
+  const float enter_hover = enter_hover_.value(now);
+  if (enter_hover > 0) {
+    p.fill_round(enter, 13, with_alpha(t.dark ? t.hl_soft : mix(t.entry, rgb(0xFFFFFF), 40), enter_hover));
+  }
+  const Color enter_color = mix(t.dark ? t.hl_text_dark : t.hl_text, t.dark ? t.hl_text_soft : faint, enter_hover * 100);
   {
     const auto arrow = ui_.gfx.parse_path("M10 22h23M23 11l11 11-11 11");
     p.push(D2D1::Matrix3x2F::Scale(32 / 44.f, 32 / 44.f) *
-           D2D1::Matrix3x2F::Translation(enter.x + 26 - 16, enter.y + 30 - 16));
+           D2D1::Matrix3x2F::Translation(enter.x + 26 - 16, enter.y + 30 - 16) * entry_scale);
     p.stroke_geometry(arrow.get(), enter_color, 3);
     p.pop();
   }
@@ -77,21 +86,37 @@ void HomeScreen::paint(Painter& p) {
   // Public room search button.
   const Rect search{759, 522, 92, 80};
   const bool search_hot = ui_.hot(this, Find);
-  if (search_hot) p.push(scale_about(search.x + search.w / 2, search.y + search.h / 2, 1.05f));
+  search_color_.aim(search_hot, now, animate);
+  search_scale_.aim(search_hot, now, animate);
+  seat_light_.aim(returning(), now, animate);
+  search_tip_.aim(tip_wanted(now), now, animate);
+  const D2D1_MATRIX_3X2_F button_scale =
+      scale_about(search.x + search.w / 2, search.y + search.h / 2, 1 + 0.05f * search_scale_.value(now));
+  const float search_hover = search_color_.value(now) * 100, light = seat_light_.value(now) * 100;
+  p.push(button_scale);
   // A held Seat lights the button (.search-button.returning).
-  p.fill_round(search, 18, search_hot ? t.hl_dark : returning() ? t.hl : t.entry);
+  p.fill_round(search, 18, mix(t.hl_dark, mix(t.hl, t.entry, light), search_hover));
   {
-    const Color rest = t.dark ? (returning() ? t.on_accent : t.hl_text_soft) : faint;
-    const Color icon = search_hot ? t.on_accent : rest;
+    const Color rest = t.dark ? mix(t.on_accent, t.hl_text_soft, light) : faint;
+    const Color icon = mix(t.on_accent, rest, search_hover);
     p.push(D2D1::Matrix3x2F::Scale(42 / 44.f, 42 / 44.f) *
-           D2D1::Matrix3x2F::Translation(search.x + 46 - 21, search.y + 40 - 21));
+           D2D1::Matrix3x2F::Translation(search.x + 46 - 21, search.y + 40 - 21) * button_scale);
     p.stroke_ellipse(19, 19, 11, 11, icon, 3.2f);
     p.stroke_line(27.5f, 27.5f, 37, 37, icon, 3.2f);
     p.pop();
   }
-  if (search_hot) p.pop();
+  if (const float shown = search_tip_.value(now); shown > 0) {
+    // The label is the button's child, so it scales with it.
+    constexpr const char* label = "공개된 구름 찾기";
+    const float w = tip_width(ui_, label), h = tip_height();
+    p.push(button_scale);
+    paint_tip(p, {search.x + (search.w - w) / 2, search.y - 8 - h + 4 * (1 - shown), w, h}, label, t.hl, t.on_accent, shown);
+    p.pop();
+  }
   ui_.add_hit(this, search, Find);
 }
+
+bool HomeScreen::tip_wanted(unsigned long long now) const { return ui_.hot(this, Find) && now >= tip_muted_until_; }
 
 void HomeScreen::paint_return(Painter& p) {
   if (!return_open_) return;
@@ -171,6 +196,7 @@ void HomeScreen::show_error(std::string text) {
     ui_.toasts->bubble(ui_.to_window({469 + 221, 522 + 10, 52, 60}), std::move(text), 18);
   } else if (last_action_ == Find) {
     ui_.toasts->bubble(ui_.to_window({759, 522, 92, 80}), std::move(text));
+    tip_muted_until_ = GetTickCount64() + Toasts::default_ms + 200;  // .notifying > .tip
   } else {
     ui_.toasts->toast(std::move(text));
   }
@@ -228,7 +254,11 @@ Cursor HomeScreen::cursor(int id) const {
 }
 
 bool HomeScreen::moving(unsigned long long now) const {
-  return return_open_ && static_cast<float>(now - return_opened_at_) < modal_pop_ms;
+  return (return_open_ && static_cast<float>(now - return_opened_at_) < modal_pop_ms) ||
+         create_hover_.moving(ui_.hot(this, Create), now) || entry_focus_.moving(ui_.focus == &code_, now) ||
+         enter_hover_.moving(ui_.hot(this, Join), now) || search_color_.moving(ui_.hot(this, Find), now) ||
+         search_scale_.moving(ui_.hot(this, Find), now) || seat_light_.moving(returning(), now) ||
+         search_tip_.moving(tip_wanted(now), now);
 }
 
 bool HomeScreen::animating() const { return ui_.animations && moving(GetTickCount64()); }
@@ -243,9 +273,16 @@ bool HomeScreen::tick(unsigned long long now_ms) {
     refresh_seat(now_ms);
     changed = true;
   }
+  if (tip_muted_until_ != 0 && now_ms >= tip_muted_until_) {
+    tip_muted_until_ = 0;
+    changed = true;
+  }
   return changed;
 }
 
-unsigned long long HomeScreen::wake_at() const { return seat_wake_; }
+unsigned long long HomeScreen::wake_at() const {
+  if (seat_wake_ == 0 || tip_muted_until_ == 0) return seat_wake_ + tip_muted_until_;
+  return std::min(seat_wake_, tip_muted_until_);
+}
 
 }  // namespace crpp::ui

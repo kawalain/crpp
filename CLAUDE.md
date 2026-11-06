@@ -194,6 +194,10 @@ exist (real + test).
 - Confirm Raw Input still reports while a game or an elevated window has focus.
 - IME composition and candidate windows at a scale above 100%: they get physical
   client pixels, which Microsoft's DPI pages do not state for the IME calls.
+- Output device changes (plug, unplug, default change) were never exercised on real
+  hardware: only listing and opening every device is. Nor has the idle mute run a
+  full idle period in a real Room. It ends on a key or click, not on mouse movement
+  alone: Raw Input only reports Input kinds.
 - The sound of spatial audio and reverb needs ears: run
   `crpp_soundtest assets/sounds`, which walks every seat.
 - Dead-peer detection (network cut) is untested.

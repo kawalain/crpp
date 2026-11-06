@@ -29,6 +29,11 @@ struct ProfileInfo {
   std::uint64_t events = 0;
 };
 
+// Who a member is, beyond their slot.
+struct MemberIds {
+  std::string cid, uid;  // uid is empty for a Guest
+};
+
 class Bridge final : public client::Observer {
  public:
   Bridge(ui::App& app, UiTasks& tasks, store::Store& store, sound::Engine& engine)
@@ -50,6 +55,7 @@ class Bridge final : public client::Observer {
   std::function<void(const ui::ChatEntry&)> on_chat;
   // The member list changed, just before the screen is updated.
   std::function<void(const std::vector<ui::MemberView>&)> on_members;
+  std::function<void(const std::vector<MemberIds>&)> on_member_ids;
 
   // UI thread: remember which held Seat a resume is for, to forget it if refused.
   void expect_resume(std::string code) { resume_code_ = std::move(code); }

@@ -6,7 +6,8 @@
 #include <avrt.h>
 #include <mmdeviceapi.h>
 #include <mmreg.h>
-#include <propidl.h>
+#include <objbase.h>
+#include <propsys.h>
 #include <xmmintrin.h>
 
 #include <algorithm>

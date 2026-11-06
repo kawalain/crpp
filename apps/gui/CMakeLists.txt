@@ -16,4 +16,10 @@ if(WIN32)
   # the exe alone, and fetches them into the user's data folder.
   add_custom_command(TARGET crpp POST_BUILD
     COMMAND ${CMAKE_COMMAND} -E copy_directory ${PROJECT_SOURCE_DIR}/assets $<TARGET_FILE_DIR:crpp>/assets)
+
+  add_executable(crpp_gui_sound_prefs_test tests/sound_prefs_test.cpp)
+  target_link_libraries(crpp_gui_sound_prefs_test PRIVATE crpp_ui crpp_sound crpp_store)
+  target_include_directories(crpp_gui_sound_prefs_test PRIVATE ${PROJECT_SOURCE_DIR}/tests/support)
+  crpp_target_defaults(crpp_gui_sound_prefs_test)
+  add_test(NAME gui.sound_prefs COMMAND crpp_gui_sound_prefs_test)
 endif()

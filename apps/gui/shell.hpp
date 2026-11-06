@@ -27,6 +27,10 @@
 
 namespace crpp::gui {
 
+namespace area::sound {
+struct State;
+}
+
 inline constexpr UINT_PTR blink_timer = 1;
 inline constexpr UINT_PTR frame_timer = 2;
 inline constexpr UINT_PTR smoke_timer = 3;
@@ -118,6 +122,7 @@ struct Shell {
   std::unique_ptr<sound::Engine> engine;
   InputSink input_sink{client, engine};
   std::unique_ptr<input::RawInputSource> input;
+  std::shared_ptr<area::sound::State> sound_state;
 };
 
 // --- startup.cpp ---

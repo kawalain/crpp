@@ -49,10 +49,10 @@ void a_longer_reply_stops_one_byte_past_the_file() {
   CHECK(bytes && bytes->size() == 11);
 }
 
-void failures_are_network_errors() {
+void failures_say_where_they_happened() {
   mock::Server server([](mock::Conn& c) { c.reply(404); });
   WindowsPlatform not_found(base_url(server));
-  CHECK(not_found.fetch({"a", 1, ""}, nullptr).error() == Error::Network);
+  CHECK(not_found.fetch({"a", 1, ""}, nullptr).error() == Error::Unavailable);
 
   // The server dropped the connection before answering.
   mock::Server drops([](mock::Conn&) {});
@@ -87,7 +87,7 @@ int main() {
   hashes_like_the_standard();
   fetches_a_file_and_reports_progress();
   a_longer_reply_stops_one_byte_past_the_file();
-  failures_are_network_errors();
+  failures_say_where_they_happened();
   the_built_in_manifest_describes_the_assets_folder();
   return crpp_test_result();
 }

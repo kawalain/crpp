@@ -707,8 +707,10 @@ void start_install(Shell& s, HWND hwnd) {
         enter_app(s, hwnd);
       } else if (result.error() == assets::Error::Disk) {
         s.app.show_setup(0, "파일을 저장하지 못했어요. 저장 공간을 확인해 주세요.");
-      } else {
+      } else if (result.error() == assets::Error::Network) {
         s.app.show_setup(0, "파일을 받지 못했어요. 인터넷 연결을 확인해 주세요.");
+      } else {
+        s.app.show_setup(0, "필요한 파일을 제대로 받지 못했어요. 잠시 후 다시 시도해 주세요.");
       }
     });
   });

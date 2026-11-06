@@ -24,7 +24,8 @@ struct Manifest {
   std::span<const Entry> entries;
 };
 
-enum class Error : std::uint8_t { Network, BadContent, Disk };
+// Network: no answer from the server. Unavailable: it answered, without the file.
+enum class Error : std::uint8_t { Network, Unavailable, BadContent, Disk };
 
 class Platform {
  public:

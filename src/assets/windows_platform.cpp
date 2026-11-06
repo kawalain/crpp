@@ -75,10 +75,10 @@ std::expected<std::vector<std::uint8_t>, Error> WindowsPlatform::fetch(const Ent
   DWORD status = 0;
   DWORD status_size = sizeof status;
   if (!WinHttpQueryHeaders(request.get(), WINHTTP_QUERY_STATUS_CODE | WINHTTP_QUERY_FLAG_NUMBER,
-                           WINHTTP_HEADER_NAME_BY_INDEX, &status, &status_size, WINHTTP_NO_HEADER_INDEX) ||
-      status != 200) {
+                           WINHTTP_HEADER_NAME_BY_INDEX, &status, &status_size, WINHTTP_NO_HEADER_INDEX)) {
     return std::unexpected(Error::Network);
   }
+  if (status != 200) return std::unexpected(Error::Unavailable);
   // One byte of room beyond the file is enough to tell that it is too long.
   std::vector<std::uint8_t> bytes(static_cast<std::size_t>(entry.size) + 1);
   std::size_t received = 0;

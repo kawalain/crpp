@@ -23,15 +23,28 @@ inline D2D1_MATRIX_3X2_F scale_about(float cx, float cy, float s) {
 }
 
 class Surface;
+class Prefs;
+class Dialogs;
+class Toasts;
+class EmojiPicker;
 
 // What the surfaces share: drawing resources, the geometry of the current frame,
-// the hit list and the keyboard focus.
+// the hit list, the keyboard focus and the app-wide services.
 class Ui {
  public:
   Gfx gfx;
   std::optional<EmojiCache> emoji;
   Theme theme = make_theme(ThemeId::Cloudroom);
   ComPtr<ID2D1PathGeometry> cloud;
+
+  // Never null once App exists.
+  Prefs* prefs = nullptr;
+  Dialogs* dialogs = nullptr;
+  Toasts* toasts = nullptr;
+  EmojiPicker* emoji_picker = nullptr;
+
+  // Off for --shot and tests: every transition shows its end state.
+  bool animations = true;
 
   // The stage is scaled to cover the window; the overflow is cropped, centered.
   float scale = 1, ox = 0, oy = 0, width = stage_w, height = stage_h;
@@ -113,6 +126,9 @@ class Surface {
   [[nodiscard]] virtual bool animating() const { return false; }
   // Expires timed effects; true if something changed.
   virtual bool tick(unsigned long long /*now_ms*/) { return false; }
+  // When tick() is next needed though nothing is animating; 0 = never. It keeps a
+  // waiting effect from needing frames: idle means no timers.
+  [[nodiscard]] virtual unsigned long long wake_at() const { return 0; }
 
  protected:
   Ui& ui_;

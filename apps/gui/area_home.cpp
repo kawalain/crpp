@@ -18,6 +18,16 @@ void wire(Shell& s) {
   };
 }
 
-bool scene(Shell&, std::string_view name) { return name == "home"; }
+bool scene(Shell& s, std::string_view name) {
+  if (name == "toast") {
+    s.app.toasts().toast("서버 연결이 종료되었습니다.");
+    return true;
+  }
+  if (name == "dialog") {
+    s.app.dialogs().show({"설정에서 변경한 모든 값을\n초기화 할까요?", "초기화", "취소", false, nullptr, nullptr});
+    return true;
+  }
+  return name == "home";
+}
 
 }  // namespace crpp::gui::area::home

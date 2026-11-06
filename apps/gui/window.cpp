@@ -100,6 +100,7 @@ LRESULT CALLBACK wnd_proc(HWND hwnd, UINT msg, WPARAM wp, LPARAM lp) {
       KillTimer(hwnd, blink_timer);
       KillTimer(hwnd, frame_timer);
       KillTimer(hwnd, save_timer);
+      KillTimer(hwnd, wake_timer);
       if (s->store) save_window_size(*s, hwnd);
       PostQuitMessage(0);
       return 0;
@@ -223,6 +224,9 @@ LRESULT CALLBACK wnd_proc(HWND hwnd, UINT msg, WPARAM wp, LPARAM lp) {
         (void)s->store->save();
       } else if (wp == blink_timer) {
         repaint(s->app.blink());
+      } else if (wp == wake_timer) {
+        KillTimer(hwnd, wake_timer);
+        repaint(s->app.tick(GetTickCount64()));
       } else if (wp == frame_timer) {
         const bool changed = s->app.tick(GetTickCount64());
         repaint(changed);
@@ -244,6 +248,12 @@ void sync_frames(Shell& s) {
   if (s.app.animating() && !s.frame_timer_on) {
     SetTimer(s.hwnd, frame_timer, 16, nullptr);
     s.frame_timer_on = true;
+  }
+  if (const auto at = s.app.wake_at()) {
+    const auto now = GetTickCount64();
+    SetTimer(s.hwnd, wake_timer, at > now ? static_cast<UINT>(at - now) : 1, nullptr);
+  } else {
+    KillTimer(s.hwnd, wake_timer);
   }
 }
 

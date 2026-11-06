@@ -31,6 +31,7 @@ inline constexpr UINT_PTR blink_timer = 1;
 inline constexpr UINT_PTR frame_timer = 2;
 inline constexpr UINT_PTR smoke_timer = 3;
 inline constexpr UINT_PTR save_timer = 4;
+inline constexpr UINT_PTR wake_timer = 5;
 inline constexpr UINT save_delay_ms = 2000;  // chat arrives in bursts; write once per burst
 inline constexpr UINT wm_ui_task = WM_APP + 1;
 inline constexpr UINT wm_own_input = WM_APP + 2;
@@ -126,7 +127,8 @@ void start_install(Shell& s);
 
 // --- window.cpp ---
 HWND create_window(Shell& s);
-// Keeps the frame timer running while an effect is animating.
+// Runs the frame timer while an effect is animating, and a single wake-up for the
+// next one that is only waiting.
 void sync_frames(Shell& s);
 
 // --- shot.cpp ---

@@ -17,6 +17,9 @@ class HomeScreen final : public Surface {
 
   void set_nickname(std::string nickname) { nickname_ = std::move(nickname); }
   void set_hour(int hour) { hour_ = hour; }  // 0-23, for the greeting
+  // A Room could not be entered: says so above the button that tried, or at the top
+  // of the window when no button did.
+  void show_error(std::string text);
 
   void paint(Painter& p);
   [[nodiscard]] bool accepts(int id, float x, float y) const override;
@@ -31,6 +34,7 @@ class HomeScreen final : public Surface {
   std::string nickname_;
   int hour_ = 12;
   TextField code_;
+  Id last_action_ = Create;
 };
 
 }  // namespace crpp::ui

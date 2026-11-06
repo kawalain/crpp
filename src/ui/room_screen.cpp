@@ -3,7 +3,6 @@
 #include <windows.h>
 
 #include <algorithm>
-#include <cmath>
 
 #include "crpp/ui/controls.hpp"
 
@@ -152,7 +151,7 @@ void RoomScreen::paint(Painter& p) {
   p.rt()->PopAxisAlignedClip();
 
   if (chat_) chat_panel_.paint(p, l.chat);
-  paint_controls(p);
+  if (controls_shown_) paint_controls(p);
 }
 
 void RoomScreen::paint_controls(Painter& p) {
@@ -252,22 +251,13 @@ void RoomScreen::paint_mute_popup(Painter& p) {
   ui_.add_hit_window(this, r, Popup);
   p.text(std::to_string(volume_) + "%", {r.x + 14, r.y + 14, 42, 22},
          {.size = 16, .weight = 700, .line_height = 22}, t.hl_text);
-  const float tx = r.x + 14 + 42 + 8, tw = w - 28 - 42 - 8;
-  const float thumb = 21;
-  volume_track_ = {tx, r.y + 14, tw, 22};
-  const float ty = r.y + h / 2;
-  const float pos = tx + thumb / 2 + (tw - thumb) * static_cast<float>(volume_) / 100.0f;
-  p.fill_round({tx, ty - 3, tw, 6}, 3, t.hl_pale2);
-  p.fill_round({tx, ty - 3, pos - tx, 6}, 3, t.hl);
-  p.fill_ellipse(pos, ty, thumb / 2, thumb / 2, t.hl);
-  p.fill_ellipse(pos, ty, thumb / 2 - 2, thumb / 2 - 2, t.dark ? t.hl_text_dark : t.surface);
+  volume_track_ = {r.x + 14 + 42 + 8, r.y + 14, w - 28 - 42 - 8, 22};
+  paint_slider(p, t, volume_track_, volume_, 0, 100);
   ui_.add_hit_window(this, volume_track_, VolumeSlider);
 }
 
 void RoomScreen::set_volume_from(float x) {
-  const float thumb = 21;
-  const float v = (x - volume_track_.x - thumb / 2) / (volume_track_.w - thumb);
-  volume_ = static_cast<int>(std::lround(std::clamp(v, 0.0f, 1.0f) * 100));
+  volume_ = slider_value(volume_track_, x, 0, 100);
   if (on_volume) on_volume(volume_);
 }
 

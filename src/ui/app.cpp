@@ -4,6 +4,13 @@
 
 namespace crpp::ui {
 
+App::App() {
+  ui_.prefs = &memory_prefs_;
+  ui_.dialogs = &dialogs_;
+  ui_.toasts = &toasts_;
+  ui_.emoji_picker = &emoji_picker_;
+}
+
 bool App::init(const std::filesystem::path& assets_dir) {
   if (!ui_.gfx.init()) return false;
   if (!assets_dir.empty()) reload_assets(assets_dir);
@@ -37,7 +44,7 @@ void App::show_session(std::string room_code) {
 std::vector<Surface*> App::layers() {
   if (view_ == View::Setup) return {&setup_};
   Surface* screen = view_ == View::Home ? static_cast<Surface*>(&home_) : &room_;
-  return {&notice_, &settings_, screen};
+  return {&dialogs_, &toasts_, &emoji_picker_, &notice_, &settings_, screen};
 }
 
 void App::paint(ID2D1RenderTarget* rt, float width, float height) {
@@ -49,10 +56,14 @@ void App::paint(ID2D1RenderTarget* rt, float width, float height) {
     setup_.paint(p);
     return;
   }
+  room_.set_controls_shown(!settings_.is_open());
   if (view_ == View::Home) home_.paint(p);
   else room_.paint(p);
   settings_.paint(p);
   notice_.paint(p);
+  emoji_picker_.paint(p);
+  toasts_.paint(p);
+  dialogs_.paint(p);
 }
 
 bool App::mouse_move(float x, float y) {
@@ -151,6 +162,15 @@ bool App::tick(unsigned long long now_ms) {
   bool changed = false;
   for (Surface* s : layers()) changed = s->tick(now_ms) || changed;
   return changed;
+}
+
+unsigned long long App::wake_at() {
+  unsigned long long at = 0;
+  for (Surface* s : layers()) {
+    const auto wake = s->wake_at();
+    if (wake != 0 && (at == 0 || wake < at)) at = wake;
+  }
+  return at;
 }
 
 Cursor App::cursor() const {

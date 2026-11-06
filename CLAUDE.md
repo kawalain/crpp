@@ -75,17 +75,17 @@ macOS-only UI, `installer/` and developer-build tools are out of scope for now.
 6. CI, Releases, `update`, update popup, changelog viewer.
 7. Pen input, as its own step, verified on a real device.
 
-Steps 1-6 run as parallel sessions after step 0; the numbers are the merge order.
-Pull requests are disabled on this repository: each session commits to its own
-worktree branch, and the integrating session merges it into `main` with `--no-ff`
-after a full build and test run.
+Steps 1-6 run as parallel subagents after step 0; the numbers are the merge order.
+Pull requests are disabled on this repository: each subagent commits to its own
+worktree branch, and the main agent merges it into `main` with `--no-ff` after a
+full build and test run.
 
 Done means: state logic has CTest coverage, `--shot` output has been compared
 with upstream by eye (pixel equality is not required), a scripted run passes on a
 hidden desktop, and idle memory and CPU have been measured.
 
 Scripted runs and tests connect to a local build of upstream's `server/`, one port
-per session, never to production. Never create accounts on production.
+per subagent, never to production. Never create accounts on production.
 
 ## Differences from upstream
 
@@ -152,7 +152,13 @@ exist (real + test).
   GitHub before a release can install. `Platform` is the seam for WinHTTP and BCrypt.
 - `update`: version check, download, signature and SHA-256 (BCrypt) verify,
   self-replace.
-- `ui`: view-model driven native rendering; redraw on demand only. Per-Monitor
+- `ui`: every part of the screen is a `Surface` with its own file, hit ids, state
+  and callbacks; `App` only routes input through the layers on screen. `controls.hpp`
+  has the shared controls, `Dialogs` the modal question, `Toasts` the messages that
+  expire, `Prefs` the typed settings keys. `src/ui/tests/ui_harness.hpp` drives an
+  `App` without a window. `apps/gui/area_*.cpp` is the shell's side of each feature:
+  wiring, `--shot` scenes, and reactions to changed settings.
+  Native rendering; redraw on demand only. Per-Monitor
   v2, set by manifest: `App` works entirely in DIPs and the render target's DPI
   maps them, so only the shell in `apps/gui` converts pixels. The saved window
   size is in DIPs. `--shot ... --dpi <n>` renders any scale. `WM_DPICHANGED`

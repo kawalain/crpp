@@ -42,6 +42,8 @@ class RoomScreen final : public Surface {
   void pulse(std::uint32_t slot);
   void pulse_me() { pulse(me_); }
   void set_volume(int percent) { volume_ = percent; }
+  // The buttons are not drawn under the settings panel.
+  void set_controls_shown(bool shown) { controls_shown_ = shown; }
   [[nodiscard]] std::size_t member_count() const { return members_.size(); }
 
   void paint(Painter& p);
@@ -80,6 +82,7 @@ class RoomScreen final : public Surface {
   bool public_ = false, chat_ = false;
   bool options_open_ = false, mute_popup_open_ = false;
   bool muted_ = false;
+  bool controls_shown_ = true;
   int volume_ = 30;
   Rect volume_track_;
   std::vector<std::pair<std::uint32_t, unsigned long long>> pulses_;  // slot, expiry (ms)

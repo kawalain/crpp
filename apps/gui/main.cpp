@@ -120,6 +120,7 @@ int main(int argc, char** argv) {
   shell.store.emplace(store::Store::open(*locations, shell.platform, unix_ms()));
   store::Store& data = *shell.store;
   shell.prefs.emplace(data);
+  shell.app.set_prefs(*shell.prefs);
 
   shell.audio = load_audio_settings(data);
   shell.app.room().set_volume(shell.audio.volume);

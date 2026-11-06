@@ -1,5 +1,7 @@
 #include "crpp/ui/home_screen.hpp"
 
+#include "crpp/ui/toasts.hpp"
+
 namespace crpp::ui {
 
 namespace {
@@ -92,12 +94,25 @@ bool HomeScreen::accepts(int id, float x, float y) const {
 }
 
 void HomeScreen::join() {
-  if (on_join && !code_.text().empty()) on_join(narrow(code_.text()));
+  if (code_.text().empty()) return;
+  last_action_ = Join;
+  if (on_join) on_join(narrow(code_.text()));
+}
+
+void HomeScreen::show_error(std::string text) {
+  if (last_action_ == Join) {
+    ui_.toasts->bubble(ui_.to_window({469 + 221, 522 + 10, 52, 60}), std::move(text), 18);
+  } else if (last_action_ == Find) {
+    ui_.toasts->bubble(ui_.to_window({759, 522, 92, 80}), std::move(text));
+  } else {
+    ui_.toasts->toast(std::move(text));
+  }
 }
 
 void HomeScreen::click(int id, float x, float, bool shift) {
   switch (id) {
     case Create:
+      last_action_ = Create;
       if (on_create) on_create();
       break;
     case Join:
@@ -109,6 +124,7 @@ void HomeScreen::click(int id, float x, float, bool shift) {
       code_.click_at(ui_.gfx, code_style, ui_.to_stage_x(x) - (469 + 18), shift);
       break;
     case Find:
+      last_action_ = Find;
       if (on_find_public) on_find_public();
       break;
     default:

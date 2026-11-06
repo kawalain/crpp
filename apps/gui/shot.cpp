@@ -21,6 +21,7 @@ bool apply_scene(Shell& s, std::string_view name) {
 }  // namespace
 
 int run_shot(Shell& s, int argc, char** argv, float dpi) {
+  s.app.ui().animations = false;
   unsigned w = 951, h = 692;
   if (argc >= 4) std::sscanf(argv[3], "%ux%u", &w, &h);
   if (argc >= 5) s.app.home().set_hour(std::atoi(argv[4]));

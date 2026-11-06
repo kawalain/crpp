@@ -15,9 +15,17 @@ struct ChatEntry {
   long long time_ms = 0;  // unix epoch, milliseconds
 };
 
+// A message's time, as the list shows it: "오후 3:07", or "15:07" on a 24-hour clock,
+// with the day in front when it was not today.
+[[nodiscard]] std::string chat_clock_text(long long ms, bool use_24h);
+
 class ChatPanel final : public Surface {
  public:
   explicit ChatPanel(Ui& ui);
+
+  // chatScale, percent: the whole list zooms, the compose box does not (.chat-list).
+  void set_scale(int percent) { zoom_ = static_cast<float>(percent) / 100; }
+  void set_use_24h(bool on) { use_24h_ = on; }
 
   std::function<void(std::string text)> on_send;
 
@@ -39,6 +47,8 @@ class ChatPanel final : public Surface {
   float scroll_ = 0;
   bool stick_ = true;
   float content_h_ = 0, area_h_ = 0;
+  float zoom_ = 1;
+  bool use_24h_ = false;
   Rect area_;
 };
 

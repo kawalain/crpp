@@ -74,6 +74,9 @@ class Bridge final : public client::Observer {
   // UI thread: the user leaves. The Seat stays held for a while.
   void leaving();
 
+  // UI thread: my Seat in the Room.
+  [[nodiscard]] std::uint32_t my_slot() const { return me_; }
+
   void on_status(session::State s) override;
   void on_deliver(const wire::ServerMessage& m) override;
   void on_peer_input(std::span<const wire::ServerEvent> events) override;

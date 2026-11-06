@@ -210,6 +210,9 @@ exist (real + test).
   `crpp_soundtest assets/sounds`, which walks every seat.
 - Following the OS theme: `WM_SETTINGCHANGE` was only posted in a scripted run.
   Flipping the real Windows setting and seeing the dark title bar are unverified.
+- The tray needs a real desktop: a hidden one has no taskbar, so the icon fails to
+  add and a close exits. Icon, menu, notifications, flash, the Run key and a second
+  start have only been tested as decisions, not seen.
 - Dead-peer detection (network cut) is untested.
 - Shared store compatibility is tested against upstream's format as read from
   its source, not yet against the upstream client itself.

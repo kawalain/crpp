@@ -105,6 +105,7 @@ struct Shell {
   bool tracking = false;
   bool frame_timer_on = false;
   bool blink_timer_on = false;
+  bool hidden = true;       // hidden or minimized: no render resources, no frames
   UINT dpi = USER_DEFAULT_SCREEN_DPI;
   std::filesystem::path assets_dir;
   std::string asset_url;

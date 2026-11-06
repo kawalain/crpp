@@ -46,6 +46,8 @@ void set_member_volume(Shell& s, std::string_view cid, int percent);
 void set_member_muted(Shell& s, std::string_view cid, bool muted);
 // What the member menu shows; muted is 0.
 [[nodiscard]] int member_volume(Shell& s, std::string_view cid);
+// Whether this member's volume is 0, which also silences their notifications.
+[[nodiscard]] bool member_muted(Shell& s, std::string_view cid);
 // A notification sound by its file name stem ("01_cloud_chat"). Honors nothing but
 // the mute settings: whether this sound is enabled is the caller's question.
 void play_notification(Shell& s, std::string_view name);
@@ -66,11 +68,15 @@ void system_settings_changed(Shell& s);
 }  // namespace preferences
 
 namespace os {  // tray, chat notifications, taskbar flash, autostart, reopening
+// The registered message another start of the app posts to this window.
+inline constexpr const wchar_t* show_window_message = L"crpp.show-window";
 void wire(Shell& s);
 [[nodiscard]] bool scene(Shell& s, std::string_view name);
 void pref_changed(Shell& s, std::string_view key);
 // A window message before the shell handles it; true means it was consumed.
 [[nodiscard]] bool on_message(Shell& s, UINT msg, WPARAM wp, LPARAM lp, LRESULT& result);
+// Shows the window for the first time, or (--minimized) puts it where it can be reopened.
+void first_show(Shell& s, bool minimized);
 }  // namespace os
 
 namespace account {  // HTTP API, first-run flow, the account tab

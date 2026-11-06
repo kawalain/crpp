@@ -239,6 +239,8 @@ void set_member_muted(Shell& s, std::string_view cid, bool muted) {
 
 int member_volume(Shell& s, std::string_view cid) { return s.sound_state ? s.sound_state->volumes.get(cid) : 100; }
 
+bool member_muted(Shell& s, std::string_view cid) { return member_volume(s, cid) == 0; }
+
 void play_notification(Shell& s, std::string_view name) {
   if (s.engine) s.engine->play_notification(name);
 }

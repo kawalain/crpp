@@ -1,5 +1,6 @@
 // crpp: the native Cloudroom window.
 //   crpp                          run the app
+//   crpp --minimized              run it hidden in the tray, as a logon does
 //   crpp --shot out.png [WxH] [hour] [scene] [notice]
 //                                 render a scene offscreen and exit; the area_*.cpp
 //                                 files name the scenes
@@ -48,13 +49,17 @@ sound::Settings load_audio_settings(const store::Store& data) {
   return audio;
 }
 
-// Only one window per user session; a second start brings the first forward.
+// Only one window per user session; a second start brings the first forward, also from
+// the tray. That window does it itself, and this process lends it the right to come to
+// the foreground.
 bool another_instance_running() {
   CreateMutexW(nullptr, FALSE, L"Local\\crpp.single-instance");  // released at exit
   if (GetLastError() != ERROR_ALREADY_EXISTS) return false;
   if (HWND existing = FindWindowW(L"CrppWindow", nullptr)) {
-    if (IsIconic(existing)) ShowWindow(existing, SW_RESTORE);
-    SetForegroundWindow(existing);
+    DWORD owner = 0;
+    GetWindowThreadProcessId(existing, &owner);
+    AllowSetForegroundWindow(owner);
+    PostMessageW(existing, RegisterWindowMessageW(area::os::show_window_message), 0, 0);
   }
   return true;
 }
@@ -139,7 +144,7 @@ int main(int argc, char** argv) {
   shell.tasks.attach(hwnd);
   shell.input_sink.attach(hwnd);
   wire_areas(shell);
-  ShowWindow(hwnd, SW_SHOWDEFAULT);
+  area::os::first_show(shell, argc >= 2 && std::string(argv[1]) == "--minimized");
   if (argc >= 3 && std::string(argv[1]) == "--smoke") shell.smoke_path = ui::widen(argv[2]);
   Shell* sp = &shell;
   shell.app.setup().on_retry = [sp] { start_install(*sp); };

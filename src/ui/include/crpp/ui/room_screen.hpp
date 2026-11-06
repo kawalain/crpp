@@ -23,7 +23,8 @@ struct MemberView {
   std::string nick;
   std::string emoji;  // Twemoji file id; empty = the default droplet
   bool offline = false;
-  std::string cid;  // identifies them across reconnects
+  std::string cid = {};      // who they are across reconnects
+  bool reconnected = false;  // this update is them coming back, not entering
 };
 
 class RoomScreen final : public Surface {

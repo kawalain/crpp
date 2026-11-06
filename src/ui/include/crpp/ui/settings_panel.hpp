@@ -37,6 +37,8 @@ class SettingsPanel final : public Surface {
   // Goes back to the first tab's top the next time it opens by the droplet.
   void select(SettingsPage page);
   [[nodiscard]] SettingsPage page() const { return page_; }
+  // Where the content is scrolled to; the next paint keeps it in range.
+  void scroll_to(float offset) { scroll_.offset = offset; }
 
   // Draws the panel when open; the droplet is on top of it.
   void paint(Painter& p);
@@ -46,6 +48,7 @@ class SettingsPanel final : public Surface {
   bool wheel(float x, float y, float delta) override;
   bool escape() override;
   [[nodiscard]] Cursor cursor(int id) const override;
+  [[nodiscard]] bool animating() const override;
 
  private:
   [[nodiscard]] SettingsTab& tab();

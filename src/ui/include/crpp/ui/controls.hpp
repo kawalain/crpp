@@ -15,6 +15,8 @@ namespace crpp::ui {
 
 // A toggle (.switch, .toggle-row input). The knob is inset 3 from the track's edges.
 void paint_switch(Painter& p, const Theme& t, Rect r, bool on, bool disabled, bool hot);
+// The same with the knob on its way: `at` runs from 0 at the off end to 1 at the on end.
+void paint_switch_at(Painter& p, const Theme& t, Rect r, bool on, float at, bool disabled, bool hot);
 
 // A slider (.volume-slider): r is the hit area, the track runs through its middle.
 void paint_slider(Painter& p, const Theme& t, Rect r, int value, int min, int max);

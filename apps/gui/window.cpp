@@ -122,6 +122,7 @@ LRESULT CALLBACK wnd_proc(HWND hwnd, UINT msg, WPARAM wp, LPARAM lp) {
       }
       EndPaint(hwnd, &ps);
       place_ime(*s, hwnd);
+      sync_frames(*s);  // painting is where a hover's transition starts
       return 0;
     }
     case wm_ui_task:

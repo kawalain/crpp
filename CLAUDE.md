@@ -1,9 +1,9 @@
 # crpp
 
-C++ rewrite of the desktop client of `pb29/Cloudroom` (branch `dev`, readable
-with `gh`). Priorities, in order: minimal CPU load, minimal memory, stability.
-Minimal dependencies. Technical facts come from official references, developer
-communities and upstream source, not from memory.
+C++ rewrite of the desktop client of `pb29/Cloudroom` (private; branch `dev`,
+readable with `gh`). Priorities, in order: minimal CPU load, minimal memory,
+stability. Minimal dependencies. Technical facts come from official references
+and developer communities, not from memory.
 
 ## Decisions
 
@@ -20,8 +20,9 @@ communities and upstream source, not from memory.
   headers; every OS API lives in an adapter behind a seam (`transport`,
   `input`, `AudioDevice`, `ui`, tray/notification). macOS/Linux adapters are
   added later without touching pure modules.
-- Windows release builds use MSVC (`/std:c++latest` via CMake). GCC/Clang build
-  and test the pure modules on every change to keep them portable.
+- Windows release builds use MSVC from Build Tools 2022 (`/std:c++latest` via
+  CMake). GCC/Clang build and test the pure modules on every change to keep them
+  portable.
 - Build is CMake + Ninja only; no package manager. Third-party code, if ever
   needed, is vendored in `third_party/` at a pinned version.
 - Tests use CTest with the tiny `tests/support/check.hpp`; no framework.
@@ -31,18 +32,39 @@ communities and upstream source, not from memory.
   reached from `session` only through interfaces.
 - Audio is raw WASAPI with a hand-written WAV parser (no third party).
 - `client-apk` and the upstream Rust `app` are out of scope.
-- Goal: the same client as upstream (same screens, behavior, settings and
-  cache file compatibility at `%LOCALAPPDATA%\Cloudroom\`), one instance at a
-  time. Only features that are visible in upstream are implemented; pen input
-  stays out until the server supports it.
-- Sound engine: raw WASAPI, same sound packs. The spatial/reverb/resampling
-  design is not copied from upstream; it is researched from public sources
-  and may be better than upstream (see `docs/research/`).
+- Goal: the same features and screens as upstream, one instance at a time.
+  Upstream defines the features, screens, visuals and (server only) the
+  protocol. Design every implementation independently from its required result
+  and public sources; upstream client code is never a design input. Behavior may
+  differ where upstream is broken or a change is clearly better; record the
+  difference in the commit or docs.
+- Features visible in upstream are in scope, plus Pen input, which upstream
+  hides because it does not work there. Pen ships hidden until verified on a
+  real device.
+- Data files: see `docs/adr/0001-protected-store-with-shared-fallback.md`.
+- Assets: see `docs/adr/0002-download-assets-on-first-run.md`. Offline use is
+  not a goal: without a server the app opens only to say so.
+- Keystroke privacy: see `docs/adr/0003-presence-mode-by-default.md`.
+- Sound engine: raw WASAPI, upstream's sound packs. The spatial/reverb/resampling
+  design is researched from public sources (see `docs/research/`). Automated
+  tests cover numbers and stability; a listening test tool lets the user judge
+  quality by ear.
 - Every UI element is vector data (paths, SVG); no bitmaps. Animations follow
   upstream CSS durations and easings. App font: Pretendard GOV Variable.
 - Distribution differs from upstream: GitHub Actions builds, the app checks the
-  latest GitHub Release, and release notes are shown as the changelog. No
-  custom installer first; update checking and download come before it.
+  latest GitHub Release, and release notes are shown as the changelog. A release
+  is one exe plus a manifest signed with ECDSA P-256 (key in GitHub Secrets,
+  public key in the app, verified with BCrypt). The app replaces itself and
+  restarts; keep the apply step replaceable so an installer can take over later.
+
+## Roadmap
+
+1. `store`: settings, session and cache files, seat return.
+2. `input` + `sound`: keyboard and mouse sound end to end, with `assets`.
+3. Settings screen and the rest of the room screen.
+4. Pen input, as its own step.
+5. Accounts and the HTTP API.
+6. CI, Releases and `update`.
 
 ## Build
 
@@ -62,14 +84,22 @@ exist (real + test).
   Frames are at most 1024 bytes and at most 32 input events; use fixed buffers.
 - `session`: pure state machine `step(Event) -> Actions` (connect order,
   resume/ticket, seat grace, heartbeat, backoff, 100 ms input throttle).
+  Reconnect waits 1 s doubling to 30 s with jitter, and stops at the server's
+  15-minute `OFFLINE_GRACE`, on an auth failure, or when the Room is closed.
 - `transport`: WinHTTP WebSocket/HTTPS adapter with one receive thread; fake
   adapter for tests.
-- `input`: Raw Input (`RIDEV_INPUTSINK`, no low-level hook) adapter; scripted
-  adapter for tests.
+- `input`: Raw Input (`RIDEV_INPUTSINK`) adapter on its own thread with a
+  message-only window; scripted adapter for tests. This is the lowest level
+  reachable without a driver; drivers and low-level hooks are rejected. Key codes
+  live only inside the classify function, the raw buffer is wiped, and only
+  `Kind` crosses the seam. Coordinates are never read; Pen reads only the tip and
+  in-range bits. There is no input log.
 - `sound`: pack loading and a pure `render(span<float>)` mixer; device adapter
   behind it.
 - `store`: settings and chat cache, atomic write via temp file + rename.
-- `update`: version check, download, SHA-256 (BCrypt) verify, installer launch.
+- `assets`: fetch and verify files against the manifest built into the exe.
+- `update`: version check, download, signature and SHA-256 (BCrypt) verify,
+  self-replace.
 - `ui`: view-model driven native rendering; redraw on demand only.
 
 ## Performance rules
@@ -94,8 +124,11 @@ exist (real + test).
 
 ## Verification debt
 
-- Pen input via Raw Input needs device checks.
+- Pen input via Raw Input needs device checks, including devices that expose no
+  HID digitizer collection. If a Pen tap also arrives as a mouse click on a real
+  device, suppress clicks briefly after tip activity; add this only once
+  reproduced.
+- Confirm Raw Input still reports while a game or an elevated window has focus.
 - Dead-peer detection (network cut) is untested.
-- Confirm the toolchain (VS 2026 or clang-cl) installs on this Windows 10 LTSC
-  2021 machine.
+- Confirm the GUI builds with MSVC from Build Tools 2022.
 - Re-check C++26 status against WG21 primary records.

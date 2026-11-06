@@ -97,6 +97,12 @@ per subagent, never to production. Never create accounts on production.
 - Escape closes every dialog that has a cancel action.
 - Logging out inside a Room says it leaves the Room, then does so. Nickname and
   handle can be changed without leaving.
+- The first-run prompt shows only to someone with no stored identity: a saved
+  nickname, Guest ID or token goes straight to Home, and an account's details are
+  refreshed in the background. Upstream waits for `api/me` before showing anything.
+- Logging out, or a rejected token, also erases the Guest ID, so the next start asks
+  again. A token refused on connecting leads to the sign-in prompt at once.
+- HTTP redirects are not followed, so a password never goes to another address.
 - The first time the window hides to the tray while in a Room, a notification says
   the Room is still connected, because input timing keeps being shared.
 
@@ -150,6 +156,9 @@ exist (real + test).
 - `assets`: fetch and verify files against the manifest CMake builds into the
   exe, pinned to the commit that last changed `assets/`. That commit must be on
   GitHub before a release can install. `Platform` is the seam for WinHTTP and BCrypt.
+- `api`: the account HTTP API as pure requests and responses, and `Flow`, the
+  prompt's steps. `HttpClient` is the seam for WinHTTP; `Worker` keeps its blocking
+  calls off the UI thread. `apps/gui/account_controller` joins it to `ui`.
 - `update`: version check, download, signature and SHA-256 (BCrypt) verify,
   self-replace.
 - `ui`: every part of the screen is a `Surface` with its own file, hit ids, state
@@ -199,4 +208,6 @@ exist (real + test).
 - Dead-peer detection (network cut) is untested.
 - Shared store compatibility is tested against upstream's format as read from
   its source, not yet against the upstream client itself.
+- Accounts are tested with a fake HTTP seam and a scripted localhost server, never
+  against a real `server/`.
 - Re-check C++26 status against WG21 primary records.

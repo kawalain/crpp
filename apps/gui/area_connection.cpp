@@ -11,17 +11,7 @@ void wire(Shell& s) {
     if (in_room) (void)sp->input->start();
     else sp->input->stop();
   };
-  // There is no sign-in screen yet, so continue as a guest; the token stays saved.
-  s.bridge->on_unauthorized = [sp] {
-    if (sp->config.token.empty()) return;
-    sp->config.token.clear();
-    sp->input->stop();  // it calls into the client being replaced
-    sp->client->stop();
-    start_client(*sp);
-    sp->app.notice().on_action = nullptr;
-    sp->app.notice().set(Notice{"로그인이 만료되어 게스트로 접속해요. 다시 시도해 주세요.", "", "닫기"});
-    if (!sp->smoke_path.empty()) sp->client->create(false, false);
-  };
+  s.bridge->on_unauthorized = [sp] { area::account::token_rejected(*sp); };
 }
 
 bool scene(Shell& s, std::string_view name) {

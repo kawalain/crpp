@@ -1,5 +1,8 @@
 #pragma once
 // One class per settings tab. Each tab reads and changes settings through ui.prefs.
+#include <functional>
+#include <string>
+
 #include "crpp/ui/surface.hpp"
 
 namespace crpp::ui {
@@ -50,8 +53,25 @@ class SystemTab final : public SettingsTab {
 class AccountTab final : public SettingsTab {
  public:
   using SettingsTab::SettingsTab;
+  enum Id : int { Emoji, Nickname, Handle, Logout };
+
+  struct Profile {
+    std::string nickname, handle;
+    std::string display;  // shown alone unless there is both a nickname and a handle
+    std::string emoji;
+    bool has_account = false;  // a Guest has no handle to change
+  };
+  void set_profile(Profile profile) { profile_ = std::move(profile); }
+
+  std::function<void(std::string id)> on_emoji;
+  std::function<void()> on_change_nickname, on_change_handle, on_logout;
+
   void paint(Painter& p, Rect area) override;
   [[nodiscard]] float content_height() const override;
+  void click(int id, float x, float y, bool shift) override;
+
+ private:
+  Profile profile_;
 };
 
 }  // namespace crpp::ui

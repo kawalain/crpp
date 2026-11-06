@@ -103,6 +103,8 @@ against a real `server/` yet; do that once a local build of it is available.
 - Logging out, or a rejected token, also erases the Guest ID, so the next start asks
   again. A token refused on connecting leads to the sign-in prompt at once.
 - HTTP redirects are not followed, so a password never goes to another address.
+- The emoji picker from the account tab dims the whole window, not only the settings
+  panel, so the droplet is not usable under it.
 - The first time the window hides to the tray while in a Room, a notification says
   the Room is still connected, because input timing keeps being shared.
 - Reachability is not polled in the background. `GET /health` runs at startup, after a

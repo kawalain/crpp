@@ -17,17 +17,6 @@ constexpr float emoji_size = 32;
 constexpr float thumb_in_ms = 150, thumb_out_ms = 500;
 constexpr unsigned long long thumb_hide_ms = 2000;
 
-// The file stems of a folder, sorted.
-std::vector<std::string> stems(const std::filesystem::path& folder) {
-  std::vector<std::string> out;
-  std::error_code ec;
-  for (std::filesystem::directory_iterator it(folder, ec), end; !ec && it != end; it.increment(ec)) {
-    if (it->path().extension() == ".svg") out.push_back(narrow(it->path().stem().wstring()));
-  }
-  std::ranges::sort(out);
-  return out;
-}
-
 }  // namespace
 
 void EmojiPicker::show(std::string current, std::function<void(std::string id)> on_pick) {
@@ -37,13 +26,12 @@ void EmojiPicker::show(std::string current, std::function<void(std::string id)> 
   scroll_ = {};
   thumb_on_ = false;
   thumb_hide_at_ = 0;
-  // The profile emoji in order, the hand-made ones at the bottom.
   const std::filesystem::path dir = ui_.emoji ? ui_.emoji->dir() : std::filesystem::path{};
-  ids_ = stems(dir / "emoji_profile");
-  for (std::string& id : stems(dir / "emoji_profile_custom")) {
-    if (!std::ranges::binary_search(ids_, id)) ids_.push_back(std::move(id));
-  }
   cache_.emplace(dir, cache_capacity);
+  ids_ = {};
+  for (const std::string& id : ui_.emoji_ids) {
+    if (cache_->available(ui_.gfx, id)) ids_.push_back(id);
+  }
   ui_.set_focus(nullptr, nullptr);
 }
 

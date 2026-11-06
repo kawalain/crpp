@@ -36,6 +36,11 @@ if(WIN32)
   # the exe alone, and fetches them into the user's data folder.
   add_custom_command(TARGET crpp POST_BUILD
     COMMAND ${CMAKE_COMMAND} -E copy_directory ${PROJECT_SOURCE_DIR}/assets $<TARGET_FILE_DIR:crpp>/assets)
+  if(CRPP_FETCH_DEV_ASSETS)
+    add_custom_command(TARGET crpp POST_BUILD
+      COMMAND ${CMAKE_COMMAND} -E make_directory ${CRPP_ASSET_CACHE}
+      COMMAND ${CMAKE_COMMAND} -E copy_directory ${CRPP_ASSET_CACHE} $<TARGET_FILE_DIR:crpp>/assets)
+  endif()
 
   # Not part of a normal build: see the tool's first lines.
   add_executable(crpp_make_icon EXCLUDE_FROM_ALL tools/make_icon.cpp tray.cpp)

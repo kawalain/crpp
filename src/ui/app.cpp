@@ -11,9 +11,9 @@ App::App() {
   ui_.emoji_picker = &emoji_picker_;
 }
 
-bool App::init(const std::filesystem::path& assets_dir) {
+bool App::init(const std::filesystem::path& assets_dir, bool load_font) {
   if (!ui_.gfx.init()) return false;
-  if (!assets_dir.empty()) reload_assets(assets_dir);
+  if (!assets_dir.empty() && load_font) reload_assets(assets_dir);
   else ui_.emoji.emplace(assets_dir);
   ui_.cloud = ui_.gfx.parse_path(cloud_path_data);
   return ui_.cloud && room_.init() && settings_.init();
@@ -24,9 +24,9 @@ void App::reload_assets(const std::filesystem::path& assets_dir) {
   ui_.emoji.emplace(assets_dir);
 }
 
-void App::show_setup(int percent, std::string error) {
+void App::show_setup(int percent) {
   view_ = View::Setup;
-  setup_.set(percent, std::move(error));
+  setup_.set(percent);
 }
 
 void App::show_home() {

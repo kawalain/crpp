@@ -4,7 +4,6 @@
 #include <vector>
 
 #include "areas.hpp"
-#include "crpp/assets/built_in.hpp"
 #include "crpp/assets/windows_platform.hpp"
 #include "shell.hpp"
 
@@ -136,30 +135,54 @@ void enter_app(Shell& s) {
   (void)data.save();
 }
 
-void start_install(Shell& s) {
-  s.app.show_setup(0);
-  s.assets_worker = std::thread([&s] {
+namespace {
+
+DiagEvent diag_of(assets::Error error) {
+  switch (error) {
+    case assets::Error::Network: return DiagEvent::AssetsNetwork;
+    case assets::Error::Unavailable: return DiagEvent::AssetsUnavailable;
+    case assets::Error::BadContent: return DiagEvent::AssetsBadContent;
+    case assets::Error::Disk: return DiagEvent::AssetsDisk;
+  }
+  return DiagEvent::AssetsNetwork;
+}
+
+// Said once when the app falls back on the system's font and emoji, not at every start of
+// a network that keeps the files out.
+void report_assets(Shell& s, const std::expected<void, assets::Error>& result) {
+  constexpr const char* key = "assetsFailed";
+  if (result) {
+    s.store->set(key, store::Json(false));
+    return;
+  }
+  s.log.note(diag_of(result.error()));
+  if (!s.store->bool_or(key, false)) {
+    s.app.ui().toasts->toast("일부 파일을 받지 못해 시스템 글꼴과 이모지를 쓰고 있어요. 다음에 실행할 때 다시 받아요.");
+    s.store->set(key, store::Json(true));
+  }
+}
+
+}  // namespace
+
+void start_install(Shell& s, bool wait) {
+  if (wait) s.app.show_setup(0);
+  s.assets_worker = std::thread([&s, wait] {
     assets::WindowsPlatform platform(s.asset_url);
     int shown = 0;
-    const auto result = assets::install(assets::built_in_manifest(), s.assets_dir, platform,
+    const auto result = assets::install(s.asset_manifest, s.assets_dir, platform,
                                         [&](std::uint64_t done, std::uint64_t total) {
                                           const int percent = static_cast<int>(done * 100 / total);
-                                          if (percent == shown) return;
+                                          if (!wait || percent == shown) return;
                                           shown = percent;
                                           s.tasks.post([&s, percent] { s.app.show_setup(percent); });
                                         });
-    s.tasks.post([&s, result] {
+    s.tasks.post([&s, wait, result] {
       s.assets_worker.join();
-      if (result) {
+      if (wait) {
         s.app.reload_assets(s.assets_dir);
         enter_app(s);
-      } else if (result.error() == assets::Error::Disk) {
-        s.app.show_setup(0, "파일을 저장하지 못했어요. 저장 공간을 확인해 주세요.");
-      } else if (result.error() == assets::Error::Network) {
-        s.app.show_setup(0, "파일을 받지 못했어요. 인터넷 연결을 확인해 주세요.");
-      } else {
-        s.app.show_setup(0, "필요한 파일을 제대로 받지 못했어요. 잠시 후 다시 시도해 주세요.");
       }
+      report_assets(s, result);
     });
   });
 }

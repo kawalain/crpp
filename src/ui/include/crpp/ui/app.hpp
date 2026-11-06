@@ -34,8 +34,9 @@ enum class View : std::uint8_t { Setup, Home, Session, Prompt };
 class App {
  public:
   App();
-  // An empty assets_dir draws with a system font until reload_assets.
-  bool init(const std::filesystem::path& assets_dir);
+  // An empty assets_dir, or load_font false for a font file about to be replaced, draws
+  // with a system font until reload_assets.
+  bool init(const std::filesystem::path& assets_dir, bool load_font = true);
   void reload_assets(const std::filesystem::path& assets_dir);
   [[nodiscard]] ID2D1Factory* factory() const { return ui_.gfx.d2d(); }
 
@@ -56,7 +57,7 @@ class App {
   void set_prefs(Prefs& prefs) { ui_.prefs = &prefs; }
 
   void set_theme(ThemeId id) { ui_.theme = make_theme(id); }
-  void show_setup(int percent, std::string error = {});
+  void show_setup(int percent);
   void show_home();
   void show_session(std::string room_code);
   [[nodiscard]] View view() const { return view_; }

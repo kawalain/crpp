@@ -16,7 +16,7 @@ class WindowsPlatform final : public Platform {
   WindowsPlatform(const WindowsPlatform&) = delete;
   WindowsPlatform& operator=(const WindowsPlatform&) = delete;
 
-  std::expected<std::vector<std::uint8_t>, Error> fetch(const Entry& entry, const OnBytes& on_bytes) override;
+  std::expected<std::vector<std::uint8_t>, Error> fetch(const Entry& entry, std::string_view remote, const OnBytes& on_bytes) override;
   std::string sha256(std::span<const std::uint8_t> bytes) override;
 
  private:

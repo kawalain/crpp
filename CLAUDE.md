@@ -42,7 +42,8 @@ and developer communities, not from memory.
   hides because it does not work there. Pen ships hidden until verified on a
   real device.
 - Data files: see `docs/adr/0001-protected-store-with-shared-fallback.md`.
-- Assets: see `docs/adr/0002-download-assets-on-first-run.md`. Offline use is
+- Assets: see `docs/adr/0002-download-assets-on-first-run.md` and
+  `docs/adr/0004-assets-through-jsdelivr-and-never-required.md`. Offline use is
   not a goal: without a server the app opens only to say so.
 - Keystroke privacy: see `docs/adr/0003-presence-mode-by-default.md`.
 - Sound engine: raw WASAPI, upstream's sound packs. The spatial/reverb/resampling
@@ -114,6 +115,8 @@ against a real `server/` yet; do that once a local build of it is available.
   3 s forever; it does not ask `/health` first. A connection error names no reason in
   parentheses, because the transport reports none.
 - A Room that cannot be resumed at startup says so; upstream returns to Home silently.
+- The program calls itself Cloudroom++, so its autostart entry does not collide with upstream's.
+- Assets may be missing without stopping the app; see ADR 0004.
 - The changelog comes from GitHub release notes, so an empty one says it could not be
   loaded, and a first run ever does not open it.
 
@@ -125,6 +128,8 @@ cmake --build build && ctest --test-dir build --output-on-failure
 ```
 
 MSVC needs a developer environment (vcvars); `cl` is not on PATH by default.
+The app is a Windows-subsystem program with no console: PowerShell does not wait for it,
+so wait with `Start-Process -Wait`, and read `--smoke`'s result from the exit code.
 Run GCC-built tests from PowerShell: Git Bash's PATH finds another
 `libstdc++-6.dll` first and they die with `0xc0000139`.
 
@@ -171,8 +176,9 @@ exist (real + test).
   flushed temp file + rename for every write. `Platform` is the seam for DPAPI
   and file replacement.
 - `assets`: fetch and verify files against the manifest CMake builds into the
-  exe, pinned to the commit that last changed `assets/`. That commit must be on
-  GitHub before a release can install. `Platform` is the seam for WinHTTP and BCrypt.
+  exe from `assets/` and `cmake/remote_assets.txt`. This repository's files are pinned
+  to the commit that last changed `assets/`, which must be on GitHub before a release
+  can install them. `Platform` is the seam for WinHTTP and BCrypt.
 - `api`: the account HTTP API as pure requests and responses, and `Flow`, the
   prompt's steps. `HttpClient` is the seam for WinHTTP; `Worker` keeps its blocking
   calls off the UI thread. `apps/gui/account_controller` joins it to `ui`.

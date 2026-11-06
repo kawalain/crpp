@@ -32,8 +32,8 @@ std::vector<float> load_recording(const std::filesystem::path& path, std::uint32
   return Resampler(pcm->rate, rate).run(pcm->samples);
 }
 
-Engine::Engine(AudioDevice& device, std::filesystem::path sounds_dir)
-    : device_(device), sounds_dir_(std::move(sounds_dir)), random_(std::random_device{}()) {
+Engine::Engine(AudioDevice& device, std::filesystem::path sounds_dir, std::span<const std::string> expected)
+    : device_(device), sounds_dir_(std::move(sounds_dir)), expected_(expected), random_(std::random_device{}()) {
   device_.set_on_changed([this] {
     {
       std::lock_guard lock(mutex_);
@@ -321,7 +321,7 @@ void Engine::play(const Event& event) {
   if (device_volume <= 0) return;
   const int member_volume = event.own ? 100 : volume_of(event.slot);
   if (member_volume <= 0) return;
-  if (catalog_.empty()) catalog_ = Catalog::scan(sounds_dir_);
+  if (catalog_.empty()) catalog_ = Catalog::scan(sounds_dir_, expected_);
   const auto file = catalog_.pick(event.kind, pack_for(event, device), random_);
   if (!file || !ensure_open()) return;
   const SeatMix mix = event.own ? own_mix() : seat_mixes_[seat_of(event.slot)];

@@ -24,6 +24,8 @@ struct SvgImage {
   };
   float width = 36, height = 36;  // viewBox size
   std::vector<Shape> shapes;
+  std::wstring glyph;  // drawn with the system's emoji font instead, when not empty
+  [[nodiscard]] bool empty() const { return shapes.empty() && glyph.empty(); }
 };
 
 // Parses SVG text; returns an empty image (no shapes) on failure.
@@ -36,8 +38,9 @@ void draw_svg(Painter& p, const SvgImage& image, Rect dst, float opacity = 1.0f)
 // and become part of a path.
 [[nodiscard]] bool valid_emoji_id(std::string_view id) noexcept;
 
-// Loads emoji files by id ("1f600") from the asset folders, keeping the most
-// recently used few parsed.
+// Loads emoji files by id ("1f600") from the assets' emoji folder, keeping the most
+// recently used few parsed. An emoji whose file is absent comes from the system's emoji
+// font if that can show it.
 class EmojiCache {
  public:
   explicit EmojiCache(std::filesystem::path assets_dir, std::size_t capacity = 48)
@@ -45,6 +48,8 @@ class EmojiCache {
   // Never null; an unknown id yields an empty image.
   const SvgImage& get(const Gfx& gfx, const std::string& id);
   [[nodiscard]] const std::filesystem::path& dir() const { return dir_; }
+  // Whether get would find something to show, without parsing it.
+  [[nodiscard]] bool available(const Gfx& gfx, const std::string& id) const;
   [[nodiscard]] std::size_t parsed() const { return entries_.size(); }
 
  private:

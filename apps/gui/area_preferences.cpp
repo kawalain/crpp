@@ -39,8 +39,13 @@ void apply_chat(Shell& s) {
 }
 
 std::vector<NotifySound> load_sounds(const Shell& s) {
+  constexpr std::string_view folder = "notifications/", wav = ".wav";
+  std::vector<std::string> stems;
+  for (const std::string& path : s.expected_sounds) {
+    if (path.starts_with(folder) && path.ends_with(wav)) stems.push_back(path.substr(folder.size(), path.size() - folder.size() - wav.size()));
+  }
   std::vector<NotifySound> sounds;
-  for (auto& found : find_notification_sounds(s.assets_dir / "sounds" / "notifications", pref::notification_id)) {
+  for (auto& found : find_notification_sounds(s.assets_dir / "sounds" / "notifications", pref::notification_id, stems)) {
     sounds.push_back({std::move(found.stem), std::move(found.id), std::move(found.name)});
   }
   return sounds;

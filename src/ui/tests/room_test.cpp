@@ -1,4 +1,6 @@
 // The Room screen through a windowless App.
+#include <filesystem>
+#include <fstream>
 #include <string>
 #include <vector>
 
@@ -321,7 +323,24 @@ void test_other_questions_survive_leaving_the_room() {
   CHECK(h.app.dialogs().is_open());
 }
 
-void with_assets(UiHarness& h) { h.app.reload_assets(CRPP_TEST_ASSETS); }
+// An emoji folder with as many as the real list, none of them relying on the system's font.
+void with_assets(UiHarness& h) {
+  namespace fs = std::filesystem;
+  static const fs::path dir = [] {
+    fs::path folder = fs::temp_directory_path() / "crpp_room_test_assets";
+    fs::create_directories(folder / "emoji");
+    const char* drawing = R"(<svg viewBox="0 0 36 36"><circle cx="18" cy="18" r="18" fill="#fc0"/></svg>)";
+    for (int i = 0; i < 172; ++i) {
+      const std::string id = i < 165 ? "1f" + std::to_string(100 + i) : "0" + std::to_string(i - 164);
+      std::ofstream(folder / "emoji" / (id + ".svg")) << drawing;
+    }
+    return folder;
+  }();
+  std::vector<std::string> ids;
+  for (int i = 0; i < 172; ++i) ids.push_back(i < 165 ? "1f" + std::to_string(100 + i) : "0" + std::to_string(i - 164));
+  h.app.ui().emoji_ids = std::move(ids);
+  h.app.reload_assets(dir);
+}
 
 void test_only_plain_ids_name_an_emoji_file() {
   CHECK(valid_emoji_id("1f4a7"));
@@ -329,9 +348,21 @@ void test_only_plain_ids_name_an_emoji_file() {
   CHECK(valid_emoji_id("01"));
   CHECK(!valid_emoji_id(""));
   CHECK(!valid_emoji_id("../../secret"));
-  CHECK(!valid_emoji_id("C:\secret"));
+  CHECK(!valid_emoji_id("C:\\secret"));
   CHECK(!valid_emoji_id("a/b"));
   CHECK(!valid_emoji_id(std::string(65, 'a')));
+}
+
+void test_picker_hides_what_it_cannot_show() {
+  UiHarness h;
+  CHECK(h.start());
+  with_assets(h);
+  h.app.ui().emoji_ids = {"1f100", "99", "1f999999"};
+  EmojiPicker& picker = h.app.emoji_picker();
+  picker.show("", nullptr);
+  // A hand-made id without its file has no glyph anywhere, and no code point is that big.
+  CHECK((picker.ids() == std::vector<std::string>{"1f100"}));
+  picker.close();
 }
 
 void test_picker_lists_every_emoji_and_parses_only_what_shows() {
@@ -888,6 +919,7 @@ int main() {
   test_member_menu_for_myself();
   test_right_click_elsewhere_closes_the_menu();
   test_only_plain_ids_name_an_emoji_file();
+  test_picker_hides_what_it_cannot_show();
   test_picker_lists_every_emoji_and_parses_only_what_shows();
   test_picker_picks_once_and_closes();
   test_picker_closes_without_picking();

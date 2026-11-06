@@ -34,6 +34,7 @@ class Ui {
  public:
   Gfx gfx;
   std::optional<EmojiCache> emoji;
+  std::vector<std::string> emoji_ids;  // what the picker offers, when it can show them
   Theme theme = make_theme(ThemeId::Cloudroom);
   ComPtr<ID2D1PathGeometry> cloud;
 

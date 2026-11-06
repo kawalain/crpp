@@ -4,6 +4,8 @@
 #include <array>
 #include <fstream>
 #include <iterator>
+#include <map>
+#include <set>
 #include <system_error>
 #include <utility>
 
@@ -117,25 +119,31 @@ Device device_of(wire::Kind kind) noexcept {
   return Device::Pen;
 }
 
-Catalog Catalog::scan(const fs::path& root) {
+Catalog Catalog::scan(const fs::path& root, std::span<const std::string> expected) {
   Catalog catalog;
   const std::array<std::pair<const char*, Device>, 3> folders{
       {{"keyboard", Device::Keyboard}, {"mouse", Device::Mouse}, {"pen", Device::Pen}}};
   for (const auto& [folder, device] : folders) {
-    std::vector<fs::path> dirs;
+    std::map<std::string, std::set<std::string>> packs;  // sorted: the display order
     std::error_code ec;
     for (const auto& entry : fs::directory_iterator(root / folder, ec)) {
-      if (entry.is_directory(ec) && fs::is_regular_file(entry.path() / "pack.json", ec)) dirs.push_back(entry.path());
-    }
-    std::ranges::sort(dirs);  // the display order
-    for (const fs::path& dir : dirs) {
-      std::string id = lower(dir.filename().string());
-      std::string name = pack_name(dir / "pack.json", id);
-      Pack pack{device, std::move(id), std::move(name), dir, {}};
-      for (const auto& file : fs::directory_iterator(dir, ec)) {
-        if (file.is_regular_file(ec)) pack.files.push_back(file.path().filename().string());
+      if (!entry.is_directory(ec) || !fs::is_regular_file(entry.path() / "pack.json", ec)) continue;
+      auto& files = packs[lower(entry.path().filename().string())];
+      for (const auto& file : fs::directory_iterator(entry.path(), ec)) {
+        if (file.is_regular_file(ec)) files.insert(file.path().filename().string());
       }
-      catalog.packs_.push_back(std::move(pack));
+    }
+    const std::string prefix = std::string(folder) + "/";
+    for (const std::string& path : expected) {
+      if (!path.starts_with(prefix)) continue;
+      const auto slash = path.find('/', prefix.size());
+      if (slash == std::string::npos) continue;
+      packs[path.substr(prefix.size(), slash - prefix.size())].insert(path.substr(slash + 1));
+    }
+    for (auto& [id, files] : packs) {
+      const fs::path dir = root / folder / id;
+      std::string name = pack_name(dir / "pack.json", id);
+      catalog.packs_.push_back({device, id, std::move(name), dir, {files.begin(), files.end()}});
     }
   }
   return catalog;

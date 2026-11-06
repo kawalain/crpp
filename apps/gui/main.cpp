@@ -14,6 +14,7 @@
 //   ... --updated-from <pid>      started by the update of process <pid>
 //   ... --data <dir>              (last) keep data in <dir>, not the user's
 //                                 folders; other instances are then allowed
+#include <algorithm>
 #include <cstdlib>
 #include <ctime>
 #include <expected>
@@ -66,6 +67,16 @@ bool another_instance_running() {
   return true;
 }
 
+// The manifest's sounds, relative to the sounds folder.
+std::vector<std::string> expected_sounds(const assets::Manifest& manifest) {
+  constexpr std::string_view folder = "sounds/";
+  std::vector<std::string> paths;
+  for (const assets::Entry& entry : manifest.entries) {
+    if (entry.path.starts_with(folder)) paths.emplace_back(entry.path.substr(folder.size()));
+  }
+  return paths;
+}
+
 void wire_areas(Shell& s) {
   area::connection::wire(s);
   area::home::wire(s);
@@ -103,10 +114,11 @@ int main(int argc, char** argv) {
     updated_from = std::strtoul(argv[argc - 1], nullptr, 10);
     argc -= 2;
   }
-  const assets::Manifest manifest = assets::built_in_manifest();
-  shell.asset_url = assets::published_url(manifest);
+  shell.asset_manifest = assets::built_in_manifest();
+  shell.asset_url = assets::published_url();
   if (argc >= 3 && std::string(argv[argc - 2]) == "--asset-url") {
     shell.asset_url = argv[argc - 1];
+    shell.asset_manifest.sources = {};  // everything under its own path there
     argc -= 2;
   }
   float shot_dpi = 96;
@@ -120,14 +132,19 @@ int main(int argc, char** argv) {
   if (!locations) locations = store::Locations{exe_dir() / "data" / "crpp", exe_dir() / "data" / "Cloudroom"};
   const bool development = std::filesystem::exists(exe_dir() / "assets" / "fonts");
   shell.assets_dir = development ? exe_dir() / "assets" : locations->protected_dir / "assets";
-  const bool needs_install = !development && !assets::missing(manifest, shell.assets_dir).empty();
+  const auto absent = development ? std::vector<const assets::Entry*>{} : assets::missing(shell.asset_manifest, shell.assets_dir);
+  // Only a first start waits for the files: a network that keeps them out would otherwise
+  // hold up every start.
+  const bool first_install = !development && !assets::tried(shell.assets_dir);
   const auto& assets = shell.assets_dir;
-  // Nothing is opened from a folder about to change: Windows would refuse the replacement.
-  if (!shell.app.init(needs_install ? std::filesystem::path{} : assets)) {
+  // Windows refuses to replace an open font file, so one about to change stays closed.
+  const bool font_pending = std::ranges::any_of(absent, [](const assets::Entry* entry) { return entry->path.ends_with(".ttf"); });
+  if (!shell.app.init(first_install ? std::filesystem::path{} : assets, !font_pending)) {
     // There is no console to report to, and the app has no way to draw yet.
     MessageBoxW(nullptr, L"화면을 준비하지 못해 프로그램을 시작할 수 없어요.", L"Cloudroom++", MB_OK | MB_ICONERROR);
     return 1;
   }
+  for (const std::string_view id : assets::picker_emoji()) shell.app.ui().emoji_ids.emplace_back(id);
   std::time_t now = std::time(nullptr);
   std::tm local{};
   localtime_s(&local, &now);
@@ -146,7 +163,8 @@ int main(int argc, char** argv) {
 
   shell.audio = load_audio_settings(data);
   shell.app.room().set_volume(shell.audio.volume);
-  shell.engine = std::make_unique<sound::Engine>(shell.audio_device, assets / "sounds");
+  shell.expected_sounds = expected_sounds(shell.asset_manifest);
+  shell.engine = std::make_unique<sound::Engine>(shell.audio_device, assets / "sounds", shell.expected_sounds);
   shell.engine->set_settings(shell.audio);
   shell.engine->start();
   shell.input = std::make_unique<input::RawInputSource>(shell.input_sink);
@@ -161,21 +179,17 @@ int main(int argc, char** argv) {
   wire_areas(shell);
   area::os::first_show(shell, argc >= 2 && std::string(argv[1]) == "--minimized");
   if (argc >= 3 && std::string(argv[1]) == "--smoke") shell.smoke_path = ui::widen(argv[2]);
-  Shell* sp = &shell;
-  shell.app.setup().on_retry = [sp] { start_install(*sp); };
-  if (needs_install) start_install(shell);
-  else enter_app(shell);
+  if (first_install) {
+    start_install(shell, true);
+  } else {
+    enter_app(shell);
+    if (!absent.empty()) start_install(shell, false);
+  }
 
   MSG msg;
   while (GetMessageW(&msg, nullptr, 0, 0) > 0) {
     TranslateMessage(&msg);
     DispatchMessageW(&msg);
-  }
-  if (shell.assets_worker.joinable()) {
-    // A blocked download may take long to give up, and files are only ever
-    // replaced whole, so there is nothing to finish.
-    (void)data.save();
-    ExitProcess(0);
   }
   shell.input->stop();
   if (shell.client) shell.client->stop();
@@ -183,5 +197,8 @@ int main(int argc, char** argv) {
   shell.engine->stop();
   (void)data.save();
   area::update::shutdown(shell);
+  // A blocked download may take long to give up, and files are only ever replaced whole,
+  // so there is nothing to finish.
+  if (shell.assets_worker.joinable()) ExitProcess(0);
   return 0;
 }

@@ -36,7 +36,7 @@ void fetches_a_file_and_reports_progress() {
   });
   WindowsPlatform platform(base_url(server));
   std::uint64_t last = 0;
-  const auto bytes = platform.fetch({"sounds/a.wav", 100000, ""}, [&](std::uint64_t received) { last = received; });
+  const auto bytes = platform.fetch({"sounds/a.wav", 100000, ""}, "sounds/a.wav", [&](std::uint64_t received) { last = received; });
   CHECK(bytes && bytes->size() == 100000);
   CHECK(last == 100000);
   CHECK(line.starts_with("GET /base/sounds/a.wav "));
@@ -51,7 +51,7 @@ void fetches_from_several_threads_at_once() {
     for (int i = 0; i < 8; ++i) {
       threads.emplace_back([&] {
         for (int n = 0; n < 20; ++n) {
-          const auto bytes = platform.fetch({"a", 5000, ""}, nullptr);
+          const auto bytes = platform.fetch({"a", 5000, ""}, "a", nullptr);
           if (bytes && bytes->size() == 5000 && platform.sha256(*bytes).size() == 64) ++good;
         }
       });
@@ -63,28 +63,28 @@ void fetches_from_several_threads_at_once() {
 void a_longer_reply_stops_one_byte_past_the_file() {
   mock::Server server([](mock::Conn& c) { reply_with(c, std::string(5000, 'x')); });
   WindowsPlatform platform(base_url(server));
-  const auto bytes = platform.fetch({"a", 10, ""}, nullptr);
+  const auto bytes = platform.fetch({"a", 10, ""}, "a", nullptr);
   CHECK(bytes && bytes->size() == 11);
 }
 
 void failures_say_where_they_happened() {
   mock::Server server([](mock::Conn& c) { c.reply(404); });
   WindowsPlatform not_found(base_url(server));
-  CHECK(not_found.fetch({"a", 1, ""}, nullptr).error() == Error::Unavailable);
+  CHECK(not_found.fetch({"a", 1, ""}, "a", nullptr).error() == Error::Unavailable);
 
   // The server dropped the connection before answering.
   mock::Server drops([](mock::Conn&) {});
   WindowsPlatform dropped(base_url(drops));
-  CHECK(dropped.fetch({"a", 1, ""}, nullptr).error() == Error::Network);
+  CHECK(dropped.fetch({"a", 1, ""}, "a", nullptr).error() == Error::Network);
 
   WindowsPlatform nonsense("not a url");
-  CHECK(nonsense.fetch({"a", 1, ""}, nullptr).error() == Error::Network);
+  CHECK(nonsense.fetch({"a", 1, ""}, "a", nullptr).error() == Error::Network);
 }
 
 void the_built_in_manifest_describes_the_assets_folder() {
   const Manifest manifest = built_in_manifest();
   CHECK(manifest.entries.size() > 100);
-  CHECK(published_url(manifest).starts_with("https://raw.githubusercontent.com/kawalain/crpp/"));
+  CHECK(published_url() == "https://cdn.jsdelivr.net/gh/");
   WindowsPlatform platform("http://127.0.0.1/");
   // Text files, which are what a line ending conversion would change.
   int checked = 0;

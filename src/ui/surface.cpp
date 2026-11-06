@@ -52,7 +52,7 @@ const Ui::Hit* Ui::find_hit(const Surface* owner, int id) const {
 
 const SvgImage& Ui::emoji_image(std::string_view id) {
   const SvgImage* image = &emoji->get(gfx, id.empty() ? std::string(default_emoji) : std::string(id));
-  if (image->shapes.empty()) image = &emoji->get(gfx, default_emoji);  // unknown emoji id
+  if (image->empty()) image = &emoji->get(gfx, default_emoji);  // unknown emoji id
   return *image;
 }
 

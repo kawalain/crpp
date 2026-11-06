@@ -84,7 +84,8 @@ struct Member {
 
 class Engine final : private Renderer {
  public:
-  Engine(AudioDevice& device, std::filesystem::path sounds_dir);
+  // `expected`: see Catalog::scan. It must outlive the engine.
+  Engine(AudioDevice& device, std::filesystem::path sounds_dir, std::span<const std::string> expected = {});
   ~Engine();
   Engine(const Engine&) = delete;
   Engine& operator=(const Engine&) = delete;
@@ -149,6 +150,7 @@ class Engine final : private Renderer {
 
   AudioDevice& device_;
   std::filesystem::path sounds_dir_;
+  std::span<const std::string> expected_;
 
   // Shared with the callers; guarded by mutex_.
   std::mutex mutex_;

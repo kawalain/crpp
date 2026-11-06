@@ -41,7 +41,7 @@ jobs:
 
       - name: Build
         shell: cmd
-        run: .github\scripts\msvc-build.cmd build "-DCRPP_OFFICIAL_BUILD=ON" "-DCRPP_VERSION=${{ steps.tag.outputs.version }}"
+        run: .github\scripts\msvc-build.cmd build "-DCRPP_FETCH_DEV_ASSETS=OFF" "-DCRPP_OFFICIAL_BUILD=ON" "-DCRPP_VERSION=${{ steps.tag.outputs.version }}"
 
       - name: Test
         shell: pwsh

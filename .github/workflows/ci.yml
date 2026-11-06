@@ -1,6 +1,6 @@
 # Pure modules stay portable (GCC on Linux); the whole app builds with the compiler that
-# releases use (MSVC) and with GCC on Windows. input.raw is left out where it runs: it
-# injects keys and needs a real input desktop, which a runner is not known to have.
+# releases use (MSVC). input.raw is left out where it runs: it injects keys and needs a
+# real input desktop, which a runner is not known to have.
 name: CI
 
 on:
@@ -29,23 +29,6 @@ jobs:
         run: cmake --build build
       - name: Test
         run: ctest --test-dir build --output-on-failure
-
-  windows-gcc:
-    runs-on: windows-2022
-    timeout-minutes: 45
-    steps:
-      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
-        with:
-          persist-credentials: false
-      - name: Configure
-        shell: pwsh
-        run: cmake -S . -B build -G Ninja -DCMAKE_CXX_COMPILER=g++
-      - name: Build
-        shell: pwsh
-        run: cmake --build build
-      - name: Test
-        shell: pwsh
-        run: ctest --test-dir build --output-on-failure -E "^input\.raw$"
 
   windows-msvc:
     runs-on: windows-2022

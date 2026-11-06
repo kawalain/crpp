@@ -1,8 +1,10 @@
 // crpp: the native Cloudroom window.
 //   crpp                          run the app
-//   crpp --shot out.png [WxH] [hour] [home|session|chat] [notice]
+//   crpp --shot out.png [WxH] [hour] [home|session|chat|setup|setup-failed] [notice]
 //                                 render a screen offscreen and exit
 //   crpp --smoke out.png          create a room, save a screenshot and exit
+//   ... --asset-url <url>         fetch assets from <url>, not the published
+//                                 ones; the manifest still decides what is kept
 //   ... --data <dir>              (last) keep data in <dir>, not the user's
 //                                 folders; other instances are then allowed
 #include <windows.h>
@@ -22,7 +24,10 @@
 #include <optional>
 #include <random>
 #include <string>
+#include <thread>
 
+#include "crpp/assets/built_in.hpp"
+#include "crpp/assets/windows_platform.hpp"
 #include "crpp/client/client.hpp"
 #include "crpp/input/raw_input_source.hpp"
 #include "crpp/sound/engine.hpp"
@@ -277,6 +282,9 @@ struct Shell {
   bool tracking = false;
   bool frame_timer_on = false;
   bool blink_timer_on = false;
+  std::filesystem::path assets_dir;
+  std::string asset_url;
+  std::thread assets_worker;
   std::wstring smoke_path;  // --smoke: create a room, save a screenshot, leave, exit
   ULONGLONG smoke_start = 0;
   bool smoke_left = false;
@@ -622,6 +630,57 @@ bool another_instance_running() {
   return true;
 }
 
+// The part of startup that needs the assets in place.
+void enter_app(Shell& s, HWND hwnd) {
+  store::Store& data = *s.store;
+  std::string nickname = data.string_or("nickname", "");
+  if (nickname.empty()) {
+    nickname = random_nickname(s.assets_dir / "words");
+    data.set("nickname", store::Json(nickname));
+  }
+  s.app.set_nickname(nickname);
+  s.config.server_url = data.string_or("serverUrl", store::default_server_url);
+  s.config.nickname = nickname;
+  s.config.token = data.string_or("token", "");
+  show_store_notice(s);
+  s.app.show_home();
+  start_client(s);
+  if (!s.smoke_path.empty()) {
+    s.smoke_start = GetTickCount64();
+    s.client->create(false, false);
+    SetTimer(hwnd, smoke_timer, 200, nullptr);
+  } else {
+    restore_seat(s);
+  }
+  (void)data.save();
+}
+
+void start_install(Shell& s, HWND hwnd) {
+  s.app.show_setup(0);
+  s.assets_worker = std::thread([&s, hwnd] {
+    assets::WindowsPlatform platform(s.asset_url);
+    int shown = 0;
+    const auto result = assets::install(assets::built_in_manifest(), s.assets_dir, platform,
+                                        [&](std::uint64_t done, std::uint64_t total) {
+                                          const int percent = static_cast<int>(done * 100 / total);
+                                          if (percent == shown) return;
+                                          shown = percent;
+                                          s.tasks.post([&s, percent] { s.app.show_setup(percent); });
+                                        });
+    s.tasks.post([&s, hwnd, result] {
+      s.assets_worker.join();
+      if (result) {
+        s.app.reload_assets(s.assets_dir);
+        enter_app(s, hwnd);
+      } else if (result.error() == assets::Error::Disk) {
+        s.app.show_setup(0, "파일을 저장하지 못했어요. 저장 공간을 확인해 주세요.");
+      } else {
+        s.app.show_setup(0, "파일을 받지 못했어요. 인터넷 연결을 확인해 주세요.");
+      }
+    });
+  });
+}
+
 }  // namespace
 
 int main(int argc, char** argv) {
@@ -631,9 +690,23 @@ int main(int argc, char** argv) {
     data_dir = widen(argv[argc - 1]);
     argc -= 2;
   }
-  const auto assets = exe_dir() / "assets";
   Shell shell;
-  if (!shell.app.init(assets)) {
+  const assets::Manifest manifest = assets::built_in_manifest();
+  shell.asset_url = assets::published_url(manifest);
+  if (argc >= 3 && std::string(argv[argc - 2]) == "--asset-url") {
+    shell.asset_url = argv[argc - 1];
+    argc -= 2;
+  }
+  auto locations = data_dir.empty() ? store::default_locations()
+                                    : std::expected<store::Locations, store::Error>(
+                                          store::Locations{data_dir / "crpp", data_dir / "Cloudroom"});
+  if (!locations) locations = store::Locations{exe_dir() / "data" / "crpp", exe_dir() / "data" / "Cloudroom"};
+  const bool development = std::filesystem::exists(exe_dir() / "assets" / "fonts");
+  shell.assets_dir = development ? exe_dir() / "assets" : locations->protected_dir / "assets";
+  const bool needs_install = !development && !assets::missing(manifest, shell.assets_dir).empty();
+  const auto& assets = shell.assets_dir;
+  // Nothing is opened from a folder about to change: Windows would refuse the replacement.
+  if (!shell.app.init(needs_install ? std::filesystem::path{} : assets)) {
     std::fprintf(stderr, "failed to initialise the UI\n");
     return 1;
   }
@@ -649,6 +722,10 @@ int main(int argc, char** argv) {
     shell.app.set_nickname("크롬이");
     if (argc >= 6 && std::string(argv[5]) == "session") demo_session(shell.app, false);
     if (argc >= 6 && std::string(argv[5]) == "chat") demo_session(shell.app, true);
+    if (argc >= 6 && std::string(argv[5]) == "setup") shell.app.show_setup(42);
+    if (argc >= 6 && std::string(argv[5]) == "setup-failed") {
+      shell.app.show_setup(0, "파일을 받지 못했어요. 인터넷 연결을 확인해 주세요.");
+    }
     if (std::string(argv[argc - 1]) == "notice") {
       shell.app.set_notice(Notice{"기존 Cloudroom의 설정 파일을 함께 쓰고 있어요. 이 파일에는 로그인 정보가 암호화되지 않은 채 "
                                   "저장돼요.",
@@ -658,23 +735,8 @@ int main(int argc, char** argv) {
   }
   if (data_dir.empty() && another_instance_running()) return 0;
 
-  auto locations = data_dir.empty() ? store::default_locations()
-                                    : std::expected<store::Locations, store::Error>(
-                                          store::Locations{data_dir / "crpp", data_dir / "Cloudroom"});
-  if (!locations) locations = store::Locations{exe_dir() / "data" / "crpp", exe_dir() / "data" / "Cloudroom"};
   shell.store.emplace(store::Store::open(*locations, shell.platform, unix_ms()));
   store::Store& data = *shell.store;
-
-  std::string nickname = data.string_or("nickname", "");
-  if (nickname.empty()) {
-    nickname = random_nickname(assets / "words");
-    data.set("nickname", store::Json(nickname));
-  }
-  shell.app.set_nickname(nickname);
-  shell.config.server_url = data.string_or("serverUrl", store::default_server_url);
-  shell.config.nickname = nickname;
-  shell.config.token = data.string_or("token", "");
-  show_store_notice(shell);
 
   shell.audio = load_audio_settings(data);
   shell.app.set_volume(shell.audio.volume);
@@ -745,24 +807,24 @@ int main(int argc, char** argv) {
   if (!hwnd) return 1;
   shell.tasks.attach(hwnd);
   shell.app.on_copy = [hwnd](std::string text) { copy_to_clipboard(hwnd, text); };
-  start_client(shell);
-  if (argc >= 3 && std::string(argv[1]) == "--smoke") {
-    shell.smoke_path = widen(argv[2]);
-    shell.smoke_start = GetTickCount64();
-    shell.client->create(false, false);
-    SetTimer(hwnd, smoke_timer, 200, nullptr);
-  } else {
-    restore_seat(shell);
-  }
-  (void)data.save();
+  if (argc >= 3 && std::string(argv[1]) == "--smoke") shell.smoke_path = widen(argv[2]);
+  shell.app.on_retry_setup = [sp, hwnd] { start_install(*sp, hwnd); };
+  if (needs_install) start_install(shell, hwnd);
+  else enter_app(shell, hwnd);
 
   MSG msg;
   while (GetMessageW(&msg, nullptr, 0, 0) > 0) {
     TranslateMessage(&msg);
     DispatchMessageW(&msg);
   }
+  if (shell.assets_worker.joinable()) {
+    // A blocked download may take long to give up, and files are only ever
+    // replaced whole, so there is nothing to finish.
+    (void)data.save();
+    ExitProcess(0);
+  }
   shell.input->stop();
-  shell.client->stop();
+  if (shell.client) shell.client->stop();
   shell.tasks.run_all();  // what the client reported last must still reach the store
   shell.engine->stop();
   (void)data.save();

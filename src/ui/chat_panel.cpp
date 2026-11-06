@@ -50,8 +50,8 @@ bool chat_grouped(const ChatEntry& e, const ChatEntry* prev) {
 constexpr TextStyle body_style{.size = 17, .line_height = 19, .wrap = true};
 
 // @keyframes chat-shake, over 420 ms.
-constexpr std::pair<float, float> send_shake[] = {{0, 0},      {0.15f, -7}, {0.3f, 7}, {0.45f, -5},
-                                                  {0.6f, 5},   {0.75f, -3}, {0.9f, 3}, {1, 0}};
+constexpr std::pair<float, float> send_shake[] = {{0.0f, 0.0f}, {0.15f, -7.0f}, {0.3f, 7.0f}, {0.45f, -5.0f},
+                                                  {0.6f, 5.0f}, {0.75f, -3.0f}, {0.9f, 3.0f}, {1.0f, 0.0f}};
 constexpr float send_shake_ms = 420;
 constexpr float send_move_ms = 240;
 

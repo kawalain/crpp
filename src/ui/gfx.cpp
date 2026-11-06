@@ -411,7 +411,7 @@ void Painter::cloud(ID2D1PathGeometry* shape, float x, float y, float scale, flo
     shadow_geometry(shape, sigma * 3, 6 / scale, with_alpha(theme.cloud_shadow, shadow_alpha));
   }
   fill_geometry(shape, theme.cloud_base);
-  fill_vertical_gradient(shape, 8, 318, {{0, theme.cloud_top}, {1, theme.cloud_bottom}});
+  fill_vertical_gradient(shape, 8, 318, {{0.0f, theme.cloud_top}, {1.0f, theme.cloud_bottom}});
   rt_->SetTransform(base_);
 }
 

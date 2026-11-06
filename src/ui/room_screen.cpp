@@ -28,7 +28,7 @@ constexpr const char* pin_tip_blocked = "우클릭하여 기본값 고정 해제
 constexpr const char* chat_tip_locked = "이 구름에서는 이제 채팅을\n비활성화 할 수 없습니다.";
 
 // @keyframes tip-shake, over 320 ms.
-constexpr std::pair<float, float> tip_shake[] = {{0, 0}, {0.2f, -7}, {0.4f, 7}, {0.6f, -4}, {0.8f, 3}, {1, 0}};
+constexpr std::pair<float, float> tip_shake[] = {{0.0f, 0.0f}, {0.2f, -7.0f}, {0.4f, 7.0f}, {0.6f, -4.0f}, {0.8f, 3.0f}, {1.0f, 0.0f}};
 constexpr float tip_shake_ms = 320;
 
 }  // namespace

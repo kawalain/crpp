@@ -1,0 +1,9 @@
+add_library(crpp_transport STATIC target.cpp)
+target_include_directories(crpp_transport PUBLIC include)
+crpp_target_defaults(crpp_transport)
+
+add_executable(crpp_transport_target_test tests/target_test.cpp)
+target_link_libraries(crpp_transport_target_test PRIVATE crpp_transport)
+target_include_directories(crpp_transport_target_test PRIVATE ${PROJECT_SOURCE_DIR}/tests/support)
+crpp_target_defaults(crpp_transport_target_test)
+add_test(NAME transport.target COMMAND crpp_transport_target_test)

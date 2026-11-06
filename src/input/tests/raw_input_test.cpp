@@ -1,5 +1,6 @@
 // Drives the real adapter with injected input. F24 and the wheel do nothing
-// visible on a normal desktop.
+// visible on a normal desktop, but the desktop's real input arrives here too,
+// so the checks ask whether a kind was seen, not whether it came last.
 #include "crpp/input/raw_input_source.hpp"
 
 #include <windows.h>
@@ -20,10 +21,11 @@ constexpr WORD scan_f24 = 0x76;
 class Recorder final : public Sink {
  public:
   void on_input(Kind kind) noexcept override {
-    last.store(kind);
+    if (kind == Kind::KeyAny) saw_key.store(true);
+    if (kind == Kind::MouseWheel) saw_wheel.store(true);
     count.fetch_add(1);
   }
-  std::atomic<Kind> last{Kind::MouseLeft};
+  std::atomic<bool> saw_key{false}, saw_wheel{false};
   std::atomic<int> count{0};
 };
 
@@ -43,9 +45,9 @@ void send_wheel() {
   SendInput(1, &in, sizeof in);
 }
 
-bool wait_for(const std::atomic<int>& count, int at_least) {
+bool wait_for(const std::atomic<bool>& seen) {
   for (int i = 0; i < 200; ++i) {
-    if (count.load() >= at_least) return true;
+    if (seen.load()) return true;
     std::this_thread::sleep_for(std::chrono::milliseconds(5));
   }
   return false;
@@ -58,8 +60,7 @@ void reports_while_running_and_not_after() {
   CHECK(source.start());
   send_key(scan_f24, false);
   send_key(scan_f24, true);
-  CHECK(wait_for(recorder.count, 1));
-  CHECK(recorder.last.load() == Kind::KeyAny);
+  CHECK(wait_for(recorder.saw_key));
 
   source.stop();
   const int seen = recorder.count.load();
@@ -71,8 +72,7 @@ void reports_while_running_and_not_after() {
   // It can start again, as every Room entry does.
   CHECK(source.start());
   send_wheel();
-  CHECK(wait_for(recorder.count, seen + 1));
-  CHECK(recorder.last.load() == Kind::MouseWheel);
+  CHECK(wait_for(recorder.saw_wheel));
   source.stop();
   source.stop();
 }

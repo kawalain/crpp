@@ -44,7 +44,11 @@ void TextField::insert(std::wstring_view s) {
   std::wstring clean;
   for (const wchar_t c : s) {
     if (is_control(c) && !(multiline && c == 0x0A)) continue;
-    clean += uppercase ? static_cast<wchar_t>(std::towupper(c)) : c;
+    const wchar_t typed = uppercase   ? static_cast<wchar_t>(std::towupper(c))
+                          : lowercase ? static_cast<wchar_t>(std::towlower(c))
+                                      : c;
+    if (accept && !accept(typed)) continue;
+    clean += typed;
   }
   if (clean.empty()) return;
   if (has_selection()) erase_selection();
@@ -122,7 +126,7 @@ bool TextField::key_down(unsigned vk, bool ctrl, bool shift) {
     return true;
   }
   if (vk == 'C' || vk == 'X') {
-    if (has_selection() && OpenClipboard(nullptr)) {
+    if (!password && has_selection() && OpenClipboard(nullptr)) {
       const auto lo = std::min(caret_, anchor_), hi = std::max(caret_, anchor_);
       const std::wstring part = text_.substr(lo, hi - lo);
       if (HGLOBAL mem = GlobalAlloc(GMEM_MOVEABLE, (part.size() + 1) * sizeof(wchar_t))) {
@@ -155,8 +159,8 @@ bool TextField::key_down(unsigned vk, bool ctrl, bool shift) {
 
 std::wstring TextField::shown() const {
   std::wstring base = text_;
-  if (password) base.assign(base.size(), L'●');
-  base.insert(caret_, password ? std::wstring(composition_.size(), L'●') : composition_);
+  if (password) base.assign(base.size(), L'•');
+  base.insert(caret_, password ? std::wstring(composition_.size(), L'•') : composition_);
   return base;
 }
 

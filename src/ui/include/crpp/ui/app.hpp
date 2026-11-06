@@ -17,6 +17,7 @@
 #include "crpp/ui/home_screen.hpp"
 #include "crpp/ui/notice_card.hpp"
 #include "crpp/ui/prefs.hpp"
+#include "crpp/ui/prompt_screen.hpp"
 #include "crpp/ui/room_screen.hpp"
 #include "crpp/ui/settings_panel.hpp"
 #include "crpp/ui/setup_screen.hpp"
@@ -25,7 +26,7 @@
 
 namespace crpp::ui {
 
-enum class View : std::uint8_t { Setup, Home, Session };
+enum class View : std::uint8_t { Setup, Home, Session, Prompt };
 
 class App {
  public:
@@ -53,6 +54,13 @@ class App {
   void show_home();
   void show_session(std::string room_code);
   [[nodiscard]] View view() const { return view_; }
+  // The prompt covers the screen it was opened from, which goes on underneath: a Room
+  // stays connected, and what show_home and show_session do waits for close_prompt.
+  void show_prompt(Prompt prompt);
+  void close_prompt();
+  [[nodiscard]] PromptScreen& prompt() { return prompt_; }
+  // The view under the prompt, or the view itself when there is none.
+  [[nodiscard]] View base_view() const { return view_ == View::Prompt ? prompt_return_ : view_; }
 
   // --- drawing ---
   void paint(ID2D1RenderTarget* rt, float width, float height);
@@ -91,7 +99,9 @@ class App {
   EmojiPicker emoji_picker_{ui_};
   Toasts toasts_{ui_};
   Dialogs dialogs_{ui_};
+  PromptScreen prompt_{ui_};
   View view_ = View::Home;
+  View prompt_return_ = View::Home;
 };
 
 }  // namespace crpp::ui

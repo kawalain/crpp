@@ -20,9 +20,8 @@ and developer communities, not from memory.
   headers; every OS API lives in an adapter behind a seam (`transport`,
   `input`, `AudioDevice`, `ui`, tray/notification). macOS/Linux adapters are
   added later without touching pure modules.
-- Windows release builds use MSVC from Build Tools 2022 (`/std:c++latest` via
-  CMake). GCC/Clang build and test the pure modules on every change to keep them
-  portable.
+- Windows builds use MSVC from Build Tools 2022 (`/std:c++latest` via CMake), locally
+  too. GCC on Linux builds and tests the pure modules in CI to keep them portable.
 - Build is CMake + Ninja only; no package manager. Third-party code, if ever
   needed, is vendored in `third_party/` at a pinned version.
 - Tests use CTest with the tiny `tests/support/check.hpp`; no framework.
@@ -131,15 +130,13 @@ against a real `server/` yet; do that once a local build of it is available.
 ## Build
 
 ```
-cmake -S . -B build -G Ninja -DCMAKE_CXX_COMPILER=g++
-cmake --build build && ctest --test-dir build --output-on-failure
+.github\scripts\msvc-build.cmd build-msvc
+ctest --test-dir build-msvc --output-on-failure
 ```
 
-MSVC needs a developer environment (vcvars); `cl` is not on PATH by default.
+The script sets up the developer environment (vcvars); `cl` is not on PATH by default.
 The app is a Windows-subsystem program with no console: PowerShell does not wait for it,
 so wait with `Start-Process -Wait`, and read `--smoke`'s result from the exit code.
-Run GCC-built tests from PowerShell: Git Bash's PATH finds another
-`libstdc++-6.dll` first and they die with `0xc0000139`.
 
 Options are read from the end of the command line: `crpp --shot <png> <size> <ms> <scene>
 --data <dir>`. Put first, `--data` is ignored and the real app opens on the user's desktop

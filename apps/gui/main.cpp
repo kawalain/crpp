@@ -1,6 +1,6 @@
 // crpp: the native Cloudroom window.
 //   crpp                          run the app
-//   crpp --shot out.png [WxH] [hour] [home|session|chat|notice]
+//   crpp --shot out.png [WxH] [hour] [home|session|chat] [notice]
 //                                 render a screen offscreen and exit
 //   crpp --smoke out.png          create a room, save a screenshot and exit
 //   ... --data <dir>              (last) keep data in <dir>, not the user's
@@ -8,17 +8,23 @@
 #include <windows.h>
 #include <windowsx.h>
 
+#include <algorithm>
+#include <chrono>
 #include <cstdio>
 #include <cstdlib>
 #include <ctime>
 #include <deque>
+#include <expected>
 #include <filesystem>
 #include <functional>
 #include <mutex>
+#include <optional>
 #include <random>
 #include <string>
 
 #include "crpp/client/client.hpp"
+#include "crpp/store/store.hpp"
+#include "crpp/store/windows_platform.hpp"
 #include "crpp/transport/winhttp_transport.hpp"
 #include "crpp/ui/app.hpp"
 #include "crpp/ui/png.hpp"
@@ -31,7 +37,14 @@ namespace {
 constexpr UINT_PTR blink_timer = 1;
 constexpr UINT_PTR frame_timer = 2;
 constexpr UINT_PTR smoke_timer = 3;
+constexpr UINT_PTR save_timer = 4;
+constexpr UINT save_delay_ms = 2000;  // chat arrives in bursts; write once per burst
 constexpr UINT wm_ui_task = WM_APP + 1;
+
+std::int64_t unix_ms() {
+  using namespace std::chrono;
+  return duration_cast<milliseconds>(system_clock::now().time_since_epoch()).count();
+}
 
 std::filesystem::path exe_dir() {
   wchar_t buf[MAX_PATH];
@@ -89,13 +102,44 @@ class UiTasks {
   std::deque<std::function<void()>> q_;
 };
 
-// Turns client events into UI changes.
+// Turns client events into UI and store changes. The store and the UI are only
+// touched on the UI thread, inside posted tasks and the methods marked so.
 class Bridge final : public client::Observer {
  public:
-  Bridge(App& app, UiTasks& tasks) : app_(app), tasks_(tasks) {}
+  Bridge(App& app, UiTasks& tasks, store::Store& store) : app_(app), tasks_(tasks), store_(store) {}
+
+  // Called when the token is rejected; the client cannot go on with it.
+  std::function<void()> on_unauthorized;
+
+  // UI thread: remember which held Seat a resume is for, to forget it if refused.
+  void expect_resume(std::string code) { resume_code_ = std::move(code); }
+
+  // UI thread: the user leaves. The Seat stays held for a while.
+  void leaving() {
+    const auto now = unix_ms();
+    if (const auto resume = store_.resume()) store_.remember_seat(resume->code, resume->key, is_public_, true, now);
+    store_.clear_resume();
+    store_.mark_left(room_code_, now);
+    room_code_.clear();
+    (void)store_.save();
+  }
 
   void on_status(session::State s) override {
-    if (s == session::State::Idle) tasks_.post([this] { app_.show_home(); });
+    if (s != session::State::Idle) return;
+    tasks_.post([this] {
+      const auto now = unix_ms();
+      if (keep_seat_) {
+        if (const auto resume = store_.resume()) store_.remember_seat(resume->code, resume->key, is_public_, false, now);
+      }
+      // Still set here means the Room ended without the user leaving.
+      store_.mark_left(room_code_, now);
+      room_code_.clear();
+      store_.clear_resume();
+      keep_seat_ = false;
+      resume_code_.clear();
+      app_.show_home();
+      (void)store_.save();
+    });
   }
   void on_deliver(const wire::ServerMessage& m) override {
     const wire::RoomState* room = nullptr;
@@ -111,7 +155,10 @@ class Bridge final : public client::Observer {
     if (const auto* c = std::get_if<wire::msg::Chat>(&m)) {
       ChatEntry entry{c->slot, std::string(c->cid), std::string(c->nick), c->emoji ? std::string(*c->emoji) : std::string{},
                       std::string(c->text), c->time};
-      tasks_.post([this, entry = std::move(entry)]() mutable { app_.add_chat(std::move(entry)); });
+      tasks_.post([this, entry = std::move(entry), slot = c->slot]() mutable {
+        store_.record_chat(room_code_, {slot, entry.cid, entry.nick, entry.emoji, entry.text, entry.time_ms});
+        app_.add_chat(std::move(entry));
+      });
       return;
     }
     if (!room) return;
@@ -124,7 +171,8 @@ class Bridge final : public client::Observer {
     const bool is_public = room->is_public, chat = room->chat;
     tasks_.post([=, this, members = std::move(members), code = std::move(code)]() mutable {
       me_ = me;
-      if (!code.empty()) app_.show_session(code);
+      is_public_ = is_public;
+      if (!code.empty()) enter(code);
       app_.set_room(std::move(members), me, host, is_public, chat);
     });
   }
@@ -135,13 +183,55 @@ class Bridge final : public client::Observer {
       for (const auto s : slots) app_.pulse(s);
     });
   }
-  void on_failed(session::Failure, std::string_view) override { tasks_.post([this] { app_.show_home(); }); }
-  void on_persist(const session::Persistent&) override {}
+  void on_failed(session::Failure reason, std::string_view) override {
+    tasks_.post([this, reason] {
+      switch (reason) {
+        case session::Failure::Unauthorized:
+          if (on_unauthorized) on_unauthorized();
+          [[fallthrough]];
+        case session::Failure::ConnectFailed:
+          keep_seat_ = true;  // the server may still hold it
+          break;
+        default:
+          if (!resume_code_.empty()) store_.forget_seat(resume_code_);
+          break;
+      }
+      app_.show_home();
+    });
+  }
+  void on_persist(const session::Persistent& p) override {
+    tasks_.post([this, code = std::string(p.code), key = std::string(p.key), ticket = std::string(p.ticket),
+                 gid = std::string(p.gid)] {
+      if (!gid.empty()) store_.set("gid", store::Json(gid));
+      // Ignored outside the entered Room, so a late message cannot undo leaving.
+      if (!key.empty() && code == room_code_) store_.set_resume({code, key, ticket, std::nullopt});
+      (void)store_.save();
+    });
+  }
 
  private:
+  void enter(const std::string& code) {
+    const bool same_room = code == room_code_;  // a reconnect keeps what is on screen
+    room_code_ = code;
+    resume_code_.clear();
+    keep_seat_ = false;
+    store_.forget_seat(code);
+    app_.show_session(code);
+    if (same_room) return;
+    app_.clear_chat();
+    for (auto& r : store_.enter_room(code)) {
+      app_.add_chat({r.slot.value_or(0), std::move(r.cid), std::move(r.nick), std::move(r.emoji), std::move(r.text), r.time_ms});
+    }
+  }
+
   App& app_;
   UiTasks& tasks_;
+  store::Store& store_;
   std::uint32_t me_ = 0;
+  bool is_public_ = false;
+  bool keep_seat_ = false;
+  std::string room_code_;
+  std::string resume_code_;
 };
 
 struct Shell {
@@ -153,10 +243,85 @@ struct Shell {
   std::wstring smoke_path;  // --smoke: create a room, save a screenshot, leave, exit
   ULONGLONG smoke_start = 0;
   bool smoke_left = false;
+  bool save_timer_on = false;
+  store::WindowsPlatform platform;
+  std::optional<store::Store> store;
+  client::Config config;
   std::unique_ptr<transport::WinHttpTransport> transport;
   std::unique_ptr<Bridge> bridge;
   std::unique_ptr<client::Client> client;
 };
+
+void start_client(Shell& s) {
+  s.client.reset();  // before the transport it uses
+  s.transport = std::make_unique<transport::WinHttpTransport>();
+  s.client = std::make_unique<client::Client>(*s.transport, s.config, *s.bridge);
+  s.client->start();
+  const std::string gid = s.store->string_or("gid", "");
+  if (!gid.empty()) s.client->restore_gid(gid);
+  const std::string emoji = s.store->string_or("emoji", "");
+  if (!emoji.empty()) {
+    session::event::SetSounds sounds;
+    sounds.emoji = emoji;
+    s.client->set_sounds(sounds);
+  }
+}
+
+// --- moving away from the Shared store ---
+
+void show_cleanup_offer(Shell& s) {
+  s.app.set_notice(Notice{"안전한 저장소로 옮겼어요. 기존 Cloudroom 파일에 남은 로그인 정보와 채팅 기록도 지울까요? "
+                          "지우면 기존 Cloudroom 클라이언트에서 다시 로그인해야 해요.",
+                          "지우기", "남겨 두기"});
+  s.app.on_notice_action = [&s] {
+    s.app.set_notice(Notice{s.store->erase_shared_secrets() ? "기존 파일의 로그인 정보와 채팅 기록을 지웠어요."
+                                                            : "기존 파일을 고치지 못했어요. 파일이 그대로 남아 있어요.",
+                            "", "닫기"});
+  };
+}
+
+void show_store_notice(Shell& s) {
+  if (s.store->mode() == store::Mode::Shared) {
+    s.app.set_notice(Notice{"기존 Cloudroom의 설정 파일을 함께 쓰고 있어요. 이 파일에는 로그인 정보가 암호화되지 않은 채 "
+                            "저장돼요.",
+                            "안전한 저장소로 옮기기", "닫기"});
+    s.app.on_notice_action = [&s] {
+      if (s.store->convert_to_protected()) {
+        show_cleanup_offer(s);
+      } else {
+        s.app.set_notice(Notice{"옮기지 못했어요. 지금까지처럼 기존 파일을 계속 써요.", "", "닫기"});
+      }
+    };
+  } else if (s.store->secrets_lost()) {
+    s.app.set_notice(Notice{"저장된 로그인 정보와 채팅 기록을 이 PC에서 읽지 못해 새로 시작해요.", "", "닫기"});
+  } else if (s.store->data_corrupt()) {
+    s.app.set_notice(Notice{"설정 파일이 손상되어 기본값으로 시작해요. 손상된 파일은 .bad 이름으로 남겨 두었어요.", "", "닫기"});
+  }
+}
+
+// What the last run left: a Room it was still in, or a recently left Seat.
+void restore_seat(Shell& s) {
+  const auto resume = s.store->resume();
+  if (!resume) return;
+  if (!resume->left_at) {
+    s.bridge->expect_resume(resume->code);
+    s.client->resume(resume->code, resume->key,
+                     resume->ticket.empty() ? std::nullopt : std::optional<std::string_view>(resume->ticket), false);
+    return;
+  }
+  const auto now = unix_ms();
+  if (now - *resume->left_at < store::left_grace_ms) {
+    s.store->remember_seat(resume->code, resume->key, false, true, *resume->left_at);
+  }
+  s.store->clear_resume();
+}
+
+void save_window_size(Shell& s, HWND hwnd) {
+  RECT rc;
+  if (IsIconic(hwnd) || !GetClientRect(hwnd, &rc) || rc.right <= 0 || rc.bottom <= 0) return;
+  s.store->set("windowWidth", store::Json(static_cast<std::int64_t>(rc.right)));
+  s.store->set("windowHeight", store::Json(static_cast<std::int64_t>(rc.bottom)));
+}
 
 void ensure_target(Shell& s, HWND hwnd) {
   if (s.target) return;
@@ -222,6 +387,8 @@ LRESULT CALLBACK wnd_proc(HWND hwnd, UINT msg, WPARAM wp, LPARAM lp) {
     case WM_DESTROY:
       KillTimer(hwnd, blink_timer);
       KillTimer(hwnd, frame_timer);
+      KillTimer(hwnd, save_timer);
+      if (s->store) save_window_size(*s, hwnd);
       PostQuitMessage(0);
       return 0;
     case WM_ERASEBKGND:
@@ -252,6 +419,10 @@ LRESULT CALLBACK wnd_proc(HWND hwnd, UINT msg, WPARAM wp, LPARAM lp) {
       if (s->app.animating() && !s->frame_timer_on) {
         SetTimer(hwnd, frame_timer, 16, nullptr);
         s->frame_timer_on = true;
+      }
+      if (s->store && s->store->has_unsaved() && !s->save_timer_on) {
+        SetTimer(hwnd, save_timer, save_delay_ms, nullptr);
+        s->save_timer_on = true;
       }
       return 0;
     case WM_MOUSEMOVE:
@@ -332,6 +503,10 @@ LRESULT CALLBACK wnd_proc(HWND hwnd, UINT msg, WPARAM wp, LPARAM lp) {
           std::printf("smoke: timed out before entering a room\n");
           ExitProcess(1);
         }
+      } else if (wp == save_timer) {
+        KillTimer(hwnd, save_timer);
+        s->save_timer_on = false;
+        (void)s->store->save();
       } else if (wp == blink_timer) {
         repaint(s->app.blink());
       } else if (wp == frame_timer) {
@@ -390,8 +565,6 @@ int main(int argc, char** argv) {
     std::fprintf(stderr, "failed to initialise the UI\n");
     return 1;
   }
-  const std::string nickname = random_nickname(assets / "words");
-  shell.app.set_nickname(nickname);
   std::time_t now = std::time(nullptr);
   std::tm local{};
   localtime_s(&local, &now);
@@ -404,21 +577,59 @@ int main(int argc, char** argv) {
     shell.app.set_nickname("크롬이");
     if (argc >= 6 && std::string(argv[5]) == "session") demo_session(shell.app, false);
     if (argc >= 6 && std::string(argv[5]) == "chat") demo_session(shell.app, true);
+    if (std::string(argv[argc - 1]) == "notice") {
+      shell.app.set_notice(Notice{"기존 Cloudroom의 설정 파일을 함께 쓰고 있어요. 이 파일에는 로그인 정보가 암호화되지 않은 채 "
+                                  "저장돼요.",
+                                  "안전한 저장소로 옮기기", "닫기"});
+    }
     return save_png(shell.app, widen(argv[2]), w, h) ? 0 : 1;
   }
   if (data_dir.empty() && another_instance_running()) return 0;
 
-  shell.bridge = std::make_unique<Bridge>(shell.app, shell.tasks);
-  shell.transport = std::make_unique<transport::WinHttpTransport>();
-  client::Config config;
-  config.server_url = "https://cr.nanliburusu.com/";
-  config.nickname = nickname;
-  shell.client = std::make_unique<client::Client>(*shell.transport, config, *shell.bridge);
+  auto locations = data_dir.empty() ? store::default_locations()
+                                    : std::expected<store::Locations, store::Error>(
+                                          store::Locations{data_dir / "crpp", data_dir / "Cloudroom"});
+  if (!locations) locations = store::Locations{exe_dir() / "data" / "crpp", exe_dir() / "data" / "Cloudroom"};
+  shell.store.emplace(store::Store::open(*locations, shell.platform, unix_ms()));
+  store::Store& data = *shell.store;
+
+  std::string nickname = data.string_or("nickname", "");
+  if (nickname.empty()) {
+    nickname = random_nickname(assets / "words");
+    data.set("nickname", store::Json(nickname));
+  }
+  shell.app.set_nickname(nickname);
+  shell.config.server_url = data.string_or("serverUrl", store::default_server_url);
+  shell.config.nickname = nickname;
+  shell.config.token = data.string_or("token", "");
+  show_store_notice(shell);
+
+  shell.bridge = std::make_unique<Bridge>(shell.app, shell.tasks, data);
 
   Shell* sp = &shell;
+  // There is no sign-in screen yet, so continue as a guest; the token stays saved.
+  shell.bridge->on_unauthorized = [sp] {
+    if (sp->config.token.empty()) return;
+    sp->config.token.clear();
+    sp->client->stop();
+    start_client(*sp);
+    sp->app.on_notice_action = nullptr;
+    sp->app.set_notice(Notice{"로그인이 만료되어 게스트로 접속해요. 다시 시도해 주세요.", "", "닫기"});
+    if (!sp->smoke_path.empty()) sp->client->create(false, false);
+  };
   shell.app.on_create = [sp] { sp->client->create(false, false); };
-  shell.app.on_join = [sp](std::string code) { sp->client->join(code); };
-  shell.app.on_leave = [sp] { sp->client->leave(); };
+  shell.app.on_join = [sp](std::string code) {
+    if (const auto seat = sp->store->find_seat(code, unix_ms())) {
+      sp->bridge->expect_resume(code);
+      sp->client->resume(code, seat->key, std::nullopt, true);
+    } else {
+      sp->client->join(code);
+    }
+  };
+  shell.app.on_leave = [sp] {
+    sp->bridge->leaving();
+    sp->client->leave();
+  };
   shell.app.on_set_public = [sp](bool v) { sp->client->set_visibility(v); };
   shell.app.on_set_chat = [sp](bool v) { sp->client->set_chat_enabled(v); };
   shell.app.on_send_chat = [sp](std::string text) { sp->client->send_chat(text); };
@@ -431,7 +642,8 @@ int main(int argc, char** argv) {
   wc.lpszClassName = L"CrppWindow";
   RegisterClassExW(&wc);
 
-  RECT rc{0, 0, 951, 692};
+  RECT rc{0, 0, static_cast<LONG>(std::clamp<std::int64_t>(data.i64_or("windowWidth", 951), 480, 16384)),
+          static_cast<LONG>(std::clamp<std::int64_t>(data.i64_or("windowHeight", 692), 360, 16384))};
   AdjustWindowRect(&rc, WS_OVERLAPPEDWINDOW, FALSE);
   HWND hwnd = CreateWindowExW(0, wc.lpszClassName, L"Cloudroom", WS_OVERLAPPEDWINDOW | WS_VISIBLE, CW_USEDEFAULT,
                               CW_USEDEFAULT, rc.right - rc.left, rc.bottom - rc.top, nullptr, nullptr, wc.hInstance,
@@ -439,13 +651,16 @@ int main(int argc, char** argv) {
   if (!hwnd) return 1;
   shell.tasks.attach(hwnd);
   shell.app.on_copy = [hwnd](std::string text) { copy_to_clipboard(hwnd, text); };
-  shell.client->start();
+  start_client(shell);
   if (argc >= 3 && std::string(argv[1]) == "--smoke") {
     shell.smoke_path = widen(argv[2]);
     shell.smoke_start = GetTickCount64();
     shell.client->create(false, false);
     SetTimer(hwnd, smoke_timer, 200, nullptr);
+  } else {
+    restore_seat(shell);
   }
+  (void)data.save();
 
   MSG msg;
   while (GetMessageW(&msg, nullptr, 0, 0) > 0) {
@@ -453,5 +668,7 @@ int main(int argc, char** argv) {
     DispatchMessageW(&msg);
   }
   shell.client->stop();
+  shell.tasks.run_all();  // what the client reported last must still reach the store
+  (void)data.save();
   return 0;
 }

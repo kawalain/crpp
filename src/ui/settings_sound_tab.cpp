@@ -341,7 +341,7 @@ void SoundTab::click(int id, float x, float, bool) {
     if (row.id != id) continue;
     ui_.prefs->set(row.key, !ui_.prefs->get(row.key));
     knob_id_ = id;
-    knob_start_ = GetTickCount64();
+    knob_start_ = clock_ms();
     return;
   }
   if (speaker_.box.owns(id)) {

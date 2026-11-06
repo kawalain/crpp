@@ -73,7 +73,8 @@ std::vector<Surface*> App::layers() {
 }
 
 void App::paint(ID2D1RenderTarget* rt, float width, float height) {
-  ui_.begin_frame(width, height, GetTickCount64());
+  ui_.begin_frame(width, height, clock_ms());
+  ui_.more_frames = false;
   Painter p(ui_.gfx, rt);
   p.set_base(D2D1::Matrix3x2F::Scale(ui_.scale, ui_.scale) * D2D1::Matrix3x2F::Translation(ui_.ox, ui_.oy));
   p.clear(ui_.theme.sky);
@@ -194,6 +195,7 @@ bool App::blink() {
 }
 
 bool App::animating() {
+  if (ui_.more_frames) return true;
   for (Surface* s : layers()) {
     if (s->animating()) return true;
   }

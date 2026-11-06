@@ -31,6 +31,12 @@ void apply_theme(Shell& s) {
   InvalidateRect(s.hwnd, nullptr, FALSE);
 }
 
+// Windows' "Animation effects", as a browser's prefers-reduced-motion follows it.
+void follow_system_animations(Shell& s) {
+  BOOL on = TRUE;
+  if (SystemParametersInfoW(SPI_GETCLIENTAREAANIMATION, 0, &on, 0)) s.app.ui().animations = on != FALSE;
+}
+
 void apply_chat(Shell& s) {
   const Prefs& prefs = *s.app.ui().prefs;
   ChatPanel& chat = s.app.room().chat();
@@ -120,6 +126,7 @@ void wire_tabs(Shell& s) {
 }  // namespace
 
 void wire(Shell& s) {
+  follow_system_animations(s);
   wire_tabs(s);
   log_connection(s);
   apply_theme(s);
@@ -221,6 +228,7 @@ bool notification_enabled(Shell& s, std::string_view name) {
 }
 
 void system_settings_changed(Shell& s) {
+  follow_system_animations(s);
   if (s.prefs && s.app.ui().prefs->get(pref::system_theme)) apply_theme(s);
 }
 

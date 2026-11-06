@@ -60,7 +60,7 @@ std::string format_count(std::uint64_t count) {
 
 void ProfileCard::request(std::uint32_t slot) {
   pending_ = slot;
-  give_up_at_ = GetTickCount64() + answer_timeout_ms;
+  give_up_at_ = clock_ms() + answer_timeout_ms;
   if (on_request) on_request(slot);
 }
 
@@ -73,7 +73,7 @@ void ProfileCard::answer(ProfileView profile, bool mine) {
   mine_ = mine;
   if (refresh) return;  // only the numbers move
   open_ = true;
-  opened_at_ = GetTickCount64();
+  opened_at_ = clock_ms();
   was_animating_ = true;
   refresh_at_ = opened_at_ + refresh_ms;
   ui_.set_focus(nullptr, nullptr);

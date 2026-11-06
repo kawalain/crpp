@@ -105,6 +105,8 @@ struct Shell {
   ui::ComPtr<ID2D1HwndRenderTarget> target;
   bool tracking = false;
   bool frame_timer_on = false;
+  bool frame_running = false;           // something moves, so each frame asks for the next
+  unsigned long long last_frame_ms = 0;
   bool blink_timer_on = false;
   bool hidden = true;       // hidden or minimized: no render resources, no frames
   UINT dpi = USER_DEFAULT_SCREEN_DPI;

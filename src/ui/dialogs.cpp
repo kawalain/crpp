@@ -10,7 +10,7 @@ namespace crpp::ui {
 
 void Dialogs::show(Dialog dialog) {
   dialog_ = std::move(dialog);
-  opened_at_ = GetTickCount64();
+  opened_at_ = clock_ms();
   was_animating_ = true;
   ui_.set_focus(nullptr, nullptr);
 }

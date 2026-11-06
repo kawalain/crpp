@@ -238,12 +238,12 @@ void test_tween_runs_turns_around_and_settles() {
 void settle(UiHarness& h) {
   for (int i = 0; i < 60 && h.app.animating(); ++i) {
     Sleep(16);
-    (void)h.app.tick(GetTickCount64());
+    (void)h.app.tick(clock_ms());
     h.render();
   }
   CHECK(!h.app.animating());
-  (void)h.app.tick(GetTickCount64());  // the last frame's
-  CHECK(!h.app.tick(GetTickCount64()));
+  (void)h.app.tick(clock_ms());  // the last frame's
+  CHECK(!h.app.tick(clock_ms()));
 }
 
 void test_hover_animates_then_goes_idle() {
@@ -288,7 +288,7 @@ void test_bubble_mutes_the_search_label_until_it_is_gone() {
   CHECK(h.start());
   HomeScreen& home = h.app.home();
   CHECK(h.click(home, HomeScreen::Find));
-  const auto before = GetTickCount64();
+  const auto before = clock_ms();
   home.show_error("공개된 구름을 찾을 수 없어요.");
   const auto wake = home.wake_at();
   CHECK(wake >= before + Toasts::default_ms + 200);

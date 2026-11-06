@@ -82,7 +82,7 @@ ChangelogOverscroll::Result ChangelogOverscroll::step(int direction, unsigned lo
 void ChangelogView::open(std::vector<ChangelogEntry> entries, std::size_t index) {
   entries_ = std::move(entries);
   open_ = true;
-  opened_at_ = GetTickCount64();
+  opened_at_ = clock_ms();
   was_animating_ = true;
   ui_.set_focus(nullptr, nullptr);
   show(entries_.empty() ? 0 : std::min(index, entries_.size() - 1), false);
@@ -134,7 +134,7 @@ void ChangelogView::show_hint(int direction) {
   if (direction == hint_) return;
   hint_ = direction;
   if (direction != 0) hint_shown_ = direction;
-  hint_changed_at_ = GetTickCount64();
+  hint_changed_at_ = clock_ms();
   was_animating_ = true;
 }
 
@@ -283,7 +283,7 @@ void ChangelogView::click(int id, float, float, bool) {
 
 bool ChangelogView::wheel(float, float, float delta) {
   if (!open_) return false;
-  const auto now = GetTickCount64();
+  const auto now = clock_ms();
   const int direction = delta < 0 ? 1 : delta > 0 ? -1 : 0;
   if (direction == 0 || (ui_.animations && now < ignore_until_)) return true;
   const bool can_go = direction > 0 ? index_ + 1 < entries_.size() : index_ > 0;

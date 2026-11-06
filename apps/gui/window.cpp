@@ -126,6 +126,7 @@ LRESULT CALLBACK wnd_proc(HWND hwnd, UINT msg, WPARAM wp, LPARAM lp) {
     case WM_PAINT: {
       PAINTSTRUCT ps;
       BeginPaint(hwnd, &ps);
+      if (s->frame_running) s->app.tick(clock_ms());
       ensure_target(*s, hwnd);
       if (s->target) {
         const D2D1_SIZE_F size = s->target->GetSize();  // in DIPs
@@ -135,7 +136,10 @@ LRESULT CALLBACK wnd_proc(HWND hwnd, UINT msg, WPARAM wp, LPARAM lp) {
       }
       EndPaint(hwnd, &ps);
       place_ime(*s, hwnd);
+      s->last_frame_ms = clock_ms();
       sync_frames(*s);  // painting is where a hover's transition starts
+      // A window that keeps painting would never see its timers: they come after paint.
+      for (MSG timer; PeekMessageW(&timer, hwnd, WM_TIMER, WM_TIMER, PM_REMOVE);) DispatchMessageW(&timer);
       return 0;
     }
     case wm_ui_task:
@@ -219,7 +223,7 @@ LRESULT CALLBACK wnd_proc(HWND hwnd, UINT msg, WPARAM wp, LPARAM lp) {
       return 0;
     case WM_TIMER:
       if (wp == smoke_timer) {
-        const ULONGLONG elapsed = GetTickCount64() - s->smoke_start;
+        const ULONGLONG elapsed = clock_ms() - s->smoke_start;
         if (!s->smoke_left && s->app.view() == View::Session && s->app.room().member_count() > 0) {
           RECT rc;
           GetClientRect(hwnd, &rc);
@@ -239,14 +243,11 @@ LRESULT CALLBACK wnd_proc(HWND hwnd, UINT msg, WPARAM wp, LPARAM lp) {
         repaint(s->app.blink());
       } else if (wp == wake_timer) {
         KillTimer(hwnd, wake_timer);
-        repaint(s->app.tick(GetTickCount64()));
+        repaint(s->app.tick(clock_ms()));
       } else if (wp == frame_timer) {
-        const bool changed = s->app.tick(GetTickCount64());
-        repaint(changed);
-        if (!s->app.animating()) {
-          KillTimer(hwnd, frame_timer);
-          s->frame_timer_on = false;
-        }
+        KillTimer(hwnd, frame_timer);
+        s->frame_timer_on = false;
+        InvalidateRect(hwnd, nullptr, FALSE);
       }
       return 0;
     default:
@@ -258,15 +259,28 @@ LRESULT CALLBACK wnd_proc(HWND hwnd, UINT msg, WPARAM wp, LPARAM lp) {
 }  // namespace
 
 void sync_frames(Shell& s) {
+  // While something moves, each frame asks for the next. Presenting waits for the display,
+  // so that is its pace, and nothing runs once it all stops. The floor is for a target that
+  // does not wait, as on a hidden desktop.
+  constexpr unsigned long long shortest_frame_ms = 4;
   if (s.hidden) {  // nobody to animate for; showing the window calls this again
     if (s.frame_timer_on) KillTimer(s.hwnd, frame_timer);
     s.frame_timer_on = false;
-  } else if (s.app.animating() && !s.frame_timer_on) {
-    SetTimer(s.hwnd, frame_timer, 16, nullptr);
-    s.frame_timer_on = true;
+    s.frame_running = false;
+  } else if (s.app.animating()) {
+    s.frame_running = true;
+    if (clock_ms() - s.last_frame_ms >= shortest_frame_ms) {
+      InvalidateRect(s.hwnd, nullptr, FALSE);
+    } else if (!s.frame_timer_on) {
+      SetTimer(s.hwnd, frame_timer, static_cast<UINT>(shortest_frame_ms), nullptr);
+      s.frame_timer_on = true;
+    }
+  } else if (s.frame_running) {
+    s.frame_running = false;
+    if (s.app.tick(clock_ms())) InvalidateRect(s.hwnd, nullptr, FALSE);  // the last frame shows the end state
   }
   if (const auto at = s.app.wake_at()) {
-    const auto now = GetTickCount64();
+    const auto now = clock_ms();
     SetTimer(s.hwnd, wake_timer, at > now ? static_cast<UINT>(at - now) : 1, nullptr);
   } else {
     KillTimer(s.hwnd, wake_timer);

@@ -16,7 +16,7 @@ constexpr float bubble_ms = 150;  // .btn-notice transition
 void Toasts::toast(std::string text, unsigned long long duration_ms) { toast(std::move(text), {}, nullptr, duration_ms); }
 
 void Toasts::toast(std::string text, std::string action, std::function<void()> on_action, unsigned long long duration_ms) {
-  const auto now = GetTickCount64();
+  const auto now = clock_ms();
   bubble_ = {};
   // A toast already up changes its words without sliding in again.
   const bool up = toast_.active() && (toast_.hide_at == 0 || now < toast_.hide_at);
@@ -26,7 +26,7 @@ void Toasts::toast(std::string text, std::string action, std::function<void()> o
 }
 
 void Toasts::bubble(Rect anchor, std::string text, float gap, unsigned long long duration_ms) {
-  const auto now = GetTickCount64();
+  const auto now = clock_ms();
   toast_ = {};
   on_action_ = nullptr;
   bubble_ = {std::move(text), now, duration_ms ? now + duration_ms : 0};
@@ -115,7 +115,7 @@ bool Toasts::moving(const Message& m, float duration_ms, unsigned long long now)
 
 bool Toasts::animating() const {
   if (!ui_.animations) return false;
-  const auto now = GetTickCount64();
+  const auto now = clock_ms();
   return moving(toast_, toast_ms, now) || moving(bubble_, bubble_ms, now);
 }
 

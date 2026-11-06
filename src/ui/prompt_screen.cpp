@@ -42,7 +42,7 @@ void PromptScreen::set_error(std::string error) {
 }
 
 void PromptScreen::lock(long long seconds) {
-  const auto now = GetTickCount64();
+  const auto now = clock_ms();
   lock_until_ = now + static_cast<unsigned long long>(std::max(1LL, seconds)) * 1000;
   prompt_.error.clear();
   field_.clear();

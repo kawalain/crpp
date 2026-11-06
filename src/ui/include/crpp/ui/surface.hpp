@@ -18,6 +18,12 @@ inline constexpr float stage_h = 692;
 
 enum class Cursor : std::uint8_t { Arrow, Hand, IBeam };
 
+// Milliseconds on the clock all motion runs on. The system's tick moves in steps of
+// about 16 ms, too coarse for what moves every frame.
+[[nodiscard]] unsigned long long clock_ms() noexcept;
+// Stops the clock at this time, for rendering a moment of a motion; 0 restarts it.
+void hold_clock_at(unsigned long long ms) noexcept;
+
 inline D2D1_MATRIX_3X2_F scale_about(float cx, float cy, float s) {
   return D2D1::Matrix3x2F::Translation(-cx, -cy) * D2D1::Matrix3x2F::Scale(s, s) * D2D1::Matrix3x2F::Translation(cx, cy);
 }
@@ -44,8 +50,11 @@ class Ui {
   Toasts* toasts = nullptr;
   EmojiPicker* emoji_picker = nullptr;
 
-  // Off for --shot and tests: every transition shows its end state.
+  // Off for --shot, tests and a system set to show no animations: every transition
+  // shows its end state.
   bool animations = true;
+  // Set while painting by whatever needs another frame after this one.
+  bool more_frames = false;
 
   // The stage is scaled to cover the window; the overflow is cropped, centered.
   float scale = 1, ox = 0, oy = 0, width = stage_w, height = stage_h;

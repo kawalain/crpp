@@ -15,7 +15,7 @@ constexpr const char* message = "서버와 연결이 끊겼습니다.\n재연결
 void OfflinePopup::show() {
   if (shown_) return;
   shown_ = true;
-  opened_at_ = GetTickCount64();
+  opened_at_ = clock_ms();
   was_animating_ = true;
   if (!covered_) ui_.set_focus(nullptr, nullptr);  // nothing beneath can be used now
 }

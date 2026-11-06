@@ -44,7 +44,7 @@ void EmojiPicker::close() {
 }
 
 void EmojiPicker::reveal_thumb() {
-  const auto now = GetTickCount64();
+  const auto now = clock_ms();
   if (!thumb_on_) thumb_since_ = now;
   thumb_on_ = true;
   thumb_hide_at_ = now + thumb_hide_ms;

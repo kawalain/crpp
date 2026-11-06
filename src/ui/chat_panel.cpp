@@ -118,7 +118,7 @@ void ChatPanel::send() {
   text.erase(0, lead);
   if (text.empty()) return;
   std::string message = narrow(text);
-  if (!limiter_.try_send(GetTickCount64())) {
+  if (!limiter_.try_send(clock_ms())) {
     // Still sent: every attempt prolongs the block on the server too, and its answer
     // keeps the two in step. The text stays in the box.
     shake();
@@ -134,12 +134,12 @@ void ChatPanel::send() {
 }
 
 void ChatPanel::blocked(std::uint64_t ms) {
-  if (!limiter_.server_blocked(GetTickCount64(), ms)) return;
+  if (!limiter_.server_blocked(clock_ms(), ms)) return;
   shake();
   if (input_.text().empty() && !last_sent_.empty()) input_.set_text(widen(last_sent_));
 }
 
-void ChatPanel::shake() { shake_at_ = GetTickCount64(); }
+void ChatPanel::shake() { shake_at_ = clock_ms(); }
 
 bool ChatPanel::shaking() const {
   return ui_.animations && shake_at_ != 0 && static_cast<float>(ui_.now_ms - std::min(ui_.now_ms, shake_at_)) < send_shake_ms;

@@ -122,7 +122,7 @@ void enter_app(Shell& s) {
   if (!first_run) s.app.show_home();
   start_client(s);
   if (!s.smoke_path.empty()) {
-    s.smoke_start = GetTickCount64();
+    s.smoke_start = clock_ms();
     s.client->create(false, false);
     SetTimer(s.hwnd, smoke_timer, 200, nullptr);
   } else {

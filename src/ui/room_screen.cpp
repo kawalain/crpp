@@ -99,12 +99,12 @@ void RoomScreen::set_room(std::vector<MemberView> members, std::uint32_t me, std
   host_ = host;
   public_ = is_public;
   chat_ = chat;
-  chat_lock_at_ = GetTickCount64() + chat_lock_ms;
+  chat_lock_at_ = clock_ms() + chat_lock_ms;
   lock_pending_ = chat && chat_lock_ms > 0;
 }
 
 void RoomScreen::pulse(std::uint32_t slot) {
-  const auto until = GetTickCount64() + 140;
+  const auto until = clock_ms() + 140;
   for (auto& p : pulses_) {
     if (p.first == slot) {
       p.second = until;
@@ -149,7 +149,7 @@ void RoomScreen::set_member_volume(std::uint32_t slot, int percent) {
   if ((before == 0) != (percent == 0) && on_member_muted) on_member_muted(member->cid, percent == 0);
 }
 
-bool RoomScreen::chat_locked() const { return chat_ && GetTickCount64() >= chat_lock_at_; }
+bool RoomScreen::chat_locked() const { return chat_ && clock_ms() >= chat_lock_at_; }
 
 bool RoomScreen::shaking() const {
   return ui_.animations && blocked_id_ >= 0 && static_cast<float>(ui_.now_ms - std::min(ui_.now_ms, blocked_at_)) < tip_shake_ms;
@@ -482,7 +482,7 @@ void RoomScreen::set_volume_from(float x) {
 void RoomScreen::copy_code() {
   const bool copied = on_copy && on_copy(room_code_);
   copy_text_ = copied ? "복사 완료 !" : "복사 실패";
-  const auto now = GetTickCount64();
+  const auto now = clock_ms();
   copy_until_ = now + 1000;
   // Right after copying the hint stays away, even under the cursor.
   hint_muted_until_ = now + 5000;
@@ -526,7 +526,7 @@ void RoomScreen::notice_answered(pref::Bool seen) {
 void RoomScreen::block_switch(int id, const char* text) {
   blocked_id_ = id;
   blocked_text_ = text;
-  blocked_at_ = GetTickCount64();
+  blocked_at_ = clock_ms();
 }
 
 void RoomScreen::toggle_public() {

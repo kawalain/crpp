@@ -127,6 +127,16 @@ void SettingsPanel::paint_panel(Painter& p) {
     p.text(version_, r, {.size = 14, .line_height = 20, .align = Align::Right},
            ui_.hot(this, Version) ? t.hl_text : rgb(0x8a94a0));
     ui_.add_hit(this, r, Version);
+    if (ui_.hot(this, Version)) {  // .version .tip
+      const TextStyle style{.size = 15, .weight = 700, .line_height = 22};
+      DWRITE_TEXT_METRICS m{};
+      constexpr std::wstring_view tip = L"변경사항 확인";
+      if (const auto layout = ui_.gfx.layout(tip, style, 400)) layout->GetMetrics(&m);
+      const float w = m.widthIncludingTrailingWhitespace + 30;
+      const Rect bubble{r.right() - w, r.y - 8 - 32, w, 32};
+      p.fill_round(bubble, 11, t.hl);
+      p.text(tip, {bubble.x + 15, bubble.y + 5, w - 30, 22}, style, t.on_accent);
+    }
   }
 }
 

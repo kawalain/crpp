@@ -42,9 +42,9 @@ void App::show_session(std::string room_code) {
 }
 
 std::vector<Surface*> App::layers() {
-  if (view_ == View::Setup) return {&setup_};
+  if (view_ == View::Setup) return {&changelog_, &update_popup_, &setup_};
   Surface* screen = view_ == View::Home ? static_cast<Surface*>(&home_) : &room_;
-  return {&dialogs_, &toasts_, &emoji_picker_, &notice_, &settings_, screen};
+  return {&dialogs_, &changelog_, &update_popup_, &toasts_, &emoji_picker_, &notice_, &settings_, screen};
 }
 
 void App::paint(ID2D1RenderTarget* rt, float width, float height) {
@@ -54,6 +54,8 @@ void App::paint(ID2D1RenderTarget* rt, float width, float height) {
   p.clear(ui_.theme.sky);
   if (view_ == View::Setup) {
     setup_.paint(p);
+    update_popup_.paint(p);
+    changelog_.paint(p);
     return;
   }
   room_.set_controls_shown(!settings_.is_open());
@@ -63,6 +65,8 @@ void App::paint(ID2D1RenderTarget* rt, float width, float height) {
   notice_.paint(p);
   emoji_picker_.paint(p);
   toasts_.paint(p);
+  update_popup_.paint(p);
+  changelog_.paint(p);
   dialogs_.paint(p);
 }
 

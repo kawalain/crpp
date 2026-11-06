@@ -10,3 +10,4 @@ include(cmake/warnings.cmake)
 
 enable_testing()
 add_subdirectory(src/wire)
+add_subdirectory(src/session)

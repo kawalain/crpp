@@ -1,0 +1,10 @@
+add_library(crpp_session STATIC session.cpp)
+target_include_directories(crpp_session PUBLIC include)
+target_link_libraries(crpp_session PUBLIC crpp_wire)
+crpp_target_defaults(crpp_session)
+
+add_executable(crpp_session_test tests/session_test.cpp)
+target_link_libraries(crpp_session_test PRIVATE crpp_session)
+target_include_directories(crpp_session_test PRIVATE ${PROJECT_SOURCE_DIR}/tests/support)
+crpp_target_defaults(crpp_session_test)
+add_test(NAME session.scenarios COMMAND crpp_session_test)

@@ -135,7 +135,6 @@ class RoomScreen final : public Surface {
   std::optional<std::uint32_t> host_;
   bool public_ = false, chat_ = false;
   bool options_open_ = false, mute_popup_open_ = false;
-  bool muted_ = false;
   bool controls_shown_ = true;
   int volume_ = 30;
   Rect volume_track_;

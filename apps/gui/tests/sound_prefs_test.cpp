@@ -50,6 +50,7 @@ void settings_come_from_the_prefs() {
 
 void only_the_keys_of_this_area_count() {
   CHECK(is_sound_key("volume"));
+  CHECK(is_sound_key("muteOthers"));
   CHECK(is_sound_key("channelBalance"));
   CHECK(is_sound_key("speakerDevice"));
   CHECK(!is_sound_key("theme"));

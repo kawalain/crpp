@@ -35,6 +35,7 @@ inline constexpr Text mouse_sound{"mouseSound", "plastic"};
 inline constexpr Text pen_sound{"tabletSound", "paper"};
 inline constexpr Bool listen_self{"listenSelf", false};
 inline constexpr Bool others_use_my_sounds{"othersUseMySounds", false};
+inline constexpr Bool mute_others{"muteOthers", false};
 inline constexpr Bool mute_on_idle{"muteOnIdle", false};
 inline constexpr Bool mute_notifications_on_mute{"muteNotificationsOnMute", false};
 inline constexpr Bool spatial_audio{"spatialAudio", true};
@@ -69,7 +70,7 @@ inline constexpr Bool chat_notice_seen{"chatNoticeSeen", false};
 inline constexpr Bool pin_tip_seen{"pinTipSeen", false};
 
 // What "설정 초기화" puts back. Account and Room values are not settings.
-inline constexpr std::array all_bool{listen_self,       others_use_my_sounds, mute_on_idle,    mute_notifications_on_mute,
+inline constexpr std::array all_bool{mute_others,       listen_self,       others_use_my_sounds, mute_on_idle,    mute_notifications_on_mute,
                                      spatial_audio,     channel_balance_enabled, system_theme, chat_tray_notify,
                                      chat_taskbar_flash, start_with_system,   minimize_to_tray, use_24h,
                                      log_enabled,       input_detail};

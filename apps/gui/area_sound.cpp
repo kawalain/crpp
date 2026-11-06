@@ -33,6 +33,7 @@ void save_soon(Shell& s) {
 
 void apply(Shell& s) {
   read_sound_settings(*s.prefs, s.audio);
+  s.audio.muted = s.prefs->get(pref::mute_others);
   s.audio.idle_muted = s.sound_state->idle.idle() && s.prefs->get(pref::mute_on_idle);
   s.engine->set_settings(s.audio);
 }

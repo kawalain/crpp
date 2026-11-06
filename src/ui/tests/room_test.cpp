@@ -522,6 +522,24 @@ void test_the_card_covers_the_settings_droplet() {
   CHECK(!h.app.settings().is_open());
 }
 
+void test_mute_is_a_saved_setting() {
+  UiHarness h;
+  CHECK(h.start());
+  enter(h);
+  RoomScreen& room = h.app.room();
+  std::vector<bool> told;
+  room.on_mute = [&](bool muted) { told.push_back(muted); };
+  CHECK(h.click(room, RoomScreen::Mute));
+  CHECK(h.app.ui().prefs->get(pref::mute_others));
+  CHECK(told.size() == 1 && told[0]);
+  room.reset();
+  CHECK(h.app.ui().prefs->get(pref::mute_others));  // it outlives the Room
+  enter(h);
+  CHECK(h.click(room, RoomScreen::Mute));
+  CHECK(!h.app.ui().prefs->get(pref::mute_others));
+  CHECK(told.size() == 2 && !told[1]);
+}
+
 void test_member_menu_for_someone_else() {
   UiHarness h;
   CHECK(h.start());
@@ -816,6 +834,7 @@ void test_clearing_the_chat_starts_over() {
 }  // namespace
 
 int main() {
+  test_mute_is_a_saved_setting();
   test_links_are_https_with_punctuation_left_out();
   test_limiter_allows_a_burst_then_cools_down();
   test_limiter_forgets_old_messages();

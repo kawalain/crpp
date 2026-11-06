@@ -13,7 +13,7 @@
 
 namespace crpp::gui {
 
-// Leaves what is not a setting alone: `muted` and `idle_muted`.
+// Leaves what comes from elsewhere alone: `muted` and `idle_muted`.
 inline void read_sound_settings(const ui::Prefs& prefs, sound::Settings& out) {
   const auto percent = [&](ui::pref::Int key) { return std::clamp(prefs.get(key), 0, 100); };
   out.volume = percent(ui::pref::volume);
@@ -34,7 +34,7 @@ inline void read_sound_settings(const ui::Prefs& prefs, sound::Settings& out) {
 // The settings this area reacts to.
 [[nodiscard]] inline bool is_sound_key(std::string_view key) {
   namespace p = ui::pref;
-  for (const char* name : {p::volume.name, p::keyboard_volume.name, p::mouse_volume.name, p::pen_volume.name,
+  for (const char* name : {p::mute_others.name, p::volume.name, p::keyboard_volume.name, p::mouse_volume.name, p::pen_volume.name,
                            p::speaker_device.name, p::keyboard_sound.name, p::mouse_sound.name, p::pen_sound.name,
                            p::listen_self.name, p::others_use_my_sounds.name, p::mute_notifications_on_mute.name,
                            p::spatial_audio.name, p::channel_balance_enabled.name, p::channel_balance.name}) {

@@ -301,6 +301,7 @@ void RoomScreen::paint_members(Painter& p, const Layout& l) {
 
 void RoomScreen::paint_controls(Painter& p) {
   const Theme& t = ui_.theme;
+  const bool muted = ui_.prefs->get(pref::mute_others);
   const float y = ui_.height - 18 - fab_size;
   struct Fab {
     float x;
@@ -311,7 +312,7 @@ void RoomScreen::paint_controls(Painter& p) {
     const Rect r{f.x, y, fab_size, fab_size};
     fab_rects_[f.id == Leave ? 0 : f.id == Mute ? 1 : 2] = r;
     const bool hot = ui_.hot(this, f.id);
-    const bool alarm = f.id == Mute && muted_;
+    const bool alarm = f.id == Mute && muted;
     if (hot) p.push(scale_about(r.x + 21, r.y + 21, 1.08f));
     p.shadow_round(r, 21, 8, 2, rgb(0x2e6498, 0.16f));
     p.fill_round(r, 21, alarm ? rgb(0xfa5462) : (t.dark ? t.cloud_base : t.surface));
@@ -326,15 +327,15 @@ void RoomScreen::paint_controls(Painter& p) {
       for (const float dx : {-10.0f, 0.0f, 10.0f}) p.fill_ellipse(cx + dx, cy, 3, 3, ink);
     } else {
       const int level = volume_ <= 0 ? 0 : volume_ < 34 ? 1 : volume_ < 67 ? 2 : 3;
-      const float group = muted_ ? 0 : speaker_level_shift[std::min(3, std::max(1, level))];
+      const float group = muted ? 0 : speaker_level_shift[std::min(3, std::max(1, level))];
       p.push(D2D1::Matrix3x2F::Translation(cx - 12 + group, cy - 12));
       const auto body = ui_.gfx.parse_path(speaker_body);
-      p.push(D2D1::Matrix3x2F::Translation(muted_ ? 2.5f : 0.0f, 0) *
+      p.push(D2D1::Matrix3x2F::Translation(muted ? 2.5f : 0.0f, 0) *
              D2D1::Matrix3x2F::Translation(cx - 12 + group, cy - 12));
       p.fill_geometry(body.get(), ink);
       p.pop();
       p.push(D2D1::Matrix3x2F::Translation(cx - 12 + group, cy - 12));
-      if (muted_) {
+      if (muted) {
         const auto slash = ui_.gfx.parse_path(speaker_slash);
         p.push(D2D1::Matrix3x2F::Translation(2.5f, 0) * D2D1::Matrix3x2F::Translation(cx - 12 + group, cy - 12));
         p.stroke_geometry(slash.get(), ink, 2.1f);
@@ -423,7 +424,7 @@ std::optional<HoverTip::Spec> RoomScreen::tip_for_hover() const {
     spec.anchor = fab_rects_[0];
     spec.place = HoverTip::Place::Left;
   } else if (id == Mute && controls_shown_ && !mute_popup_open_) {
-    spec.text = muted_ ? "음소거 해제" : "음소거";
+    spec.text = ui_.prefs->get(pref::mute_others) ? "음소거 해제" : "음소거";
     spec.anchor = fab_rects_[1];
   } else if (id == More && controls_shown_ && !options_open_) {
     spec.text = "더보기";
@@ -618,8 +619,8 @@ void RoomScreen::click(int id, float x, float, bool) {
       mute_popup_open_ = false;
       break;
     case Mute:
-      muted_ = !muted_;
-      if (on_mute) on_mute(muted_);
+      ui_.prefs->set(pref::mute_others, !ui_.prefs->get(pref::mute_others));
+      if (on_mute) on_mute(ui_.prefs->get(pref::mute_others));
       break;
     case OptCode:
       copy_code();

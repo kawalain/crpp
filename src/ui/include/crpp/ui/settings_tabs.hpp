@@ -71,11 +71,35 @@ class DisplayTab final : public SettingsTab {
   std::string sample_nick_, sample_emoji_;
 };
 
+// A sound in the notification list: `stem` is its file name, `id` upstream's key for it.
+struct NotifySound {
+  std::string stem, id, name;
+};
+
 class NotifyTab final : public SettingsTab {
  public:
   using SettingsTab::SettingsTab;
+  enum Id : int { TrayToggle = 1, FlashToggle, SoundBase = 100, PreviewBase = 300 };
+
+  // Asked whenever the tab comes on screen, as the sounds may arrive after startup.
+  std::function<void()> on_shown;
+  std::function<void(const std::string& stem)> on_preview;
+  void set_sounds(std::vector<NotifySound> sounds);
+
   void paint(Painter& p, Rect area) override;
   [[nodiscard]] float content_height() const override;
+  void shown() override;
+  void click(int id, float x, float y, bool shift) override;
+  [[nodiscard]] bool animating() const override;
+
+ private:
+  struct Row {
+    ToggleAnim toggle;
+    Fade grow, tip;
+  };
+  std::vector<NotifySound> sounds_;
+  std::vector<Row> rows_;
+  ToggleAnim tray_, flash_;
 };
 
 class SystemTab final : public SettingsTab {

@@ -70,6 +70,19 @@ inline constexpr std::array all_int{volume, keyboard_volume, mouse_volume, pen_v
 inline constexpr std::array all_text{speaker_device, speaker_device_name, keyboard_sound, mouse_sound, pen_sound,
                                      theme,          light_theme,         dark_theme};
 
+// The key of a sound in notificationSounds: its file name stem without the order
+// prefix, lower case ("01_Cloud_Chat" -> "cloud_chat"), as upstream derives it.
+[[nodiscard]] inline std::string notification_id(std::string_view stem) {
+  std::size_t digits = 0;
+  while (digits < stem.size() && stem[digits] >= '0' && stem[digits] <= '9') ++digits;
+  if (digits > 0 && digits < stem.size() && stem[digits] == '_') stem.remove_prefix(digits + 1);
+  std::string id(stem);
+  for (char& c : id) {
+    if (c >= 'A' && c <= 'Z') c = static_cast<char>(c - 'A' + 'a');
+  }
+  return id;
+}
+
 }  // namespace pref
 
 class Prefs {
@@ -80,11 +93,16 @@ class Prefs {
   virtual void set(pref::Bool key, bool value) = 0;
   virtual void set(pref::Int key, int value) = 0;
   virtual void set(pref::Text key, std::string_view value) = 0;
+  // "notificationSounds", upstream's object of sound id -> on; a sound it lacks is on.
+  [[nodiscard]] virtual bool notification_sound(std::string_view id) const = 0;
+  virtual void set_notification_sound(std::string_view id, bool on) = 0;
+  virtual void clear_notification_sounds() = 0;
 
   void reset() {
     for (const auto key : pref::all_bool) set(key, key.fallback);
     for (const auto key : pref::all_int) set(key, key.fallback);
     for (const auto key : pref::all_text) set(key, key.fallback);
+    clear_notification_sounds();
   }
 
  protected:
@@ -109,11 +127,18 @@ class MemoryPrefs final : public Prefs {
   void set(pref::Bool key, bool value) override { bools_[key.name] = value; }
   void set(pref::Int key, int value) override { ints_[key.name] = value; }
   void set(pref::Text key, std::string_view value) override { texts_[key.name] = std::string(value); }
+  [[nodiscard]] bool notification_sound(std::string_view id) const override {
+    const auto it = sounds_.find(std::string(id));
+    return it == sounds_.end() || it->second;
+  }
+  void set_notification_sound(std::string_view id, bool on) override { sounds_[std::string(id)] = on; }
+  void clear_notification_sounds() override { sounds_.clear(); }
 
  private:
   std::map<std::string, bool> bools_;
   std::map<std::string, int> ints_;
   std::map<std::string, std::string> texts_;
+  std::map<std::string, bool> sounds_;
 };
 
 }  // namespace crpp::ui

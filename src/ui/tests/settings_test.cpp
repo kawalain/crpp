@@ -107,6 +107,39 @@ void test_slider_changes_the_chat_scale_within_its_range() {
   CHECK(h.app.ui().capture == nullptr);
 }
 
+void test_notification_ids() {
+  CHECK(pref::notification_id("01_cloud_chat") == "cloud_chat");
+  CHECK(pref::notification_id("02_Cloud_Enter") == "cloud_enter");
+  CHECK(pref::notification_id("cloud_chat") == "cloud_chat");
+  CHECK(pref::notification_id("7up") == "7up");
+}
+
+void test_notify_toggles_and_preview() {
+  UiHarness h;
+  CHECK(h.start());
+  NotifyTab& tab = h.app.settings().notify();
+  tab.set_sounds({{"01_cloud_chat", "cloud_chat", "메시지"}, {"02_cloud_enter", "cloud_enter", "구름 입장"}});
+  std::string previewed;
+  tab.on_preview = [&](const std::string& stem) { previewed = stem; };
+  open(h, SettingsPage::Notify);
+  const Prefs& prefs = *h.app.ui().prefs;
+
+  CHECK(prefs.notification_sound("cloud_enter"));
+  CHECK(h.click(tab, NotifyTab::SoundBase + 1));
+  CHECK(!prefs.notification_sound("cloud_enter"));
+  CHECK(prefs.notification_sound("cloud_chat"));
+
+  CHECK(h.click(tab, NotifyTab::PreviewBase));
+  CHECK(previewed == "01_cloud_chat");
+  CHECK(prefs.notification_sound("cloud_chat"));  // a preview changes nothing
+
+  CHECK(prefs.get(pref::chat_tray_notify));
+  CHECK(h.click(tab, NotifyTab::TrayToggle));
+  CHECK(!prefs.get(pref::chat_tray_notify));
+  CHECK(h.click(tab, NotifyTab::FlashToggle));
+  CHECK(!prefs.get(pref::chat_taskbar_flash));
+}
+
 void test_fade_runs_only_when_animated() {
   Ui ui;
   ui.animations = true;
@@ -144,6 +177,8 @@ int main() {
   test_escape_closes_the_dropdown_then_the_panel();
   test_click_elsewhere_closes_the_dropdown();
   test_slider_changes_the_chat_scale_within_its_range();
+  test_notification_ids();
+  test_notify_toggles_and_preview();
   test_fade_runs_only_when_animated();
   test_chat_clock();
   return crpp_test_result();

@@ -1,8 +1,7 @@
 #include <dwmapi.h>
 
-#include <algorithm>
-
 #include "areas.hpp"
+#include "notification_sounds.hpp"
 #include "shell.hpp"
 
 using namespace crpp::ui;
@@ -38,12 +37,22 @@ void apply_chat(Shell& s) {
   chat.set_use_24h(prefs.get(pref::use_24h));
 }
 
+std::vector<NotifySound> load_sounds(const Shell& s) {
+  std::vector<NotifySound> sounds;
+  for (auto& found : find_notification_sounds(s.assets_dir / "sounds" / "Notifications", pref::notification_id)) {
+    sounds.push_back({std::move(found.stem), std::move(found.id), std::move(found.name)});
+  }
+  return sounds;
+}
+
 void wire_tabs(Shell& s) {
   Shell* sp = &s;
   SettingsPanel& panel = s.app.settings();
   panel.display().on_shown = [sp] {
     sp->app.settings().display().set_sample(sp->store->string_or("nickname", ""), sp->store->string_or("emoji", ""));
   };
+  panel.notify().on_shown = [sp] { sp->app.settings().notify().set_sounds(load_sounds(*sp)); };
+  panel.notify().on_preview = [sp](const std::string& stem) { sound::play_notification(*sp, stem); };
 }
 
 }  // namespace
@@ -62,6 +71,7 @@ bool scene(Shell& s, std::string_view name) {
   const auto open = [&](SettingsPage page) {
     panel.open(page);
     panel.set_version("v0.0.0");
+    panel.notify().set_sounds(load_sounds(s));
     panel.display().set_sample("크롬이", "1f600");
   };
   if (name == "settings") {
@@ -108,6 +118,12 @@ bool scene(Shell& s, std::string_view name) {
     if (on) prefs.set(pref::system_theme, true);
     if (big) prefs.set(pref::chat_scale, 150);
     if (tip) panel.display().click(on ? DisplayTab::LightList : DisplayTab::ThemeList, 0, 0, false);
+  } else if (rest == "notify") {
+    open(SettingsPage::Notify);
+    if (tip) {
+      s.app.ui().hover_owner = &panel.notify();
+      s.app.ui().hover_id = NotifyTab::PreviewBase;
+    }
   } else {
     return false;
   }
@@ -129,7 +145,9 @@ void pref_changed(Shell& s, std::string_view key) {
   }
 }
 
-bool notification_enabled(Shell&, std::string_view) { return true; }
+bool notification_enabled(Shell& s, std::string_view name) {
+  return s.app.ui().prefs->notification_sound(pref::notification_id(name));
+}
 
 void system_settings_changed(Shell& s) {
   if (s.prefs && s.app.ui().prefs->get(pref::system_theme)) apply_theme(s);

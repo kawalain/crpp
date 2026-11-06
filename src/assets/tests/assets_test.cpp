@@ -1,5 +1,6 @@
 #include "crpp/assets/assets.hpp"
 
+#include <array>
 #include <fstream>
 #include <iterator>
 #include <map>

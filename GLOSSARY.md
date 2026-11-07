@@ -18,9 +18,13 @@
 
 **Pen** (타블렛): a stylus used on a drawing tablet or pen display. "Pen" is the canonical term; "타블렛" is only the label users see.
 
-**Virtual surround** (가상 서라운드): placing each Seat's sound around the listener by its place in the Room. Without it every Seat sounds centred.
+**Desk**: where a member's sound comes from in the virtual office one listener hears. Each listener arranges the members at Desks for themselves, so a member's Desk differs between listeners. Not a Seat, which is the same for everyone.
 
-**Left-right difference** (좌우 차이): how strongly a Seat to one side leans toward the nearer ear, under Virtual surround. Upstream calls it channel balance; it is shown in words because it moves level, delay and muffling together.
+**Virtual surround** (가상 서라운드): placing each member's sound around the listener by their Desk. Without it every member sounds centred.
+
+**Left-right difference** (좌우 차이): how strongly a Desk to one side leans toward the nearer ear, under Virtual surround. Upstream calls it channel balance; it is shown in words because it moves level, delay and muffling together.
+
+**Reverb** (울림): the ringing of a space after a sound. Chosen on its own, apart from Virtual surround, and it can be turned off completely. "Echo" is not used for this.
 
 **Guest**: a member without an account. Identified only by a signed guest ID kept on their device.
 

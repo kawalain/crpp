@@ -286,7 +286,7 @@ class LunaSkin final : public Skin {
         break;
       case PanelKind::List:
         p.fill_rect(r, l.field);
-        p.frame(r, l.ink);
+        p.frame(r, t.dark ? l.menu_line : l.ink);
         break;
       case PanelKind::Menu:
         p.fill_rect({r.x + 2, r.y + 2, r.w, r.h}, rgb(0x000000, 0.25f));

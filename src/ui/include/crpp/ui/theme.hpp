@@ -225,4 +225,74 @@ constexpr LunaColors messenger_colors() {
   return l;
 }
 
+// The same shapes at night: a darkened caption, deep faces, and the orange of the period kept.
+// There was no such thing then, so these values are ours.
+constexpr LunaColors messenger_dark_colors() {
+  LunaColors l = messenger_colors();
+  l.caption = {{{0, rgb(0x4a6491)}, {0.08f, rgb(0x1d2f52)}, {0.40f, rgb(0x1d2f52)}, {0.88f, rgb(0x253a63)},
+                {0.93f, rgb(0x253a63)}, {0.95f, rgb(0x1d2f52)}, {0.96f, rgb(0x142440)}, {1, rgb(0x142440)}}};
+  l.caption_idle = {{{0, rgb(0x3a4252)}, {0.08f, rgb(0x2a303c)}, {0.40f, rgb(0x2a303c)}, {0.88f, rgb(0x303744)},
+                     {0.93f, rgb(0x303744)}, {0.95f, rgb(0x2a303c)}, {0.96f, rgb(0x232833)}, {1, rgb(0x232833)}}};
+  l.caption_ink = rgb(0xf2f5fb);
+  l.caption_shadow = rgb(0x0a1222);
+  l.frame_out = rgb(0x142440);
+  l.frame_mid = rgb(0x2a4066);
+  l.frame_in = rgb(0x1d2f52);
+  l.frame_low_out = rgb(0x0c1628);
+  l.frame_low_mid = rgb(0x142440);
+  l.frame_low_in = rgb(0x1d2f52);
+  l.close = {{{0, rgb(0xb4503a)}, {1, rgb(0x96361f)}}};
+  l.close_hot = {{{0, rgb(0xd86c52)}, {1, rgb(0xbc4a2e)}}};
+  l.caption_button = {{{0, rgb(0x3a5484)}, {1, rgb(0x253a63)}}};
+  l.caption_button_hot = {{{0, rgb(0x54719f)}, {1, rgb(0x365280)}}};
+  l.face = rgb(0x232833);
+  l.field = rgb(0x12161f);
+  l.field_line = rgb(0x4b5a75);
+  l.field_off = rgb(0x1c212b);
+  l.edge_light = rgb(0x3b4252);
+  l.edge_dark = rgb(0x151922);
+  l.edge_out = rgb(0x0c0f15);
+  l.button = {{{0, rgb(0x424a5c)}, {0.86f, rgb(0x333a49)}, {1, rgb(0x282e3a)}}};
+  l.button_down = {{{0, rgb(0x1c212b)}, {0.08f, rgb(0x262c38)}, {0.94f, rgb(0x282e3a)}, {1, rgb(0x323949)}}};
+  l.button_line = rgb(0x0c1628);
+  l.focus_0 = rgb(0x6d8fc4);
+  l.focus_1 = rgb(0x4a6491);
+  l.focus_2 = rgb(0x5a7aad);
+  l.focus_3 = rgb(0x3f5880);
+  l.off_ink = rgb(0x6e7686);
+  l.off_shadow = rgb(0x151922);
+  l.check_line = rgb(0x6d8fc4);
+  l.check_from = rgb(0x1c212b);
+  l.check_to = rgb(0x12161f);
+  l.tick = rgb(0x5cd65c);
+  l.track = rgb(0x3b4252);
+  l.track_edge = rgb(0x151922);
+  l.thumb_line = rgb(0x6d8fc4);
+  l.thumb = {{{0, rgb(0x4a5266)}, {1, rgb(0x333a49)}}};
+  l.bar_thumb = rgb(0x3a4a68);
+  l.bar_thumb_in = rgb(0x34435f);
+  l.bar_thumb_low = rgb(0x2c3a53);
+  l.bar_track_from = rgb(0x1c212b);
+  l.bar_track_to = rgb(0x232833);
+  l.bar_arrow = rgb(0xc4cfe4);
+  l.progress_line = rgb(0x4b5a75);
+  l.group_line = rgb(0x3b4252);
+  l.legend = rgb(0x8db4f2);
+  l.menu = rgb(0x1c212b);
+  l.menu_line = rgb(0x3b4252);
+  l.select = rgb(0x3a68b4);
+  l.select_ink = rgb(0xffffff);
+  l.tooltip = rgb(0x3d3a26);
+  l.tooltip_line = rgb(0x8c8660);
+  l.tooltip_ink = rgb(0xf5f1d8);
+  l.header = {{{0, rgb(0x2c3546)}, {1, rgb(0x232b3b)}}};
+  l.info = {{{0, rgb(0x2c3a53)}, {1, rgb(0x233046)}}};
+  l.info_line = rgb(0x4b5a75);
+  l.ink = rgb(0xe6ebf5);
+  l.ink_soft = rgb(0xa2adc2);
+  l.link = rgb(0x8db4f2);
+  l.picture_line = rgb(0x4b5a75);
+  return l;
+}
+
 }  // namespace crpp::ui

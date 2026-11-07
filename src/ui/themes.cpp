@@ -8,11 +8,12 @@ namespace crpp::ui {
 namespace {
 
 // THEMES, LIGHT_THEMES and DARK_THEMES, as upstream names and orders them.
-const std::array<ThemeEntry, 4> themes{{
+const std::array<ThemeEntry, 5> themes{{
     {"cloudroom", &locale::Strings::theme_cloud, false, light_cloud_palette(rgb(0x66ccff))},
     {"darkcloud", &locale::Strings::theme_dark_cloud, true, dark_cloud_palette()},
     {"pastel", &locale::Strings::theme_pastel, false, light_cloud_palette(rgb(0xb1dafd))},
     {"messenger", &locale::Strings::theme_messenger, false, luna_theme(messenger_colors(), false)},
+    {"messengerdark", &locale::Strings::theme_messenger_dark, true, luna_theme(messenger_dark_colors(), true)},
 }};
 
 }  // namespace

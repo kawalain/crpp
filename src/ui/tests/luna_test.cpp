@@ -1,10 +1,13 @@
 // The Luna Skin: its own frame and window sizes, and that its layouts reach the same state and
 // callbacks as Cloud's.
+#include <algorithm>
+#include <cmath>
 #include <string>
 #include <vector>
 
 #include "check.hpp"
 #include "crpp/ui/luna.hpp"
+#include "crpp/ui/settings_tabs.hpp"
 #include "crpp/ui/themes.hpp"
 #include "ui_harness.hpp"
 
@@ -325,6 +328,67 @@ void test_graphics_can_all_be_released() {
   CHECK(h.render());
 }
 
+float luminance(Color c) {
+  const auto linear = [](float v) { return v <= 0.03928f ? v / 12.92f : std::pow((v + 0.055f) / 1.055f, 2.4f); };
+  return 0.2126f * linear(c.r) + 0.7152f * linear(c.g) + 0.0722f * linear(c.b);
+}
+
+float contrast(Color a, Color b) {
+  const float la = luminance(a), lb = luminance(b);
+  return (std::max(la, lb) + 0.05f) / (std::min(la, lb) + 0.05f);
+}
+
+void test_the_palettes_can_be_read() {
+  for (const ThemeEntry& entry : all_themes()) {
+    if (entry.theme.skin != SkinId::Luna) continue;
+    const LunaColors& l = entry.theme.luna;
+    CHECK(contrast(l.ink, l.face) >= 7);
+    CHECK(contrast(l.ink, l.field) >= 7);
+    CHECK(contrast(l.ink_soft, l.face) >= 4.5f);
+    CHECK(contrast(l.link, l.field) >= 4.5f);
+    CHECK(contrast(l.legend, l.face) >= 4.5f);
+    CHECK(contrast(l.select_ink, l.select) >= 4.5f);
+    CHECK(contrast(l.tooltip_ink, l.tooltip) >= 7);
+    CHECK(contrast(l.caption_ink, l.caption[2].color) >= 4.5f);
+    CHECK(contrast(entry.theme.error_text, l.face) >= 3);
+  }
+}
+
+void test_themes_are_listed_by_lightness_with_their_skin() {
+  const auto id_in = [](const std::vector<const ThemeEntry*>& list, std::string_view id) {
+    return std::ranges::any_of(list, [&](const ThemeEntry* entry) { return entry->id == id; });
+  };
+  CHECK(id_in(themes_of(false), "messenger") && !id_in(themes_of(true), "messenger"));
+  CHECK(id_in(themes_of(true), "messengerdark") && !id_in(themes_of(false), "messengerdark"));
+  CHECK(theme_named("messengerdark").theme.dark);
+  CHECK(theme_named("messengerdark").theme.skin == SkinId::Luna);
+  // Each has a label of its own.
+  for (const ThemeEntry& entry : all_themes()) {
+    CHECK(tr().*entry.label != nullptr);
+    CHECK(std::ranges::count(all_themes(), entry.id, &ThemeEntry::id) == 1);
+  }
+
+  // Following the OS may pair Skins, and the frame changes with the OS.
+  MemoryPrefs prefs;
+  prefs.set(pref::system_theme, true);
+  prefs.set(pref::light_theme, std::string_view("messenger"));
+  prefs.set(pref::dark_theme, std::string_view("darkcloud"));
+  CHECK(effective_theme(prefs, false).id == "messenger");
+  CHECK(effective_theme(prefs, true).id == "darkcloud");
+  UiHarness h;
+  CHECK(h.start(width, height));
+  h.app.set_theme(effective_theme(prefs, false).id);
+  CHECK(h.app.own_frame());
+  CHECK(!h.app.ui().animations);
+  CHECK(h.render());
+  h.app.set_theme(effective_theme(prefs, true).id);
+  CHECK(!h.app.own_frame());
+  CHECK(h.render());
+  h.app.set_theme("messengerdark");
+  CHECK(h.app.own_frame());
+  CHECK(h.render());
+}
+
 void test_changing_skin_measures_the_chat_again() {
   UiHarness h;
   start_luna(h);
@@ -355,5 +419,7 @@ int main() {
   test_prompt_submits();
   test_graphics_can_all_be_released();
   test_changing_skin_measures_the_chat_again();
+  test_the_palettes_can_be_read();
+  test_themes_are_listed_by_lightness_with_their_skin();
   return crpp_test_result();
 }

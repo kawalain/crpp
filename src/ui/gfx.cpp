@@ -353,6 +353,12 @@ void Painter::push_opacity(float opacity) {
   rt_->PushLayer(params, nullptr);
 }
 
+void Painter::push_opacity(float opacity, Rect bounds) {
+  D2D1_LAYER_PARAMETERS params = D2D1::LayerParameters(D2D1::RectF(bounds.x, bounds.y, bounds.right(), bounds.bottom()));
+  params.opacity = opacity;
+  rt_->PushLayer(params, nullptr);
+}
+
 void Painter::push(const D2D1_MATRIX_3X2_F& m) { rt_->SetTransform(m * base_); }
 
 void Painter::clear(Color c) { rt_->Clear(to_d2d(c)); }
@@ -436,7 +442,8 @@ void Painter::emoji(std::wstring_view glyph, Rect r, float opacity) {
   DWRITE_TEXT_METRICS m{};
   if (!layout || FAILED(layout->GetMetrics(&m))) return;
   const bool translucent = opacity < 1;
-  if (translucent) push_opacity(opacity);
+  // A glyph may overhang its box a little.
+  if (translucent) push_opacity(opacity, {r.x - r.w / 2, r.y - r.h / 2, r.w * 2, r.h * 2});
   brush_->SetColor(D2D1::ColorF(0, 0, 0, 1));
   rt_->DrawTextLayout(D2D1::Point2F(r.x + (r.w - m.width) / 2, r.y + (r.h - m.height) / 2), layout.get(), brush_.get(),
                       D2D1_DRAW_TEXT_OPTIONS_ENABLE_COLOR_FONT);

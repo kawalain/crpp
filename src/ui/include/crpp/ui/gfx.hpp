@@ -81,8 +81,11 @@ class Painter {
   }
   // Moves all that is drawn next, whatever base it sets, for a screen that slides in.
   void set_moved(float dx, float dy) { moved_ = D2D1::Matrix3x2F::Translation(dx, dy); }
-  // Everything until pop_opacity is drawn as one, then blended at this opacity.
+  // Everything until pop_opacity is drawn as one, then blended at this opacity. Direct2D
+  // keeps a buffer as large as the layer's bounds in its pool until the device goes, so
+  // anything smaller than the window says how far it can reach. What falls outside is cut.
   void push_opacity(float opacity);
+  void push_opacity(float opacity, Rect bounds);
   void pop_opacity() { rt_->PopLayer(); }
   // Applies m (in stage coordinates) on top of the base transform.
   void push(const D2D1_MATRIX_3X2_F& m);

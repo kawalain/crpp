@@ -151,11 +151,11 @@ void SettingsPanel::paint_panel(Painter& p) {
     SettingsTab& left = tab_of(left_page_);
     const bool hits = ui_.hits_enabled;
     ui_.hits_enabled = false;
-    p.push_opacity(1 - change);
+    p.push_opacity(1 - change, content_area);
     left.paint(p, {content_area.x, content_area.y - left_scroll_, 550, left.content_height()});
     p.pop_opacity();
     ui_.hits_enabled = hits;
-    p.push_opacity(change);
+    p.push_opacity(change, content_area);
     current.paint(p, area);
     p.pop_opacity();
   } else {

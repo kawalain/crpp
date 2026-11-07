@@ -276,8 +276,8 @@ void RoomScreen::paint_members(Painter& p, const Layout& l) {
     const float x = l.members_x + static_cast<float>(col) * (col_w + 24);
     const float y = l.members_y + pad + static_cast<float>(row) * 49 + 1 - members_scroll_.drawn() + arrive_rise * (1 - arrived);
     if (y + 47 <= members_area_.y || y >= members_area_.bottom()) continue;
-    if (arrived < 1) p.push_opacity(arrived);
     const Rect box{x, y, col_w, 47};
+    if (arrived < 1) p.push_opacity(arrived, box);
     const int id = MemberBase + static_cast<int>(m.slot);
     if (ui_.hot(this, id)) p.fill_round(box, 14, with_alpha(t.hl, 0.2f));
     const float cx = x + 6 + 22, cy = y + 1.5f + 22;

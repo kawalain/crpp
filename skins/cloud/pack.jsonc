@@ -159,6 +159,7 @@
     "version_tip": {"size": 15, "weight": 700, "line_height": 32, "align": "center"},
     "droplet_tip": {"size": 16, "weight": 700, "line_height": 32, "align": "center"},
     "heading": {"size": 26, "weight": 700, "line_height": 32},
+    "subheading": {"size": 21, "weight": 700, "line_height": 28},
     "row_label": {"size": 18, "line_height": 26},
     "row": {"size": 18, "line_height": 36},
     "slider_value": {"size": 15, "line_height": 26, "align": "center"},
@@ -170,6 +171,8 @@
     "sample_time": {"size": 14, "line_height": 20, "align": "right"},
     "sample_nick": {"size": 15, "line_height": 20, "ellipsis": true},
     "sample_text": {"size": 17, "line_height": 19},
+    "preview_tip": {"size": 14, "weight": 700, "line_height": 26, "align": "center"},
+    "preview_tip_measure": {"size": 14, "weight": 700, "line_height": 20},
     "modal_button_measure": {"size": 16, "weight": 700, "line_height": 0}
   },
   "parts": {

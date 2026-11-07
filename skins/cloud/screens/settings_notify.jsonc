@@ -1,0 +1,31 @@
+{
+  "$schema": "../../schema/screen.settings_notify.schema.json",
+  "draw": [
+    {"text": "#notify_heading", "style": "heading", "color": "$hl_text", "x": 9, "y": 25, "w": "W-9", "h": 32},
+    {"text": "#notify_on_message", "style": "subheading", "color": "dark ? $hl_text_dark : $hl", "x": 12, "y": 70, "w": "W-12", "h": 28},
+    {"use": "toggle", "text": "#notify_tray", "x": 16, "y": 110, "w": 505, "h": 36, "args": {"on": "@tray", "hit": "hit('tray')"}},
+    {"use": "toggle", "text": "#notify_flash", "x": 16, "y": 154, "w": 505, "h": 36, "args": {"on": "@flash", "hit": "hit('flash')"}},
+    {"text": "#notify_sounds", "style": "heading", "color": "$hl_text", "x": 9, "y": 204, "w": "W-9", "h": 32},
+    {"repeat": "@sounds", "draw": [
+      {"let": "top", "value": "255+i*44"},
+      {"use": "toggle", "x": 16, "y": "top", "w": 505, "h": 36, "args": {"on": "@sound_on", "hit": "hit('sound')+i"}},
+      // .notice-name: grows from its left edge under the pointer, with its tip above.
+      {"let": "name_w", "value": "textw('row', '@sound_name', 2000)"},
+      {"hit": "preview", "x": 16, "y": "top", "w": "name_w", "h": 36, "group": [
+        {"let": "grow", "to": "hot", "first": "jump", "ms": 140},
+        {"let": "tip", "to": "hot", "first": "jump", "ms": 150},
+        {"scale": "1+0.07*grow", "about_x": 0, "about_y": 18, "group": [
+          {"text": "@sound_name", "style": "row", "color": "$hl_text", "w": 400},
+          {"if": "tip>0", "group": [
+            {"let": "tip_w", "value": "textw('preview_tip_measure', '#notify_preview', 2000)+24"},
+            {"x": "name_w/2-tip_w/2", "y": "-2-26+4*(1-tip)", "w": "tip_w", "h": 26, "group": [
+              {"fill": "alpha($hl, tip)", "radius": 10},
+              {"text": "#notify_preview", "style": "preview_tip", "color": "alpha($on_accent, tip)"}
+            ]}
+          ]}
+        ]}
+      ]}
+    ]},
+    {"report": "height", "value": "(@sounds>0 ? 255+(@sounds-1)*44+36 : 204+32)+25"}
+  ]
+}

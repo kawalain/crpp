@@ -232,6 +232,12 @@ exist (real + test).
 - `store`: settings, Seats and chat cache in the Protected or Shared store; a
   flushed temp file + rename for every write. `Platform` is the seam for DPAPI
   and file replacement.
+- `skin`: Skin Packs (`docs/adr/0007-skins-are-downloaded-data.md`). `load_pack` turns a pack's JSON into
+  a compact tree and checks every name in it, under limits on size and depth, so that drawing has
+  nothing left to refuse. `draw` walks a screen; `Canvas` is the seam for drawing and `Source` for what
+  the screen shows. `pack.hpp` describes the format. Expressions are compiled to a short program, and
+  running one allocates nothing. Pure. A screen says what a pack can name in a `ScreenSchema`, keeps
+  its state, hit ids and callbacks, and `SkinCanvas` in `ui` draws on a `Painter`. `skins/` holds the packs.
 - `assets`: fetch and verify files against the manifest CMake builds into the
   exe from `assets/` and `cmake/remote_assets.txt`. This repository's files are pinned
   to the commit that last changed `assets/`, which must be on GitHub before a release

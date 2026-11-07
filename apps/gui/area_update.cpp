@@ -108,6 +108,18 @@ void open_changelog_at(Shell& s, std::vector<up::Release> releases, std::string_
   s.app.changelog().open(to_entries(releases), index);
 }
 
+constexpr const char* notes_shown_key = "crppNotesShownVersion";
+
+void show_notes_of_available(Shell& s, const std::vector<up::Release>& releases, const up::Version& version) {
+  const std::string name = up::to_string(version);
+  const View view = s.app.view();
+  // Nothing can be read over the first-run prompt or the setup screen; the next check tries again.
+  if (view != View::Home && view != View::Session) return;
+  if (!up::notes_due_when_noticed(s.store->string_or(notes_shown_key, ""), name)) return;
+  s.store->set(notes_shown_key, store::Json(name));
+  if (!s.app.changelog().is_open()) open_changelog_at(s, releases, name);
+}
+
 // Runs one thing on the worker, then `done` on the UI thread once it has been joined.
 template <typename Work>
 void run_worker(Shell& s, Work work) {
@@ -140,6 +152,7 @@ void check_finished(Shell& s, std::expected<up::CheckResult, up::Error> result) 
                         st.available->manifest.sha256 == result->update->manifest.sha256;
       st.available = std::move(result->update);
       if (!same || s.app.update_popup().state() == UpdatePopup::State::Hidden) s.app.update_popup().show_available();
+      show_notes_of_available(s, result->releases, st.available->release.version);
     }
   }
   s.app.update_popup().schedule_check(clock_ms() + check_interval_ms);
@@ -235,7 +248,7 @@ void show_notes_of_a_new_version(Shell& s) {
   const std::string seen = s.store->string_or(key, "");
   if (seen == current) return;
   s.store->set(key, store::Json(current));
-  if (seen.empty()) return;
+  if (!up::notes_due_at_start(seen, s.store->string_or(notes_shown_key, ""), current)) return;
   auto releases = read_cache(s);
   if (std::ranges::any_of(releases, [&](const up::Release& r) { return up::to_string(r.version) == current; })) {
     open_changelog_at(s, std::move(releases), current);
@@ -292,7 +305,19 @@ bool scene(Shell& s, std::string_view name) {
     s.app.set_theme(ThemeId::DarkCloud);
     name.remove_suffix(5);
   }
-  if (name == "update-popup") {
+  if (name.starts_with("changelog=")) {  // a release's notes, to look at before publishing
+    up::WindowsPlatform platform;
+    const auto bytes = platform.read_file(std::filesystem::path(ui::widen(name.substr(10))), 8 * 1024 * 1024);
+    if (!bytes) return false;
+    std::string_view notes(reinterpret_cast<const char*>(bytes->data()), bytes->size());
+    std::string title;
+    if (notes.starts_with("# ")) {
+      const auto end = notes.find('\n');
+      title = notes.substr(2, end - 2);
+      notes.remove_prefix(end == std::string_view::npos ? notes.size() : end + 1);
+    }
+    s.app.changelog().open({{std::move(title), "2026년 11월 07일", "0.1.0", up::parse_notes(notes)}}, 0);
+  } else if (name == "update-popup") {
     s.app.update_popup().show_available();
   } else if (name == "update-progress") {
     s.app.update_popup().show_progress(42);

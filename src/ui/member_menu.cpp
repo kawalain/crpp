@@ -43,17 +43,11 @@ void MemberMenu::paint(Painter& p) {
   const float w = self_ ? self_w : other_w;
   const float h = 2 * pad + 2 * item_h + (self_ ? 0 : row_h);
   const Rect r{std::max(8.0f, std::min(x_, ui_.width - w - 8)), std::max(8.0f, std::min(y_, ui_.height - h - 8)), w, h};
-  p.shadow_round(r, 14, 16, 4, rgb(0x2e78aa, 0.22f));
-  p.fill_round(r, 14, t.surface);
+  ui_.skin().panel(p, t, r, PanelKind::Menu);
   ui_.add_hit_window(this, r, Card);
 
-  const TextStyle label{.size = 17, .weight = 700, .line_height = 22};
   const auto item = [&](Rect box, std::string_view text, int id, bool active, bool disabled) {
-    const bool hot = !disabled && ui_.hot(this, id);
-    const Color fill = active ? (hot ? t.hl_dark : t.hl) : t.hl_soft;
-    if (active || hot) p.fill_round(box, 9, fill);
-    const Color ink = active || hot ? t.on_accent : t.hl_text;
-    p.text(text, {box.x + 12, box.y + 8, box.w - 24, 22}, label, with_alpha(ink, disabled ? 0.45f : 1.0f));
+    ui_.skin().menu_item(p, t, box, text, active, !disabled && ui_.hot(this, id), disabled);
     if (!disabled) ui_.add_hit_window(this, box, id);
   };
 
@@ -63,7 +57,7 @@ void MemberMenu::paint(Painter& p) {
   HoverTip::Spec tip;
   bool show_tip = false;
   if (!self_) {
-    p.text(tr().member_volume, {r.x + pad + 12, y + 6, w - 2 * pad - 24, 22}, label, t.hl_text);
+    p.text(tr().member_volume, {r.x + pad + 12, y + 6, w - 2 * pad - 24, 22}, {.size = 17, .weight = 700, .line_height = 22}, t.hl_text);
     track_ = {r.x + pad + 12, y + 6 + 22 + 8, w - 2 * pad - 24, 14};
     paint_slider(p, t, track_, volume_, 0, 100);
     ui_.add_hit_window(this, track_, Slider);

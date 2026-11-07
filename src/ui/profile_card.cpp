@@ -68,7 +68,7 @@ void ProfileCard::paint(Painter& p) {
   const bool hot = mine_ && ui_.hot(this, Icon);
   const float grow = hot ? 1.05f : 1.0f;
   const float cx = icon.x + icon_size / 2, cy = icon.y + icon_size / 2;
-  p.fill_ellipse(cx, cy, icon_size / 2 * grow, icon_size / 2 * grow, with_alpha(hot ? t.hl_pale2 : t.hl_pale, shown));
+  ui_.skin().avatar(p, t, icon, grow, hot, shown);
   const float emoji = icon_emoji * grow;
   draw_svg(p, ui_.emoji_image(profile_.emoji), {cx - emoji / 2, cy - emoji / 2, emoji, emoji}, shown);
   if (mine_) ui_.add_hit_window(this, icon, Icon);

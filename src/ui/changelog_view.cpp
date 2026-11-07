@@ -11,7 +11,6 @@ namespace crpp::ui {
 
 namespace {
 
-constexpr const char* close_path = "M12 12 24 24M24 12 12 24";
 constexpr float card_w = 520, card_h = 480;   // .modal-card.changelog, .cl-scroll
 constexpr float pad_x = 28, head_top = 22, head_bottom = 14, head_right = 62, head_gap = 2, body_bottom = 24;
 constexpr float li_indent = 20, li_margin = 4, li_line = 24.8f, heading_top = 14, heading_bottom = 6;
@@ -253,10 +252,7 @@ void ChangelogView::paint(Painter& p) {
 
   // .cl-close: 36 across, 15 from the top and 16 from the right.
   const Rect close{card.right() - 16 - 36, card.y + 15, 36, 36};
-  if (ui_.hot(this, Close)) p.fill_ellipse(close.x + 18, close.y + 18, 18, 18, with_alpha(t.hl_pale2, shown));
-  p.push(D2D1::Matrix3x2F::Translation(close.x, close.y));
-  p.stroke_geometry(ui_.gfx.path(close_path), with_alpha(t.hl, shown), 4.4f, false);
-  p.pop();
+  ui_.skin().close_button(p, t, close, ui_.hot(this, Close), shown);
   ui_.add_hit_window(this, close, Close);
 
   if (hint_shown_ != 0) {
@@ -271,8 +267,8 @@ void ChangelogView::paint(Painter& p) {
       const float bubble_w = m.widthIncludingTrailingWhitespace + 30, bubble_h = m.height + 10;
       const float settled = hint_shown_ < 0 ? card.y + 14 : card.bottom() - 14 - bubble_h;
       const Rect bubble{card.x + (card.w - bubble_w) / 2, settled + 4 * (1 - a), bubble_w, bubble_h};
-      p.fill_round(bubble, 11, with_alpha(t.hl, a));
-      p.text(text, {bubble.x, bubble.y + 5, bubble.w, m.height}, style, with_alpha(t.on_accent, a));
+      const Color written = ui_.skin().bubble(p, t, bubble, 11, t.hl, t.on_accent, a);
+      p.text(text, {bubble.x, bubble.y + 5, bubble.w, m.height}, style, written);
     }
   }
 }

@@ -8,6 +8,7 @@
 #include <vector>
 
 #include "crpp/ui/gfx.hpp"
+#include "crpp/ui/skin.hpp"
 #include "crpp/ui/svg.hpp"
 #include "crpp/ui/textfield.hpp"
 
@@ -47,6 +48,7 @@ class Ui {
   std::vector<std::string> emoji_ids;  // what the picker offers, when it can show them
   Theme theme = light_cloud_palette(rgb(0x66ccff));
 
+  [[nodiscard]] const Skin& skin() const { return skin_of(theme); }
   [[nodiscard]] ID2D1PathGeometry* cloud() const { return gfx.path(cloud_path_data); }
 
   // Never null once App exists.

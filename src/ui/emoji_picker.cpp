@@ -94,8 +94,7 @@ void EmojiPicker::paint_shown(Painter& p) {
   p.fill_rect(window, rgb(0x365669, 0.28f));
   ui_.add_hit_window(this, window, Backdrop);
   const Rect r{(ui_.width - picker_w) / 2, (ui_.height - picker_h) / 2, picker_w, picker_h};
-  p.shadow_round(r, 14, 16, 4, rgb(0x2e78aa, 0.22f));
-  p.fill_round(r, 14, t.surface);
+  ui_.skin().panel(p, t, r, PanelKind::Picker);
   ui_.add_hit_window(this, r, Card);
 
   const Rect view{r.x + pad, r.y + pad, picker_w - 2 * pad, picker_h - 2 * pad};
@@ -118,8 +117,7 @@ void EmojiPicker::paint_shown(Painter& p) {
       const Rect box{view.x + static_cast<float>(col) * (cell + gap),
                      view.y + static_cast<float>(row) * (cell + gap) - scroll_.drawn(), cell, cell};
       const int id = CellBase + static_cast<int>(index);
-      if (ids_[index] == current_) p.fill_round(box, 10, t.hl_soft);
-      else if (ui_.hot(this, id)) p.fill_round(box, 10, t.hl_pale2);
+      ui_.skin().cell(p, t, box, ids_[index] == current_, ui_.hot(this, id));
       const float inset = (cell - emoji_size) / 2;
       draw_svg(p, cache_->get(ui_.gfx, ids_[index]), {box.x + inset, box.y + inset, emoji_size, emoji_size});
       ui_.add_hit_window(this, box, id);
@@ -139,8 +137,7 @@ void EmojiPicker::paint_shown(Painter& p) {
     const float moved = transition(ui_, thumb_since_, thumb_on_ ? thumb_in_ms : thumb_out_ms);
     const float alpha = thumb_on_ ? moved : (thumb_since_ == 0 ? 0 : 1 - moved);
     if (alpha > 0) {
-      const Color fill = over ? t.hl_soft : t.hl_pale2;
-      p.fill_round(thumb, 5, with_alpha(fill, alpha));
+      ui_.skin().scrollbar(p, t, thumb, over ? 1.0f : 0.0f, alpha);
     }
   }
 }

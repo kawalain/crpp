@@ -57,19 +57,13 @@ void UpdatePopup::paint(Painter& p) {
   const float inner_h = label_w > 0 ? button_h : 22;
   const Rect card{margin, margin, text_w + chrome, inner_h + 2 * pad_y};
 
-  if (t.dark) p.shadow_round(card, 14, 38, 12, rgb(0x000000, 0.33f));
-  else p.shadow_round(card, 14, 16, 4, rgb(0x2e78aa, 0.22f));
-  p.fill_round(card, 14, t.surface);
+  ui_.skin().panel(p, t, card, PanelKind::Update);
   ui_.add_hit_window(this, card, Card);
   p.text(text, {card.x + pad_left, card.y + (card.h - 22) / 2, text_w, 22}, body, t.hl_text);
 
   if (label_w > 0) {
     const Rect button{card.right() - pad_right - label_w, card.y + pad_y, label_w, button_h};
-    const bool hot = ui_.hot(this, Button);
-    if (hot) p.push(scale_about(button.x + button.w / 2, button.y + button.h / 2, 1.03f));
-    p.fill_round(button, 9, hot ? t.hl_dark : t.hl);
-    p.text(label, button, label_style, t.on_accent);
-    if (hot) p.pop();
+    ui_.skin().button(p, t, button, label, {.kind = ButtonKind::Update, .hot = ui_.hot(this, Button)});
     ui_.add_hit_window(this, button, Button);
   }
 }

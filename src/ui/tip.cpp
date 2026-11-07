@@ -56,8 +56,8 @@ void HoverTip::paint(Ui& ui, Painter& p, const Spec* want) {
   const Theme& t = ui.theme;
   const Color fill = spec_.fill.value_or(t.hl);
   const Color ink = spec_.ink.value_or(t.on_accent);
-  p.fill_round({x, y, w, h}, spec_.radius, with_alpha(fill, fill.a * alpha));
-  p.text(spec_.text, {x + spec_.pad_x, y + spec_.pad_y, w - 2 * spec_.pad_x, h - 2 * spec_.pad_y}, style, with_alpha(ink, alpha));
+  const Color written = ui.skin().bubble(p, t, {x, y, w, h}, spec_.radius, fill, ink, alpha);
+  p.text(spec_.text, {x + spec_.pad_x, y + spec_.pad_y, w - 2 * spec_.pad_x, h - 2 * spec_.pad_y}, style, written);
 }
 
 bool HoverTip::animating(const Ui& ui) const {

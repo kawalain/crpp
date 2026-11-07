@@ -50,7 +50,7 @@ void paint_text_button(Ui& ui, Surface* owner, Painter& p, Rect r, std::string_v
 
 [[nodiscard]] float text_width(const Painter& p, std::string_view text, const TextStyle& style);
 // A .tip-like bubble filling `box`; alpha is how far it has faded in.
-void paint_bubble(Painter& p, std::string_view text, Rect box, const TextStyle& style, float radius, Color fill, Color ink,
+void paint_bubble(Painter& p, const Theme& t, std::string_view text, Rect box, const TextStyle& style, float radius, Color fill, Color ink,
                   float alpha);
 
 // Which way the list of a dropdown just opened goes, as main.js decides it. `button`

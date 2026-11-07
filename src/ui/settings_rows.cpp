@@ -68,13 +68,8 @@ void paint_toggle(Ui& ui, Surface* owner, Painter& p, Rect area, float top, std:
 }
 
 void paint_text_button(Ui& ui, Surface* owner, Painter& p, Rect r, std::string_view label, int id, Fade& hover) {
-  const Theme& t = ui.theme;
   hover.set(ui, ui.hot(owner, id), 150);
-  const float at = hover.value(ui);
-  if (at > 0) p.push(scale_about(r.x + r.w / 2, r.y + r.h / 2, 1 + 0.03f * at));
-  p.fill_round(r, 8, mix(t.hl_dark, t.hl, at * 100));
-  p.text(label, r, {.size = 16, .line_height = r.h, .align = Align::Center}, t.on_accent);
-  if (at > 0) p.pop();
+  ui.skin().button(p, ui.theme, r, label, {.kind = ButtonKind::Settings, .hot = ui.hot(owner, id), .hover_at = hover.value(ui)});
   ui.add_hit(owner, r, id);
 }
 
@@ -85,13 +80,13 @@ float text_width(const Painter& p, std::string_view text, const TextStyle& style
   return m.width;
 }
 
-void paint_bubble(Painter& p, std::string_view text, Rect box, const TextStyle& style, float radius, Color fill, Color ink,
+void paint_bubble(Painter& p, const Theme& t, std::string_view text, Rect box, const TextStyle& style, float radius, Color fill, Color ink,
                   float alpha) {
-  p.fill_round(box, radius, with_alpha(fill, fill.a * alpha));
+  const Color written = skin_of(t).bubble(p, t, box, radius, fill, ink, alpha);
   TextStyle centered = style;
   centered.align = Align::Center;
   centered.line_height = box.h;
-  p.text(text, box, centered, with_alpha(ink, ink.a * alpha));
+  p.text(text, box, centered, written);
 }
 
 void place_dropdown(Dropdown& dropdown, Rect button) {

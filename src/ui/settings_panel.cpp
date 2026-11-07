@@ -203,7 +203,7 @@ void SettingsPanel::paint_scrollbar_faded(Painter& p) {
   thumb_hover_.set(ui_, over, 120);
   const float shown = bar_.value(ui_);
   const Rect thumb = scroll_.thumb(scroll_track);
-  if (shown > 0) p.fill_round(thumb, 5, with_alpha(mix(t.hl_soft, t.hl_pale2, thumb_hover_.value(ui_) * 100), shown));
+  if (shown > 0) ui_.skin().scrollbar(p, t, thumb, thumb_hover_.value(ui_), shown);
   ui_.add_hit(this, scroll_track, Track);
   ui_.add_hit(this, thumb, Thumb);
 }
@@ -221,7 +221,7 @@ void SettingsPanel::paint_version(Painter& p) {
     const char* tip = tr().tip_changelog;
     const TextStyle style{.size = 15, .weight = 700, .line_height = 22};
     const float w = text_width(p, tip, style) + 30;
-    paint_bubble(p, tip, {r.right() - w, r.y - 8 - 32 + 4 * (1 - shown), w, 32}, style, 11, t.hl, t.on_accent, shown);
+    paint_bubble(p, t, tip, {r.right() - w, r.y - 8 - 32 + 4 * (1 - shown), w, 32}, style, 11, t.hl, t.on_accent, shown);
   }
 }
 
@@ -253,7 +253,7 @@ void SettingsPanel::paint_droplet(Painter& p) {
     const Rect box{drop.right() - w, drop.bottom() + 8 - 4 * (1 - shown), w, 32};
     p.push(scale_about(drop.x + 17.5f, drop.y + 24.5f, 1 + 0.08f * g));
     p.shadow_round(box, 11, 8, 2, rgb(0x2e648c, 0.2f * shown));
-    paint_bubble(p, tip, box, style, 11, t.surface, t.hl_text, shown);
+    paint_bubble(p, t, tip, box, style, 11, t.surface, t.hl_text, shown);
     p.pop();
   }
 }

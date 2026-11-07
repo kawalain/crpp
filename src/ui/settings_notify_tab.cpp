@@ -53,7 +53,7 @@ void NotifyTab::paint(Painter& p, Rect area) {
       const char* tip = tr().notify_preview;
       const TextStyle style{.size = 14, .weight = 700, .line_height = 20};
       const float tip_w = text_width(p, tip, style) + 24;
-      paint_bubble(p, tip, {name.x + w / 2 - tip_w / 2, name.y - 2 - 26 + 4 * (1 - shown), tip_w, 26}, style, 10, t.hl,
+      paint_bubble(p, t, tip, {name.x + w / 2 - tip_w / 2, name.y - 2 - 26 + 4 * (1 - shown), tip_w, 26}, style, 10, t.hl,
                    t.on_accent, shown);
     }
     if (g > 0) p.pop();

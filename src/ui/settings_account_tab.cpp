@@ -20,15 +20,15 @@ void AccountTab::paint(Painter& p, Rect area) {
   const bool icon_hot = ui_.hot(this, Emoji);
   const float cx = icon.x + 36, cy = icon.y + 36;
   if (icon_hot) p.push(scale_about(cx, cy, 1.05f));
-  p.fill_ellipse(cx, cy, 36, 36, icon_hot ? t.hl_pale2 : t.hl_pale);
+  ui_.skin().avatar(p, t, icon, 1, icon_hot, 1);
   draw_svg(p, ui_.emoji_image(profile_.emoji), {cx - 23, cy - 23, 46, 46});
   if (icon_hot) p.pop();
   ui_.add_hit(this, icon, Emoji);
   if (icon_hot) {  // .tip
     constexpr float tip_w = 112, tip_h = 32;
     const Rect r{cx - tip_w / 2, icon.y - 8 - tip_h, tip_w, tip_h};
-    p.fill_round(r, 11, t.hl);
-    p.text(tr().profile_change_icon, {r.x, r.y + 5, r.w, 22}, {.size = 16, .weight = 700, .line_height = 22, .align = Align::Center}, t.on_accent);
+    const Color written = ui_.skin().bubble(p, t, r, 11, t.hl, t.on_accent, 1);
+    p.text(tr().profile_change_icon, {r.x, r.y + 5, r.w, 22}, {.size = 16, .weight = 700, .line_height = 22, .align = Align::Center}, written);
   }
 
   const float names_x = icon.right() + 18;
@@ -42,11 +42,7 @@ void AccountTab::paint(Painter& p, Rect area) {
   }
 
   const auto button = [&](Rect r, std::string_view label, int id) {
-    const bool hot = ui_.hot(this, id);
-    if (hot) p.push(scale_about(r.x + r.w / 2, r.y + r.h / 2, 1.03f));
-    p.fill_round(r, 8, hot ? t.hl_dark : t.hl);
-    p.text(label, r, {.size = 17, .line_height = r.h, .align = Align::Center}, t.on_accent);
-    if (hot) p.pop();
+    ui_.skin().button(p, t, r, label, {.kind = ButtonKind::Account, .hot = ui_.hot(this, id)});
     ui_.add_hit(this, r, id);
   };
   // .account-buttons

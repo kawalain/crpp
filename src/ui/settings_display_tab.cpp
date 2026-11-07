@@ -111,7 +111,7 @@ void DisplayTab::paint(Painter& p, Rect area) {
     const float w = text_width(p, text, style) + 18;
     const float at = static_cast<float>(percent - scale_min) / static_cast<float>(scale_max - scale_min);
     const float cx = slider_.x + 10.5f + at * (slider_.w - 21);
-    paint_bubble(p, text, {cx - w / 2, slider_.y - 26 - 11, w, 26}, style, 13, rgb(0x75ccff), rgb(0xFFFFFF), shown);
+    paint_bubble(p, t, text, {cx - w / 2, slider_.y - 26 - 11, w, 26}, style, 13, rgb(0x75ccff), rgb(0xFFFFFF), shown);
   }
 }
 

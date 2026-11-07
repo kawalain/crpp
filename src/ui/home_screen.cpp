@@ -110,7 +110,7 @@ void HomeScreen::paint(Painter& p) {
     const char* label = tr().home_find_public;
     const float w = tip_width(ui_, label), h = tip_height();
     p.push(button_scale);
-    paint_tip(p, {search.x + (search.w - w) / 2, search.y - 8 - h + 4 * (1 - shown), w, h}, label, t.hl, t.on_accent, shown);
+    paint_tip(p, t, {search.x + (search.w - w) / 2, search.y - 8 - h + 4 * (1 - shown), w, h}, label, t.hl, t.on_accent, shown);
     p.pop();
   }
   ui_.add_hit(this, search, Find);

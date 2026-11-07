@@ -30,6 +30,7 @@ struct Theme {
   bool dark = false;
   Color sky, hl, hl_text, hl_text_soft, hl_text_dark, hl_soft, hl_dark, hl_pale, hl_pale2, hl_mid;
   Color surface, on_accent, droplet, entry, error_text;
+  Color ink_strong;  // what must be easy to read: a warning, the first start's words
   Color cloud_top, cloud_base, cloud_bottom, cloud_mid, cloud_low, cloud_foot, cloud_shadow;
   float cloud_shadow_scale = 1;  // 0 for the dark theme (no glow)
 };
@@ -56,6 +57,7 @@ constexpr Theme dark_cloud_palette() {
   t.cloud_mid = t.cloud_low = t.cloud_foot = rgb(0x27374c);
   t.cloud_shadow = rgb(0x000000);
   t.cloud_shadow_scale = 0;
+  t.ink_strong = t.hl_text_dark;
   return t;
 }
 
@@ -85,6 +87,7 @@ constexpr Theme light_cloud_palette(Color accent) {
   t.cloud_low = rgb(0xf1f8ff);
   t.cloud_foot = rgb(0xe0eefb);
   t.cloud_shadow = rgb(0x4f7b99);
+  t.ink_strong = rgb(0x2e5f80);
   return t;
 }
 

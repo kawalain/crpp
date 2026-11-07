@@ -1,0 +1,9 @@
+#include "crpp/ui/skin.hpp"
+
+namespace crpp::ui {
+
+const Skin& cloud_skin();
+
+const Skin& skin_of(SkinId) { return cloud_skin(); }
+
+}  // namespace crpp::ui

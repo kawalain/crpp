@@ -74,14 +74,12 @@ void Toasts::paint_toast(Painter& p) {
   // Slides from above the window to 8 below its top (translate(-50%, -150%)).
   const float y = 8 - (h * 1.5f + 8) * (1 - shown);
   const Rect card{(ui_.width - w) / 2, y, w, h};
-  p.shadow_round(card, 14, 16, 4, rgb(0x2e78aa, 0.22f * shown));
-  p.fill_round(card, 14, with_alpha(t.surface, shown));
+  ui_.skin().panel(p, t, card, PanelKind::Toast, shown);
   p.text(toast_.text, {card.x + pad_x, card.y + (h - size.height) / 2, size.widthIncludingTrailingWhitespace + 1, size.height},
          body, with_alpha(t.hl_text, shown));
   if (action_w > 0) {
     const Rect button{card.right() - pad_x - action_w, card.y + (h - action_h) / 2, action_w, action_h};
-    p.fill_round(button, 8, with_alpha(ui_.hot(this, Action) ? t.hl_dark : t.hl, shown));
-    p.text(action_, button, action_style, with_alpha(t.on_accent, shown));
+    ui_.skin().button(p, t, button, action_, {.kind = ButtonKind::Toast, .hot = ui_.hot(this, Action), .shown = shown});
     ui_.add_hit_window(this, button, Action);
   }
 }
@@ -95,8 +93,8 @@ void Toasts::paint_bubble(Painter& p) {
   const float w = size.widthIncludingTrailingWhitespace + 2 * pad_x, h = size.height + 2 * pad_y;
   const float shown = visibility(bubble_, bubble_ms);
   const Rect r{anchor_.right() - w, anchor_.y - gap_ - h + 4 * (1 - shown), w, h};
-  p.fill_round(r, 11, with_alpha(t.hl, shown));
-  p.text(bubble_.text, {r.x + pad_x, r.y + pad_y, w - 2 * pad_x + 1, size.height}, body, with_alpha(t.on_accent, shown));
+  const Color written = ui_.skin().bubble(p, t, r, 11, t.hl, t.on_accent, shown);
+  p.text(bubble_.text, {r.x + pad_x, r.y + pad_y, w - 2 * pad_x + 1, size.height}, body, written);
 }
 
 void Toasts::click(int id, float, float, bool) {

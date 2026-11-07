@@ -443,8 +443,7 @@ void RoomScreen::paint_options_popup(Painter& p) {
   const Theme& t = ui_.theme;
   const float w = 251, h = 24 + 41 + 12 + 41 + 41 + 24;
   const Rect r{ui_.width - 12 - w, ui_.height - 72 - h, w, h};
-  p.shadow_round(r, 14, 16, 4, rgb(0x2e78aa, 0.22f));
-  p.fill_round(r, 14, t.surface);
+  ui_.skin().panel(p, t, r, PanelKind::Popup);
   ui_.add_hit_window(this, r, Popup);
   const TextStyle label{.size = 20, .weight = 700, .line_height = 41};
   float y = r.y + 24;
@@ -486,8 +485,7 @@ void RoomScreen::paint_mute_popup(Painter& p) {
   const Theme& t = ui_.theme;
   const float w = 200, h = 50;
   const Rect r{ui_.width - 12 - w, ui_.height - 72 - h, w, h};
-  p.shadow_round(r, 14, 16, 4, rgb(0x2e78aa, 0.22f));
-  p.fill_round(r, 14, t.surface);
+  ui_.skin().panel(p, t, r, PanelKind::Popup);
   ui_.add_hit_window(this, r, Popup);
   p.text(std::to_string(volume_) + "%", {r.x + 14, r.y + 14, 42, 22},
          {.size = 16, .weight = 700, .line_height = 22}, t.hl_text);

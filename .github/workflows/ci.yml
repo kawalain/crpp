@@ -1,11 +1,10 @@
 # Pure modules stay portable (GCC on Linux); the whole app builds with the compiler that
 # releases use (MSVC). input.raw is left out where it runs: it injects keys and needs a
 # real input desktop, which a runner is not known to have.
+# Runs only by hand, as Actions minutes are limited: gh workflow run ci.yml
 name: CI
 
 on:
-  push:
-    branches: [main]
   workflow_dispatch:
 
 permissions:

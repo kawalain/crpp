@@ -26,5 +26,18 @@ To look at the result first, as the app will draw it:
 crpp --shot out/notes.png 951x692 12 changelog=out/notes.md --data out/data
 ```
 
-To release: commit the notes to `main`, push, then `git tag v0.y.z && git push origin v0.y.z`.
-The key is described in `docs/signing-key.md`.
+To release: commit the notes to `main`, push, then run this from PowerShell 7:
+
+```
+.github/scripts/release.ps1 -Version 0.y.z
+```
+
+It refuses a tree that differs from `origin/main`, then builds an official exe in
+`build-release`, tests it, signs it with the key in `~/.crpp-signing` (see
+`docs/signing-key.md`), verifies the result against the key built into it, pushes the tag and
+publishes. `-DryRun` stops before the tag and leaves the result in `dist/`.
+
+GitHub Actions no longer runs by itself, as its minutes are limited. Nothing builds on a push
+or a tag, so GCC's portability check runs only on `gh workflow run ci.yml`; do that before a
+release that changed a pure module. `gh workflow run release.yml --ref v0.y.z` publishes an
+existing tag from a runner instead.

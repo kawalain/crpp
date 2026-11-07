@@ -279,5 +279,6 @@ exist (real + test).
 - The generated stand-in sounds need ears: `crpp_soundtest --synth`.
 - jsDelivr has only served the files pinned so far. Files of this repository 404 there
   until their commit is on GitHub, so a first real install needs that push.
-- The workflows have never run. A first real release must also confirm GitHub's redirect
-  for release downloads through WinHTTP, and a replacement under real antivirus.
+- v0.1.0 published, and its exe and signed manifest came back through WinHTTP's redirect
+  and verified. No installed copy has updated itself yet: the first time is v0.1.0 to the
+  next release, which must also show a replacement under real antivirus.

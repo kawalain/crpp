@@ -27,4 +27,4 @@ crpp --shot out/notes.png 951x692 12 changelog=out/notes.md --data out/data
 ```
 
 To release: commit the notes to `main`, push, then `git tag v0.y.z && git push origin v0.y.z`.
-The first release needs the real key first: see `docs/signing-key.md`.
+The key is described in `docs/signing-key.md`.

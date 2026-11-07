@@ -8,11 +8,11 @@ namespace crpp::sound {
 
 namespace {
 
-constexpr double seat_spacing_m = 1.5;
+constexpr double desk_spacing_m = 1.5;
 constexpr double head_radius_m = 0.0875, speed_of_sound = 343;
 constexpr double distance_rolloff = 0.6;
 constexpr double shadow_corner_hz = 1250, open_corner_hz = 18000;
-constexpr double far_seat_corner_hz = 8000;  // air absorption at the far corners
+constexpr double far_desk_corner_hz = 8000;  // air absorption at the far corners
 constexpr float send_near = 0.25f, send_far = 0.55f;
 
 // Freeverb, at 44.1 kHz (see the research note).
@@ -42,14 +42,14 @@ float read_at(std::span<const float> s, float position) noexcept {
 
 }  // namespace
 
-SeatMix seat_mix(std::size_t seat, std::uint32_t rate, const SpatialConfig& config) noexcept {
+DeskMix desk_mix(std::size_t desk, std::uint32_t rate, const SpatialConfig& config) noexcept {
   if (!config.spatial) return {};
-  const double column = static_cast<double>(seat % 4) - 1.5, row = static_cast<double>((seat / 4) % 4) - 1.5;
-  const double x = column * seat_spacing_m, y = row * seat_spacing_m;
+  const double column = static_cast<double>(desk % 4) - 1.5, row = static_cast<double>((desk / 4) % 4) - 1.5;
+  const double x = column * desk_spacing_m, y = row * desk_spacing_m;
   const double distance = std::hypot(x, y);
-  const double far_distance = std::hypot(1.5, 1.5) * seat_spacing_m;
-  const double nearness = (distance - seat_spacing_m * std::hypot(0.5, 0.5)) /
-                          (far_distance - seat_spacing_m * std::hypot(0.5, 0.5));
+  const double far_distance = std::hypot(1.5, 1.5) * desk_spacing_m;
+  const double nearness = (distance - desk_spacing_m * std::hypot(0.5, 0.5)) /
+                          (far_distance - desk_spacing_m * std::hypot(0.5, 0.5));
   const double side = distance > 0 ? x / distance : 0;  // -1 left, +1 right
   const double theta = std::asin(std::abs(side));
 
@@ -64,11 +64,11 @@ SeatMix seat_mix(std::size_t seat, std::uint32_t rate, const SpatialConfig& conf
   // Woodworth: the far ear hears the sound late and through the head.
   const double itd = head_radius_m / speed_of_sound * (theta + std::sin(theta)) * extent * rate;
   const double far_corner = open_corner_hz + (shadow_corner_hz - open_corner_hz) * std::abs(side) * extent;
-  const double air_corner = open_corner_hz + (far_seat_corner_hz - open_corner_hz) * nearness;
+  const double air_corner = open_corner_hz + (far_desk_corner_hz - open_corner_hz) * nearness;
   const float near_lp = one_pole(air_corner, rate);
   const float far_lp = one_pole(std::min(air_corner, far_corner), rate);
 
-  SeatMix mix;
+  DeskMix mix;
   mix.left = static_cast<float>(std::cos(angle) * distance_gain);
   mix.right = static_cast<float>(std::sin(angle) * distance_gain);
   mix.delay_left = side > 0 ? static_cast<float>(itd) : 0;
@@ -111,7 +111,7 @@ void Mixer::prepare(std::uint32_t rate) {
   silent_.store(true);
 }
 
-bool Mixer::trigger(std::span<const float> samples, const SeatMix& mix, float gain) noexcept {
+bool Mixer::trigger(std::span<const float> samples, const DeskMix& mix, float gain) noexcept {
   const std::size_t head = head_.load(std::memory_order_relaxed);
   const std::size_t next = (head + 1) % queue_size;
   if (next == tail_.load(std::memory_order_acquire)) return false;

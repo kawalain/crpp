@@ -58,10 +58,10 @@ void a_voice_sounds_and_rings_out() {
   CHECK(mixer->idle());
 }
 
-void seats_lean_to_their_side() {
+void desks_lean_to_their_side() {
   const SpatialConfig config;
-  const SeatMix far_left = seat_mix(4, rate, config);  // column 0
-  const SeatMix far_right = seat_mix(7, rate, config);  // column 3
+  const DeskMix far_left = desk_mix(4, rate, config);  // column 0
+  const DeskMix far_right = desk_mix(7, rate, config);  // column 3
   CHECK(far_left.left > far_left.right);
   CHECK(far_right.right > far_right.left);
   CHECK(std::abs(far_left.left - far_right.right) < 1e-5f);
@@ -75,37 +75,37 @@ void seats_lean_to_their_side() {
 
 void distance_lowers_the_level_and_raises_the_reverb() {
   const SpatialConfig config;
-  const SeatMix near_seat = seat_mix(5, rate, config);    // an inner seat
-  const SeatMix corner_seat = seat_mix(0, rate, config);  // a corner
-  const auto power = [](const SeatMix& m) { return m.left * m.left + m.right * m.right; };
-  CHECK(power(near_seat) > power(corner_seat));
-  CHECK(corner_seat.send > near_seat.send);
+  const DeskMix near_desk = desk_mix(5, rate, config);    // an inner desk
+  const DeskMix corner_desk = desk_mix(0, rate, config);  // a corner
+  const auto power = [](const DeskMix& m) { return m.left * m.left + m.right * m.right; };
+  CHECK(power(near_desk) > power(corner_desk));
+  CHECK(corner_desk.send > near_desk.send);
 }
 
 void balance_controls_the_lean() {
-  const SeatMix none = seat_mix(4, rate, {true, 0});
+  const DeskMix none = desk_mix(4, rate, {true, 0});
   CHECK(std::abs(none.left - none.right) < 1e-5f);
   CHECK(none.delay_left == 0 && none.delay_right == 0);
-  const SeatMix full = seat_mix(4, rate, {true, 90});
-  // A seat straight to the side would be 90:10; this one is a little off axis.
+  const DeskMix full = desk_mix(4, rate, {true, 90});
+  // A desk straight to the side would be 90:10; this one is a little off axis.
   CHECK(full.left / full.right > 3);
   CHECK(full.left / full.right < 9.01f);
   // The default, 60:40 straight to the side.
-  const SeatMix label = seat_mix(4, rate, {true, 60});
+  const DeskMix label = desk_mix(4, rate, {true, 60});
   CHECK(label.left / label.right > 1.3f);
   CHECK(label.left / label.right < 1.51f);
 }
 
 void without_spatial_audio_everything_is_centred() {
-  const SeatMix mix = seat_mix(0, rate, {false, 60});
+  const DeskMix mix = desk_mix(0, rate, {false, 60});
   CHECK(mix.left == mix.right);
   CHECK(mix.send == 0);
   CHECK(mix.delay_left == 0 && mix.delay_right == 0);
 }
 
-void every_seat_is_sane() {
-  for (std::size_t seat = 0; seat < seat_count; ++seat) {
-    const SeatMix m = seat_mix(seat, rate, {});
+void every_desk_is_sane() {
+  for (std::size_t desk = 0; desk < desk_count; ++desk) {
+    const DeskMix m = desk_mix(desk, rate, {});
     CHECK(m.left > 0 && m.right > 0 && m.left < 1 && m.right < 1);
     CHECK(m.lowpass_left >= 0 && m.lowpass_left < 1 && m.lowpass_right >= 0 && m.lowpass_right < 1);
     CHECK(m.send > 0 && m.send < 1);
@@ -115,7 +115,7 @@ void every_seat_is_sane() {
 void reverb_rings_on_then_stops() {
   auto mixer = ready_mixer();
   const auto sample = click();
-  CHECK(mixer->trigger(sample, seat_mix(0, rate, {}), 1));
+  CHECK(mixer->trigger(sample, desk_mix(0, rate, {}), 1));
   render(*mixer, 2200);
   const auto tail = render(*mixer, 4800);
   CHECK(peak(tail, 0) > 1e-4f);
@@ -195,11 +195,11 @@ void preparing_again_forgets_everything() {
 int main() {
   silence_does_nothing();
   a_voice_sounds_and_rings_out();
-  seats_lean_to_their_side();
+  desks_lean_to_their_side();
   distance_lowers_the_level_and_raises_the_reverb();
   balance_controls_the_lean();
   without_spatial_audio_everything_is_centred();
-  every_seat_is_sane();
+  every_desk_is_sane();
   reverb_rings_on_then_stops();
   the_output_stays_in_range();
   soft_clip_is_smooth();

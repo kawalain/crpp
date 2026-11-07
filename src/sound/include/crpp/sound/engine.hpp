@@ -142,13 +142,13 @@ class Engine final : private Renderer {
   void play(const Event& event);
   void play_cue(const Cue& cue);
   void push_cue(CueKind kind, std::string_view name);
-  void start_voice(std::span<const float> samples, const SeatMix& mix, float gain);
+  void start_voice(std::span<const float> samples, const DeskMix& mix, float gain);
   [[nodiscard]] int volume_of(std::uint32_t slot) const;
   [[nodiscard]] std::span<const float> recording(const std::filesystem::path& path);
   [[nodiscard]] std::span<const float> generated(wire::Kind kind, std::string_view pack);
   [[nodiscard]] std::span<const float> generated_cue(const std::string& name);
   [[nodiscard]] std::string_view pack_for(const Event& event, Device device) const;
-  [[nodiscard]] std::size_t seat_of(std::uint32_t slot) const;
+  [[nodiscard]] std::size_t desk_of(std::uint32_t slot) const;
 
   AudioDevice& device_;
   std::filesystem::path sounds_dir_;
@@ -174,8 +174,8 @@ class Engine final : private Renderer {
   Settings settings_;
   std::vector<Member> members_;
   std::vector<std::pair<std::string, int>> member_volumes_;  // cid, percent; 100 is left out
-  std::vector<std::pair<std::uint32_t, std::size_t>> seats_;  // slot, seat
-  std::array<SeatMix, seat_count> seat_mixes_{};
+  std::vector<std::pair<std::uint32_t, std::size_t>> desks_;  // slot, desk
+  std::array<DeskMix, desk_count> desk_mixes_{};
   std::unordered_map<std::string, std::vector<float>> recordings_;
   std::map<std::uint32_t, Resampler> resamplers_;
   bool open_ = false, running_ = false;

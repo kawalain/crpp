@@ -1,7 +1,7 @@
 // crpp_soundtest: hear the spatial mix, to tune it by ear.
 //   crpp_soundtest (<sounds folder> | --synth) [--pack plastic] [--balance 60] [--flat]
 //                  [--volume 30] [--repeat 3]
-// Walks through every seat of the virtual office, playing a few key presses from
+// Walks through every desk of the virtual office, playing a few key presses from
 // each and printing where they should seem to come from.
 #include <algorithm>
 #include <chrono>
@@ -85,7 +85,7 @@ int main(int argc, char** argv) {
   sound::Random random(std::random_device{}());
   std::vector<std::vector<float>> kept;
   kept.reserve(256);  // voices point into these; they must not move
-  const auto play = [&](wire::Kind kind, const sound::SeatMix& mix) {
+  const auto play = [&](wire::Kind kind, const sound::DeskMix& mix) {
     if (kept.size() == kept.capacity()) return;
     if (synth) {
       kept.push_back(sound::synthesize(kind, pack, *rate, static_cast<std::uint32_t>(random.below(sound::synth_variants))));
@@ -103,12 +103,12 @@ int main(int argc, char** argv) {
     std::this_thread::sleep_for(220ms);
   }
   std::this_thread::sleep_for(500ms);
-  for (std::size_t seat = 0; seat < sound::seat_count; ++seat) {
-    const std::size_t column = seat % 4, row = seat / 4;
-    std::printf("seat %2zu  %s %s\n", seat, row < 2 ? "behind  " : "in front",
+  for (std::size_t desk = 0; desk < sound::desk_count; ++desk) {
+    const std::size_t column = desk % 4, row = desk / 4;
+    std::printf("desk %2zu  %s %s\n", desk, row < 2 ? "behind  " : "in front",
                 column == 0 ? "far left" : column == 1 ? "left" : column == 2 ? "right" : "far right");
     std::fflush(stdout);
-    const auto mix = sound::seat_mix(seat, *rate, config);
+    const auto mix = sound::desk_mix(desk, *rate, config);
     for (int i = 0; i < repeat; ++i) {
       play(wire::Kind::KeyAny, mix);
       std::this_thread::sleep_for(220ms);

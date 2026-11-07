@@ -18,7 +18,10 @@ class WindowFrame final : public Surface {
 
   // What the system should do with a point.
   enum class Zone : std::uint8_t { Client, Caption, Left, Right, Top, Bottom, TopLeft, TopRight, BottomLeft, BottomRight };
-  [[nodiscard]] static Zone zone_at(float x, float y, float width, float height);
+  struct Parts {
+    bool resizable = true, minimize = true, close = true;
+  };
+  [[nodiscard]] static Zone zone_at(float x, float y, float width, float height, Parts parts = {});
   // Inside the frame and under the caption, and the menu bar when there is one.
   [[nodiscard]] static Rect content(float width, float height, bool with_menu);
   // All but the caption, which stays usable under a modal.
@@ -27,6 +30,7 @@ class WindowFrame final : public Surface {
   void set_title(std::string title) { title_ = std::move(title); }
   void set_active(bool active) { active_ = active; }
   void set_menu_shown(bool shown) { menu_shown_ = shown; }
+  void set_parts(Parts parts) { parts_ = parts; }
   void set_in_room(bool in_room) { in_room_ = in_room; }
   [[nodiscard]] bool menu_open() const { return open_ >= 0; }
 
@@ -47,6 +51,7 @@ class WindowFrame final : public Surface {
 
   std::string title_ = "Cloudroom++";
   bool active_ = true, menu_shown_ = true, in_room_ = false;
+  Parts parts_;
   int open_ = -1;  // which menu is down
   Rect titles_[3];
 };

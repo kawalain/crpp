@@ -24,6 +24,8 @@ class OfflinePopup final : public Surface {
   // on_retry runs at this time; it survives the settings being open.
   void retry_at(unsigned long long ms) { retry_at_ = ms; }
 
+  // What the message takes inside a window of its own.
+  [[nodiscard]] D2D1_SIZE_F content_size() const;
   void paint(Painter& p);
   bool wheel(float x, float y, float delta) override;
   [[nodiscard]] Cursor cursor(int id) const override;

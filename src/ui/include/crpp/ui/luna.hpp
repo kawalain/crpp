@@ -52,10 +52,6 @@ struct ScrollbarParts {
 [[nodiscard]] ScrollbarParts scrollbar_parts(Rect bar, float view_h, float content_h, float offset);
 void scrollbar(Painter& p, const Theme& t, const ScrollbarParts& parts, bool thumb_hot, bool up_hot, bool down_hot);
 
-// A small window's frame around r, with its caption above it.
-[[nodiscard]] Rect dialog_bounds(Rect r);
-void dialog_frame(Painter& p, const Theme& t, Rect r, std::string_view title);
-
 // The window's own frame and caption, for a window of this size.
 void window_frame(Painter& p, const Theme& t, float width, float height, bool active);
 void caption_text(Painter& p, const Theme& t, Rect r, std::string_view text);

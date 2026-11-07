@@ -54,6 +54,7 @@ void CALLBACK release_graphics(HWND hwnd, UINT, UINT_PTR id, DWORD) {
   Shell& s = *state.shell;
   if (!s.hidden) return;
   s.target.reset();
+  drop_pane_targets(s);
   s.app.release_graphics();
   SetProcessWorkingSetSize(GetCurrentProcess(), static_cast<SIZE_T>(-1), static_cast<SIZE_T>(-1));
 }
@@ -228,6 +229,7 @@ void sync_hidden(Shell& s) {
   s.hidden = hidden;
   if (hidden) {
     s.target.reset();
+    drop_pane_targets(s);
     s.app.ui().forget_render_target();
     if (s.app.ui().emoji) s.app.ui().emoji.emplace(s.assets_dir);
     // Freed memory stays in the working set until asked for. What is still in use comes

@@ -25,6 +25,8 @@ class Toasts final : public Surface {
   void bubble(Rect anchor, std::string text, float gap = 8, unsigned long long duration_ms = default_ms);
   void clear();
 
+  // The window it was last asked from; the message shows there while that is open.
+  [[nodiscard]] int shown_in() const { return shown_in_; }
   void paint(Painter& p);
   void click(int id, float x, float y, bool shift) override;
   [[nodiscard]] bool animating() const override;
@@ -32,6 +34,7 @@ class Toasts final : public Surface {
   [[nodiscard]] unsigned long long wake_at() const override;
 
  private:
+  int shown_in_ = 0;
   // Showing, or sliding away after hide_at.
   struct Message {
     std::string text;

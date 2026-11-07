@@ -47,6 +47,12 @@ class UiHarness {
     return SUCCEEDED(app.factory()->CreateWicBitmapRenderTarget(bitmap_.get(), props, target_.put()));
   }
 
+  // What follows is on this window, freshly drawn, as its own messages would be.
+  void on_pane(Pane pane) {
+    app.use_pane(pane);
+    render();
+  }
+
   // A target of its own at this DPI, as a window on another monitor has.
   [[nodiscard]] ComPtr<ID2D1RenderTarget> target_at(float dpi) {
     const auto props = D2D1::RenderTargetProperties(D2D1_RENDER_TARGET_TYPE_SOFTWARE,

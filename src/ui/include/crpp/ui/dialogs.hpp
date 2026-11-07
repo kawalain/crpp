@@ -26,6 +26,11 @@ class Dialogs final : public Surface {
   void show(Dialog dialog);
   void close() { dialog_.reset(); }
   [[nodiscard]] bool is_open() const { return dialog_.has_value(); }
+  [[nodiscard]] bool has_cancel() const { return dialog_ && !dialog_->cancel.empty(); }
+  // Counts the questions, so a window of its own knows when to fit the next one.
+  [[nodiscard]] unsigned revision() const { return revision_; }
+  // What the question takes inside a window of its own.
+  [[nodiscard]] D2D1_SIZE_F content_size() const;
   // The question on screen; empty when closed.
   [[nodiscard]] std::string_view text() const { return dialog_ ? std::string_view(dialog_->text) : std::string_view(); }
 
@@ -38,7 +43,9 @@ class Dialogs final : public Surface {
   bool tick(unsigned long long now_ms) override;
 
  private:
+  [[nodiscard]] float width_here() const;
   std::optional<Dialog> dialog_;
+  unsigned revision_ = 0;
   unsigned long long opened_at_ = 0;
   bool was_animating_ = false;
 };

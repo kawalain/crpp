@@ -16,6 +16,7 @@ constexpr float bubble_ms = 150;  // .btn-notice transition
 void Toasts::toast(std::string text, unsigned long long duration_ms) { toast(std::move(text), {}, nullptr, duration_ms); }
 
 void Toasts::toast(std::string text, std::string action, std::function<void()> on_action, unsigned long long duration_ms) {
+  shown_in_ = ui_.window;
   const auto now = clock_ms();
   bubble_ = {};
   // A toast already up changes its words without sliding in again.
@@ -26,6 +27,7 @@ void Toasts::toast(std::string text, std::string action, std::function<void()> o
 }
 
 void Toasts::bubble(Rect anchor, std::string text, float gap, unsigned long long duration_ms) {
+  shown_in_ = ui_.window;
   const auto now = clock_ms();
   toast_ = {};
   on_action_ = nullptr;

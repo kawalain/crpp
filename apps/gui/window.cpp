@@ -31,36 +31,17 @@ void save_window_size(Shell& s, HWND hwnd) {
   s.store->set("windowHeight", store::Json(static_cast<std::int64_t>(MulDiv(rc.bottom, 96, static_cast<int>(s.dpi)))));
 }
 
-std::string saved_key(std::string_view screen, std::string_view side) { return "window" + std::string(screen) + std::string(side); }
-
 // What a Skin with a size per screen remembers, under keys of this client's own.
 void save_screen_size(Shell& s, HWND hwnd) {
   RECT rc;
   if (s.fitted_screen.empty() || IsIconic(hwnd) || !GetClientRect(hwnd, &rc) || rc.right <= 0 || rc.bottom <= 0) return;
-  s.store->set(saved_key(s.fitted_screen, "Width"), store::Json(static_cast<std::int64_t>(MulDiv(rc.right, 96, static_cast<int>(s.dpi)))));
-  s.store->set(saved_key(s.fitted_screen, "Height"), store::Json(static_cast<std::int64_t>(MulDiv(rc.bottom, 96, static_cast<int>(s.dpi)))));
+  s.store->set(saved_size_key(s.fitted_screen, "Width"), store::Json(static_cast<std::int64_t>(MulDiv(rc.right, 96, static_cast<int>(s.dpi)))));
+  s.store->set(saved_size_key(s.fitted_screen, "Height"), store::Json(static_cast<std::int64_t>(MulDiv(rc.bottom, 96, static_cast<int>(s.dpi)))));
 }
 
-// Rounds the top corners; only a region does that on every Windows.
 void update_region(Shell& s, HWND hwnd) {
-  if (!s.own_frame) {
-    SetWindowRgn(hwnd, nullptr, TRUE);
-    return;
-  }
-  RECT rc;
-  if (IsIconic(hwnd) || !GetWindowRect(hwnd, &rc)) return;
-  const int w = rc.right - rc.left, h = rc.bottom - rc.top;
-  const double radius = static_cast<double>(luna::window_radius) * s.dpi / 96;
-  // Every pixel the curve touches, row by row: drawing smooths the ones it only partly covers.
-  HRGN shape = CreateRectRgn(0, static_cast<int>(std::ceil(radius)), w, h);
-  for (int y = 0; y < static_cast<int>(std::ceil(radius)); ++y) {
-    const double below = radius - (y + 1);
-    const int inset = static_cast<int>(std::floor(radius - std::sqrt(std::max(0.0, radius * radius - below * below))));
-    HRGN row = CreateRectRgn(inset, y, w - inset, y + 1);
-    CombineRgn(shape, shape, row, RGN_OR);
-    DeleteObject(row);
-  }
-  if (SetWindowRgn(hwnd, shape, TRUE) == 0) DeleteObject(shape);  // otherwise the system owns it
+  if (s.own_frame) set_frame_region(hwnd, s.dpi);
+  else SetWindowRgn(hwnd, nullptr, TRUE);
 }
 
 // Makes the window the size of what is on screen, if that has changed. The top left stays,
@@ -77,7 +58,7 @@ void fit_window(Shell& s, HWND hwnd) {
     AdjustWindowRectExForDpi(&rc, window_style, FALSE, 0, s.dpi);
   } else {
     const auto side = [&](std::string_view name, float fallback, float least) {
-      return scaled(std::max(static_cast<std::int64_t>(least), s.store->i64_or(saved_key(screen.key, name), static_cast<std::int64_t>(fallback))));
+      return scaled(std::max(static_cast<std::int64_t>(least), s.store->i64_or(saved_size_key(screen.key, name), static_cast<std::int64_t>(fallback))));
     };
     rc = {0, 0, side("Width", screen.w, screen.min_w), side("Height", screen.h, screen.min_h)};
   }
@@ -106,11 +87,50 @@ void ensure_target(Shell& s, HWND hwnd) {
   if (ID2D1Factory* const factory = s.app.factory()) factory->CreateHwndRenderTarget(props, hwnd_props, s.target.put());
 }
 
-void place_ime(Shell& s, HWND hwnd) {
+}  // namespace
+
+std::string saved_size_key(std::string_view screen, std::string_view side) { return "window" + std::string(screen) + std::string(side); }
+
+// Rounds the top corners; only a region does that on every Windows.
+void set_frame_region(HWND hwnd, UINT dpi) {
+  RECT rc;
+  if (IsIconic(hwnd) || !GetWindowRect(hwnd, &rc)) return;
+  const int w = rc.right - rc.left, h = rc.bottom - rc.top;
+  const double radius = static_cast<double>(luna::window_radius) * dpi / 96;
+  // Every pixel the curve touches, row by row: drawing smooths the ones it only partly covers.
+  HRGN shape = CreateRectRgn(0, static_cast<int>(std::ceil(radius)), w, h);
+  for (int y = 0; y < static_cast<int>(std::ceil(radius)); ++y) {
+    const double below = radius - (y + 1);
+    const int inset = static_cast<int>(std::floor(radius - std::sqrt(std::max(0.0, radius * radius - below * below))));
+    HRGN row = CreateRectRgn(inset, y, w - inset, y + 1);
+    CombineRgn(shape, shape, row, RGN_OR);
+    DeleteObject(row);
+  }
+  if (SetWindowRgn(hwnd, shape, TRUE) == 0) DeleteObject(shape);  // otherwise the system owns it
+}
+
+LRESULT frame_hit_code(WindowFrame::Zone zone) {
+  using Zone = WindowFrame::Zone;
+  switch (zone) {
+    case Zone::Caption: return HTCAPTION;
+    case Zone::Left: return HTLEFT;
+    case Zone::Right: return HTRIGHT;
+    case Zone::Top: return HTTOP;
+    case Zone::Bottom: return HTBOTTOM;
+    case Zone::TopLeft: return HTTOPLEFT;
+    case Zone::TopRight: return HTTOPRIGHT;
+    case Zone::BottomLeft: return HTBOTTOMLEFT;
+    case Zone::BottomRight: return HTBOTTOMRIGHT;
+    case Zone::Client: break;
+  }
+  return HTCLIENT;
+}
+
+void place_ime(Shell& s, HWND hwnd, UINT dpi) {
   HIMC imc = ImmGetContext(hwnd);
   if (!imc) return;
   const Rect c = s.app.caret_rect();
-  const auto pixels = [&](float dips) { return static_cast<LONG>(dips * static_cast<float>(s.dpi) / 96); };
+  const auto pixels = [&](float dips) { return static_cast<LONG>(dips * static_cast<float>(dpi) / 96); };
   COMPOSITIONFORM cf{};
   cf.dwStyle = CFS_POINT;
   cf.ptCurrentPos = {pixels(c.x), pixels(c.y)};
@@ -130,6 +150,8 @@ std::wstring ime_string(HIMC imc, DWORD kind) {
   return s;
 }
 
+namespace {
+
 // The caret timer runs only while a text field can actually take typing.
 void sync_blink(Shell& s, HWND hwnd) {
   const bool wanted = s.app.wants_blink() && GetFocus() == hwnd;
@@ -146,12 +168,16 @@ LRESULT CALLBACK wnd_proc(HWND hwnd, UINT msg, WPARAM wp, LPARAM lp) {
     return DefWindowProcW(hwnd, msg, wp, lp);
   }
   if (!s) return DefWindowProcW(hwnd, msg, wp, lp);
+  const PaneScope on_main(s->app, Pane::Main);
   if (s->hwnd) {  // not while CreateWindow is still running
     LRESULT result = 0;
     if (area::os::on_message(*s, msg, wp, lp, result)) return result;
   }
-  const auto repaint = [&](bool needed) {
-    if (needed) InvalidateRect(hwnd, nullptr, FALSE);
+  const auto repaint = [&](bool needed, bool only_here = false) {
+    if (needed) {
+      InvalidateRect(hwnd, nullptr, FALSE);
+      if (!only_here) invalidate_panes(*s);
+    }
     sync_frames(*s);
   };
   const auto dips = [&](int pixels) { return static_cast<float>(pixels) * 96 / static_cast<float>(s->dpi); };
@@ -205,21 +231,15 @@ LRESULT CALLBACK wnd_proc(HWND hwnd, UINT msg, WPARAM wp, LPARAM lp) {
         ScreenToClient(hwnd, &pt);
         RECT rc;
         GetClientRect(hwnd, &rc);
-        using Zone = WindowFrame::Zone;
-        switch (WindowFrame::zone_at(dips(pt.x), dips(pt.y), dips(rc.right), dips(rc.bottom))) {
-          case Zone::Caption: return HTCAPTION;
-          case Zone::Left: return HTLEFT;
-          case Zone::Right: return HTRIGHT;
-          case Zone::Top: return HTTOP;
-          case Zone::Bottom: return HTBOTTOM;
-          case Zone::TopLeft: return HTTOPLEFT;
-          case Zone::TopRight: return HTTOPRIGHT;
-          case Zone::BottomLeft: return HTBOTTOMLEFT;
-          case Zone::BottomRight: return HTBOTTOMRIGHT;
-          case Zone::Client: return HTCLIENT;
-        }
+        return frame_hit_code(WindowFrame::zone_at(dips(pt.x), dips(pt.y), dips(rc.right), dips(rc.bottom)));
       }
       break;
+    case WM_ACTIVATE:
+      if (s->own_frame && LOWORD(wp) == WA_INACTIVE) repaint(s->app.window_deactivated(), true);
+      break;
+    case wm_sync_panes:
+      sync_panes(*s);
+      return 0;
     case WM_EXITSIZEMOVE:
       if (s->own_frame && s->store) {
         save_screen_size(*s, hwnd);
@@ -278,7 +298,7 @@ LRESULT CALLBACK wnd_proc(HWND hwnd, UINT msg, WPARAM wp, LPARAM lp) {
         }
       }
       EndPaint(hwnd, &ps);
-      place_ime(*s, hwnd);
+      place_ime(*s, hwnd, s->dpi);
       s->last_frame_ms = clock_ms();
       sync_frames(*s);  // painting is where a hover's transition starts
       // A window that keeps painting would never see its timers: they come after paint.
@@ -286,7 +306,10 @@ LRESULT CALLBACK wnd_proc(HWND hwnd, UINT msg, WPARAM wp, LPARAM lp) {
       return 0;
     }
     case wm_ui_task:
-      if (s->tasks.run_all()) InvalidateRect(hwnd, nullptr, FALSE);
+      if (s->tasks.run_all()) {
+        InvalidateRect(hwnd, nullptr, FALSE);
+        invalidate_panes(*s);
+      }
       if (s->app.room().take_new_pulse()) invalidate_frame(*s);
       sync_blink(*s, hwnd);
       sync_frames(*s);
@@ -308,11 +331,11 @@ LRESULT CALLBACK wnd_proc(HWND hwnd, UINT msg, WPARAM wp, LPARAM lp) {
         TrackMouseEvent(&t);
         s->tracking = true;
       }
-      repaint(s->app.mouse_move(dips(GET_X_LPARAM(lp)), dips(GET_Y_LPARAM(lp))));
+      repaint(s->app.mouse_move(dips(GET_X_LPARAM(lp)), dips(GET_Y_LPARAM(lp))), true);
       return 0;
     case WM_MOUSELEAVE:
       s->tracking = false;
-      repaint(s->app.mouse_leave());
+      repaint(s->app.mouse_leave(), true);
       return 0;
     case WM_LBUTTONDOWN:
       SetFocus(hwnd);
@@ -327,7 +350,7 @@ LRESULT CALLBACK wnd_proc(HWND hwnd, UINT msg, WPARAM wp, LPARAM lp) {
     case WM_MOUSEWHEEL: {
       POINT pt{GET_X_LPARAM(lp), GET_Y_LPARAM(lp)};
       ScreenToClient(hwnd, &pt);
-      repaint(s->app.wheel(dips(pt.x), dips(pt.y), static_cast<float>(GET_WHEEL_DELTA_WPARAM(wp)) / WHEEL_DELTA));
+      repaint(s->app.wheel(dips(pt.x), dips(pt.y), static_cast<float>(GET_WHEEL_DELTA_WPARAM(wp)) / WHEEL_DELTA), true);
       return 0;
     }
     case WM_RBUTTONDOWN:
@@ -348,7 +371,7 @@ LRESULT CALLBACK wnd_proc(HWND hwnd, UINT msg, WPARAM wp, LPARAM lp) {
                               (GetKeyState(VK_SHIFT) & 0x8000) != 0));
       return 0;
     case WM_IME_STARTCOMPOSITION:
-      place_ime(*s, hwnd);
+      place_ime(*s, hwnd, s->dpi);
       return 0;  // our own drawing replaces the IME's composition window
     case WM_IME_COMPOSITION: {
       HIMC imc = ImmGetContext(hwnd);
@@ -383,10 +406,13 @@ LRESULT CALLBACK wnd_proc(HWND hwnd, UINT msg, WPARAM wp, LPARAM lp) {
         s->save_timer_on = false;
         (void)s->store->save();
       } else if (wp == blink_timer) {
-        repaint(s->app.blink());
+        repaint(s->app.blink(), true);
       } else if (wp == wake_timer) {
         KillTimer(hwnd, wake_timer);
-        if (s->app.tick(clock_ms())) invalidate_frame(*s);
+        if (s->app.tick(clock_ms())) {
+          invalidate_frame(*s);
+          invalidate_panes(*s);
+        }
         sync_frames(*s);
       } else if (wp == frame_timer) {
         KillTimer(hwnd, frame_timer);
@@ -413,6 +439,8 @@ void frame_changed(Shell& s) {
     SetWindowPos(s.hwnd, nullptr, 0, 0, 0, 0, SWP_NOMOVE | SWP_NOSIZE | SWP_NOZORDER | SWP_NOACTIVATE | SWP_FRAMECHANGED);
   }
   fit_window(s, s.hwnd);
+  invalidate_panes(s);
+  request_pane_sync(s);
 }
 
 void invalidate_frame(Shell& s) {
@@ -428,6 +456,8 @@ void invalidate_frame(Shell& s) {
 }
 
 void sync_frames(Shell& s) {
+  const PaneScope on_main(s.app, Pane::Main);
+  request_pane_sync(s);
   // While something moves, each frame asks for the next. Presenting waits for the display,
   // so that is its pace, and nothing runs once it all stops. The floor is for a target that
   // does not wait, as on a hidden desktop.

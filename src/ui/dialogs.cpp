@@ -10,16 +10,33 @@ namespace crpp::ui {
 
 void Dialogs::show(Dialog dialog) {
   dialog_ = std::move(dialog);
+  ++revision_;
   opened_at_ = clock_ms();
   was_animating_ = true;
   ui_.set_focus(nullptr, nullptr);
+}
+
+float Dialogs::width_here() const {
+  const DialogMetrics m = ui_.skin().dialog_metrics();
+  const float wanted = dialog_->wide ? m.wide_width : m.width;
+  return ui_.window != 0 || !ui_.skin().scales_stage() ? wanted : std::min(wanted, ui_.width - m.margin);
+}
+
+D2D1_SIZE_F Dialogs::content_size() const {
+  if (!dialog_) return {0, 0};
+  const DialogMetrics m = ui_.skin().dialog_metrics();
+  const float w = width_here();
+  const TextStyle body{.size = m.text_size, .weight = 700, .line_height = m.text_line, .align = m.align, .wrap = true, .keep_words = true};
+  DWRITE_TEXT_METRICS size{};
+  if (const auto layout = ui_.gfx.layout(widen(dialog_->text), body, w - 2 * m.pad_x)) layout->GetMetrics(&size);
+  return {w, m.pad_top + size.height + m.gap + m.button_h + m.pad_bottom};
 }
 
 void Dialogs::paint(Painter& p) {
   if (!dialog_) return;
   const DialogMetrics m = ui_.skin().dialog_metrics();
   const auto [pad_top, pad_x, pad_bottom, gap, button_h, button_w, button_gap, width, wide_width, margin, text_size, text_line, align] = m;
-  const float w = std::min(dialog_->wide ? wide_width : width, ui_.width - margin);
+  const float w = width_here();
   const TextStyle body{.size = text_size, .weight = 700, .line_height = text_line, .align = align, .wrap = true, .keep_words = true};
   const float text_w = w - 2 * pad_x;
   DWRITE_TEXT_METRICS size{};

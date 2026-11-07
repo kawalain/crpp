@@ -200,16 +200,17 @@ void paint_scrollbar(Painter& p, const Theme& t, const Scroll& scroll, Rect trac
 
 Rect paint_modal(Ui& ui, Surface* owner, Painter& p, float w, float h, float shown, int backdrop_id, int card_id) {
   p.set_base(D2D1::Matrix3x2F::Identity());
+  if (ui.window != 0) {  // it has the window to itself, frame and all
+    ui.add_hit_window(owner, ui.content, card_id);
+    return ui.content;
+  }
   const Rect window{0, 0, ui.width, ui.height};
   ui.skin().backdrop(p, ui.theme, window, shown);
   ui.add_hit_window(owner, ui.modal_area, backdrop_id);
-  // Centred with what a Skin puts around it, as far as there is room.
-  const Rect around = ui.skin().panel_bounds({0, 0, w, h}, PanelKind::Modal);
-  const float above = -around.y, below = around.bottom() - h;
-  const Rect settled{ui.content.x + (ui.content.w - w) / 2, ui.content.y + above + (ui.content.h - h - above - below) / 2, w, h};
+  const Rect settled{ui.content.x + (ui.content.w - w) / 2, ui.content.y + (ui.content.h - h) / 2, w, h};
   const Rect card{settled.x, settled.y + 6 * (1 - shown), w, h};
   ui.skin().panel(p, ui.theme, card, PanelKind::Modal, shown);
-  ui.add_hit_window(owner, ui.skin().panel_bounds(settled, PanelKind::Modal), card_id);
+  ui.add_hit_window(owner, settled, card_id);
   return card;
 }
 

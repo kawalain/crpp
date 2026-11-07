@@ -53,6 +53,7 @@ class RoomScreen final : public Surface {
 
   [[nodiscard]] ChatPanel& chat() { return chat_panel_; }
   [[nodiscard]] ProfileCard& profile_card() { return profile_; }
+  [[nodiscard]] const ProfileCard& profile_card() const { return profile_; }
   [[nodiscard]] MemberMenu& member_menu() { return menu_; }
   // The profile card and the member menu, which speak about the Room as it was.
   void close_member_popups();

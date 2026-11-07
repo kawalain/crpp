@@ -11,5 +11,6 @@ A Theme used to be colours only, with radii, shadows and layout written at each 
 
 - Only Home, Room with its chat, the first-run prompt, settings and the window frame have a layout per Skin. Other surfaces use the Skin's controls in one shared layout.
 - Screens that draw their own buttons and panels now go through the Skin.
+- Under a Skin with its own frame, panels are real windows owned by the main one, on one set of surfaces and one `Ui`, whose state per window is swapped as each window is drawn or handles input. Cloud keeps them as layers of its only window.
 - A Skin decides its window frame and motion. Luna has no screen transitions, stretch or edge fades, which is why they are not global. It also has notification sounds of its own.
 - A new Palette is one entry. A new Skin is large, on purpose.

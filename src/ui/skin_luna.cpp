@@ -205,22 +205,6 @@ void scrollbar(Painter& p, const Theme& t, const ScrollbarParts& parts, bool thu
   }
 }
 
-Rect dialog_bounds(Rect r) { return {r.x - frame_w, r.y - 22, r.w + 2 * frame_w, r.h + 22 + frame_w}; }
-
-void dialog_frame(Painter& p, const Theme& t, Rect r, std::string_view title) {
-  const LunaColors& l = t.luna;
-  const Rect bounds = dialog_bounds(r);
-  p.fill_rect(bounds, l.frame_in);
-  p.fill_rect({bounds.x, bounds.y, bounds.w, 1}, l.frame_out);
-  p.fill_rect({bounds.x, bounds.y, 1, bounds.h}, l.frame_out);
-  p.fill_rect({bounds.right() - 1, bounds.y, 1, bounds.h}, l.frame_low_out);
-  p.fill_rect({bounds.x, bounds.bottom() - 1, bounds.w, 1}, l.frame_low_out);
-  const Rect caption{bounds.x + 1, bounds.y + 1, bounds.w - 2, 21};
-  p.fill_down(caption, l.caption);
-  caption_text(p, t, {caption.x + 5, caption.y, caption.w - 10, caption.h}, title);
-  p.fill_rect(r, l.face);
-}
-
 void window_frame(Painter& p, const Theme& t, float width, float height, bool active) {
   const LunaColors& l = t.luna;
   const float u = p.line();
@@ -281,7 +265,7 @@ class LunaSkin final : public Skin {
     const LunaColors& l = t.luna;
     switch (kind) {
       case PanelKind::Modal:
-        luna::dialog_frame(p, t, r, "Cloudroom++");
+        p.fill_rect(r, l.face);
         break;
       case PanelKind::List:
         p.fill_rect(r, l.field);
@@ -312,8 +296,6 @@ class LunaSkin final : public Skin {
         break;
     }
   }
-
-  [[nodiscard]] Rect panel_bounds(Rect r, PanelKind kind) const override { return kind == PanelKind::Modal ? luna::dialog_bounds(r) : r; }
 
   [[nodiscard]] DialogMetrics dialog_metrics() const override { return {14, 14, 12, 14, luna::button_h, luna::button_w, 6, 280, 340, 16, 18, 16, Align::Left}; }
 

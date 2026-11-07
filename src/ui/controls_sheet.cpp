@@ -86,8 +86,6 @@ void App::paint_controls_sheet(Painter& p) {
 
   group_box(p, t, {100, y + 8, 200, 54}, "Group box");
   p.text("Inside a group", {112, y + 22, 170, 16}, body(p, 16), t.luna.ink);
-  skin.panel(p, t, {320, y + 22, 220, 50}, PanelKind::Modal);
-  p.text("A small window", {330, y + 30, 200, 16}, body(p, 16), t.luna.ink);
   y += 80;
 
   skin.panel(p, t, {100, y, 150, 40}, PanelKind::Popup);

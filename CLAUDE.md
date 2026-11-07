@@ -158,6 +158,9 @@ against a real `server/` yet; do that once a local build of it is available.
     the client area, not caption buttons.
   - The window has a size per screen, remembered per screen under `window<Screen>Width` and
     `Height`, so it shrinks to Home and grows to a Room. Cloud's saved size is left alone.
+  - Options, What's new, a profile, the emoji picker, the offline message and every question are
+    real windows, owned by the main one and without a taskbar button. A question holds the others
+    off until it is answered. Only messages inside the main window, menus and popups stay in it.
   - Home lists the Seats to return to, where Cloud asks once in a dialog.
   - A menu bar holds only commands that work, by mouse and Escape; there are no Alt keys yet.
   - Only links show the hand cursor, and none of the motion listed above runs.
@@ -179,6 +182,7 @@ Options are read from the end of the command line: `crpp --shot <png> <size> <ho
 --data <dir>`. Put first, `--data` is ignored and the real app opens on the user's desktop
 with their data. A shot is in Korean and in the Theme of its scene unless `--locale <id>` or
 `--theme <id>` says otherwise. `auto` for the size renders the window size of the Skin's screen.
+A scene that opens a panel with a window of its own renders that window.
 
 A change that must leave the screen as it was can prove it: `tests/shots/render.ps1` renders
 every scene in `scenes.txt` on a hidden desktop, before and after, and `compare.ps1` compares
@@ -268,6 +272,12 @@ exist (real + test).
   state, hit ids and callbacks; `luna.hpp` holds the Luna controls. `window_frame.cpp` says what each
   point of an own-drawn frame is, and the shell answers `WM_NCHITTEST` from it. `App::screen_size` names
   the size of the current screen, and the shell fits the window to it when a frame starts.
+  With an own frame `App::open_panes` says which panels should have a window, and `pane_window.cpp`
+  makes that true on a posted message, so a window is never destroyed under its own click. There is one
+  `Ui`: what differs per window is `WindowState`, swapped by `App::use_pane`, and a window's messages run
+  inside a `PaneScope`. Tests go there with `UiHarness::on_pane`. Luna draws boxes and lines on whole
+  pixels through `Painter`, so equal sizes stay equal at any scale; a part of several lines counts from
+  `Painter::snap` in `Painter::line`.
 
 ## Performance rules
 
@@ -286,7 +296,8 @@ exist (real + test).
   back to 0.0% afterwards. A real desktop adds composition, which this does not show.
 - The Messenger Themes, the same way with the wheel posted about 60 times a second, reversing every
   20 notches, on the options window: idle 0.0%, about 43 MB working set and 59 MB private; scrolling
-  1.3-3.4%; 0.0% afterwards. Cloud under the same harder wheel: idle 0.0% and about 45 MB; scrolling
+  1.3-3.4%; 0.0% afterwards. With the options window open the second render target costs about 8 MB of
+  working set (about 52 MB), until it closes. Cloud under the same harder wheel: idle 0.0% and about 45 MB; scrolling
   5.9-12.5%, where a build from before Skins gave 8.4-10.6%, so that is the stimulus, not a regression.
 
 ## Transport facts (verified on Windows 10 19044)
@@ -330,8 +341,10 @@ exist (real + test).
 - Coming back from a hidden window that gave up its graphics has only run on a hidden
   desktop, on one NVIDIA card. See it on a real desktop, and on Intel and AMD drivers. The
   same goes for a chat notification drawn in that state.
-- The own-drawn window frame has only run on a hidden desktop, where hit tests, the region and the
-  size per screen were checked. See on a real desktop: Snap, resizing by each edge, minimize and
+- The own-drawn window frame and the panels' windows have only run on a hidden desktop, where hit
+  tests, the region, sizes, ownership and a question holding the others off were checked. A window
+  corner is cut by a region, which has no partial pixels: those it only partly covers are blended
+  with a grey, not with what is behind. See on a real desktop: focus and z-order between the windows, Snap, resizing by each edge, minimize and
   restore, Alt+Space, a right-click on the caption, moving between monitors of different DPI, the
   taskbar title, and what the region does to the shadow. Windows 11 has not run it at all, nor have
   Intel and AMD drivers, and a Room with real members has not been seen under these Themes.

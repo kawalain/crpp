@@ -55,12 +55,16 @@ void ProfileCard::close() {
   was_animating_ = false;
 }
 
+D2D1_SIZE_F ProfileCard::content_size() const {
+  const int rows = profile_.created ? 3 : 2;
+  return {card_w, pad_top + icon_size + head_bottom + static_cast<float>(rows) * stat_line + pad_bottom};
+}
+
 void ProfileCard::paint(Painter& p) {
   if (!open_) return;
   const Theme& t = ui_.theme;
-  const int rows = profile_.created ? 3 : 2;
-  const float w = std::min(card_w, ui_.width - 40);
-  const float h = pad_top + icon_size + head_bottom + static_cast<float>(rows) * stat_line + pad_bottom;
+  const float w = ui_.window != 0 ? card_w : std::min(card_w, ui_.width - 40);
+  const float h = content_size().height;
   const float shown = transition(ui_, opened_at_, modal_pop_ms);
   const Rect card = paint_modal(ui_, this, p, w, h, shown, Backdrop, Card);
 

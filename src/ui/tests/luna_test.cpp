@@ -69,7 +69,7 @@ void test_each_screen_has_its_window_size_and_cloud_has_one() {
   h.app.show_session("ABC234");
   CHECK(h.app.screen_size().key == "Room" && h.app.screen_size().w == 640 && h.app.screen_size().h == 500);
   h.app.settings().open(SettingsPage::Sound);
-  CHECK(h.app.screen_size().key == "Options");
+  CHECK(h.app.screen_size().key == "Room");  // options have a window of their own
   h.app.settings().close();
   h.app.show_prompt({.valid = [](std::string_view) { return true; }});
   CHECK(h.app.screen_size().key == "Prompt");
@@ -168,20 +168,23 @@ void test_menus_do_what_the_shell_and_screens_do() {
   CHECK(h.click(frame, WindowFrame::MenuBase + 1));
   CHECK(h.click(frame, item(1, 0)));
   CHECK(h.app.settings().is_open());
-  CHECK(!h.drawn(frame, WindowFrame::MenuBase));  // the options window has no menus
+  CHECK(h.drawn(frame, WindowFrame::MenuBase));  // the main window goes on as it was
+  CHECK(h.app.take_raised_pane() == Pane::Options);
+  h.on_pane(Pane::Options);
   CHECK(h.click(h.app.settings(), SettingsPanel::Droplet));
   CHECK(!h.app.settings().is_open());
+  h.on_pane(Pane::Main);
 
   // In a Room, File also leaves it, asking as the Room's own leave button does.
   room_with_chat(h);
   CHECK(h.click(frame, WindowFrame::MenuBase));
   CHECK(h.click(frame, item(0, 0)));
+  CHECK(h.app.dialogs().is_open());
+  h.on_pane(Pane::Dialog);
   CHECK(h.drawn(h.app.dialogs(), Dialogs::Confirm));
-  // A question holds the menus off, and leaves the caption's buttons alone.
-  CHECK(h.click(frame, WindowFrame::MenuBase));
-  CHECK(!frame.menu_open());
-  CHECK(h.click(frame, WindowFrame::Minimize));
-  CHECK(minimized == 2);
+  h.key(VK_ESCAPE);
+  CHECK(!h.app.dialogs().is_open());
+  h.on_pane(Pane::Main);
 }
 
 void test_only_links_show_the_hand() {
@@ -204,7 +207,7 @@ void test_settings_flow_and_scroll() {
   SettingsPanel& settings = h.app.settings();
   Prefs& prefs = *h.app.ui().prefs;
   settings.open(SettingsPage::Sound);
-  h.render();
+  h.on_pane(Pane::Options);
   SoundTab& sound = settings.sound();
   CHECK(sound.content_height() > 0);
 
@@ -241,6 +244,130 @@ void test_settings_flow_and_scroll() {
   CHECK(h.click(settings.display(), DisplayTab::ThemeList));
   CHECK(h.click(settings.display(), DisplayTab::ThemeList + 2));
   CHECK(prefs.get(pref::theme) == all_theme_entries()[1]->id);
+}
+
+void test_panels_have_windows_of_their_own() {
+  UiHarness h;
+  CHECK(h.start(width, height));
+  // Under Cloud they are layers of the only window.
+  h.app.settings().open(SettingsPage::Sound);
+  h.app.dialogs().show({.text = "?", .confirm = "OK"});
+  h.render();
+  CHECK(h.app.open_panes().empty());
+  CHECK(h.drawn(h.app.dialogs(), Dialogs::Confirm));
+  h.app.dialogs().close();
+  h.app.settings().close();
+
+  start_luna(h);
+  CHECK(h.app.open_panes().empty());
+  h.app.settings().open(SettingsPage::System);
+  h.app.changelog().open({}, 0);
+  h.app.dialogs().show({.text = "?", .confirm = "OK", .cancel = "No"});
+  h.app.offline().show();
+  h.render();
+  CHECK((h.app.open_panes() == std::vector<Pane>{Pane::Options, Pane::Changelog, Pane::Offline, Pane::Dialog}));
+  // None of them is drawn on the main window, whose menus still work beside a lost server.
+  CHECK(!h.drawn(h.app.settings(), SettingsPanel::Overlay) && !h.drawn(h.app.dialogs(), Dialogs::Confirm));
+  CHECK(!h.drawn(h.app.changelog(), ChangelogView::Card));
+  CHECK(h.drawn(h.app.frame(), WindowFrame::MenuBase));
+  CHECK(h.drawn(h.app.offline(), OfflinePopup::Backdrop));
+
+  // A window's size comes from what it holds, or was left to the user.
+  const PaneInfo options = h.app.pane_info(Pane::Options), dialog = h.app.pane_info(Pane::Dialog), offline = h.app.pane_info(Pane::Offline);
+  CHECK(options.resizable && options.key == "Options" && options.w == 580);
+  CHECK(!dialog.resizable && dialog.close && dialog.w > 100 && dialog.h > luna::caption_h);
+  CHECK(!offline.close);  // it goes when the server is back
+  const PaneState before = h.app.pane_state();
+  h.app.dialogs().show({.text = "One\nTwo\nThree", .confirm = "OK"});
+  CHECK(h.app.pane_state() != before);
+  CHECK(!h.app.pane_info(Pane::Dialog).close && h.app.pane_info(Pane::Dialog).h > dialog.h);
+
+  // Enter answers the question in its window, Escape only where there is a way to say no.
+  bool yes = false;
+  h.app.dialogs().show({.text = "?", .confirm = "OK", .on_confirm = [&] { yes = true; }});
+  h.on_pane(Pane::Dialog);
+  CHECK(h.drawn(h.app.dialogs(), Dialogs::Confirm));
+  h.key(VK_ESCAPE);
+  CHECK(h.app.dialogs().is_open());
+  h.key(VK_RETURN);
+  CHECK(yes && !h.app.dialogs().is_open());
+
+  // Each window has its own hits, hover and keyboard field.
+  h.on_pane(Pane::Main);
+  HomeScreen& home = h.app.home();
+  h.app.offline().hide();
+  h.render();
+  CHECK(h.click(home, HomeScreen::Code));
+  const Ui::Hit* join = h.app.ui().find_hit(&home, HomeScreen::Join);
+  CHECK(join != nullptr);
+  h.app.mouse_move(join->rect.x + 1, join->rect.y + 1);
+  CHECK(h.app.ui().hot(&home, HomeScreen::Join));
+  CHECK(h.app.wants_blink());
+  h.on_pane(Pane::Options);
+  CHECK(h.drawn(h.app.settings(), SettingsPanel::Droplet) && !h.drawn(home, HomeScreen::Join));
+  CHECK(!h.app.ui().hot(&home, HomeScreen::Join) && !h.app.wants_blink());
+  CHECK(h.app.ui().window == static_cast<int>(Pane::Options));
+  {
+    const PaneScope back(h.app, Pane::Main);
+    CHECK(h.app.ui().hot(&home, HomeScreen::Join) && h.app.wants_blink());
+    h.app.ui().toasts->toast("from the main window");
+  }
+  CHECK(h.app.current_pane() == Pane::Options);
+  CHECK(h.app.toasts().shown_in() == 0);
+  h.app.toasts().toast("from here");  // the main window may be behind this one
+  CHECK(h.app.toasts().shown_in() == static_cast<int>(Pane::Options));
+
+  // What runs on time runs whichever window is in front.
+  int retried = 0;
+  h.app.offline().show();
+  h.app.offline().on_retry = [&] { ++retried; };
+  h.app.offline().retry_at(5);
+  CHECK(h.app.wake_at() == 5);
+  (void)h.app.tick(10);
+  CHECK(retried == 1);
+  h.app.offline().hide();
+
+  // A window closes by its own button, and a new start forgets where the pointer was.
+  h.render();
+  CHECK(h.drawn(h.app.frame(), WindowFrame::Close) == false);
+  h.app.mouse_move(1, 1);
+  h.app.close_pane(Pane::Options);
+  CHECK(!h.app.settings().is_open());
+  h.app.forget_pane(Pane::Options);
+  CHECK(h.app.ui().window == static_cast<int>(Pane::Options) && h.app.ui().hover_owner == nullptr);
+  h.on_pane(Pane::Changelog);
+  CHECK(h.drawn(h.app.changelog(), ChangelogView::Card));
+  CHECK(!h.drawn(h.app.changelog(), ChangelogView::Close));
+  h.key(VK_ESCAPE);
+  CHECK(!h.app.changelog().is_open());
+
+  // The picker closes when the keyboard leaves, as menus do on the main window.
+  h.on_pane(Pane::Main);
+  h.app.emoji_picker().show("", nullptr);
+  CHECK(h.app.open_panes() == std::vector<Pane>{Pane::Emoji});
+  h.on_pane(Pane::Emoji);
+  CHECK(h.app.window_deactivated());
+  CHECK(!h.app.emoji_picker().is_open());
+  h.on_pane(Pane::Main);
+  CHECK(h.click(h.app.frame(), WindowFrame::MenuBase));
+  CHECK(h.app.frame().menu_open());
+  (void)h.app.window_deactivated();
+  CHECK(!h.app.frame().menu_open());
+
+  // A dialog cannot be dragged by what is not its caption, nor resized.
+  using Zone = WindowFrame::Zone;
+  const WindowFrame::Parts fixed{.resizable = false, .minimize = false};
+  CHECK(WindowFrame::zone_at(0, 100, 300, 200, fixed) == Zone::Client);
+  CHECK(WindowFrame::zone_at(100, 0, 300, 200, fixed) == Zone::Caption);
+  CHECK(WindowFrame::zone_at(280, 12, 300, 200, fixed) == Zone::Client);  // its close button
+  CHECK(WindowFrame::zone_at(280, 12, 300, 200, {.resizable = false, .minimize = false, .close = false}) == Zone::Caption);
+  // Graphics go, and come back for any window.
+  h.drop_target();
+  h.app.release_graphics();
+  CHECK(h.make_target());
+  h.app.settings().open(SettingsPage::Sound);
+  h.on_pane(Pane::Options);
+  CHECK(h.render());
 }
 
 void test_room_controls() {
@@ -442,6 +569,7 @@ int main() {
   test_menus_do_what_the_shell_and_screens_do();
   test_only_links_show_the_hand();
   test_settings_flow_and_scroll();
+  test_panels_have_windows_of_their_own();
   test_room_controls();
   test_someone_typing_redraws_only_their_picture();
   test_chat_sends_and_scrolls();

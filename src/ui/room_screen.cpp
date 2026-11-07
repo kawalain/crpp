@@ -320,7 +320,7 @@ void RoomScreen::paint(Painter& p) {
 
 void RoomScreen::paint_overlay(Painter& p) {
   p.set_base(D2D1::Matrix3x2F::Identity());
-  profile_.paint(p);
+  if (ui_.skin().scales_stage()) profile_.paint(p);  // otherwise it has a window of its own
   menu_.paint(p);
 }
 
@@ -778,7 +778,7 @@ bool RoomScreen::escape() {
 }
 
 bool RoomScreen::wheel(float x, float y, float delta) {
-  if (profile_.is_open()) return true;  // modal
+  if (profile_.is_open() && ui_.skin().scales_stage()) return true;  // modal
   if (chat_ && chat_panel_.wheel(x, y, delta)) return true;
   if (!members_area_.contains(x, y) || members_scroll_.max_offset() <= 0) return false;
   members_scroll_.wheel(ui_, delta);

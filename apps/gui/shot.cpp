@@ -109,7 +109,14 @@ int run_shot(Shell& s, int argc, char** argv, float dpi) {
   if (std::string(argv[argc - 1]) == "notice") {
     s.app.notice().set(Notice{tr().notice_shared, tr().notice_move, tr().notice_close});
   }
-  return save_png(s.app, widen(argv[2]), w, h, dpi) ? 0 : 1;
+  if (!save_png(s.app, widen(argv[2]), w, h, dpi)) return 1;
+  // A panel with a window of its own is the picture: the one on top.
+  const std::vector<Pane> panes = s.app.open_panes();
+  if (panes.empty()) return 0;
+  const PaneScope scope(s.app, panes.back());
+  const PaneInfo info = s.app.pane_info(panes.back());
+  if (!save_png(s.app, widen(argv[2]), static_cast<unsigned>(info.w), static_cast<unsigned>(info.h), dpi)) return 1;
+  return save_png(s.app, widen(argv[2]), static_cast<unsigned>(info.w), static_cast<unsigned>(info.h), dpi) ? 0 : 1;
 }
 
 }  // namespace crpp::gui

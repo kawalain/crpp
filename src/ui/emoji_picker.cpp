@@ -19,6 +19,8 @@ constexpr unsigned long long thumb_hide_ms = 2000;
 
 }  // namespace
 
+D2D1_SIZE_F EmojiPicker::content_size() { return {picker_w, picker_h}; }
+
 void EmojiPicker::show(std::string current, std::function<void(std::string id)> on_pick) {
   open_ = true;
   closed_at_ = 0;
@@ -94,7 +96,7 @@ void EmojiPicker::paint_shown(Painter& p) {
   if (ui_.skin().moves()) p.fill_rect(window, rgb(0x365669, 0.28f));
   ui_.add_hit_window(this, ui_.modal_area, Backdrop);
   const Rect r{ui_.content.x + (ui_.content.w - picker_w) / 2, ui_.content.y + (ui_.content.h - picker_h) / 2, picker_w, picker_h};
-  ui_.skin().panel(p, t, r, PanelKind::Picker);
+  if (ui_.window == 0) ui_.skin().panel(p, t, r, PanelKind::Picker);
   ui_.add_hit_window(this, r, Card);
 
   const Rect view{r.x + pad, r.y + pad, picker_w - 2 * pad, picker_h - 2 * pad};

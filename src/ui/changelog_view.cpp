@@ -202,11 +202,10 @@ void ChangelogView::build(float width) {
 void ChangelogView::paint(Painter& p) {
   if (!open_) return;
   const Theme& t = ui_.theme;
-  // A Skin with a window for each screen: as much of it as there is, with a scrollbar.
-  const bool plain = !ui_.skin().moves();
-  const Rect around = ui_.skin().panel_bounds({0, 0, 0, 0}, PanelKind::Modal);
-  const float w = plain ? std::min(card_w, ui_.content.w - around.w - 6) : std::min(card_w, ui_.width - 40);
-  const float h = plain ? std::min(card_h, ui_.content.h - around.h - 6) : std::min(card_h, ui_.height - 60);
+  // In a window of its own: all of it, with a scrollbar.
+  const bool plain = ui_.window != 0;
+  const float w = plain ? ui_.content.w : std::min(card_w, ui_.width - 40);
+  const float h = plain ? ui_.content.h : std::min(card_h, ui_.height - 60);
   const float pad_x = plain ? 12 : 28;
   const float text_w = plain ? w - luna::scrollbar_w : w;
   if (!built_ || built_width_ != text_w) build(text_w);
@@ -267,10 +266,12 @@ void ChangelogView::paint(Painter& p) {
     ui_.add_hit_window(this, parts.thumb, BarThumb);
   }
 
-  // .cl-close: 36 across, 15 from the top and 16 from the right. On a frame, in its caption.
-  const Rect close = plain ? Rect{card.right() - 19, card.y - 20, 17, 17} : Rect{card.right() - 16 - 36, card.y + 15, 36, 36};
-  ui_.skin().close_button(p, t, close, ui_.hot(this, Close), shown);
-  ui_.add_hit_window(this, close, Close);
+  // .cl-close: 36 across, 15 from the top and 16 from the right. A window has its own.
+  if (!plain) {
+    const Rect close{card.right() - 16 - 36, card.y + 15, 36, 36};
+    ui_.skin().close_button(p, t, close, ui_.hot(this, Close), shown);
+    ui_.add_hit_window(this, close, Close);
+  }
 
   if (hint_shown_ != 0) {
     const float progress = transition(ui_, hint_changed_at_, hint_fade_ms);

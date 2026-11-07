@@ -24,7 +24,6 @@ class CloudSkin final : public Skin {
     p.fill_round(r, 14, with_alpha(t.surface, shown));
   }
 
-  [[nodiscard]] Rect panel_bounds(Rect r, PanelKind) const override { return r; }
 
   [[nodiscard]] DialogMetrics dialog_metrics() const override { return {24, 25, 20, 20, 38, 96, 10, 320, 380, 40, 18, 27, Align::Center}; }
 

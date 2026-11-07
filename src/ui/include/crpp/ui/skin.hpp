@@ -42,7 +42,6 @@ class Skin {
 
   virtual void panel(Painter& p, const Theme& t, Rect r, PanelKind kind, float shown = 1) const = 0;
   // How far a panel of this kind reaches beyond its rectangle.
-  [[nodiscard]] virtual Rect panel_bounds(Rect r, PanelKind kind) const = 0;
   // What dims everything under a modal; shown is its transition's progress.
   virtual void backdrop(Painter& p, const Theme& t, Rect window, float shown) const = 0;
   virtual void button(Painter& p, const Theme& t, Rect r, std::string_view label, const ButtonLook& look) const = 0;

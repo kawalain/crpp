@@ -18,7 +18,11 @@ Rect minimize_rect(float width) { return {width - button_right - 2 * button - bu
 
 }  // namespace
 
-WindowFrame::Zone WindowFrame::zone_at(float x, float y, float w, float h) {
+WindowFrame::Zone WindowFrame::zone_at(float x, float y, float w, float h, Parts parts) {
+  if (!parts.resizable) {
+    if (y >= luna::caption_h || (parts.close && close_rect(w).contains(x, y))) return Zone::Client;
+    return Zone::Caption;
+  }
   const bool left = x < edge, right = x >= w - edge, top = y < edge, bottom = y >= h - edge;
   const bool near_left = x < corner, near_right = x >= w - corner, near_top = y < corner, near_bottom = y >= h - corner;
   if ((top && near_left) || (left && near_top)) return Zone::TopLeft;
@@ -29,7 +33,7 @@ WindowFrame::Zone WindowFrame::zone_at(float x, float y, float w, float h) {
   if (bottom) return Zone::Bottom;
   if (left) return Zone::Left;
   if (right) return Zone::Right;
-  if (y >= luna::caption_h || close_rect(w).contains(x, y) || minimize_rect(w).contains(x, y)) return Zone::Client;
+  if (y >= luna::caption_h || (parts.close && close_rect(w).contains(x, y)) || (parts.minimize && minimize_rect(w).contains(x, y))) return Zone::Client;
   return Zone::Caption;
 }
 
@@ -61,11 +65,16 @@ void WindowFrame::paint(Painter& p) {
   luna::window_frame(p, t, ui_.width, ui_.height, active_);
   draw_svg(p, ui_.emoji_image(""), {8, 6, 16, 16});
   const Rect minimize = minimize_rect(ui_.width), close = close_rect(ui_.width);
-  luna::caption_text(p, t, {28, 0, std::max(0.0f, minimize.x - 32), luna::caption_h}, title_);
-  luna::caption_button(p, t, minimize, luna::CaptionGlyph::Minimize, ui_.hot(this, Minimize), ui_.pressed(this, Minimize));
-  luna::caption_button(p, t, close, luna::CaptionGlyph::Close, ui_.hot(this, Close), ui_.pressed(this, Close));
-  ui_.add_hit_window(this, minimize, Minimize);
-  ui_.add_hit_window(this, close, Close);
+  const float title_end = parts_.minimize ? minimize.x : parts_.close ? close.x : ui_.width;
+  luna::caption_text(p, t, {28, 0, std::max(0.0f, title_end - 32), luna::caption_h}, title_);
+  if (parts_.minimize) {
+    luna::caption_button(p, t, minimize, luna::CaptionGlyph::Minimize, ui_.hot(this, Minimize), ui_.pressed(this, Minimize));
+    ui_.add_hit_window(this, minimize, Minimize);
+  }
+  if (parts_.close) {
+    luna::caption_button(p, t, close, luna::CaptionGlyph::Close, ui_.hot(this, Close), ui_.pressed(this, Close));
+    ui_.add_hit_window(this, close, Close);
+  }
   if (!menu_shown_) {
     open_ = -1;
     return;

@@ -994,11 +994,14 @@ class Loader final : public Names {
         }
         out.shadow = json.find("blur") != nullptr;
         out.has_stops = json.find("from_y") != nullptr;
-        if (out.shadow || out.has_stops) {
+        out.stretched = json.find("scale_y") != nullptr;
+        if (out.stretched && (out.shadow || out.has_stops || json.find("width"))) return fail("scale_y is for a path filled with one colour");
+        if (out.shadow || out.has_stops || out.stretched) {
           if (out.shadow && out.has_stops) return fail("a path is a shadow or a gradient, not both");
           PathExtra more;
           if (out.shadow && (!expr_of(json, "blur", out.width) || !optional_expr(json, "dy", more.dy))) return false;
           if (out.has_stops && (!expr_of(json, "from_y", more.from_y) || !expr_of(json, "to_y", more.to_y))) return false;
+          if (out.stretched && !expr_of(json, "scale_y", more.scale_y)) return false;
           out.more = static_cast<std::uint32_t>(pack_.path_extras.size());
           pack_.path_extras.push_back(more);
         }
@@ -1021,15 +1024,21 @@ class Loader final : public Names {
         break;
       case NodeKind::Group: {
         if (const Json* clip = json.find("clip")) out.clip = clip->as_bool().value_or(false);
+        if (const Json* soft = json.find("soft_clip")) out.soft = soft->as_bool().value_or(false);
         GroupEffects effects;
         bool top = false, bottom = false;
         if (!optional_expr(json, "scale", effects.scale, &effects.has_scale) || !optional_expr(json, "about_x", effects.about_x, &effects.has_about_x) ||
             !optional_expr(json, "about_y", effects.about_y, &effects.has_about_y) || !optional_expr(json, "opacity", effects.opacity, &effects.has_opacity) ||
-            !optional_expr(json, "fade_top", effects.fade_top, &top) || !optional_expr(json, "fade_bottom", effects.fade_bottom, &bottom)) {
+            !optional_expr(json, "fade_top", effects.fade_top, &top) || !optional_expr(json, "fade_bottom", effects.fade_bottom, &bottom) ||
+            !optional_expr(json, "dy", effects.dy, &effects.has_dy)) {
           return false;
         }
         effects.has_fade = top || bottom;
-        if (effects.has_scale || effects.has_opacity || effects.has_fade) {
+        if (const Json* origin = json.find("origin")) {
+          effects.origin = origin->as_bool().value_or(false);
+          if (!effects.has_scale) return fail("origin goes with scale");
+        }
+        if (effects.has_scale || effects.has_opacity || effects.has_fade || effects.has_dy) {
           out.has_effects = true;
           out.more = static_cast<std::uint32_t>(pack_.effects.size());
           pack_.effects.push_back(effects);

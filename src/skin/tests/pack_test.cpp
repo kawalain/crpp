@@ -118,6 +118,10 @@ class Log final : public Canvas {
     add("text " + std::string(t) + " " + str(b) + " " + str(l.size) + "/" + str(l.line_height) + "/" + std::to_string(l.weight) + " " + str(c));
   }
   void push_clip(Box b) override { add("clip " + str(b)); }
+  void push_soft_clip(Box b) override { add("softclip " + str(b)); }
+  void push_scale_at(float x, float y, float s) override { add("scale at " + str(x) + "," + str(y) + " x" + str(s)); }
+  void push_down(float dy) override { add("down " + str(dy)); }
+  void path_stretched(std::string_view d, float x, float y, float sx, float sy, Color c) override { add("stretched " + std::string(d) + " " + str(x) + "," + str(y) + " x" + str(sx) + " y" + str(sy) + " " + str(c)); }
   void pop_clip() override { add("unclip"); }
   void hit(Box b, int id) override { add("hit " + str(b) + " " + std::to_string(id)); }
   void hit_shape(Box b, int id, std::string_view d, float x, float y) override { add("hitshape " + str(b) + " " + std::to_string(id) + " " + std::string(d) + " " + str(x) + "," + str(y)); }
@@ -509,6 +513,18 @@ void a_walk_ends_however_parts_multiply() {
 
 }  // namespace
 
+void a_group_can_count_from_its_corner_and_go_down() {
+  CHECK(walk(R"J({"x":1,"y":2,"scale":2,"origin":true,"group":[{"fill":"$face","x":3,"y":4,"w":5,"h":6}]})J") == "scale at 101,202 x2\nfill 3,4,5,6 1/0/0/1\nunscale\n");
+  CHECK(walk(R"J({"dy":7,"group":[{"fill":"$face","w":5,"h":6}]})J") == "down 7\nfill 100,200,5,6 1/0/0/1\nunscale\n");
+  CHECK(!load(R"J({"origin":true,"group":[]})J"));
+}
+
+void a_clip_can_be_soft_and_a_path_stretched() {
+  CHECK(walk(R"J({"clip":true,"soft_clip":true,"group":[]})J") == "softclip 100,200,300,400\nunclip\n");
+  CHECK(walk(R"J({"path":"M0 0","color":"$face","x":1,"y":2,"scale":-2,"scale_y":3})J") == "stretched M0 0 101,202 x-2 y3 1/0/0/1\n");
+  CHECK(!load(R"J({"path":"M0 0","color":"$face","scale_y":3,"width":1})J"));
+}
+
 void a_transition_is_asked_of_the_canvas() {
   CHECK(walk(R"J({"let":"v","to":"1","ms":150,"ms_off":500,"first":"jump","curve":"linear"},{"fill":"$face","w":"v*10"})J") ==
         "transition on 150/500 jump linear\nfill 100,200,5,400 1/0/0/1\n");
@@ -799,6 +815,8 @@ int main() {
   sizes_are_limited();
   a_walk_ends_however_parts_multiply();
   test_cursors_are_all_there_or_refused();
+  a_group_can_count_from_its_corner_and_go_down();
+  a_clip_can_be_soft_and_a_path_stretched();
   a_transition_is_asked_of_the_canvas();
   transitions_are_told_apart_where_they_are();
   colours_are_worked_out_in_expressions();

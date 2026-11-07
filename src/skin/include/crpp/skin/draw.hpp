@@ -44,6 +44,8 @@ class Canvas {
   virtual void path(std::string_view data, float x, float y, float scale, Color color, float width, bool round_caps, bool soft) = 0;
   virtual void text(std::string_view text, Box box, const TextLook& look, Color color) = 0;
   virtual void push_clip(Box box) = 0;
+  // The same with partial pixels along an edge that falls between pixels. pop_clip ends it.
+  virtual void push_soft_clip(Box box) { push_clip(box); }
   virtual void pop_clip() = 0;
   virtual void hit(Box box, int id) = 0;
   // A hit of this shape inside its box. Nothing beyond the box where only sizes are being worked out.
@@ -54,10 +56,16 @@ class Canvas {
   virtual void stroke_ellipse(Box, Color, float /*width*/) {}
   virtual void shadow_round(Box, float /*radius*/, float /*blur*/, float /*dy*/, Color) {}
   // A path's gradient from y0 to y1 of its own coordinates, and its soft shadow.
+  // A path filled at another size downward than across.
+  virtual void path_stretched(std::string_view /*data*/, float /*x*/, float /*y*/, float /*scale_x*/, float /*scale_y*/, Color) {}
   virtual void path_gradient(std::string_view /*data*/, float /*x*/, float /*y*/, float /*scale*/, float /*y0*/, float /*y1*/, std::span<const GradientStop>) {}
   virtual void path_shadow(std::string_view /*data*/, float /*x*/, float /*y*/, float /*scale*/, float /*blur*/, float /*dy*/, Color) {}
   // Everything until the matching pop grows around this point. Hits stay as they are.
   virtual void push_scale(float /*x*/, float /*y*/, float /*scale*/) {}
+  // Everything until the matching pop_scale counts from this point, at this size.
+  virtual void push_scale_at(float /*x*/, float /*y*/, float /*scale*/) {}
+  // Everything until the matching pop_scale is drawn this much further down. Hits stay as they are.
+  virtual void push_down(float /*dy*/) {}
   virtual void pop_scale() {}
   // Each says whether it pushed a layer, which pop_layer then ends.
   [[nodiscard]] virtual bool push_opacity(Box, float /*opacity*/) { return false; }

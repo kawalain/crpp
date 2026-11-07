@@ -112,6 +112,14 @@ float SkinCanvas::transition(std::uint64_t key, const skin::TransitionSpec& spec
   return shown;
 }
 
+void SkinCanvas::path_stretched(std::string_view data, float x, float y, float scale_x, float scale_y, skin::Color color) {
+  ID2D1PathGeometry* const shape = p_.gfx().path(data);
+  if (!shape) return;
+  p_.push(D2D1::Matrix3x2F::Scale(scale_x, scale_y) * D2D1::Matrix3x2F::Translation(x, y));
+  p_.fill_geometry(shape, color);
+  p_.pop();
+}
+
 void SkinCanvas::path_gradient(std::string_view data, float x, float y, float scale, float y0, float y1, std::span<const skin::GradientStop> stops) {
   ID2D1PathGeometry* const shape = p_.gfx().path(data);
   if (!shape) return;
@@ -141,6 +149,11 @@ bool SkinCanvas::push_edge_fade(skin::Box box, float top, float bottom) { return
 
 void SkinCanvas::push_clip(skin::Box box) {
   p_.rt()->PushAxisAlignedClip(D2D1::RectF(box.x, box.y, box.x + box.w, box.y + box.h), D2D1_ANTIALIAS_MODE_ALIASED);
+  ui_.push_hit_clip(in_window_ ? rect_of(box) : ui_.to_window(rect_of(box)));
+}
+
+void SkinCanvas::push_soft_clip(skin::Box box) {
+  p_.rt()->PushAxisAlignedClip(D2D1::RectF(box.x, box.y, box.x + box.w, box.y + box.h), D2D1_ANTIALIAS_MODE_PER_PRIMITIVE);
   ui_.push_hit_clip(in_window_ ? rect_of(box) : ui_.to_window(rect_of(box)));
 }
 

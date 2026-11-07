@@ -18,7 +18,7 @@ struct TransitionSpec {
   // runs up from off.
   bool first_jumps = false;
   Curve curve = Curve::Ease;
-  // A new value of this, while on, runs it up from off again, as a new element would.
+  // A new value of this starts it anew, as a new element would: on, it runs up from off; off, it is off at once.
   float again = 0;
 };
 

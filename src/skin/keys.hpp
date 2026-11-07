@@ -79,6 +79,7 @@ inline constexpr KeyDoc line_keys[] = {
 inline constexpr KeyDoc path_keys[] = {
     {"color", KeyType::Expr, "A Palette entry, as $name."},
     {"scale", KeyType::Expr, "Its size. 1 when left out."},
+    {"scale_y", KeyType::Expr, "Its size downward, when that differs from scale, which is then only across. For a filled path, and below 0 mirrors it."},
     {"width", KeyType::Expr, "Strokes it this thick, instead of filling it."},
     {"caps", KeyType::Caps, "The ends of a stroke."},
     {"soft", KeyType::Flag, "Smooth edges under a Skin whose edges are whole pixels."},
@@ -116,10 +117,13 @@ inline constexpr KeyDoc clip_keys[] = {
 };
 inline constexpr KeyDoc group_keys[] = {
     {"clip", KeyType::Flag, "Nothing inside shows outside its box."},
+    {"soft_clip", KeyType::Flag, "That clip has partial pixels along an edge that falls between pixels, instead of cutting at whole ones."},
     {"opacity", KeyType::Expr, "Draws what is inside as one, then blends it at this, from 0 to 1. What falls outside its box is cut."},
     {"fade_top", KeyType::Expr, "What is inside fades out over this length at the top of its box."},
     {"fade_bottom", KeyType::Expr, "What is inside fades out over this length at the bottom of its box."},
     {"scale", KeyType::Expr, "What is inside grows by this, 1 being its own size. Its hits stay where they are."},
+    {"origin", KeyType::Flag, "With scale: what is inside counts from 0, 0 at the corner of its box, which stays still. What is inside takes no clicks."},
+    {"dy", KeyType::Expr, "What is inside is drawn this much further down. Its hits stay where they are."},
     {"about_x", KeyType::Expr, "What stays still when it grows, from the left of the box around it. The middle of its box when left out."},
     {"about_y", KeyType::Expr, "What stays still when it grows, from the top of the box around it. The middle of its box when left out."},
 };
@@ -141,7 +145,7 @@ inline constexpr KeyDoc let_keys[] = {
     {"ms_off", KeyType::Expr, "How long it takes going off, when that differs."},
     {"curve", KeyType::Curve, "Its curve: ease, as CSS's, when left out."},
     {"first", KeyType::Jump, "A state that is on when first seen starts at its end, as an element's first style does."},
-    {"again", KeyType::Expr, "A new value of this, while on, runs it up from off again, as a new element would."},
+    {"again", KeyType::Expr, "A new value of this starts it anew, as a new element would: on, it runs up from off; off, it is off at once."},
 };
 
 struct KindDoc {

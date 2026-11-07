@@ -46,6 +46,7 @@ class SkinCanvas final : public skin::Canvas {
   void path(std::string_view data, float x, float y, float scale, skin::Color color, float width, bool round_caps, bool soft) override;
   void text(std::string_view text, skin::Box box, const skin::TextLook& look, skin::Color color) override { p_.text(text, rect_of(box), text_style_of(look), color); }
   void push_clip(skin::Box box) override;
+  void push_soft_clip(skin::Box box) override;
   void pop_clip() override;
   void hit(skin::Box box, int id) override {
     if (in_window_) ui_.add_hit_window(owner_, rect_of(box), hit_base_ + id);
@@ -56,9 +57,12 @@ class SkinCanvas final : public skin::Canvas {
   void fill_ellipse(skin::Box box, skin::Color color) override { p_.fill_ellipse(box.x + box.w / 2, box.y + box.h / 2, box.w / 2, box.h / 2, color); }
   void stroke_ellipse(skin::Box box, skin::Color color, float width) override { p_.stroke_ellipse(box.x + box.w / 2, box.y + box.h / 2, box.w / 2, box.h / 2, color, width); }
   void shadow_round(skin::Box box, float radius, float blur, float dy, skin::Color color) override { p_.shadow_round(rect_of(box), radius, blur, dy, color); }
+  void path_stretched(std::string_view data, float x, float y, float scale_x, float scale_y, skin::Color color) override;
   void path_gradient(std::string_view data, float x, float y, float scale, float y0, float y1, std::span<const skin::GradientStop> stops) override;
   void path_shadow(std::string_view data, float x, float y, float scale, float blur, float dy, skin::Color color) override;
   void push_scale(float x, float y, float scale) override { p_.push_group(scale_about(x, y, scale)); }
+  void push_scale_at(float x, float y, float scale) override { p_.push_group(D2D1::Matrix3x2F::Scale(scale, scale) * D2D1::Matrix3x2F::Translation(x, y)); }
+  void push_down(float dy) override { p_.push_group(D2D1::Matrix3x2F::Translation(0, dy)); }
   void pop_scale() override { p_.pop_group(); }
   bool push_opacity(skin::Box box, float opacity) override;
   bool push_edge_fade(skin::Box box, float top, float bottom) override;

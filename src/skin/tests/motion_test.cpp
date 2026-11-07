@@ -110,9 +110,8 @@ void test_a_new_value_of_again_runs_it_up_once_more() {
   CHECK(t.value(key, spec, 1150, true, moving) == 0.5f);
   spec.on = false;
   spec.again = 2;
-  (void)t.value(key, spec, 1150, true, moving);
-  CHECK(moving);  // going off, it just keeps going off
-  CHECK(t.value(key, spec, 1200, true, moving) == 0);
+  CHECK(t.value(key, spec, 1150, true, moving) == 0);  // going off, it is off at once
+  CHECK(!moving);
 }
 
 void test_the_curves() {

@@ -423,6 +423,10 @@
           "$ref": "#/definitions/expression",
           "description": "Its size. 1 when left out."
         },
+        "scale_y": {
+          "$ref": "#/definitions/expression",
+          "description": "Its size downward, when that differs from scale, which is then only across. For a filled path, and below 0 mirrors it."
+        },
         "caps": {
           "enum": [
             "round",
@@ -538,6 +542,10 @@
           "type": "boolean",
           "description": "Nothing inside shows outside its box."
         },
+        "soft_clip": {
+          "type": "boolean",
+          "description": "That clip has partial pixels along an edge that falls between pixels, instead of cutting at whole ones."
+        },
         "fade_top": {
           "$ref": "#/definitions/expression",
           "description": "What is inside fades out over this length at the top of its box."
@@ -545,6 +553,10 @@
         "fade_bottom": {
           "$ref": "#/definitions/expression",
           "description": "What is inside fades out over this length at the bottom of its box."
+        },
+        "origin": {
+          "type": "boolean",
+          "description": "With scale: what is inside counts from 0, 0 at the corner of its box, which stays still. What is inside takes no clicks."
         },
         "about_x": {
           "$ref": "#/definitions/expression",
@@ -616,7 +628,7 @@
         },
         "again": {
           "$ref": "#/definitions/expression",
-          "description": "A new value of this, while on, runs it up from off again, as a new element would."
+          "description": "A new value of this starts it anew, as a new element would: on, it runs up from off; off, it is off at once."
         },
         "set": {
           "type": "string",
@@ -796,6 +808,7 @@
               "hit_path_y",
               "color",
               "scale",
+              "scale_y",
               "width",
               "caps",
               "soft",
@@ -975,10 +988,13 @@
               "hit_path_x",
               "hit_path_y",
               "clip",
+              "soft_clip",
               "opacity",
               "fade_top",
               "fade_bottom",
               "scale",
+              "origin",
+              "dy",
               "about_x",
               "about_y"
             ]

@@ -204,7 +204,8 @@ class Walker final : public Env {
       case NodeKind::Field: field(n, box); break;
       case NodeKind::Slot: slot(n, box); break;
       case NodeKind::Group:
-        if (n.clip) canvas_.push_clip(box);
+        if (n.clip && n.soft) canvas_.push_soft_clip(box);
+        else if (n.clip) canvas_.push_clip(box);
         if (n.has_effects) with_effects(n, box);
         else inside(box, n.first, n.count);
         if (n.clip) canvas_.pop_clip();
@@ -262,6 +263,16 @@ class Walker final : public Env {
     const GroupEffects& e = pack_.effects[n.more];
     const bool layer = e.has_opacity && canvas_.push_opacity(box, value(e.opacity));
     const bool fade = e.has_fade && canvas_.push_edge_fade(box, value(e.fade_top), value(e.fade_bottom));
+    if (e.has_dy) canvas_.push_down(value(e.dy));
+    if (e.origin) {
+      canvas_.push_scale_at(box.x, box.y, value(e.scale));
+      inside({0, 0, box.w, box.h}, n.first, n.count);
+      canvas_.pop_scale();
+      if (e.has_dy) canvas_.pop_scale();
+      if (fade) canvas_.pop_layer();
+      if (layer) canvas_.pop_layer();
+      return;
+    }
     if (e.has_scale) {
       const float about_x = e.has_about_x ? vars[VarX] + value(e.about_x) : box.x + box.w / 2;
       const float about_y = e.has_about_y ? vars[VarY] + value(e.about_y) : box.y + box.h / 2;
@@ -269,6 +280,7 @@ class Walker final : public Env {
     }
     inside(box, n.first, n.count);
     if (e.has_scale) canvas_.pop_scale();
+    if (e.has_dy) canvas_.pop_scale();
     if (fade) canvas_.pop_layer();
     if (layer) canvas_.pop_layer();
   }
@@ -276,6 +288,10 @@ class Walker final : public Env {
   void path(const Node& n, Box box) {
     const std::string_view data = std::string_view(pack_.literals).substr(n.text, n.count);
     const float scale = value(n.extra);
+    if (n.stretched) {
+      canvas_.path_stretched(data, box.x, box.y, scale, value(pack_.path_extras[n.more].scale_y), color_of(n.paint));
+      return;
+    }
     if (n.shadow) {
       canvas_.path_shadow(data, box.x, box.y, scale, value(n.width), value(pack_.path_extras[n.more].dy), color_of(n.paint));
       return;

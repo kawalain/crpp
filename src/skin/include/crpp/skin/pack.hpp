@@ -17,16 +17,19 @@
 //   path    SVG path data, drawn from x, y, with color, scale, and a width to stroke it instead of
 //           filling, with caps "round" (the default) or "flat", and soft: true for smooth edges
 //           under a Skin whose edges are whole pixels. A color that is a gradient runs from from_y to to_y
-//           of the path's own coordinates. With blur it is that shape's shadow, dy further down
+//           of the path's own coordinates. With blur it is that shape's shadow, dy further down. With scale_y it is
+//           filled at that size downward and scale across
 //   text    a text: #locale_key, @bound, or the words themselves, in a style and a color, and
 //           size and line_height to change the style's where it depends on the screen
 //   picture a picture the screen supplies, with opacity and gray
 //   field   a text field the screen owns, with style, color, placeholder, placeholder_color,
 //           caret and selection
 //   slot    what only the screen can draw, given numbers, styles and colors
-//   group   a list of nodes, inside this box, with an optional clip. opacity draws them as one, at that
+//   group   a list of nodes, inside this box, with an optional clip, whose edge has partial pixels with
+//           soft_clip: true. opacity draws them as one, at that
 //           opacity. fade_top and fade_bottom fade what they hold out over that length at those edges.
-//           scale grows them around about_x, about_y, or the middle of the box
+//           scale grows them around about_x, about_y, or the middle of the box, or with origin: true from
+//           its corner, which they then count from. dy draws them further down
 //   column  a list of nodes under each other: each goes at y = flow unless it says otherwise, and
 //           flow then moves below it, by its after as well. Its height is what they took
 //   use     a part from pack.jsonc, with args, a text the part reads as @label, and a draw list
@@ -36,7 +39,7 @@
 //   let     a name for a number, with value. With to, it is a transition: it runs from 0 to 1 and back as to
 //           goes on and off, over ms (ms_off when going off, if it says), on a curve: "ease", the
 //           default, or "linear". first: "jump" has a state that is on when first seen start at its end.
-//           A new value of again runs it up from off once more, while it is on.
+//           A new value of again starts it anew: on, it runs up from off; off, it is off at once.
 //   set     a new value for a name above it, as when a repeat looks for the widest
 //   report  a number for the screen, with value
 // and each may have: if, id (siblings can then read id.x, .y, .w, .h, .right, .bottom), x or right,
@@ -124,7 +127,8 @@ struct Node {
   bool auto_h = false;      // Column: h is what its nodes took
   bool has_hit_index = false, has_live = false, has_hit_if = false, has_after = false;
   bool round_caps = true;   // Path
-  bool soft = false;        // Path
+  bool soft = false;        // Path. Group: its clip
+  bool stretched = false;   // Path: it has scale_y
   bool has_note_by = false;
   bool has_size = false, has_line_height = false;  // Text. Let: has_size says it has again
   bool has_alpha = false;
@@ -154,13 +158,14 @@ struct Node {
 };
 
 struct GroupEffects {
-  bool has_scale = false, has_about_x = false, has_about_y = false, has_opacity = false, has_fade = false;
-  Expr scale, about_x, about_y, opacity, fade_top, fade_bottom;
+  bool has_scale = false, has_about_x = false, has_about_y = false, has_opacity = false, has_fade = false, origin = false, has_dy = false;
+  Expr scale, about_x, about_y, opacity, fade_top, fade_bottom, dy;
 };
 
 struct PathExtra {
   Expr from_y, to_y;  // a gradient
   Expr dy;            // a shadow
+  Expr scale_y;       // filled at another size downward
 };
 
 struct HitShape {

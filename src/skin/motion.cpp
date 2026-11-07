@@ -64,11 +64,9 @@ float Transitions::value(std::uint64_t key, const TransitionSpec& spec, unsigned
   }
   if (item.again != spec.again) {
     item.again = spec.again;
-    if (spec.on) {
-      item.from = 0;
-      item.start = now;
-      item.span_ms = spec.ms_on;
-    }
+    item.from = 0;
+    item.start = now;
+    item.span_ms = spec.on ? spec.ms_on : 0;
   }
   const float shown = at(item, spec.curve, now);
   moving = item.span_ms > 0 && static_cast<float>(now - item.start) < item.span_ms;

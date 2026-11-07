@@ -134,6 +134,13 @@ class Painter {
   [[nodiscard]] const Gfx& gfx() const { return gfx_; }
   [[nodiscard]] ID2D1RenderTarget* rt() const { return rt_; }
 
+  // With classic fonts every box and line sits on whole pixels at any scale, so that equal
+  // sizes come out equal wherever they land and lines stay sharp. Curves are still smoothed.
+  // Where r is drawn: it keeps its size in pixels, and fill_rect and frame already do this.
+  [[nodiscard]] Rect snap(Rect r) const;
+  // One line's thickness in DIPs: a whole number of pixels.
+  [[nodiscard]] float line() const { return line_; }
+
   void set_base(const D2D1_MATRIX_3X2_F& m) {
     base_ = m * moved_;
     rt_->SetTransform(base_);
@@ -161,6 +168,12 @@ class Painter {
   // A line inside r's edge.
   void frame(Rect r, Color c, float width = 1);
   void fill_round(Rect r, float radius, Color c);
+  void fill_round_gradient(Rect r, float radius, D2D1_POINT_2F from, D2D1_POINT_2F to, std::span<const GradientStop> stops);
+  void fill_round_down(Rect r, float radius, std::span<const GradientStop> stops) {
+    fill_round_gradient(r, radius, {r.x, r.y}, {r.x, r.bottom()}, stops);
+  }
+  // A line of this thickness inside the edge of a rounded box.
+  void stroke_round(Rect r, float radius, Color c, float width);
   void fill_ellipse(float cx, float cy, float rx, float ry, Color c);
   void fill_geometry(ID2D1Geometry* g, Color c);
   void stroke_geometry(ID2D1Geometry* g, Color c, float width, bool round_caps = true);
@@ -192,6 +205,8 @@ class Painter {
   const Gfx& gfx_;
   ID2D1RenderTarget* rt_;
   ComPtr<ID2D1SolidColorBrush> brush_;
+  bool classic_ = false;
+  float pixels_ = 1, line_ = 1;
   D2D1_MATRIX_3X2_F base_ = D2D1::Matrix3x2F::Identity();
   D2D1_MATRIX_3X2_F moved_ = D2D1::Matrix3x2F::Identity();
 };

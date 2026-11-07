@@ -5,6 +5,7 @@
 #include <cmath>
 
 #include "areas.hpp"
+#include "crpp/ui/luna.hpp"
 #include "crpp/ui/png.hpp"
 #include "shell.hpp"
 #include "tray.hpp"
@@ -49,12 +50,17 @@ void update_region(Shell& s, HWND hwnd) {
   RECT rc;
   if (IsIconic(hwnd) || !GetWindowRect(hwnd, &rc)) return;
   const int w = rc.right - rc.left, h = rc.bottom - rc.top;
-  const int radius = MulDiv(8, static_cast<int>(s.dpi), 96);
-  HRGN round = CreateRoundRectRgn(0, 0, w + 1, h + 2 * radius, 2 * radius, 2 * radius);
-  HRGN box = CreateRectRgn(0, 0, w, h);
-  CombineRgn(round, round, box, RGN_AND);
-  DeleteObject(box);
-  if (SetWindowRgn(hwnd, round, TRUE) == 0) DeleteObject(round);  // otherwise the system owns it
+  const double radius = static_cast<double>(luna::window_radius) * s.dpi / 96;
+  // Every pixel the curve touches, row by row: drawing smooths the ones it only partly covers.
+  HRGN shape = CreateRectRgn(0, static_cast<int>(std::ceil(radius)), w, h);
+  for (int y = 0; y < static_cast<int>(std::ceil(radius)); ++y) {
+    const double below = radius - (y + 1);
+    const int inset = static_cast<int>(std::floor(radius - std::sqrt(std::max(0.0, radius * radius - below * below))));
+    HRGN row = CreateRectRgn(inset, y, w - inset, y + 1);
+    CombineRgn(shape, shape, row, RGN_OR);
+    DeleteObject(row);
+  }
+  if (SetWindowRgn(hwnd, shape, TRUE) == 0) DeleteObject(shape);  // otherwise the system owns it
 }
 
 // Makes the window the size of what is on screen, if that has changed. The top left stays,

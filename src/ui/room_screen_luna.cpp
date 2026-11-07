@@ -89,7 +89,7 @@ void RoomScreen::paint_luna(Painter& p) {
   // The status line.
   const Rect status{c.x, c.bottom() - 20, c.w, 20};
   p.fill_rect({status.x, status.y, status.w, 1}, l.edge_dark);
-  p.fill_rect({status.x, status.y + 1, status.w, 1}, l.edge_light);
+  p.fill_rect({status.x, p.snap(status).y + p.line(), status.w, 1}, l.edge_light);
   p.text(std::string(tr().room_code) + ": " + room_code_, {status.x + 8, status.y + 2, status.w - 16, 18}, luna::body(p, 18), l.ink_soft);
 
   const Rect main{c.x + 6, bar.bottom() + 6, c.w - 12, status.y - bar.bottom() - 12};
@@ -123,7 +123,7 @@ void RoomScreen::paint_options_luna(Painter& p) {
   ui_.add_hit_window(this, code_rect_, OptCode);
   y += row_h + 2;
   p.fill_rect({r.x + 5, y, r.w - 10, 1}, l.edge_dark);
-  p.fill_rect({r.x + 5, y + 1, r.w - 10, 1}, l.edge_light);
+  p.fill_rect({r.x + 5, p.snap({r.x, y, 1, 1}).y + p.line(), r.w - 10, 1}, l.edge_light);
   y += 3;
   const auto row = [&](const char* label, bool on, bool off, bool pinned, int id) {
     const Rect line{r.x + 10, y, r.w - 20, row_h};

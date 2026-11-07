@@ -509,9 +509,19 @@ void Gfx::forget_render_target() const {
 
 Painter::Painter(const Gfx& gfx, ID2D1RenderTarget* rt) : gfx_(gfx), rt_(rt) {
   rt_->CreateSolidColorBrush(D2D1::ColorF(0, 0, 0, 1), brush_.put());
-  const bool classic = gfx.classic();
-  rt_->SetAntialiasMode(classic ? D2D1_ANTIALIAS_MODE_ALIASED : D2D1_ANTIALIAS_MODE_PER_PRIMITIVE);
-  rt_->SetTextAntialiasMode(classic ? D2D1_TEXT_ANTIALIAS_MODE_ALIASED : D2D1_TEXT_ANTIALIAS_MODE_GRAYSCALE);
+  classic_ = gfx.classic();
+  rt_->SetAntialiasMode(D2D1_ANTIALIAS_MODE_PER_PRIMITIVE);
+  rt_->SetTextAntialiasMode(classic_ ? D2D1_TEXT_ANTIALIAS_MODE_ALIASED : D2D1_TEXT_ANTIALIAS_MODE_GRAYSCALE);
+  FLOAT dpi_x = 96, dpi_y = 96;
+  rt_->GetDpi(&dpi_x, &dpi_y);
+  pixels_ = dpi_x / 96;
+  line_ = classic_ ? std::max(1.0f, std::round(pixels_)) / pixels_ : 1;
+}
+
+Rect Painter::snap(Rect r) const {
+  if (!classic_) return r;
+  const auto size = [&](float dips) { return dips > 0 ? std::max(1.0f, std::round(dips * pixels_)) / pixels_ : dips; };
+  return {std::round(r.x * pixels_) / pixels_, std::round(r.y * pixels_) / pixels_, size(r.w), size(r.h)};
 }
 
 void Painter::push_opacity(float opacity) {
@@ -531,6 +541,7 @@ void Painter::push(const D2D1_MATRIX_3X2_F& m) { rt_->SetTransform(m * base_); }
 void Painter::clear(Color c) { rt_->Clear(to_d2d(c)); }
 
 void Painter::fill_rect(Rect r, Color c) {
+  r = snap(r);
   brush_->SetColor(to_d2d(c));
   rt_->FillRectangle(D2D1::RectF(r.x, r.y, r.right(), r.bottom()), brush_.get());
 }
@@ -540,10 +551,15 @@ void Painter::fill_gradient(Rect r, D2D1_POINT_2F from, D2D1_POINT_2F to, std::s
   if (!brush) return;
   brush->SetStartPoint(from);
   brush->SetEndPoint(to);
+  r = snap(r);
   rt_->FillRectangle(D2D1::RectF(r.x, r.y, r.right(), r.bottom()), brush);
 }
 
 void Painter::frame(Rect r, Color c, float width) {
+  if (classic_) {
+    r = snap(r);
+    width = std::max(1.0f, std::round(width * pixels_)) / pixels_;
+  }
   fill_rect({r.x, r.y, r.w, width}, c);
   fill_rect({r.x, r.bottom() - width, r.w, width}, c);
   fill_rect({r.x, r.y + width, width, r.h - 2 * width}, c);
@@ -554,6 +570,21 @@ void Painter::fill_round(Rect r, float radius, Color c) {
   brush_->SetColor(to_d2d(c));
   rt_->FillRoundedRectangle(D2D1::RoundedRect(D2D1::RectF(r.x, r.y, r.right(), r.bottom()), radius, radius),
                             brush_.get());
+}
+
+void Painter::fill_round_gradient(Rect r, float radius, D2D1_POINT_2F from, D2D1_POINT_2F to, std::span<const GradientStop> stops) {
+  ID2D1LinearGradientBrush* const brush = gfx_.gradient(rt_, stops);
+  if (!brush) return;
+  brush->SetStartPoint(from);
+  brush->SetEndPoint(to);
+  rt_->FillRoundedRectangle(D2D1::RoundedRect(D2D1::RectF(r.x, r.y, r.right(), r.bottom()), radius, radius), brush);
+}
+
+void Painter::stroke_round(Rect r, float radius, Color c, float width) {
+  brush_->SetColor(to_d2d(c));
+  const float half = width / 2;
+  rt_->DrawRoundedRectangle(D2D1::RoundedRect(D2D1::RectF(r.x + half, r.y + half, r.right() - half, r.bottom() - half), radius - half, radius - half),
+                            brush_.get(), width);
 }
 
 void Painter::fill_ellipse(float cx, float cy, float rx, float ry, Color c) {

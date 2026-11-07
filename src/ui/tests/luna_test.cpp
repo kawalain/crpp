@@ -79,6 +79,34 @@ void test_each_screen_has_its_window_size_and_cloud_has_one() {
   CHECK(h.app.screen_size().key.empty());
 }
 
+void test_equal_sizes_land_on_equal_whole_pixels() {
+  UiHarness h;
+  start_luna(h);
+  for (const float dpi : {96.0f, 120.0f, 144.0f, 168.0f, 192.0f}) {
+    const auto target = h.target_at(dpi);
+    Painter p(h.app.ui().gfx, target.get());
+    const float scale = dpi / 96;
+    const auto whole = [&](float dips) { return std::abs(dips * scale - std::round(dips * scale)) < 0.01f; };
+    CHECK(whole(p.line()) && p.line() * scale >= 1);
+    const float width = std::round(21 * scale);
+    for (float x = 0; x < 40; x += 0.25f) {
+      const Rect r = p.snap({x, x / 2, 21, 21});
+      CHECK(whole(r.x) && whole(r.y));
+      CHECK(std::abs(r.w * scale - width) < 0.01f && std::abs(r.h * scale - width) < 0.01f);
+      const Rect again = p.snap(r);  // lines counted from a snapped box stay on it
+      CHECK(std::abs(again.x - r.x) < 0.001f && std::abs(again.w - r.w) < 0.001f);
+    }
+    CHECK(p.snap({5, 5, 0.5f, 0}).w * scale >= 0.99f);  // a thin line never vanishes
+    CHECK(p.snap({5, 5, 0.5f, 0}).h == 0);
+  }
+  // Cloud is drawn where it is asked to be.
+  h.app.set_theme("cloud");
+  const auto target = h.target_at(120);
+  Painter p(h.app.ui().gfx, target.get());
+  const Rect r = p.snap({1.3f, 2.7f, 21, 21});
+  CHECK(r.x == 1.3f && r.y == 2.7f && r.w == 21);
+}
+
 void test_home_lists_the_seats_and_goes_straight_to_a_public_room() {
   UiHarness h;
   start_luna(h);
@@ -409,6 +437,7 @@ int main() {
   test_points_of_the_frame_go_to_the_system();
   test_content_is_inside_the_frame();
   test_each_screen_has_its_window_size_and_cloud_has_one();
+  test_equal_sizes_land_on_equal_whole_pixels();
   test_home_lists_the_seats_and_goes_straight_to_a_public_room();
   test_menus_do_what_the_shell_and_screens_do();
   test_only_links_show_the_hand();

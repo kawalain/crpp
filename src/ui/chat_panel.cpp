@@ -15,7 +15,7 @@ std::string chat_clock_text(long long ms, bool use_24h) {
   const std::time_t t = static_cast<std::time_t>(ms / 1000);
   std::tm tm{};
   localtime_s(&tm, &t);
-  const std::time_t now = std::time(nullptr);
+  const std::time_t now = static_cast<std::time_t>(wall_clock_seconds());
   std::tm today{};
   localtime_s(&today, &now);
   const auto day_index = [](const std::tm& d) {

@@ -129,7 +129,7 @@ void DisplayTab::paint_sample(Painter& p, Rect box, float zoom) {
   // .chat-sample .chat-list has padding 14 18; the rest is .chat-head and .chat-text.
   const float x = 18, y = 14, inner_w = sample_w / zoom - 36;
   draw_svg(p, ui_.emoji_image(sample_emoji_), {x, y, 25, 25});
-  const std::string time = chat_clock_text(static_cast<long long>(std::time(nullptr)) * 1000, ui_.prefs->get(pref::use_24h));
+  const std::string time = chat_clock_text(wall_clock_seconds() * 1000, ui_.prefs->get(pref::use_24h));
   const D2D1_SIZE_F time_size = p.text(time, {x, y + 2.5f, inner_w, 20}, {.size = 14, .line_height = 20, .align = Align::Right}, t.hl_text);
   p.text(sample_nick_.empty() ? std::string_view("게스트") : std::string_view(sample_nick_),
          {x + 25 + 7, y + 2.5f, std::max(20.0f, inner_w - 25 - 7 - time_size.width - 7), 20},

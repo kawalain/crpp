@@ -1,6 +1,7 @@
 #include "crpp/ui/surface.hpp"
 
 #include <algorithm>
+#include <ctime>
 
 namespace crpp::ui {
 
@@ -61,6 +62,16 @@ unsigned long long clock_ms() noexcept {
 }
 
 void hold_clock_at(unsigned long long ms) noexcept { held_clock = ms; }
+
+namespace {
+long long held_wall_clock = 0;
+}  // namespace
+
+long long wall_clock_seconds() noexcept {
+  return held_wall_clock != 0 ? held_wall_clock : static_cast<long long>(std::time(nullptr));
+}
+
+void hold_wall_clock(long long seconds) noexcept { held_wall_clock = seconds; }
 
 const Ui::Hit* Ui::find_hit(const Surface* owner, int id) const {
   for (auto it = hits_.rbegin(); it != hits_.rend(); ++it) {

@@ -79,6 +79,7 @@ int run_motion(Shell& s, const Motion& motion, const std::wstring& path, unsigne
 
 int run_shot(Shell& s, int argc, char** argv, float dpi) {
   s.app.ui().animations = false;
+  hold_wall_clock(1700000000);
   unsigned w = 951, h = 692;
   if (argc >= 4) std::sscanf(argv[3], "%ux%u", &w, &h);
   if (argc >= 8 && std::string_view(argv[6]) == "--at") {

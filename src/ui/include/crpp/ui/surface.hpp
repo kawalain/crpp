@@ -23,6 +23,10 @@ enum class Cursor : std::uint8_t { Arrow, Hand, IBeam };
 [[nodiscard]] unsigned long long clock_ms() noexcept;
 // Stops the clock at this time, for rendering a moment of a motion; 0 restarts it.
 void hold_clock_at(unsigned long long ms) noexcept;
+// Seconds since 1970, as std::time gives them, unless held: --shot stops it so that the
+// same scene always renders the same image.
+[[nodiscard]] long long wall_clock_seconds() noexcept;
+void hold_wall_clock(long long seconds) noexcept;
 
 inline D2D1_MATRIX_3X2_F scale_about(float cx, float cy, float s) {
   return D2D1::Matrix3x2F::Translation(-cx, -cy) * D2D1::Matrix3x2F::Scale(s, s) * D2D1::Matrix3x2F::Translation(cx, cy);

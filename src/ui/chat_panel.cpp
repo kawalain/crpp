@@ -137,7 +137,10 @@ void ChatPanel::blocked(std::uint64_t ms) {
   if (input_.text().empty() && !last_sent_.empty()) input_.set_text(widen(last_sent_));
 }
 
-void ChatPanel::shake() { shake_at_ = clock_ms(); }
+void ChatPanel::shake() {
+  shake_at_ = clock_ms();
+  ++shakes_;
+}
 
 bool ChatPanel::shaking() const {
   return ui_.animations && shake_at_ != 0 && static_cast<float>(ui_.now_ms - std::min(ui_.now_ms, shake_at_)) < send_shake_ms;
@@ -160,7 +163,10 @@ bool ChatPanel::send_moving() const {
   return ui_.animations && multi_since_ != 0 && static_cast<float>(ui_.now_ms - std::min(ui_.now_ms, multi_since_)) < send_move_ms;
 }
 
-bool ChatPanel::animating() const { return shaking() || calm_moving() || send_moving() || link_tip_.animating(ui_); }
+bool ChatPanel::animating() const {
+  if (ui_.pack_screen("chat")) return link_tip_.animating(ui_);  // what its screen moves asks for itself
+  return shaking() || calm_moving() || send_moving() || link_tip_.animating(ui_);
+}
 
 bool ChatPanel::tick(unsigned long long now_ms) {
   const bool moving = animating();
@@ -499,7 +505,7 @@ void ChatPanel::enter(bool shift) {
 }
 
 bool ChatPanel::key(unsigned vk, bool ctrl, bool shift) {
-  if ((vk == VK_UP || vk == VK_DOWN) && !ui_.skin().scales_stage()) {
+  if ((vk == VK_UP || vk == VK_DOWN) && (ui_.pack_screen("chat") || !ui_.skin().scales_stage())) {
     input_.move_vertical(ui_.gfx, ui_.pack_screen("chat") ? pack_input_style_ : luna_input(), input_text_w_, vk == VK_UP ? -1 : 1, shift);
     return true;
   }

@@ -421,6 +421,37 @@ void test_a_room_at_rest_asks_for_no_frames() {
   }
 }
 
+void test_a_disc_draws_only_itself_and_held_up_it_costs_nothing() {
+  UiHarness h;
+  room_from_the_pack(h, true);
+  RoomScreen& room = h.app.room();
+  Moving moving(h);
+  settled(h, moving);
+  room.pulse(1);
+  CHECK(room.take_new_pulse());
+  (void)moving.after(0);
+  const auto area = h.app.only_moving_area();
+  CHECK(area.has_value());
+  const Ui::Hit* row = h.app.ui().find_hit(&room, RoomScreen::MemberBase + 1);
+  CHECK(row != nullptr);
+  if (area && row) {
+    CHECK(std::abs(area->x - (row->rect.x + 6)) < 0.01f && std::abs(area->y - (row->rect.y + 1.5f)) < 0.01f);
+    CHECK(area->w == 44 && area->h == 44);
+  }
+  CHECK(moving.after(50));
+  // At full strength it asks for nothing, however often it is renewed.
+  CHECK(!moving.after(50));
+  room.pulse(1);
+  CHECK(!room.take_new_pulse());
+  CHECK(!room.animating());
+  CHECK(!h.app.ui().more_frames);
+  // Something else moving wants the whole window.
+  room.chat().blocked(5000);
+  (void)moving.after(0);
+  CHECK(h.app.ui().more_frames);
+  CHECK(!h.app.only_moving_area().has_value());
+}
+
 void test_someone_arrives_once_and_a_first_list_does_not() {
   UiHarness h;
   CHECK(h.start(1200, 900));
@@ -447,6 +478,20 @@ void test_someone_arrives_once_and_a_first_list_does_not() {
   CHECK(!h.app.ui().more_frames);
 }
 
+void test_a_message_rises_and_ends() {
+  UiHarness h;
+  room_from_the_pack(h, true);
+  Moving moving(h);
+  ChatPanel& chat = h.app.room().chat();
+  chat.add({1, "c1", "Other", "", "First", 1700000000000});
+  settled(h, moving);
+  chat.add({1, "c1", "Other", "", "Second", 1700000060000});
+  CHECK(moving.after(0));
+  CHECK(moving.after(150));
+  settled(h, moving);
+  CHECK(chat.shown() == 2);
+}
+
 void test_quieting_everyone_fades_and_ends() {
   UiHarness h;
   room_from_the_pack(h, false);
@@ -457,6 +502,39 @@ void test_quieting_everyone_fades_and_ends() {
   CHECK(moving.after(100));
   CHECK(!moving.after(100));
   settled(h, moving);
+}
+
+void test_the_chat_shakes_calms_and_ends() {
+  UiHarness h;
+  room_from_the_pack(h, true);
+  Moving moving(h);
+  settled(h, moving);
+  ChatPanel& chat = h.app.room().chat();
+  chat.blocked(5000);
+  CHECK(moving.after(0));
+  CHECK(moving.after(300));
+  CHECK(!moving.after(200));  // shaken, and the bubble is up
+  CHECK(!h.app.ui().more_frames);
+  CHECK(moving.after(10000));  // the wait is over and the bubble goes
+  settled(h, moving);
+  CHECK(!chat.limiter().calm());
+}
+
+void test_the_send_button_moves_out_for_a_second_line() {
+  UiHarness h;
+  room_from_the_pack(h, true);
+  Moving moving(h);
+  settled(h, moving);
+  ChatPanel& chat = h.app.room().chat();
+  const Ui::Hit* send = h.app.ui().find_hit(&chat, ChatPanel::Send);
+  CHECK(send != nullptr);
+  const float y = send ? send->rect.y : 0;
+  chat.input().set_text(L"one\ntwo");
+  CHECK(moving.after(0));
+  settled(h, moving);
+  send = h.app.ui().find_hit(&chat, ChatPanel::Send);
+  CHECK(send != nullptr);
+  if (send) CHECK(send->rect.y > y + 40);
 }
 
 void test_a_refused_switch_shakes_its_tip_longer_than_the_tip_fades() {
@@ -509,8 +587,12 @@ int main() {
   test_a_room_stands_where_the_code_puts_it();
   test_the_volume_popup_stands_where_the_code_puts_it();
   test_a_room_at_rest_asks_for_no_frames();
+  test_a_disc_draws_only_itself_and_held_up_it_costs_nothing();
   test_someone_arrives_once_and_a_first_list_does_not();
+  test_a_message_rises_and_ends();
   test_quieting_everyone_fades_and_ends();
+  test_the_chat_shakes_calms_and_ends();
+  test_the_send_button_moves_out_for_a_second_line();
   test_a_refused_switch_shakes_its_tip_longer_than_the_tip_fades();
   test_a_path_can_fill_where_its_shapes_overlap();
   test_every_tab_stands_where_the_code_puts_it();

@@ -1,7 +1,7 @@
 {
   "$schema": "http://json-schema.org/draft-07/schema#",
   "title": "The screen chat of a Skin Pack",
-  "description": "A screen of a Skin Pack, as {\"draw\": [nodes]}. With no file for a screen, the program draws it itself.\nNumbers: @zoom, @view, @content, @offset, @send_off, @calm.\nTexts: @input_text, @calm_text.\nHits: input, send, area, bar_up, bar_down, bar_track, bar_thumb.\nPictures: none.\nFields: input.\nSlots: messages.\nReports: none.\nNotes: area, bar_track.",
+  "description": "A screen of a Skin Pack, as {\"draw\": [nodes]}. With no file for a screen, the program draws it itself.\nNumbers: @zoom, @view, @content, @offset, @send_off, @calm, @shakes.\nTexts: @input_text, @calm_text.\nHits: input, send, area, bar_up, bar_down, bar_track, bar_thumb.\nPictures: none.\nFields: input.\nSlots: messages, rows.\nReports: none.\nNotes: area, bar_track.",
   "allowComments": true,
   "allowTrailingCommas": true,
   "type": "object",
@@ -69,7 +69,8 @@
         },
         "slot": {
           "enum": [
-            "messages"
+            "messages",
+            "rows"
           ]
         },
         "report": false,

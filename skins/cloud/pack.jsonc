@@ -197,6 +197,11 @@
     "room_label": {"size": 20, "weight": 700, "line_height": 41},
     "room_code": {"size": 20, "weight": 700, "line_height": 41, "align": "right", "letter_spacing": 0.4},
     "volume_text": {"size": 16, "weight": 700, "line_height": 22},
+    "chat_input": {"size": 17, "line_height": 22, "wrap": true},
+    "chat_body": {"size": 17, "line_height": 19, "wrap": true},
+    "chat_time": {"size": 14, "line_height": 20, "align": "right"},
+    "chat_nick": {"size": 15, "line_height": 20, "ellipsis": true},
+    "calm": {"size": 34, "weight": 800, "line_height": "34*1.35"},
   },
   "parts": {
     // Upstream's cloud, set at this box's corner, with a soft shadow in the light Themes.

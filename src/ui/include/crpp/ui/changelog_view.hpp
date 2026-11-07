@@ -44,6 +44,8 @@ class ChangelogView final : public Surface {
   using Surface::Surface;
   enum Id : int { Backdrop, Card, Close, BarTrack, BarThumb };
 
+  [[nodiscard]] static skin::ScreenSchema schema();
+
   // Entries are newest first. An empty list says there is nothing to show.
   void open(std::vector<ChangelogEntry> entries, std::size_t index);
   // New data while open; stays on the same version if it is still there.
@@ -71,12 +73,21 @@ class ChangelogView final : public Surface {
   struct Line {
     ComPtr<IDWriteTextLayout> layout;
     float x = 0, y = 0;  // relative to the top of the body
-    float bullet_x = -1, bullet_y = 0;
+    float bullet_x = -1;
     std::wstring marker;
     float marker_x = 0;
   };
+  // How the notes' lines are laid out and written.
+  struct BodyLook {
+    float pad_x, indent, margin, heading_top, heading_bottom, bottom, top;
+    TextStyle heading, item;
+  };
   void show(std::size_t index, bool at_bottom);
   void build(float width);
+  void lay_out_body(const BodyLook& look, float width);
+  void scroll_body();
+  void paint_body(Painter& p, Rect body, const TextStyle& item, float marker_h, Color ink);
+  void paint_pack(Painter& p, const skin::Screen& screen);
   void show_hint(int direction);
 
   bool open_ = false;
@@ -88,7 +99,7 @@ class ChangelogView final : public Surface {
   std::vector<Line> lines_;
   ComPtr<IDWriteTextLayout> tagline_, date_, version_;
   bool built_ = false;
-  float built_width_ = 0, head_h_ = 0, body_h_ = 0;
+  float built_width_ = 0, head_h_ = 0, body_h_ = 0, first_line_ = 0;
   Scroll scroll_;
   bool start_at_bottom_ = false;
   Rect bar_track_;

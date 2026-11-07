@@ -16,6 +16,7 @@ home-droplet-tip
 home-bubble
 home-bubble-find
 toast
+notice
 dialog
 session
 chat

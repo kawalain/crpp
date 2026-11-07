@@ -239,6 +239,8 @@ void open_every_panel(UiHarness& h) {
   room.profile_card().request(1);
   room.show_profile({1, "You", "", std::optional<std::string>("you"), std::optional<std::int64_t>(1700000000), 3900, 12345});
   h.app.offline().show();
+  h.app.settings().open(SettingsPage::Display);
+  h.app.settings().display().click(DisplayTab::ThemeList, 0, 0, false);
 }
 
 void test_the_panels_from_the_pack_stand_where_the_code_puts_them() {
@@ -264,6 +266,8 @@ void test_the_panels_from_the_pack_stand_where_the_code_puts_them() {
       {&h.app.dialogs(), Pane::Dialog, Dialogs::Cancel},
       {&h.app.room().profile_card(), Pane::Profile, ProfileCard::Card},
       {&h.app.offline(), Pane::Offline, OfflinePopup::Card},
+      {&h.app.settings().display(), Pane::Options, DisplayTab::ThemeList + 1},
+      {&h.app.settings().display(), Pane::Options, DisplayTab::ThemeList + 2},
   };
   const auto look = [&] {
     std::vector<Rect> found;
@@ -408,6 +412,51 @@ void test_the_emoji_from_the_pack_walk_only_what_is_in_view() {
   h.on_pane(Pane::Main);
 }
 
+void test_a_list_from_the_pack_picks_and_the_notes_scroll() {
+  UiHarness h;
+  CHECK(h.start(640, 500));
+  h.app.set_theme("messenger");
+  CHECK(h.app.load_skin_dir(messenger_pack).has_value());
+  h.app.show_home();
+
+  h.app.settings().open(SettingsPage::Display);
+  h.on_pane(Pane::Options);
+  DisplayTab& display = h.app.settings().display();
+  CHECK(h.click(display, DisplayTab::ThemeList));
+  CHECK(h.drawn(display, DisplayTab::ThemeList + 1));
+  CHECK(h.click(display, DisplayTab::ThemeList + 2));
+  CHECK(!h.drawn(display, DisplayTab::ThemeList + 1));
+  h.app.settings().close();
+  h.on_pane(Pane::Main);
+
+  // Long notes have a bar, and scrolling on past their end goes to the next version.
+  ChangelogEntry entry{"A new version", "2026.11.08", "v1.0.0", {}};
+  for (int i = 0; i < 60; ++i) entry.blocks.push_back({crpp::update::NoteKind::Bullet, 0, "", {{"line " + std::to_string(i), i == 0}}});
+  ChangelogView& view = h.app.changelog();
+  view.open({entry, entry}, 0);
+  h.on_pane(Pane::Changelog);
+  CHECK(h.drawn(view, ChangelogView::Card));
+  CHECK(h.drawn(view, ChangelogView::BarTrack));
+  CHECK(h.drawn(view, ChangelogView::BarThumb));
+  CHECK(!h.drawn(view, ChangelogView::Close));
+  const float top = h.app.ui().find_hit(&view, ChangelogView::BarThumb)->rect.y;
+  for (int i = 0; i < 5; ++i) view.wheel(0, 0, -1);
+  h.render();
+  CHECK(h.app.ui().find_hit(&view, ChangelogView::BarThumb)->rect.y > top);
+  for (int i = 0; i < 200 && view.index() == 0; ++i) {
+    view.wheel(0, 0, -1);
+    h.render();
+  }
+  CHECK(view.index() == 1);
+  view.close();
+  view.open({}, 0);
+  h.render();
+  CHECK(h.drawn(view, ChangelogView::Card));
+  CHECK(!h.drawn(view, ChangelogView::BarThumb));
+  view.close();
+  h.on_pane(Pane::Main);
+}
+
 void test_a_folder_without_a_pack_is_refused_and_changes_nothing() {
   UiHarness h;
   start_on_home(h);
@@ -431,6 +480,7 @@ int main() {
   test_the_panels_from_the_pack_stand_where_the_code_puts_them();
   test_the_panels_from_the_pack_do_what_they_do_on_the_code();
   test_the_emoji_from_the_pack_walk_only_what_is_in_view();
+  test_a_list_from_the_pack_picks_and_the_notes_scroll();
   test_a_folder_without_a_pack_is_refused_and_changes_nothing();
   return crpp_test_result();
 }

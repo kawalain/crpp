@@ -99,6 +99,10 @@ bool scene(Shell& s, std::string_view name) {
     s.app.toasts().toast(tr().lost_server);
     return true;
   }
+  if (name == "notice") {
+    s.app.notice().set(Notice{tr().notice_shared, tr().notice_move, tr().notice_close});
+    return true;
+  }
   if (name == "dialog") {
     s.app.dialogs().show({tr().system_reset_question, tr().system_reset_confirm, tr().cancel, false, nullptr, nullptr});
     return true;

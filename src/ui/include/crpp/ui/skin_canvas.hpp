@@ -20,7 +20,8 @@ void measure_screen(const Ui& ui, const skin::Screen& screen, Rect area, skin::S
 
 class SkinCanvas final : public skin::Canvas {
  public:
-  SkinCanvas(Ui& ui, Painter& painter, Surface* owner) : ui_(ui), p_(painter), owner_(owner) {}
+  // hit_base is added to every id, for a list of which a surface has several.
+  SkinCanvas(Ui& ui, Painter& painter, Surface* owner, int hit_base = 0) : ui_(ui), p_(painter), owner_(owner), hit_base_(hit_base) {}
 
   skin::Box snap(skin::Box box) override;
   float snap(float value) override;
@@ -39,14 +40,15 @@ class SkinCanvas final : public skin::Canvas {
   void text(std::string_view text, skin::Box box, const skin::TextLook& look, skin::Color color) override { p_.text(text, rect_of(box), text_style_of(look), color); }
   void push_clip(skin::Box box) override;
   void pop_clip() override;
-  void hit(skin::Box box, int id) override { ui_.add_hit(owner_, rect_of(box), id); }
-  bool hot(int id) override { return ui_.hot(owner_, id); }
-  bool pressed(int id) override { return ui_.pressed(owner_, id); }
+  void hit(skin::Box box, int id) override { ui_.add_hit(owner_, rect_of(box), hit_base_ + id); }
+  bool hot(int id) override { return ui_.hot(owner_, hit_base_ + id); }
+  bool pressed(int id) override { return ui_.pressed(owner_, hit_base_ + id); }
 
  private:
   Ui& ui_;
   Painter& p_;
   Surface* owner_;
+  int hit_base_;
 };
 
 }  // namespace crpp::ui

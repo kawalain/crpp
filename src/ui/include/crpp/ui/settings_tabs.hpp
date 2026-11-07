@@ -49,8 +49,9 @@ class SoundTab final : public SettingsTab {
  public:
   explicit SoundTab(Ui& ui);
 
-  // What a Skin Pack can name on this tab.
+  // What a Skin Pack can name on this tab, and for the value over a slider.
   [[nodiscard]] static skin::ScreenSchema schema();
+  [[nodiscard]] static skin::ScreenSchema tip_schema();
 
   enum Id : int {
     SpeakerVolume,

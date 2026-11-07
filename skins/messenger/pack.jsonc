@@ -7,7 +7,7 @@
     "button_w": 75, "button_h": 23, "field_h": 23, "check_size": 13, "row_h": 20, "scrollbar_w": 17,
     "dialog_pad_top": 14, "dialog_pad_x": 14, "dialog_pad_bottom": 12, "dialog_gap": 14, "dialog_button_h": 23, "dialog_button_w": 75,
     "dialog_button_gap": 6, "dialog_width": 280, "dialog_wide_width": 340, "dialog_margin": 16, "dialog_text_size": 16, "dialog_text_line": 18, "dialog_align": 0,
-    "list_pad": 1, "list_item_h": 17, "list_gap": 0, "list_max_h": 138, "list_margin": 0
+    "list_pad": 1, "list_item_h": 17, "list_gap": 0, "list_max_h": 138, "list_margin": 0, "slider_thumb": 21
   },
   "palettes": {
     "messenger": {
@@ -206,6 +206,8 @@
     "chat_text": {"size": "font_size", "line_height": "font_size+4", "wrap": true, "exact": true},
     "paragraph_center": {"size": "font_size", "line_height": "font_size+4", "align": "center", "wrap": true, "exact": true},
     "tip_line": {"size": "font_size", "line_height": 16, "exact": true},
+    "note_title": {"size": "font_size+2", "weight": 700, "line_height": "font_size+4", "wrap": true, "exact": true},
+    "note_version": {"size": "font_size", "line_height": 20, "exact": true},
     "title": {"size": "font_size+2", "weight": 700, "line_height": "h", "ellipsis": true, "exact": true},
     "sample": {"size": "font_size", "line_height": "font_size+4", "ellipsis": true, "exact": true},
     "caption": {"size": 13, "weight": 700, "line_height": "h", "ellipsis": true, "exact": true, "role": "caption"}

@@ -3,10 +3,24 @@
 #include <algorithm>
 #include <cmath>
 
+#include "crpp/ui/skin_canvas.hpp"
+
 namespace crpp::ui {
 
 namespace {
 constexpr float list_fade_ms = 120;
+
+enum ListNumberId : int { Items, Selected, Up, Offset };
+enum ListReportId : int { View, Content };
+constexpr skin::Name list_text_names[] = {{"item", 0}};
+constexpr skin::Name list_number_names[] = {{"items", Items}, {"selected", Selected}, {"up", Up}, {"scroll", Offset}};
+constexpr skin::Name list_hit_names[] = {{"item", 1}};
+constexpr skin::Name list_report_names[] = {{"view", View}, {"content", Content}};
+constexpr skin::Name list_note_names[] = {{"list", 0}};
+}
+
+skin::ScreenSchema Dropdown::schema() {
+  return {.screen = "dropdown", .texts = list_text_names, .numbers = list_number_names, .hits = list_hit_names, .reports = list_report_names, .notes = list_note_names};
 }
 
 float ease(float t) {
@@ -57,6 +71,40 @@ void Dropdown::paint_button(Ui& ui, Surface* owner, Painter& p, Rect r) const {
 void Dropdown::paint_list(Ui& ui, Surface* owner, Painter& p, Rect r) {
   if (!open) {
     was_open_ = false;
+    return;
+  }
+  if (const skin::Screen* screen = ui.pack_screen("dropdown")) {
+    class Shown final : public skin::Source {
+     public:
+      Shown(Dropdown& dropdown, Ui& ui, Rect& list, Scroll& scroll) : d_(dropdown), ui_(ui), list_(list), scroll_(scroll) {}
+      std::string_view text(int, int index) override { return d_.options[static_cast<std::size_t>(index)]; }
+      float number(int id, int index) override {
+        switch (id) {
+          case Items: return static_cast<float>(d_.options.size());
+          case Selected: return index == d_.selected ? 1.0f : 0.0f;
+          case Up: return d_.up ? 1.0f : 0.0f;
+          default: return scroll_.drawn();
+        }
+      }
+      void report(int id, float value) override {
+        if (id == View) {
+          scroll_.view_h = value;
+        } else {
+          scroll_.content_h = value;
+          scroll_.clamp();
+          scroll_.advance(ui_);
+        }
+      }
+      void note(int, int, skin::Box box) override { list_ = rect_of(box); }
+
+     private:
+      Dropdown& d_;
+      Ui& ui_;
+      Rect& list_;
+      Scroll& scroll_;
+    } shown(*this, ui, list_, scroll_);
+    SkinCanvas canvas(ui, p, owner, id_base);
+    skin::draw(*ui.pack, *screen, ui.palette, {r.x, r.y, r.w, r.h}, canvas, shown);
     return;
   }
   const Theme& t = ui.theme;

@@ -7,10 +7,14 @@
 
 #include "crpp/ui/prefs.hpp"
 #include "crpp/ui/settings_tabs.hpp"
+#include "crpp/ui/skin_canvas.hpp"
 
 namespace crpp::ui {
 
 namespace {
+
+constexpr skin::Name slider_tip_text_names[] = {{"text", 0}};
+constexpr skin::Name slider_tip_number_names[] = {{"track_x", 0}, {"track_y", 1}, {"track_w", 2}, {"percent", 3}};
 
 // Vertical positions are main.js settingsContent's. Without the Pen row everything
 // below it moves up by this much.
@@ -291,10 +295,36 @@ void SoundTab::paint(Painter& p, Rect area) {
   paint_tip(p, area);
 }
 
+skin::ScreenSchema SoundTab::tip_schema() {
+  return {.screen = "slider_tip", .texts = slider_tip_text_names, .numbers = slider_tip_number_names};
+}
+
 void SoundTab::paint_tip_luna(Painter& p, int row_index) {
   const auto row = static_cast<std::size_t>(row_index);
   const int value = ui_.prefs->get(volume_rows[row].key);
   const std::string text = std::to_string(value) + "%";
+  if (const skin::Screen* screen = ui_.pack_screen("slider_tip")) {
+    class Shown final : public skin::Source {
+     public:
+      Shown(std::string_view words, Rect track, int percent) : text_(words), track_(track), percent_(percent) {}
+      std::string_view text(int, int) override { return text_; }
+      float number(int id, int) override {
+        switch (id) {
+          case 0: return track_.x;
+          case 1: return track_.y;
+          case 2: return track_.w;
+          default: return static_cast<float>(percent_);
+        }
+      }
+
+     private:
+      std::string_view text_;
+      Rect track_;
+      int percent_;
+    } shown(text, slider_rects_[row], value);
+    draw_screen(ui_, p, this, *screen, {0, 0, ui_.width, ui_.height}, shown);
+    return;
+  }
   const float w = text_width(p, text, {.size = ui_.gfx.classic_size(), .exact = true}) + 10;
   const Rect s = slider_rects_[row];
   const float cx = s.x + slider_thumb / 2 + static_cast<float>(value) / 100 * (s.w - slider_thumb);

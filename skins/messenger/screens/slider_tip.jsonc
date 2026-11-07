@@ -1,0 +1,11 @@
+{
+  "$schema": "../../schema/screen.slider_tip.schema.json",
+  "draw": [
+    {"let": "box_w", "value": "textw('body_center', '@text')+10"},
+    {"let": "middle", "value": "@track_x+slider_thumb/2+@percent/100*(@track_w-slider_thumb)"},
+    {"x": "floor(middle-box_w/2)", "y": "@track_y-17", "w": "ceil(box_w)", "h": 17, "group": [
+      {"use": "bubble"},
+      {"text": "@text", "style": "body_center", "color": "$tooltip_ink"}
+    ]}
+  ]
+}

@@ -24,6 +24,17 @@ namespace crpp::gui::os_policy {
 // shared. Said once, the first time it can surprise someone.
 [[nodiscard]] constexpr bool hide_needs_hint(bool in_room, bool already_shown) { return in_room && !already_shown; }
 
+// A development build runs beside anything else already running, so it stays out of what
+// a user has only one of: the other instances, their data folders and the Run key. --data
+// does the same for any build, with the folder it names.
+[[nodiscard]] constexpr bool shares_the_machine(bool official, bool data_given) { return official && !data_given; }
+[[nodiscard]] constexpr bool data_beside_exe(bool official, bool data_given) { return !official && !data_given; }
+
+// Its window has a class of its own too, or a second start of an official build could
+// find it and bring it forward. The title tells the windows and tray icons apart.
+[[nodiscard]] constexpr const wchar_t* window_class(bool official) { return official ? L"CrppWindow" : L"CrppDevWindow"; }
+[[nodiscard]] constexpr const wchar_t* window_title(bool official) { return official ? L"Cloudroom++" : L"Cloudroom++ (dev)"; }
+
 // A shown window has its render resources; hidden and minimized ones do not.
 [[nodiscard]] constexpr bool window_hidden(bool visible, bool iconic) { return !visible || iconic; }
 

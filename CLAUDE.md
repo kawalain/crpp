@@ -184,8 +184,8 @@ The app is a Windows-subsystem program with no console: PowerShell does not wait
 so wait with `Start-Process -Wait`, and read `--smoke`'s result from the exit code.
 
 Options are read from the end of the command line: `crpp --shot <png> <size> <hour> <scene>
---data <dir>`. Put first, `--data` is ignored and the real app opens on the user's desktop
-with their data. A shot is in Korean and in the Theme of its scene unless `--locale <id>` or
+--data <dir>`. Put first, `--data` is ignored and the real app opens on the user's desktop.
+A shot is in Korean and in the Theme of its scene unless `--locale <id>` or
 `--theme <id>` says otherwise. `auto` for the size renders the window size of the Skin's screen.
 A scene that opens a panel with a window of its own renders that window. Under `--skin-dir`, the scene `cursors`, which
 is not in `scenes.txt`, is a sheet of the pack's cursors.
@@ -202,7 +202,14 @@ A change that must leave the screen as it was can prove it: `tests/shots/render.
 every scene in `scenes.txt` on a hidden desktop, before and after, and `compare.ps1` compares
 the folders by hash. A shot holds the clock, so the same scene always gives the same file.
 
-`crpp --data <dir>` keeps a run's data out of the user's folders, and with no
+A development build, any build without `CRPP_OFFICIAL_BUILD`, runs beside whatever is already
+running, the user's app included: every start opens a new window. Without `--data` it keeps its
+data in `data/` beside the exe, so each build folder has its own and the user's stays untouched.
+It never writes the Run key, and its title and tray tip say `(dev)`. A second start bringing the
+first forward, and the real Run key, therefore happen only in an official build. It still talks to
+the default server. A running exe cannot be linked over (LNK1104): build into another folder.
+
+`crpp --data <dir>` keeps a run's data in `<dir>`, and with no
 `serverUrl` in it skips the startup `/health`, so scripted runs stay off the default
 server; seed `serverUrl` in its `crpp/settings.json` to test the offline popup. That covers only
 `/health`: a click on creating or joining a Room still goes to the default server, which is production,

@@ -254,8 +254,8 @@ void wire(Shell& s) {
   s.app.frame().on_exit = [hwnd = s.hwnd] { PostMessageW(hwnd, wm_exit, 0, 0); };
   state.taskbar_created = RegisterWindowMessageW(L"TaskbarCreated");
   state.show_window_requested = RegisterWindowMessageW(show_window_message);
-  if (s.throwaway_data) state.run_key = std::make_unique<MemoryRunKey>();
-  else state.run_key = std::make_unique<WindowsRunKey>();
+  if (s.shares_the_machine) state.run_key = std::make_unique<WindowsRunKey>();
+  else state.run_key = std::make_unique<MemoryRunKey>();
   if (tray_wanted(s)) state.tray.add();
 
   // These chain: another area may listen to the same events.

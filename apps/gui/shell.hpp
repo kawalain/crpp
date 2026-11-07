@@ -183,6 +183,7 @@ struct Shell {
   std::shared_ptr<area::sound::State> sound_state;
   std::shared_ptr<void> account;  // area_account.cpp's own state
   bool throwaway_data = false;  // --data: a scripted or test run
+  bool shares_the_machine = false;  // os_policy::shares_the_machine
   std::shared_ptr<ConnectionArea> connection;  // last: stops its thread before the rest goes
 };
 

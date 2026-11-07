@@ -7,6 +7,8 @@
 #include "areas.hpp"
 #include "crpp/ui/luna.hpp"
 #include "crpp/ui/png.hpp"
+#include "crpp/update/built_in.hpp"
+#include "os_policy.hpp"
 #include "shell.hpp"
 #include "tray.hpp"
 
@@ -492,12 +494,13 @@ HWND create_window(Shell& s) {
   wc.hCursor = LoadCursorW(nullptr, MAKEINTRESOURCEW(32512));
   wc.hIcon = load_app_icon(GetSystemMetrics(SM_CXICON));
   wc.hIconSm = load_app_icon(GetSystemMetrics(SM_CXSMICON));
-  wc.lpszClassName = L"CrppWindow";
+  const bool official = update::official_build();
+  wc.lpszClassName = os_policy::window_class(official);
   RegisterClassExW(&wc);
 
   // The monitor's DPI is known only once the window exists, so it is sized while
   // still hidden.
-  HWND hwnd = CreateWindowExW(0, wc.lpszClassName, L"Cloudroom++", window_style, CW_USEDEFAULT, CW_USEDEFAULT,
+  HWND hwnd = CreateWindowExW(0, wc.lpszClassName, os_policy::window_title(official), window_style, CW_USEDEFAULT, CW_USEDEFAULT,
                               CW_USEDEFAULT, CW_USEDEFAULT, nullptr, nullptr, wc.hInstance, &s);
   if (!hwnd) return nullptr;
   s.dpi = GetDpiForWindow(hwnd);

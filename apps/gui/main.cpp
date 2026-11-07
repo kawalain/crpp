@@ -19,6 +19,8 @@
 //   ... --updated-from <pid>      started by the update of process <pid>
 //   ... --data <dir>              (last) keep data in <dir>, not the user's
 //                                 folders; other instances are then allowed
+// A development build always allows other instances, and without --data keeps its data in
+// a data folder beside the exe.
 #include <algorithm>
 #include <cstdlib>
 #include <ctime>
@@ -28,6 +30,8 @@
 #include "areas.hpp"
 #include "crpp/assets/built_in.hpp"
 #include "crpp/assets/windows_platform.hpp"
+#include "crpp/update/built_in.hpp"
+#include "os_policy.hpp"
 #include "shell.hpp"
 #include "sound_prefs.hpp"
 
@@ -74,7 +78,7 @@ sound::Settings load_audio_settings(const store::Store& data) {
 bool another_instance_running() {
   CreateMutexW(nullptr, FALSE, L"Local\\crpp.single-instance");  // released at exit
   if (GetLastError() != ERROR_ALREADY_EXISTS) return false;
-  if (HWND existing = FindWindowW(L"CrppWindow", nullptr)) {
+  if (HWND existing = FindWindowW(os_policy::window_class(true), nullptr)) {
     DWORD owner = 0;
     GetWindowThreadProcessId(existing, &owner);
     AllowSetForegroundWindow(owner);
@@ -120,6 +124,7 @@ int main(int argc, char** argv) {
   }
   Shell shell;
   shell.throwaway_data = !data_dir.empty();
+  shell.shares_the_machine = os_policy::shares_the_machine(update::official_build(), !data_dir.empty());
   shell.data_override = data_dir.wstring();
   unsigned long updated_from = 0;
   if (argc >= 3 && std::string(argv[argc - 2]) == "--update-url") {
@@ -157,16 +162,19 @@ int main(int argc, char** argv) {
     shot_dpi = static_cast<float>(std::atof(argv[argc - 1]));
     argc -= 2;
   }
-  auto locations = data_dir.empty() ? store::default_locations()
-                                    : std::expected<store::Locations, store::Error>(
-                                          store::Locations{data_dir / "crpp", data_dir / "Cloudroom"});
-  if (!locations) locations = store::Locations{exe_dir() / "data" / "crpp", exe_dir() / "data" / "Cloudroom"};
-  const bool development = std::filesystem::exists(exe_dir() / "assets" / "fonts");
-  shell.assets_dir = development ? exe_dir() / "assets" : locations->protected_dir / "assets";
-  const auto absent = development ? std::vector<const assets::Entry*>{} : assets::missing(shell.asset_manifest, shell.assets_dir);
+  const store::Locations beside_exe{exe_dir() / "data" / "crpp", exe_dir() / "data" / "Cloudroom"};
+  auto locations = !data_dir.empty()
+                       ? std::expected<store::Locations, store::Error>(store::Locations{data_dir / "crpp", data_dir / "Cloudroom"})
+                   : os_policy::data_beside_exe(update::official_build(), false)
+                       ? std::expected<store::Locations, store::Error>(beside_exe)
+                       : store::default_locations();
+  if (!locations) locations = beside_exe;
+  const bool assets_beside_exe = std::filesystem::exists(exe_dir() / "assets" / "fonts");
+  shell.assets_dir = assets_beside_exe ? exe_dir() / "assets" : locations->protected_dir / "assets";
+  const auto absent = assets_beside_exe ? std::vector<const assets::Entry*>{} : assets::missing(shell.asset_manifest, shell.assets_dir);
   // Only a first start waits for the files: a network that keeps them out would otherwise
   // hold up every start.
-  const bool first_install = !development && !assets::tried(shell.assets_dir);
+  const bool first_install = !assets_beside_exe && !assets::tried(shell.assets_dir);
   const auto& assets = shell.assets_dir;
   // Windows refuses to replace an open font file, so one about to change stays closed.
   const bool font_pending = std::ranges::any_of(absent, [](const assets::Entry* entry) { return entry->path.ends_with(".ttf"); });
@@ -200,7 +208,7 @@ int main(int argc, char** argv) {
     return run_shot(shell, argc, argv, shot_dpi);
   }
   if (updated_from != 0) area::update::took_over(updated_from);
-  if (data_dir.empty() && another_instance_running()) return 0;
+  if (shell.shares_the_machine && another_instance_running()) return 0;
 
   shell.data_dir = locations->protected_dir;
   shell.store.emplace(store::Store::open(*locations, shell.platform, unix_ms()));

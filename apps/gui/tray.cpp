@@ -114,7 +114,7 @@ bool TrayIcon::add() {
   data.uFlags = NIF_MESSAGE | NIF_ICON | NIF_TIP | NIF_SHOWTIP;
   data.uCallbackMessage = wm_tray;
   data.hIcon = icon;
-  copy_text(data.szTip, L"Cloudroom++");
+  GetWindowTextW(hwnd_, data.szTip, static_cast<int>(std::size(data.szTip)));  // says the same as the taskbar
   present_ = Shell_NotifyIconW(NIM_ADD, &data) != FALSE;
   DestroyIcon(icon);
   if (!present_) return false;

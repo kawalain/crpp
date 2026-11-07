@@ -25,6 +25,26 @@ void close_and_start() {
   CHECK(!start_hidden(false, true));
 }
 
+void only_an_official_build_shares_the_machine() {
+  CHECK(shares_the_machine(true, false));
+  CHECK(!shares_the_machine(false, false));
+  CHECK(!shares_the_machine(true, true));
+  CHECK(!shares_the_machine(false, true));
+}
+
+void a_development_build_keeps_its_data_beside_it() {
+  CHECK(data_beside_exe(false, false));
+  CHECK(!data_beside_exe(false, true));  // --data wins
+  CHECK(!data_beside_exe(true, false));
+  CHECK(!data_beside_exe(true, true));
+}
+
+void a_development_build_has_its_own_window() {
+  CHECK(std::wstring_view(window_class(true)) != window_class(false));
+  CHECK(std::wstring_view(window_title(true)) == L"Cloudroom++");
+  CHECK(std::wstring_view(window_title(false)) == L"Cloudroom++ (dev)");
+}
+
 void hint_appears_once_in_a_room() {
   CHECK(hide_needs_hint(true, false));
   CHECK(!hide_needs_hint(true, true));
@@ -161,6 +181,9 @@ void pixels_become_an_icon() {
 
 int main() {
   close_and_start();
+  only_an_official_build_shares_the_machine();
+  a_development_build_keeps_its_data_beside_it();
+  a_development_build_has_its_own_window();
   hint_appears_once_in_a_room();
   hidden_means_not_on_screen();
   chat_on_a_focused_window_only_sounds();

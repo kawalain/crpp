@@ -4,6 +4,8 @@
 
 **Cloudroom**: the service and the upstream client. This client never calls itself that.
 
+**Development build** (개발 빌드): any build that is not a release. It runs beside anything already running and keeps its data apart from the user's. An official build is a release.
+
 **Room** (구름): a shared session of up to 16 people, identified by a 6-character code. Everyone in a Room hears each other's input as sound.
 
 **Seat** (slot): a member's place in a Room. A Seat is held for a while after its owner disconnects or leaves, so the owner can return to it.

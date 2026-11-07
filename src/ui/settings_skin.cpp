@@ -1,4 +1,5 @@
 // The settings drawn from a Skin Pack. The tabs keep their state, hit ids and callbacks.
+#include "crpp/locale/locale.hpp"
 #include <algorithm>
 #include <string>
 
@@ -49,13 +50,13 @@ constexpr skin::Name sound_hits[] = {{"speaker_volume", SoundTab::SpeakerVolume}
 
 // --- display ---
 enum DisplayText : int { SampleSays, PercentText, SampleNick, SampleTime };
-enum DisplayNumber : int { Sync, Percent, HasCursors, ThemeCursorOn, DisplayScale, Dragging };
+enum DisplayNumber : int { Percent, HasCursors, ThemeCursorOn, DisplayScale, Dragging };
 constexpr skin::Name display_texts[] = {{"sample_says", SampleSays}, {"percent_text", PercentText}, {"sample_nick", SampleNick}, {"sample_time", SampleTime}};
-constexpr skin::Name display_numbers[] = {{"sync", Sync}, {"percent", Percent}, {"has_cursors", HasCursors}, {"theme_cursor", ThemeCursorOn}, {"scale", DisplayScale}, {"dragging", Dragging}};
+constexpr skin::Name display_numbers[] = {{"percent", Percent}, {"has_cursors", HasCursors}, {"theme_cursor", ThemeCursorOn}, {"scale", DisplayScale}, {"dragging", Dragging}};
 constexpr skin::Name display_pictures[] = {{"sample_emoji", 0}};
-constexpr skin::Name display_slots[] = {{"theme_list", 0}, {"light_list", 1}, {"dark_list", 2}};
+constexpr skin::Name display_slots[] = {{"skin_list", 3}, {"theme_list", 4}, {"dark_mode_list", 5}};
 constexpr skin::Name display_notes[] = {{"slider", 0}};
-constexpr skin::Name display_hits[] = {{"system_theme", DisplayTab::SystemTheme}, {"scale_slider", DisplayTab::ScaleSlider}, {"theme_cursor", DisplayTab::ThemeCursor}};
+constexpr skin::Name display_hits[] = {{"scale_slider", DisplayTab::ScaleSlider}, {"theme_cursor", DisplayTab::ThemeCursor}};
 
 // --- notifications ---
 enum NotifyNumber : int { TrayN, FlashN, Sounds, SoundOn };
@@ -308,19 +309,29 @@ void SoundTab::paint_pack(Painter& p, const skin::Screen& screen, Rect area) {
 }
 
 void DisplayTab::paint_pack(Painter& p, const skin::Screen& screen, Rect area) {
-  const Prefs& prefs = *ui_.prefs;
-  const auto every = all_theme_entries(), light = themes_of(false), dark = themes_of(true);
-  const auto fill = [](Dropdown& box, const std::vector<const ThemeEntry*>& list, const std::string& id) {
-    box.options.clear();
-    box.selected = 0;
-    for (std::size_t i = 0; i < list.size(); ++i) {
-      box.options.emplace_back(tr().*list[i]->label);
-      if (list[i]->id == id) box.selected = static_cast<int>(i);
+  const std::string_view locale = locale::current().id;
+  const SkinChoice choice = choice_of(*ui_.prefs, ui_.skins);
+  skin_list_.options.clear();
+  skin_list_.selected = 0;
+  for (std::size_t i = 0; i < ui_.skins.size(); ++i) {
+    const SkinInfo& one = ui_.skins[i];
+    skin_list_.options.emplace_back(name_in(one.names, locale));
+    if (&one == choice.skin) skin_list_.selected = static_cast<int>(i);
+  }
+  skin_theme_.options.clear();
+  skin_theme_.selected = 0;
+  if (choice.skin) {
+    for (std::size_t i = 0; i < choice.skin->themes.size(); ++i) {
+      const skin::PackTheme& one = choice.skin->themes[i];
+      skin_theme_.options.emplace_back(name_in(one.names, locale));
+      if (&one == choice.theme) skin_theme_.selected = static_cast<int>(i);
     }
-  };
-  fill(theme_, every, prefs.get(pref::theme));
-  fill(light_, light, prefs.get(pref::light_theme));
-  fill(dark_, dark, prefs.get(pref::dark_theme));
+  }
+  dark_mode_.options = {tr().display_dark_off, tr().display_dark_on, tr().display_dark_system};
+  dark_mode_.selected = static_cast<int>(choice.dark);
+  // Locked while this Theme has none, which leaves the choice as it is for the next Theme.
+  dark_mode_.disabled = !choice.has_dark();
+  if (dark_mode_.disabled) dark_mode_.open = false;
 
   class Shown final : public skin::Source {
    public:
@@ -340,7 +351,6 @@ void DisplayTab::paint_pack(Painter& p, const skin::Screen& screen, Rect area) {
     }
     float number(int id, int) override {
       switch (id) {
-        case Sync: return yes(s_.ui_.prefs->get(pref::system_theme));
         case HasCursors: return yes(s_.ui_.pack->cursors.has_value());
         case ThemeCursorOn: return yes(s_.ui_.prefs->get(pref::theme_cursor));
         case DisplayScale: return s_.ui_.scale;
@@ -352,7 +362,7 @@ void DisplayTab::paint_pack(Painter& p, const skin::Screen& screen, Rect area) {
     void slot(int id, int, skin::Box box, const skin::SlotValues&) override {
       const Rect r = rect_of(box);
       s_.list_rect_[id] = r;
-      Dropdown& list = id == 0 ? s_.theme_ : id == 1 ? s_.light_ : s_.dark_;
+      Dropdown& list = id == 3 ? s_.skin_list_ : id == 4 ? s_.skin_theme_ : s_.dark_mode_;
       list.paint_button(s_.ui_, &s_, p_, r);
     }
 

@@ -2,6 +2,7 @@
   "$schema": "../schema/pack.schema.json",
   "format": 1,
   "id": "cloud",
+  "names": {"ko": "구름", "en": "Cloud"},
   "themes": {
     "cloudroom": {"names": {"ko": "구름", "en": "Cloud"}, "dark": "darkcloud"},
     "pastel": {"names": {"ko": "파스텔", "en": "Pastel"}}

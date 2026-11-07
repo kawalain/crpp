@@ -94,6 +94,7 @@ std::expected<void, std::string> App::read_pack(const std::string& overlay) {
   if (!pack) return std::unexpected(std::move(pack.error()));
   if (const auto missing = skin::missing_constant(*pack)) return std::unexpected("pack.jsonc: no constant \"" + std::string(*missing) + "\"");
   ui_.forget_render_target();  // brushes are kept by the address of their stops
+  previous_pack_ = std::move(pack_);  // a hit of the last frame can still point into it
   pack_ = std::move(*pack);
   ui_.pack = &*pack_;
   pack_skin_ = make_pack_skin(ui_);
@@ -103,6 +104,49 @@ std::expected<void, std::string> App::read_pack(const std::string& overlay) {
 void App::point_at_palette() {
   ui_.palette = pack_->palette_of(theme_id_).value_or(-1);
   ui_.theme.from_pack = ui_.palette >= 0 ? pack_skin_.get() : nullptr;
+  if (ui_.palette < 0) return;
+  ui_.theme.dark = pack_->palette_is_dark(ui_.palette);
+  if (const skin::Paint* sky = pack_->paint_named(ui_.palette, "sky")) ui_.theme.sky = sky->color;
+}
+
+bool App::find_skins(const std::filesystem::path& dir) {
+  ui_.skins.clear();
+  std::error_code error;
+  std::vector<std::filesystem::path> folders;
+  for (const auto& entry : std::filesystem::directory_iterator(dir, error)) {
+    if (entry.is_directory(error) && std::filesystem::is_regular_file(entry.path() / "pack.jsonc", error)) folders.push_back(entry.path());
+  }
+  std::ranges::sort(folders);
+  for (const std::filesystem::path& folder : folders) {
+    skin::LoadOptions options;
+    options.parent = [parents = dir](std::string_view id) -> std::optional<skin::ReadFile> {
+      const std::filesystem::path other = parents / std::filesystem::path(id);
+      std::error_code missing;
+      if (!std::filesystem::is_regular_file(other / "pack.jsonc", missing)) return std::nullopt;
+      return files_of(other);
+    };
+    // One that cannot be read is not offered, and the others still are.
+    if (const auto pack = skin::load_pack(files_of(folder), screen_schemas(), options); pack && !skin::missing_constant(*pack)) {
+      ui_.skins.push_back(skin_info(*pack, narrow(folder.wstring())));
+    }
+  }
+  return !ui_.skins.empty();
+}
+
+void App::apply_skin_choice(bool system_dark) {
+  const SkinChoice choice = choice_of(*ui_.prefs, ui_.skins);
+  if (!choice.skin || !choice.theme) return;
+  const std::string palette(choice.palette(system_dark));
+  const std::filesystem::path dir = widen(choice.skin->dir);
+  if (!pack_ || pack_dir_ != dir || pack_->overlay != choice.theme->overlay) {
+    const std::filesystem::path before = pack_dir_;
+    pack_dir_ = dir;
+    if (!read_pack(choice.theme->overlay)) {  // changed under the app since it was found: it stays as it is
+      pack_dir_ = before;
+      return;
+    }
+  }
+  set_theme(palette);
 }
 
 std::expected<void, std::string> App::load_skin_dir(const std::filesystem::path& dir) {
@@ -121,6 +165,7 @@ std::expected<void, std::string> App::load_skin_dir(const std::filesystem::path&
     return read;
   }
   point_at_palette();
+  ui_.skins = {skin_info(*pack_, narrow(whole.wstring()))};
   skin_changed();
   return {};
 }
@@ -145,6 +190,13 @@ void App::set_theme(std::string_view id) {
   ui_.forget_render_target();  // brushes are kept by the address of the colours they show
   ui_.theme = theme_named(id).theme;
   theme_id_ = theme_named(id).id;
+  if (pack_ && theme_named(id).id != id) {
+    if (const skin::PackTheme* known = pack_->theme_of_palette(id)) {
+      // Only the pack knows it. What the program still reads of a Theme comes from the table until its layouts go.
+      theme_id_ = std::string(id);
+      ui_.theme = theme_named(known->dark == id ? "luna_blue_dark" : "luna_blue").theme;
+    }
+  }
   if (pack_) {
     // Read earlier and found good, so a failure now is a pack changed under the app: it draws as if it had no such Theme.
     const skin::PackTheme* theme = pack_->theme_of_palette(theme_id_);

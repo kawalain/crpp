@@ -85,10 +85,61 @@ void test_a_list_stands_where_the_code_puts_it() {
   UiHarness h;
   CHECK(h.start(1200, 900));
   h.app.show_home();
-  h.app.settings().open(SettingsPage::Display);
-  DisplayTab& display = h.app.settings().display();
-  display.click(DisplayTab::ThemeList, 0, 0, false);
-  same_places(h, {{&display, DisplayTab::ThemeList + 1}, {&display, DisplayTab::ThemeList + 2}});
+  h.app.settings().open(SettingsPage::System);
+  SystemTab& system = h.app.settings().system();
+  system.click(SystemTab::IdleList, 0, 0, false);
+  same_places(h, {{&system, SystemTab::IdleList + 1}, {&system, SystemTab::IdleList + 2}});
+}
+
+void test_the_rows_choose_a_skin_a_theme_and_a_dark_mode() {
+  UiHarness h;
+  CHECK(h.start(1200, 900));
+  App& app = h.app;
+  CHECK(app.find_skins(CRPP_TEST_SKINS));
+  CHECK(app.ui().skins.size() == 2);
+  const Prefs& prefs = *app.ui().prefs;
+  app.apply_skin_choice(false);
+  CHECK(app.ui().palette >= 0);
+  CHECK(app.ui().pack->id == "cloud");
+  app.show_home();
+  app.settings().open(SettingsPage::Display);
+  DisplayTab& display = app.settings().display();
+  h.render();
+
+  // Dark on.
+  CHECK(h.click(display, DisplayTab::DarkModeList));
+  CHECK(h.click(display, DisplayTab::DarkModeList + 2));
+  CHECK(prefs.get(pref::dark_mode) == "on");
+  CHECK(prefs.get(pref::skin) == "cloud");
+  app.apply_skin_choice(false);
+  CHECK(app.ui().theme.dark);
+
+  // 파스텔 has no dark variant: the row locks, and the choice stays for the next Theme.
+  h.render();
+  CHECK(h.click(display, DisplayTab::SkinThemeList));
+  CHECK(h.click(display, DisplayTab::SkinThemeList + 2));
+  CHECK(prefs.get(pref::skin_theme) == "pastel");
+  app.apply_skin_choice(false);
+  CHECK(!app.ui().theme.dark);
+  h.render();
+  (void)h.click(display, DisplayTab::DarkModeList);
+  CHECK(!h.drawn(display, DisplayTab::DarkModeList + 1));
+  CHECK(prefs.get(pref::dark_mode) == "on");
+
+  // Another Skin goes to its default Theme, keeping the mode.
+  CHECK(h.click(display, DisplayTab::SkinList));
+  CHECK(h.click(display, DisplayTab::SkinList + 2));
+  CHECK(prefs.get(pref::skin) == "retro");
+  CHECK(prefs.get(pref::skin_theme) == "classic");
+  app.apply_skin_choice(false);
+  CHECK(app.ui().pack->id == "retro");
+  CHECK(app.ui().theme.dark);
+  CHECK(app.own_frame());
+  h.render();
+
+  // And back. Upstream's keys are never touched.
+  app.settings().close();
+  CHECK(prefs.get(pref::theme) == pref::theme.fallback);
 }
 
 // The clock is held, so that a frame's time is what the test says.
@@ -232,7 +283,6 @@ void test_every_tab_stands_where_the_code_puts_it() {
     for (const int id : ids) list.push_back({owner, id});
     same_places(other, list);
   };
-  compare(SettingsPage::Display, {DisplayTab::SystemTheme, DisplayTab::ThemeList, DisplayTab::ScaleSlider});
   compare(SettingsPage::Notify, {NotifyTab::TrayToggle, NotifyTab::FlashToggle, NotifyTab::SoundBase, NotifyTab::SoundBase + 1, NotifyTab::PreviewBase, NotifyTab::PreviewBase + 1});
   compare(SettingsPage::System, {SystemTab::Autostart, SystemTab::Tray, SystemTab::Detail, SystemTab::Use24h, SystemTab::IdleList});
   compare(SettingsPage::Account, {AccountTab::Emoji, AccountTab::Nickname, AccountTab::Handle, AccountTab::Logout});
@@ -657,6 +707,7 @@ void test_a_path_can_fill_where_its_shapes_overlap() {
 }  // namespace
 
 int main() {
+  test_the_rows_choose_a_skin_a_theme_and_a_dark_mode();
   test_the_layers_stand_where_the_code_puts_them();
   test_the_prompt_stands_where_the_code_puts_it_and_clicks_land();
   test_a_list_stands_where_the_code_puts_it();

@@ -141,7 +141,7 @@ class DisplayTab final : public SettingsTab {
  public:
   explicit DisplayTab(Ui& ui);
   [[nodiscard]] static skin::ScreenSchema schema();
-  enum Id : int { SystemTheme = 1, ScaleSlider, ThemeCursor, ThemeList = 100, LightList = 110, DarkList = 120 };
+  enum Id : int { SystemTheme = 1, ScaleSlider, ThemeCursor, ThemeList = 100, LightList = 110, DarkList = 120, SkinList = 130, SkinThemeList = 160, DarkModeList = 190 };
 
   // Asked whenever the tab comes on screen, for who the chat sample shows.
   std::function<void()> on_shown;
@@ -165,8 +165,12 @@ class DisplayTab final : public SettingsTab {
   void paint_sample(Painter& p, Rect box, float zoom);
   [[nodiscard]] float chat_top() const;
 
+  void choose_skin(int index);
+  void choose_theme(int index);
+  void choose_dark(int index);
   Dropdown theme_, light_, dark_;
-  Rect list_rect_[3];
+  Dropdown skin_list_, skin_theme_, dark_mode_;
+  Rect list_rect_[6];
   ToggleAnim system_anim_;
   Fade slider_tip_;
   Rect slider_;  // stage coordinates

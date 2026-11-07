@@ -2,6 +2,7 @@
   "$schema": "../schema/pack.schema.json",
   "format": 1,
   "id": "retro",
+  "names": {"ko": "레트로", "en": "Retro"},
   "themes": {
     "classic": {"names": {"ko": "고전", "en": "Classic"}, "dark": "classic_dark"},
     "luna_blue": {"names": {"ko": "루나 블루", "en": "Luna Blue"}, "dark": "luna_blue_dark", "overlay": "luna"},

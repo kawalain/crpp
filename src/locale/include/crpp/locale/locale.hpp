@@ -203,6 +203,12 @@ struct Strings {
   const char* display_theme_cursor;
   const char* display_light;
   const char* display_dark;
+  const char* display_skin;
+  const char* display_skin_theme;
+  const char* display_dark_mode;
+  const char* display_dark_off;
+  const char* display_dark_on;
+  const char* display_dark_system;
   const char* display_general;
   const char* display_chat_size;
   const char* display_chat_sample;

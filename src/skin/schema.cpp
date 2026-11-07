@@ -280,6 +280,7 @@ std::string pack_json_schema() {
   format.set("description", text_json("What the pack is written for; an exe that reads another number refuses it."));
   properties.set("format", std::move(format));
   properties.set("id", with_doc(typed("string"), "The name of the pack, in lower case."));
+  properties.set("names", with_doc(map_of(typed("string")), "What the user calls this Skin, by locale id."));
   properties.set("extends", with_doc(typed("string"), "The id of the pack this one starts from. What this names replaces what that has by the same name."));
   Json theme = typed("object");
   theme.set("required", strings({"names"}));

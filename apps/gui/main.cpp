@@ -194,6 +194,8 @@ int main(int argc, char** argv) {
   if (!shell.app.init(first_install ? std::filesystem::path{} : assets, !font_pending)) return failed_to_start(locale::tr().start_failed);
   if (!skin_dir.empty()) {
     if (const auto loaded = shell.app.load_skin_dir(skin_dir); !loaded) return failed_to_start(loaded.error());
+  } else if (std::string_view(argc >= 2 ? argv[1] : "") != "--shot") {  // a shot without --skin-dir is the C++ layouts, to compare with
+    (void)shell.app.find_skins(exe_dir() / "skins");
   }
   for (const std::string_view id : assets::picker_emoji()) shell.app.ui().emoji_ids.emplace_back(id);
   std::time_t now = std::time(nullptr);

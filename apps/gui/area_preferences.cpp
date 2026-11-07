@@ -22,7 +22,8 @@ bool system_prefers_dark() {
 
 void apply_theme(Shell& s) {
   forget_cursors(s);
-  s.app.set_theme(effective_theme(*s.app.ui().prefs, system_prefers_dark()).id);
+  if (!s.app.ui().skins.empty()) s.app.apply_skin_choice(system_prefers_dark());
+  else s.app.set_theme(effective_theme(*s.app.ui().prefs, system_prefers_dark()).id);
   area::sound::theme_changed(s);
   if (!s.hwnd) return;
   // The title bar too (DWMWA_USE_IMMERSIVE_DARK_MODE). Older Windows refuses; harmless.
@@ -202,7 +203,7 @@ bool scene(Shell& s, std::string_view name) {
     open(SettingsPage::Display);
     if (on) prefs.set(pref::system_theme, true);
     if (big) prefs.set(pref::chat_scale, 150);
-    if (tip) panel.display().click(on ? DisplayTab::LightList : DisplayTab::ThemeList, 0, 0, false);
+    if (tip) panel.display().click(!s.app.ui().skins.empty() ? DisplayTab::SkinThemeList : on ? DisplayTab::LightList : DisplayTab::ThemeList, 0, 0, false);
   } else if (rest == "notify") {
     open(SettingsPage::Notify);
     if (tip) {
@@ -224,7 +225,7 @@ bool scene(Shell& s, std::string_view name) {
 }
 
 void pref_changed(Shell& s, std::string_view key) {
-  if (key == "theme" || key == "systemTheme" || key == "lightTheme" || key == "darkTheme") {
+  if (key == "theme" || key == "systemTheme" || key == "lightTheme" || key == "darkTheme" || key == pref::skin_theme.name || key == pref::dark_mode.name) {
     apply_theme(s);
   } else if (key == "language") {
     apply_language(s);
@@ -254,7 +255,9 @@ bool notification_enabled(Shell& s, std::string_view name) {
 
 void system_settings_changed(Shell& s) {
   follow_system_animations(s);
-  if (s.prefs && s.app.ui().prefs->get(pref::system_theme)) apply_theme(s);
+  if (!s.prefs) return;
+  const Prefs& prefs = *s.app.ui().prefs;
+  if (s.app.ui().skins.empty() ? prefs.get(pref::system_theme) : choice_of(prefs, s.app.ui().skins).dark == DarkMode::System) apply_theme(s);
 }
 
 }  // namespace crpp::gui::area::preferences

@@ -2,19 +2,14 @@
   "$schema": "../../schema/screen.settings_display.schema.json",
   "draw": [
     {"text": "#display_theme", "style": "heading", "color": "$hl_text", "x": 9, "y": 25, "w": "W-9", "h": 32},
-    {"use": "toggle", "text": "#display_sync", "x": 16, "y": 76, "w": 505, "h": 36, "args": {"on": "@sync", "hit": "hit('system_theme')"}},
-    {"if": "@sync", "group": [
-      {"text": "#display_light", "style": "row_label", "color": "$hl_text", "x": 16, "y": 133, "w": 300, "h": 26},
-      {"slot": "light_list", "x": 285, "y": 127, "w": 246, "h": 38},
-      {"text": "#display_dark", "style": "row_label", "color": "$hl_text", "x": 16, "y": 185, "w": 300, "h": 26},
-      {"slot": "dark_list", "x": 285, "y": 179, "w": 246, "h": 38}
-    ]},
-    {"if": "!@sync", "group": [
-      {"text": "#display_general", "style": "row_label", "color": "$hl_text", "x": 16, "y": 133, "w": 300, "h": 26},
-      {"slot": "theme_list", "x": 285, "y": 127, "w": 246, "h": 38}
-    ]},
+    {"text": "#display_skin", "style": "row_label", "color": "$hl_text", "x": 16, "y": 81, "w": 260, "h": 26},
+    {"slot": "skin_list", "x": 285, "y": 75, "w": 246, "h": 38},
+    {"text": "#display_skin_theme", "style": "row_label", "color": "$hl_text", "x": 16, "y": 133, "w": 260, "h": 26},
+    {"slot": "theme_list", "x": 285, "y": 127, "w": 246, "h": 38},
+    {"text": "#display_dark_mode", "style": "row_label", "color": "$hl_text", "x": 16, "y": 185, "w": 260, "h": 26},
+    {"slot": "dark_mode_list", "x": 285, "y": 179, "w": 246, "h": 38},
 
-    {"let": "chat_top", "value": "76+52*(@sync ? 2 : 1)+62+76-25"},
+    {"let": "chat_top", "value": "76+52*2+62+76-25"},
     {"text": "#room_word_chat", "style": "heading", "color": "$hl_text", "x": 9, "y": "chat_top-51", "w": "W-9", "h": 32},
     // The sample cancels the stage's scale: it shows what the chat, which is not scaled with the window, will really look like.
     {"let": "zoom", "value": "@percent/100"},

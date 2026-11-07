@@ -245,7 +245,6 @@ void open_every_panel(UiHarness& h) {
   room.show_profile({1, "You", "", std::optional<std::string>("you"), std::optional<std::int64_t>(1700000000), 3900, 12345});
   h.app.offline().show();
   h.app.settings().open(SettingsPage::Display);
-  h.app.settings().display().click(DisplayTab::ThemeList, 0, 0, false);
 }
 
 void test_the_panels_from_the_pack_stand_where_the_code_puts_them() {
@@ -271,8 +270,6 @@ void test_the_panels_from_the_pack_stand_where_the_code_puts_them() {
       {&h.app.dialogs(), Pane::Dialog, Dialogs::Cancel},
       {&h.app.room().profile_card(), Pane::Profile, ProfileCard::Card},
       {&h.app.offline(), Pane::Offline, OfflinePopup::Card},
-      {&h.app.settings().display(), Pane::Options, DisplayTab::ThemeList + 1},
-      {&h.app.settings().display(), Pane::Options, DisplayTab::ThemeList + 2},
   };
   const auto look = [&] {
     std::vector<Rect> found;
@@ -427,10 +424,10 @@ void test_a_list_from_the_pack_picks_and_the_notes_scroll() {
   h.app.settings().open(SettingsPage::Display);
   h.on_pane(Pane::Options);
   DisplayTab& display = h.app.settings().display();
-  CHECK(h.click(display, DisplayTab::ThemeList));
-  CHECK(h.drawn(display, DisplayTab::ThemeList + 1));
-  CHECK(h.click(display, DisplayTab::ThemeList + 2));
-  CHECK(!h.drawn(display, DisplayTab::ThemeList + 1));
+  CHECK(h.click(display, DisplayTab::SkinThemeList));
+  CHECK(h.drawn(display, DisplayTab::SkinThemeList + 1));
+  CHECK(h.click(display, DisplayTab::SkinThemeList + 2));
+  CHECK(!h.drawn(display, DisplayTab::SkinThemeList + 1));
   h.app.settings().close();
   h.on_pane(Pane::Main);
 

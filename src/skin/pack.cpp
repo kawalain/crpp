@@ -267,6 +267,14 @@ class Loader final : public Names {
   }
 
   bool load_themes(const Json& root) {
+    if (const Json* names = root.find("names")) {
+      const Json::Object* each = names->as_object();
+      if (!each) return fail("names is not an object");
+      for (const Json::Member& name : *each) {
+        if (!name.value.as_string()) return fail("a name is not text");
+        pack_.names.emplace_back(name.key, *name.value.as_string());
+      }
+    }
     if (const Json* fallback = root.find("default_theme")) {
       if (!fallback->as_string()) return fail("default_theme is not an id");
       pack_.default_theme = std::string(*fallback->as_string());

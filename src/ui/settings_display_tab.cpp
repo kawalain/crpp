@@ -39,6 +39,9 @@ DisplayTab::DisplayTab(Ui& ui) : SettingsTab(ui) {
   theme_.id_base = ThemeList;
   light_.id_base = LightList;
   dark_.id_base = DarkList;
+  skin_list_.id_base = SkinList;
+  skin_theme_.id_base = SkinThemeList;
+  dark_mode_.id_base = DarkModeList;
 }
 
 void DisplayTab::set_sample(std::string nick, std::string emoji) {
@@ -146,6 +149,12 @@ void DisplayTab::paint_sample(Painter& p, Rect box, float zoom) {
 }
 
 void DisplayTab::paint_popups(Painter& p, Rect) {
+  if (ui_.pack_screen("settings_display")) {
+    skin_list_.paint_list(ui_, this, p, list_rect_[3]);
+    skin_theme_.paint_list(ui_, this, p, list_rect_[4]);
+    dark_mode_.paint_list(ui_, this, p, list_rect_[5]);
+    return;
+  }
   if (ui_.prefs->get(pref::system_theme)) {
     light_.paint_list(ui_, this, p, list_rect_[1]);
     dark_.paint_list(ui_, this, p, list_rect_[2]);
@@ -155,7 +164,7 @@ void DisplayTab::paint_popups(Painter& p, Rect) {
 }
 
 void DisplayTab::before_click(const Surface* owner, int id) {
-  for (Dropdown* d : {&theme_, &light_, &dark_}) {
+  for (Dropdown* d : {&theme_, &light_, &dark_, &skin_list_, &skin_theme_, &dark_mode_}) {
     if (owner != this || !d->owns(id)) d->open = false;
   }
 }
@@ -178,7 +187,50 @@ void DisplayTab::click(int id, float x, float, bool) {
   } else if (dark_.owns(id)) {
     if (dark_.click(id)) prefs.set(pref::dark_theme, themes_of(true)[static_cast<std::size_t>(dark_.selected)]->id);
     if (dark_.open) place_dropdown(ui_, dark_, list_rect_[2]);
+  } else if (skin_list_.owns(id)) {
+    if (skin_list_.click(id)) choose_skin(skin_list_.selected);
+    if (skin_list_.open) place_dropdown(ui_, skin_list_, list_rect_[3]);
+  } else if (skin_theme_.owns(id)) {
+    if (skin_theme_.click(id)) choose_theme(skin_theme_.selected);
+    if (skin_theme_.open) place_dropdown(ui_, skin_theme_, list_rect_[4]);
+  } else if (dark_mode_.owns(id)) {
+    if (dark_mode_.click(id)) choose_dark(dark_mode_.selected);
+    if (dark_mode_.open) place_dropdown(ui_, dark_mode_, list_rect_[5]);
   }
+}
+
+namespace {
+
+constexpr std::string_view dark_keys[] = {"off", "on", "system"};
+
+std::string_view dark_key(DarkMode mode) { return dark_keys[static_cast<std::size_t>(mode)]; }
+
+}  // namespace
+
+// All three go in together, so that this client's own keys say everything from here on. The
+// Theme comes last, as that is what makes the program apply them.
+void DisplayTab::choose_skin(int index) {
+  const SkinInfo& skin = ui_.skins[static_cast<std::size_t>(index)];
+  Prefs& prefs = *ui_.prefs;
+  prefs.set(pref::dark_mode, dark_key(choice_of(prefs, ui_.skins).dark));
+  prefs.set(pref::skin, skin.id);
+  prefs.set(pref::skin_theme, skin.default_theme.empty() && !skin.themes.empty() ? std::string_view(skin.themes.front().id) : std::string_view(skin.default_theme));
+}
+
+void DisplayTab::choose_theme(int index) {
+  Prefs& prefs = *ui_.prefs;
+  const SkinChoice choice = choice_of(prefs, ui_.skins);
+  prefs.set(pref::dark_mode, dark_key(choice.dark));
+  prefs.set(pref::skin, choice.skin->id);
+  prefs.set(pref::skin_theme, choice.skin->themes[static_cast<std::size_t>(index)].id);
+}
+
+void DisplayTab::choose_dark(int index) {
+  Prefs& prefs = *ui_.prefs;
+  const SkinChoice choice = choice_of(prefs, ui_.skins);
+  prefs.set(pref::skin, choice.skin->id);
+  prefs.set(pref::skin_theme, choice.theme->id);
+  prefs.set(pref::dark_mode, dark_keys[static_cast<std::size_t>(index)]);
 }
 
 void DisplayTab::drag(float x, float) {
@@ -187,12 +239,13 @@ void DisplayTab::drag(float x, float) {
 }
 
 bool DisplayTab::wheel(float x, float y, float delta) {
-  return theme_.wheel(ui_, x, y, delta) || light_.wheel(ui_, x, y, delta) || dark_.wheel(ui_, x, y, delta);
+  return theme_.wheel(ui_, x, y, delta) || light_.wheel(ui_, x, y, delta) || dark_.wheel(ui_, x, y, delta) || skin_list_.wheel(ui_, x, y, delta) ||
+         skin_theme_.wheel(ui_, x, y, delta) || dark_mode_.wheel(ui_, x, y, delta);
 }
 
 bool DisplayTab::escape() {
   bool closed = false;
-  for (Dropdown* d : {&theme_, &light_, &dark_}) {
+  for (Dropdown* d : {&theme_, &light_, &dark_, &skin_list_, &skin_theme_, &dark_mode_}) {
     closed = closed || d->open;
     d->open = false;
   }

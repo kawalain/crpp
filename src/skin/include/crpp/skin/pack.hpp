@@ -67,7 +67,7 @@
 // Nothing inside a part or screen is patched. An overlay is the same thing inside a pack: overlays/<name>/pack.jsonc
 // and its screens/, put over the pack when a Theme asks for it.
 //
-// themes lists what a user can pick: names by locale, its palette (its id when it says none), its dark variant if it
+// names says what a user calls this Skin, by locale id. themes lists what a user can pick: names by locale, its palette (its id when it says none), its dark variant if it
 // has one, and its overlay if it needs one. A pack is read for one overlay at a time, and holds only the Palettes of the
 // Themes of that overlay; a pack without themes holds all it has. default_theme is the Theme to go to.
 // A Palette may say "extends": another Palette, whose entries it starts from.
@@ -256,6 +256,7 @@ struct PackTheme {
 struct Pack {
   std::string id;
   std::string overlay;  // the one this was read for, or empty
+  std::vector<std::pair<std::string, std::string>> names;  // what a user calls this Skin, by locale id
   std::vector<PackTheme> themes;
   std::string default_theme;
   std::optional<PackFonts> fonts;

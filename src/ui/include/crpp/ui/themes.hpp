@@ -15,7 +15,6 @@ struct ThemeEntry {
   const char* locale::Strings::*label;
   bool dark;  // which list it joins when following the system
   Theme theme;
-  bool listed = true;  // false: only a Skin Pack draws it, so it cannot be picked without one
 };
 
 [[nodiscard]] std::span<const ThemeEntry> all_themes();

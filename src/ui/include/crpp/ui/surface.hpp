@@ -12,6 +12,7 @@
 #include "crpp/skin/pack.hpp"
 #include "crpp/ui/gfx.hpp"
 #include "crpp/ui/skin.hpp"
+#include "crpp/ui/skin_choice.hpp"
 #include "crpp/ui/svg.hpp"
 #include "crpp/ui/textfield.hpp"
 
@@ -114,6 +115,8 @@ class Ui : public WindowState {
 
   // The Skin Pack in use and this Theme's Palette in it, while data draws what it has.
   const skin::Pack* pack = nullptr;
+  // Every pack there is to choose from.
+  std::vector<SkinInfo> skins;
   int palette = -1;
   // This screen in the pack, if the pack is for this Theme and has it.
   [[nodiscard]] const skin::Screen* pack_screen(std::string_view name) const;

@@ -97,6 +97,24 @@ void test_without_animation_it_is_at_its_end() {
   CHECK(t.size() == 0);
 }
 
+void test_a_new_value_of_again_runs_it_up_once_more() {
+  TransitionSpec spec = on;
+  spec.curve = Curve::Linear;
+  Transitions t;
+  bool moving = false;
+  (void)t.value(key, spec, 1000, true, moving);
+  CHECK(t.value(key, spec, 1100, true, moving) == 1);
+  spec.again = 1;
+  CHECK(t.value(key, spec, 1100, true, moving) == 0);
+  CHECK(moving);
+  CHECK(t.value(key, spec, 1150, true, moving) == 0.5f);
+  spec.on = false;
+  spec.again = 2;
+  (void)t.value(key, spec, 1150, true, moving);
+  CHECK(moving);  // going off, it just keeps going off
+  CHECK(t.value(key, spec, 1200, true, moving) == 0);
+}
+
 void test_the_curves() {
   CHECK(curve_at(Curve::Ease, 0) == 0);
   CHECK(curve_at(Curve::Ease, 1) == 1);
@@ -114,6 +132,7 @@ int main() {
   test_the_duration_off_can_differ();
   test_what_a_frame_did_not_ask_for_is_gone();
   test_without_animation_it_is_at_its_end();
+  test_a_new_value_of_again_runs_it_up_once_more();
   test_the_curves();
   return crpp_test_result();
 }

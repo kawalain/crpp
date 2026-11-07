@@ -614,6 +614,10 @@
           ],
           "description": "A state that is on when first seen starts at its end, as an element's first style does."
         },
+        "again": {
+          "$ref": "#/definitions/expression",
+          "description": "A new value of this, while on, runs it up from off again, as a new element would."
+        },
         "set": {
           "type": "string",
           "description": "A new value for a name above it, as when a repeat looks for the widest."
@@ -1142,7 +1146,8 @@
               "ms",
               "ms_off",
               "curve",
-              "first"
+              "first",
+              "again"
             ]
           }
         },

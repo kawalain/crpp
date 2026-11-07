@@ -36,6 +36,7 @@
 //   let     a name for a number, with value. With to, it is a transition: it runs from 0 to 1 and back as to
 //           goes on and off, over ms (ms_off when going off, if it says), on a curve: "ease", the
 //           default, or "linear". first: "jump" has a state that is on when first seen start at its end.
+//           A new value of again runs it up from off once more, while it is on.
 //   set     a new value for a name above it, as when a repeat looks for the widest
 //   report  a number for the screen, with value
 // and each may have: if, id (siblings can then read id.x, .y, .w, .h, .right, .bottom), x or right,
@@ -125,7 +126,7 @@ struct Node {
   bool round_caps = true;   // Path
   bool soft = false;        // Path
   bool has_note_by = false;
-  bool has_size = false, has_line_height = false;  // Text
+  bool has_size = false, has_line_height = false;  // Text. Let: has_size says it has again
   bool has_alpha = false;
   bool has_down_to = false;  // Fill
   bool across = false;       // Fill
@@ -149,7 +150,7 @@ struct Node {
   Expr width;  // Stroke, Line, Path. Fill: down_to. Picture: gray. Let: ms. Shadow: blur
   Expr extra2;  // Line: y2. Let: ms_off. Shadow: dy
   Expr after, hit_index, live, hit_if, alpha, note_by;
-  Expr size, line_height;  // Text
+  Expr size, line_height;  // Text. Let: size is again
 };
 
 struct GroupEffects {

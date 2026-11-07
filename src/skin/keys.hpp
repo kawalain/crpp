@@ -141,6 +141,7 @@ inline constexpr KeyDoc let_keys[] = {
     {"ms_off", KeyType::Expr, "How long it takes going off, when that differs."},
     {"curve", KeyType::Curve, "Its curve: ease, as CSS's, when left out."},
     {"first", KeyType::Jump, "A state that is on when first seen starts at its end, as an element's first style does."},
+    {"again", KeyType::Expr, "A new value of this, while on, runs it up from off again, as a new element would."},
 };
 
 struct KindDoc {

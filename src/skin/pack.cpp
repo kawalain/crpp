@@ -924,8 +924,12 @@ class Loader final : public Names {
           if (first->as_string() != "jump") return fail("first is not jump");
           out.first_jumps = true;
         }
-      } else if (json.find("ms") || json.find("ms_off") || json.find("curve") || json.find("first")) {
-        return fail("ms, ms_off, curve and first go with to");
+        if (json.find("again")) {
+          if (!expr_of(json, "again", out.size)) return false;
+          out.has_size = true;
+        }
+      } else if (json.find("ms") || json.find("ms_off") || json.find("curve") || json.find("first") || json.find("again")) {
+        return fail("ms, ms_off, curve, first and again go with to");
       } else if (!expr_of(json, "value", out.extra)) {
         return false;
       }

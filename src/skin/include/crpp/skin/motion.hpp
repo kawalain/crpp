@@ -18,6 +18,8 @@ struct TransitionSpec {
   // runs up from off.
   bool first_jumps = false;
   Curve curve = Curve::Ease;
+  // A new value of this, while on, runs it up from off again, as a new element would.
+  float again = 0;
 };
 
 class Transitions {
@@ -32,7 +34,7 @@ class Transitions {
   struct Item {
     std::uint64_t key = 0;
     unsigned long long start = 0;
-    float from = 0, span_ms = 0;
+    float from = 0, span_ms = 0, again = 0;
     std::uint32_t frame = 0;
     bool on = false;
   };

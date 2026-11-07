@@ -123,7 +123,7 @@ class Log final : public Canvas {
   void hit_shape(Box b, int id, std::string_view d, float x, float y) override { add("hitshape " + str(b) + " " + std::to_string(id) + " " + std::string(d) + " " + str(x) + "," + str(y)); }
   float transition(std::uint64_t key, const TransitionSpec& s) override {
     keys.push_back(key);
-    add("transition " + std::string(s.on ? "on " : "off ") + str(s.ms_on) + "/" + str(s.ms_off) + (s.first_jumps ? " jump" : "") + (s.curve == Curve::Linear ? " linear" : ""));
+    add("transition " + std::string(s.on ? "on " : "off ") + str(s.ms_on) + "/" + str(s.ms_off) + (s.first_jumps ? " jump" : "") + (s.curve == Curve::Linear ? " linear" : "") + (s.again != 0 ? " again " + str(s.again) : ""));
     return 0.5f;
   }
   void fill_ellipse(Box b, Color c) override { add("ellipse " + str(b) + " " + str(c)); }
@@ -515,6 +515,8 @@ void a_transition_is_asked_of_the_canvas() {
   CHECK(walk(R"J({"let":"v","to":"0","ms":150},{"fill":"$face","w":"v*10"})J") == "transition off 150/150\nfill 100,200,5,400 1/0/0/1\n");
   // A transition reads what is hot where it is.
   CHECK(walk(R"J({"hit":"join","group":[{"let":"v","to":"hot","ms":1}]})J", 0, 0, 51) == "transition on 1/1\nhit 100,200,300,400 51\n");
+  CHECK(walk(R"J({"let":"v","to":"1","ms":1,"again":"3"})J") == "transition on 1/1 again 3\n");
+  CHECK(!load(R"J({"let":"v","value":1,"again":"3"})J"));
   CHECK(!load(R"J({"let":"v","to":"1"})J"));
   CHECK(!load(R"J({"let":"v","value":1,"to":"1","ms":1})J"));
   CHECK(!load(R"J({"let":"v","value":1,"ms":1})J"));

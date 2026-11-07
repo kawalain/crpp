@@ -44,7 +44,7 @@ float Transitions::value(std::uint64_t key, const TransitionSpec& spec, unsigned
   if (!known) {
     // Off and never seen on: nothing to keep, unless it must tell a change from a first sight.
     if (!spec.on && !spec.first_jumps) return 0;
-    Item item{.key = key, .frame = frame_, .on = spec.on};
+    Item item{.key = key, .again = spec.again, .frame = frame_, .on = spec.on};
     if (spec.on && !spec.first_jumps) {
       item.start = now;
       item.span_ms = spec.ms_on;
@@ -61,6 +61,14 @@ float Transitions::value(std::uint64_t key, const TransitionSpec& spec, unsigned
     item.start = now;
     // Turning around midway takes proportionally less time.
     item.span_ms = spec.on ? spec.ms_on * (1 - item.from) : spec.ms_off * item.from;
+  }
+  if (item.again != spec.again) {
+    item.again = spec.again;
+    if (spec.on) {
+      item.from = 0;
+      item.start = now;
+      item.span_ms = spec.ms_on;
+    }
   }
   const float shown = at(item, spec.curve, now);
   moving = item.span_ms > 0 && static_cast<float>(now - item.start) < item.span_ms;

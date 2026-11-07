@@ -69,6 +69,13 @@ void SettingsPanel::select(SettingsPage page) {
   tab().shown();
 }
 
+void SettingsPanel::scroll_to(float offset) {
+  // Possibly before the first frame, which would otherwise find nothing to scroll.
+  scroll_.view_h = content_area.h;
+  scroll_.content_h = tab().content_height();
+  scroll_.jump_to(offset);
+}
+
 void SettingsPanel::paint(Painter& p) {
   panel_.set(ui_, open_, modal_pop_ms);
   const float shown = panel_.value(ui_);

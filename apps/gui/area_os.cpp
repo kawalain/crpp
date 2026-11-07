@@ -40,8 +40,23 @@ struct State {
   int balloons = 0;             // shown or queued, for an icon that exists only for them
   bool announce_entering = false;  // the next member list is the Room I just entered
   std::vector<std::string> known_members;
+  Shell* shell = nullptr;  // for the release timer, which gets no argument
 };
 State state;  // one window per process
+
+// A window hidden this long gives the GPU driver's memory back. Coming back then takes
+// about 150 ms more, which a quick minimize and restore does not pay.
+constexpr UINT graphics_release_ms = 30000;
+constexpr UINT_PTR graphics_timer = 102;  // WM_TIMER goes to its own procedure, not the window's
+
+void CALLBACK release_graphics(HWND hwnd, UINT, UINT_PTR id, DWORD) {
+  KillTimer(hwnd, id);
+  Shell& s = *state.shell;
+  if (!s.hidden) return;
+  s.target.reset();
+  s.app.release_graphics();
+  SetProcessWorkingSetSize(GetCurrentProcess(), static_cast<SIZE_T>(-1), static_cast<SIZE_T>(-1));
+}
 
 [[nodiscard]] bool tray_wanted(const Shell& s) { return s.prefs->get(pref::minimize_to_tray); }
 
@@ -75,6 +90,8 @@ void notify_chat(Shell& s, const ChatEntry& entry) {
     Painter painter(s.app.ui().gfx, rt);
     draw_svg(painter, image, {0, 0, static_cast<float>(size), static_cast<float>(size)});
   });
+  // Drawing that made the factory again if it had gone, and a burst should share it.
+  if (s.hidden) SetTimer(s.hwnd, graphics_timer, graphics_release_ms, release_graphics);
   HICON icon = icon_from_pixels(pixels, size);
   const std::wstring title = widen(entry.nick.empty() ? std::string_view("게스트") : std::string_view(entry.nick));
   if (show_notification(s, title, widen(entry.text), icon, NIIF_NOSOUND | NIIF_RESPECT_QUIET_TIME)) state.notified = true;
@@ -216,7 +233,9 @@ void sync_hidden(Shell& s) {
     // Freed memory stays in the working set until asked for. What is still in use comes
     // back on the next touch, at the price of one soft fault per page.
     SetProcessWorkingSetSize(GetCurrentProcess(), static_cast<SIZE_T>(-1), static_cast<SIZE_T>(-1));
+    SetTimer(s.hwnd, graphics_timer, graphics_release_ms, release_graphics);
   } else {
+    KillTimer(s.hwnd, graphics_timer);
     InvalidateRect(s.hwnd, nullptr, FALSE);
   }
   sync_frames(s);
@@ -225,6 +244,7 @@ void sync_hidden(Shell& s) {
 }  // namespace
 
 void wire(Shell& s) {
+  state.shell = &s;
   state.tray.attach(s.hwnd);
   state.taskbar_created = RegisterWindowMessageW(L"TaskbarCreated");
   state.show_window_requested = RegisterWindowMessageW(show_window_message);

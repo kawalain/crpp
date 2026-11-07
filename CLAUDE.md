@@ -94,7 +94,8 @@ against a real `server/` yet; do that once a local build of it is available.
 - "키보드 문자열 구분" is replaced by the Detail mode toggle: the row of a key is
   never sent (`docs/adr/0003-presence-mode-by-default.md`).
 - No "최소화 시 절전 모드" toggle: it switches a WebView2 memory mode. Render
-  resources are always released while the window is hidden.
+  resources are always released while the window is hidden, and after 30 s hidden so is
+  the GPU driver's memory; see `docs/research/memory-floor.md`.
 - Escape closes every dialog that has a cancel action.
 - Logging out inside a Room says it leaves the Room, then does so. Nickname and
   handle can be changed without leaving.
@@ -204,6 +205,9 @@ exist (real + test).
   size is in DIPs. `--shot ... --dpi <n>` renders any scale. `WM_DPICHANGED`
   cannot be sent from another process; test it by moving the window between
   monitors of different DPI.
+  Geometry that lasts beyond a frame lives in `Gfx::path`: anything made from the factory
+  keeps it, and the factory keeps the GPU device, so `App::release_graphics` must be able
+  to let go of them all. A test counts the factory's references to prove it.
   Motion runs on `clock_ms()` (QPC). Anything still moving says so with `Ui::more_frames`
   while painting or with `animating()`; only then does the shell draw the next frame,
   paced by the display, so a still window draws nothing. `Scroll` in `controls.hpp` is
@@ -219,6 +223,9 @@ exist (real + test).
 - Resample WAV once at load to the device rate; load pack variants lazily.
 - Mixer does no work when no voice is active.
 - Measure idle memory/CPU of every UI change; do not trust third-party numbers.
+- Nearly all memory while visible is the GPU driver's: an empty hardware Direct2D window is
+  already 58 MB private against the app's 63. Software rendering is not the way down: it
+  takes about 10 times the CPU to scroll. Findings: `docs/research/memory-floor.md`.
 - Frames have no cap of their own. Measured with an MSVC Release build at 125% on a hidden
   desktop, settings open: idle 0.0% of one core and about 47 MB working set; wheel
   scrolling without pause 0.6-1.9% at about 73 frames/s (a counter confirmed the frames),
@@ -256,6 +263,9 @@ exist (real + test).
 - The tray needs a real desktop: a hidden one has no taskbar, so the icon fails to
   add and a close exits. Icon, menu, notifications, flash, the Run key and a second
   start have only been tested as decisions, not seen.
+- Coming back from a hidden window that gave up its graphics has only run on a hidden
+  desktop, on one NVIDIA card. See it on a real desktop, and on Intel and AMD drivers. The
+  same goes for a chat notification drawn in that state.
 - Dead-peer detection (network cut) is untested.
 - Shared store compatibility is tested against upstream's format as read from
   its source, not yet against the upstream client itself.

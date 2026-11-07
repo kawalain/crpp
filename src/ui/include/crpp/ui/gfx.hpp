@@ -4,6 +4,8 @@
 #include <dwrite.h>
 
 #include <filesystem>
+#include <functional>
+#include <map>
 #include <string>
 #include <string_view>
 #include <utility>
@@ -43,11 +45,18 @@ class Gfx {
   bool init(const std::filesystem::path& font_file = {});
   void load_font(const std::filesystem::path& font_file);
 
-  [[nodiscard]] ID2D1Factory* d2d() const { return d2d_.get(); }
+  // Made again if it was released. Null only if Direct2D itself fails.
+  [[nodiscard]] ID2D1Factory* d2d() const;
   [[nodiscard]] IDWriteFactory* dwrite() const { return dwrite_.get(); }
 
   // SVG path data (M L H V C S A Z, absolute and relative) as a geometry.
   [[nodiscard]] ComPtr<ID2D1PathGeometry> parse_path(std::string_view d) const;
+  // The same, kept here until release_factory. Geometry that lasts beyond a frame lives
+  // here, so that nothing else can hold the factory alive.
+  [[nodiscard]] ID2D1PathGeometry* path(std::string_view d) const;
+  // The factory holds the GPU device, and with it the driver's memory, until it goes.
+  // Every resource made from it must be gone too; App::release_graphics sees to that.
+  void release_factory();
 
   // The text of an emoji id ("1f408-200d-2b1b"), if the system's emoji font shows it as
   // one glyph; otherwise empty.
@@ -59,7 +68,8 @@ class Gfx {
                                                  float max_h = 10000) const;
 
  private:
-  ComPtr<ID2D1Factory> d2d_;
+  mutable ComPtr<ID2D1Factory> d2d_;
+  mutable std::map<std::string, ComPtr<ID2D1PathGeometry>, std::less<>> paths_;
   ComPtr<IDWriteFactory> dwrite_;
   ComPtr<IDWriteFontCollection> fonts_;  // null = the system collection
   std::wstring family_;

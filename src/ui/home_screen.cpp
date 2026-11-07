@@ -30,12 +30,12 @@ void HomeScreen::paint(Painter& p) {
   refresh_seat(ui_.now_ms);
   const Theme& t = ui_.theme;
   // Sky: the large cloud at lower right, then the create cloud at upper left.
-  p.cloud(ui_.cloud.get(), 306.33f, 295.56f, 1.3906f, 0.09f, 6, t);
+  p.cloud(ui_.cloud(), 306.33f, 295.56f, 1.3906f, 0.09f, 6, t);
   const unsigned long long now = ui_.now_ms;
   const bool animate = ui_.animations;
   create_hover_.aim(ui_.hot(this, Create), now, animate);
   p.push(scale_about(182, 260, 1 + 0.03f * create_hover_.value(now)));
-  p.cloud(ui_.cloud.get(), cloud_x, cloud_y, 1, 0.06f, 3.742f, t);
+  p.cloud(ui_.cloud(), cloud_x, cloud_y, 1, 0.06f, 3.742f, t);
   p.text("구름 띄우기", {0, 318, 458, 110}, {.size = 44, .line_height = 110, .align = Align::Center}, t.hl_text);
   p.pop();
   ui_.add_hit(this, {-66, 100, 500, 330}, Create);
@@ -157,8 +157,10 @@ bool HomeScreen::accepts(int id, float x, float y) const {
   if (id != Create) return true;
   // The click area is the cloud's shape, not a rectangle.
   BOOL inside = FALSE;
-  ui_.cloud->FillContainsPoint(D2D1::Point2F(ui_.to_stage_x(x), ui_.to_stage_y(y)),
-                               D2D1::Matrix3x2F::Translation(cloud_x, cloud_y), &inside);
+  if (ID2D1PathGeometry* const shape = ui_.cloud()) {
+    shape->FillContainsPoint(D2D1::Point2F(ui_.to_stage_x(x), ui_.to_stage_y(y)),
+                             D2D1::Matrix3x2F::Translation(cloud_x, cloud_y), &inside);
+  }
   return inside != FALSE;
 }
 

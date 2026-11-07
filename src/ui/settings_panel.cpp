@@ -22,12 +22,6 @@ constexpr std::array<TabButton, 5> tab_buttons{
 
 }  // namespace
 
-bool SettingsPanel::init() {
-  droplet_ = ui_.gfx.parse_path(droplet_path);
-  droplet_x_ = ui_.gfx.parse_path(droplet_x_path);
-  return droplet_ && droplet_x_;
-}
-
 SettingsTab& SettingsPanel::tab() { return tab_of(page_); }
 
 SettingsTab& SettingsPanel::tab_of(SettingsPage page) {
@@ -129,7 +123,7 @@ void SettingsPanel::paint_panel(Painter& p) {
   p.push(D2D1::Matrix3x2F::Translation(-496, 0) * D2D1::Matrix3x2F::Scale(-1091.0f / 496, 733.0f / 330) *
          D2D1::Matrix3x2F::Translation(15, -35));
   const Color cloud = t.dark ? t.surface : rgb(0xF7FCFF, 0.98f);
-  p.fill_geometry(ui_.cloud.get(), cloud);
+  p.fill_geometry(ui_.cloud(), cloud);
   p.pop();
 
   paint_tabs(p);
@@ -227,8 +221,8 @@ void SettingsPanel::paint_droplet(Painter& p) {
   D2D1_MATRIX_3X2_F m = D2D1::Matrix3x2F::Scale(s, s) * D2D1::Matrix3x2F::Translation(drop.x, drop.y + (49 - 49 * s) / 2);
   if (g > 0) m = m * scale_about(drop.x + 17.5f, drop.y + 24.5f, 1 + 0.08f * g);
   p.push(m);
-  p.fill_geometry(droplet_.get(), mix(mix(t.droplet, t.hl_text_dark, 92), t.droplet, h * 100));
-  if (open_) p.stroke_geometry(droplet_x_.get(), mix(t.hl_text_dark, t.hl_text, h * 100), 4.4f, false);
+  p.fill_geometry(ui_.gfx.path(droplet_path), mix(mix(t.droplet, t.hl_text_dark, 92), t.droplet, h * 100));
+  if (open_) p.stroke_geometry(ui_.gfx.path(droplet_x_path), mix(t.hl_text_dark, t.hl_text, h * 100), 4.4f, false);
   p.pop();
   ui_.add_hit_window(this, drop, Droplet);
 

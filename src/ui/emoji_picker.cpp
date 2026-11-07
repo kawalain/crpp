@@ -46,6 +46,12 @@ void EmojiPicker::close() {
   else release_shown();
 }
 
+void EmojiPicker::forget_graphics() {
+  if (!cache_) return;
+  auto dir = cache_->dir();  // what emplace is about to destroy
+  cache_.emplace(std::move(dir), cache_capacity);
+}
+
 void EmojiPicker::release_shown() {
   closed_at_ = 0;
   cache_.reset();

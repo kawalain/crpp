@@ -108,7 +108,6 @@ class SoundTab final : public SettingsTab {
   int tip_row_ = -1;
   bool tip_on_ = false;
   unsigned long long tip_start_ = 0;
-  ComPtr<ID2D1PathGeometry> person_body_, balance_thumb_;
 };
 
 // The theme in use: upstream's effectiveTheme, with an unknown name taken as the default.

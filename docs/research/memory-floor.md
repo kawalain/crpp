@@ -46,6 +46,31 @@ window is visible. It can fall by about 75% while hidden.**
   13.9). It trades commit, not RAM, for CPU. That conflicts with the CPU-first priority, so the
   decision to draw with the GPU is what sets the visible floor.
 
+## What was done
+
+Tried in the app after this note was first written. "Before" and "after" are the app, measured as
+in section 9.
+
+- **Layer bounds (measure 1): no saving in ordinary flows.** Settings open stayed at 74 private. The
+  panel's fade needs one full-window layer anyway, and a tab change then reuses that pool. Bounds
+  can only help where layers nest. The estimate in the table below was too high.
+- **Release when hidden (measure 2): done as 2b, not 2a.** The HWND target stays, so the visible path
+  is untouched: this note's own table shows 2a's device context at about twice the CPU per frame,
+  and it cannot be checked on a hidden desktop. The worry about 2b was the holders of geometry, but
+  only about ten members were left, and they now use `Gfx::path`.
+
+| State | Private | Working set | Threads | Modules |
+| --- | --- | --- | --- | --- |
+| Home, idle | 63 | 44 | 28 | 74 |
+| Minimized, 4 s | 63 | 8 | 28 | 74 |
+| Minimized, past the 30 s delay | 24 | 1.5 | 12 | 67 |
+| Restored | 65 | 34 | 28 | 74 |
+
+Restoring cost 141 ms of CPU once. The 24 is above the probe's 10-11: 18 of it is private-type
+commit, whose owner was not identified. After the settings screen has been used the hidden figure is
+28-40, not 24. Three hide and show cycles past the delay, then ten quick ones, showed no growth in
+private, threads or handles.
+
 ## Ranked measures
 
 Savings are measured in the probe unless marked *estimate*; none has been tried in the app.

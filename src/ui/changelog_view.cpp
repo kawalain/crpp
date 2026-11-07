@@ -253,13 +253,10 @@ void ChangelogView::paint(Painter& p) {
 
   // .cl-close: 36 across, 15 from the top and 16 from the right.
   const Rect close{card.right() - 16 - 36, card.y + 15, 36, 36};
-  if (!close_icon_) close_icon_ = ui_.gfx.parse_path(close_path);
   if (ui_.hot(this, Close)) p.fill_ellipse(close.x + 18, close.y + 18, 18, 18, with_alpha(t.hl_pale2, shown));
-  if (close_icon_) {
-    p.push(D2D1::Matrix3x2F::Translation(close.x, close.y));
-    p.stroke_geometry(close_icon_.get(), with_alpha(t.hl, shown), 4.4f, false);
-    p.pop();
-  }
+  p.push(D2D1::Matrix3x2F::Translation(close.x, close.y));
+  p.stroke_geometry(ui_.gfx.path(close_path), with_alpha(t.hl, shown), 4.4f, false);
+  p.pop();
   ui_.add_hit_window(this, close, Close);
 
   if (hint_shown_ != 0) {

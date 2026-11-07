@@ -450,6 +450,54 @@ void test_the_settings_panel_fades_out_after_it_closed() {
   hold_clock_at(0);
 }
 
+void show_everything_that_keeps_graphics(UiHarness& h) {
+  h.app.show_prompt({.heading = "h", .password = true});
+  CHECK(h.render());
+  h.app.show_session("ABC234");
+  h.app.room().set_room({{0, "a", "", false}}, 0, 0, false, true);
+  h.app.room().chat().add({0, "c0", "a", "", "hello", 1700000000000});
+  CHECK(h.render());
+  h.app.show_home();
+  CHECK(h.render());
+  for (const SettingsPage page : {SettingsPage::Sound, SettingsPage::Display, SettingsPage::Notify, SettingsPage::System, SettingsPage::Account}) {
+    h.app.settings().open(page);
+    CHECK(h.render());
+  }
+  h.app.settings().close();
+  h.app.changelog().open({}, 0);
+  CHECK(h.render());
+  h.app.emoji_picker().show("", [](std::string) {});
+  CHECK(h.render());
+}
+
+void test_releasing_graphics_lets_go_of_the_factory() {
+  UiHarness h;
+  CHECK(h.start());
+  with_assets(h);
+  show_everything_that_keeps_graphics(h);
+  CHECK(h.app.emoji_picker().is_open());
+
+  // Anything made from the factory counts on it, so a count of zero at the end means
+  // no holder is left. `held` shows that the count would notice one.
+  h.drop_target();
+  ID2D1Factory* const factory = h.app.factory();
+  factory->AddRef();
+  auto held = h.app.ui().gfx.parse_path("M0 0L1 1");
+  h.app.release_graphics();
+  factory->AddRef();
+  CHECK(factory->Release() >= 2);
+  held = {};
+  CHECK(factory->Release() == 0);
+
+  // All of it comes back, from the new factory, or Direct2D refuses the frame.
+  CHECK(h.make_target());
+  CHECK(h.render());
+  h.app.emoji_picker().close();
+  show_everything_that_keeps_graphics(h);
+  h.app.emoji_picker().close();
+  CHECK(h.render());
+}
+
 void test_only_plain_ids_name_an_emoji_file() {
   CHECK(valid_emoji_id("1f4a7"));
   CHECK(valid_emoji_id("1f408-200d-2b1b"));
@@ -1085,6 +1133,7 @@ int main() {
   test_a_room_stays_as_it_was_while_it_fades_out();
   test_a_member_arrives_and_a_settled_room_asks_for_no_frames();
   test_the_settings_panel_fades_out_after_it_closed();
+  test_releasing_graphics_lets_go_of_the_factory();
   test_only_plain_ids_name_an_emoji_file();
   test_picker_hides_what_it_cannot_show();
   test_picker_lists_every_emoji_and_parses_only_what_shows();

@@ -43,7 +43,7 @@ std::vector<std::uint32_t> render_pixels(ID2D1Factory* factory, int size,
     const auto side = static_cast<UINT>(size);
     const auto props = D2D1::RenderTargetProperties(
         D2D1_RENDER_TARGET_TYPE_SOFTWARE, D2D1::PixelFormat(DXGI_FORMAT_B8G8R8A8_UNORM, D2D1_ALPHA_MODE_PREMULTIPLIED), 96, 96);
-    if (SUCCEEDED(CoCreateInstance(CLSID_WICImagingFactory, nullptr, CLSCTX_INPROC_SERVER, IID_IWICImagingFactory,
+    if (factory && SUCCEEDED(CoCreateInstance(CLSID_WICImagingFactory, nullptr, CLSCTX_INPROC_SERVER, IID_IWICImagingFactory,
                                    reinterpret_cast<void**>(wic.put()))) &&
         SUCCEEDED(wic->CreateBitmap(side, side, GUID_WICPixelFormat32bppPBGRA, WICBitmapCacheOnLoad, bitmap.put())) &&
         SUCCEEDED(factory->CreateWicBitmapRenderTarget(bitmap.get(), props, rt.put()))) {

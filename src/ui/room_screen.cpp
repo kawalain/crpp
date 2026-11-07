@@ -42,26 +42,26 @@ RoomScreen::RoomScreen(Ui& ui) : Surface(ui), chat_panel_(ui), profile_(ui), men
   menu_.on_volume = [this](std::uint32_t slot, int percent) { set_member_volume(slot, percent); };
 }
 
-bool RoomScreen::init() {
+void RoomScreen::make_cloud() {
   // The room cloud: four circles and a rectangle, unioned (main.js sessionCloudSvg).
   ComPtr<ID2D1EllipseGeometry> circles[4];
   const float c[4][3] = {{292, 190, 169}, {610, 160, 250}, {860, 400, 185}, {150, 405, 180}};
   ID2D1Geometry* parts[5] = {};
   ComPtr<ID2D1RectangleGeometry> rect;
   ID2D1Factory* d2d = ui_.gfx.d2d();
+  if (!d2d) return;
   for (int i = 0; i < 4; ++i) {
     if (FAILED(d2d->CreateEllipseGeometry(D2D1::Ellipse(D2D1::Point2F(c[i][0], c[i][1]), c[i][2], c[i][2]),
                                           circles[i].put()))) {
-      return false;
+      return;
     }
     parts[i] = circles[i].get();
   }
-  if (FAILED(d2d->CreateRectangleGeometry(D2D1::RectF(150, 300, 860, 585), rect.put()))) return false;
+  if (FAILED(d2d->CreateRectangleGeometry(D2D1::RectF(150, 300, 860, 585), rect.put()))) return;
   parts[4] = rect.get();
   ComPtr<ID2D1GeometryGroup> group;
-  if (FAILED(d2d->CreateGeometryGroup(D2D1_FILL_MODE_WINDING, parts, 5, group.put()))) return false;
+  if (FAILED(d2d->CreateGeometryGroup(D2D1_FILL_MODE_WINDING, parts, 5, group.put()))) return;
   cloud_ = group.upcast<ID2D1Geometry>();
-  return static_cast<bool>(cloud_);
 }
 
 void RoomScreen::enter_room(std::string room_code) {
@@ -222,6 +222,7 @@ RoomScreen::Layout RoomScreen::layout() const {
 void RoomScreen::paint(Painter& p) {
   const Theme& t = ui_.theme;
   // The cloud, pushed down by cloud_dy.
+  if (!cloud_) make_cloud();
   p.push(D2D1::Matrix3x2F::Translation(0, cloud_dy));
   if (t.cloud_shadow_scale > 0) p.shadow_geometry(cloud_.get(), 18, 6, rgb(0x2f6f99, 0.14f));
   p.fill_vertical_gradient(cloud_.get(), 0, 585,

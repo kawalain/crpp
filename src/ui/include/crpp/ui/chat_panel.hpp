@@ -103,7 +103,6 @@ class ChatPanel final : public Surface {
   bool stick_ = true;
   unsigned long long arrivals_at_ = 0;  // when the messages rising together began
   std::size_t kept_from_ = 0, kept_to_ = 0;  // the rows holding layouts
-  ComPtr<ID2D1PathGeometry> send_arrow_;
   float content_h_ = 0;
   float zoom_ = 1;
   bool use_24h_ = false;

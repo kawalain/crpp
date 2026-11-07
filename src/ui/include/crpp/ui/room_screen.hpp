@@ -30,7 +30,7 @@ struct MemberView {
 class RoomScreen final : public Surface {
  public:
   explicit RoomScreen(Ui& ui);
-  bool init();  // needs ui.gfx
+  void forget_graphics() { cloud_.reset(); }
 
   std::function<void()> on_leave;
   std::function<void(bool)> on_set_public;
@@ -128,6 +128,7 @@ class RoomScreen final : public Surface {
   MemberMenu menu_;
   // This session's loudness per member; absent means 100%.
   std::vector<std::pair<std::string, int>> member_volumes_;
+  void make_cloud();
   ComPtr<ID2D1Geometry> cloud_;
   std::string room_code_;
   std::vector<MemberView> members_;

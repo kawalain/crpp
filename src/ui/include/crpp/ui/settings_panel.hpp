@@ -18,7 +18,6 @@ class SettingsPanel final : public Surface {
  public:
   explicit SettingsPanel(Ui& ui)
       : Surface(ui), sound_(ui), display_(ui), notify_(ui), system_(ui), account_(ui) {}
-  bool init();  // needs ui.gfx
 
   enum Id : int { Droplet, Overlay, Thumb, Version, Track, TabBase = 100 };
 
@@ -72,7 +71,6 @@ class SettingsPanel final : public Surface {
   NotifyTab notify_;
   SystemTab system_;
   AccountTab account_;
-  ComPtr<ID2D1PathGeometry> droplet_, droplet_x_;
   bool open_ = false;
   SettingsPage page_ = SettingsPage::Sound;
   Scroll scroll_;

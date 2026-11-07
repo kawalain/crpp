@@ -24,8 +24,9 @@ struct DeskMix {
 
 struct SpatialConfig {
   bool spatial = true;
-  // The louder ear's share of a desk straight to one side, in percent: 60 is the
-  // slider's "60:40". 50 or less does not lean; 0 also drops the other side cues.
+  // How strongly a Desk to one side leans, on the slider's scale from 55 to 90: straight
+  // to the side, 60 is 6 dB between the ears and 90 is 19 dB. 50 or less does not lean;
+  // 0 also drops the other side cues.
   int balance = 60;
 };
 

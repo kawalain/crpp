@@ -11,6 +11,9 @@ namespace {
 constexpr double desk_spacing_m = 1.5;
 constexpr double head_radius_m = 0.0875, speed_of_sound = 343;
 constexpr double distance_rolloff = 0.6;
+// Starting points to tune by ear, as no source found maps level difference to place: 6 dB
+// at the default, up to 19 dB, about the 9:1 the slider's end has always meant.
+constexpr double difference_at_60_db = 6, difference_db_per_step = 13.0 / 30;
 constexpr double shadow_corner_hz = 1250, open_corner_hz = 18000;
 constexpr double far_desk_corner_hz = 8000;  // air absorption at the far corners
 constexpr float send_near = 0.25f, send_far = 0.55f;
@@ -81,10 +84,11 @@ DeskMix desk_mix(std::size_t desk, std::uint32_t rate, const SpatialConfig& conf
   const double side = desk_side(desk);
   const double theta = std::asin(std::abs(side));
 
-  // Leaning: straight to one side, the two amplitudes are balance : 100 - balance.
+  // Leaning: straight to one side, the ears differ by this much.
   const int balance = std::clamp(config.balance, 0, 100);
   const double extent = balance / 100.0;
-  const double full_lean = balance > 50 ? 2 / std::numbers::pi * std::atan2(balance, 100 - balance) : 0.5;
+  const double difference_db = balance > 50 ? difference_at_60_db + (balance - 60) * difference_db_per_step : 0;
+  const double full_lean = 2 / std::numbers::pi * std::atan(std::pow(10.0, difference_db / 20));
   const double pan = 0.5 + 0.5 * side * (2 * full_lean - 1);
   const double angle = pan * std::numbers::pi / 2;
   const double distance_gain = 1 / (1 + (std::max(distance, 1.0) - 1) * distance_rolloff);

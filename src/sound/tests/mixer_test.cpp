@@ -90,13 +90,21 @@ void balance_controls_the_lean() {
   CHECK(std::abs(none.left - none.right) < 1e-5f);
   CHECK(none.delay_left == 0 && none.delay_right == 0);
   const DeskMix full = desk_mix(4, rate, {true, 90});
-  // A desk straight to the side would be 90:10; this one is a little off axis.
-  CHECK(full.left / full.right > 3);
-  CHECK(full.left / full.right < 9.01f);
-  // The default, 60:40 straight to the side.
-  const DeskMix label = desk_mix(4, rate, {true, 60});
-  CHECK(label.left / label.right > 1.3f);
-  CHECK(label.left / label.right < 1.51f);
+  // A desk straight to the side would differ by 19 dB; this one is a little off axis.
+  const auto difference_db = [](const DeskMix& m) { return 20 * std::log10(m.left / m.right); };
+  CHECK(difference_db(full) > 10);
+  CHECK(difference_db(full) < 19.01f);
+  // The default would be 6 dB, clearly more than 60:40.
+  const DeskMix standard = desk_mix(4, rate, {true, 60});
+  CHECK(difference_db(standard) > 5);
+  CHECK(difference_db(standard) < 6.01f);
+  // Each step of the slider leans further.
+  float last = 0;
+  for (int value = 55; value <= 90; ++value) {
+    const float now = difference_db(desk_mix(4, rate, {true, value}));
+    CHECK(now > last);
+    last = now;
+  }
 }
 
 void without_spatial_audio_everything_is_centred() {

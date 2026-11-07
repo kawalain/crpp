@@ -225,6 +225,10 @@ class Walker final : public Env {
     const float radius = value(n.extra);
     if (paint->stops != 0) {
       const std::span<const GradientStop> stops(pack_.stops.data() + paint->first_stop, paint->stops);
+      if (n.across) {
+        canvas_.fill_across(box, stops);
+        return;
+      }
       const float y1 = n.has_down_to ? box.y + value(n.width) : box.y + box.h;
       if (radius > 0) canvas_.fill_round_down(box, radius, box.y, y1, stops);
       else canvas_.fill_down(box, box.y, y1, stops);

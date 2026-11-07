@@ -899,6 +899,11 @@ class Loader final : public Names {
       case NodeKind::Fill: {
         if (!expr_of(json, "fill", out.paint) || !optional_expr(json, "radius", out.extra)) return false;
         if (!optional_expr(json, "down_to", out.width, &out.has_down_to)) return false;
+        if (const Json* across = json.find("across")) {
+          if (!across->as_bool()) return fail("across is not true or false");
+          out.across = *across->as_bool();
+          if (out.across && (json.find("radius") || out.has_down_to)) return fail("across takes no radius or down_to");
+        }
         break;
       }
       case NodeKind::Frame:

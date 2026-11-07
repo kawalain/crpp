@@ -8,7 +8,8 @@
 //
 // Each node is one thing to draw, chosen by which of these keys it has:
 //   fill    a Palette entry, plain or a gradient, with an optional radius; a gradient runs over the
-//           box unless down_to says how far down it ends. Fill, frame, stroke and text take alpha
+//           box unless down_to says how far down it ends, or from left to right with across: true.
+//           Fill, frame, stroke and text take alpha
 //   frame   a line inside the box's edge
 //   stroke  a rounded line, with radius and width
 //   line    a colour, from x, y to x2, y2 with width
@@ -120,6 +121,7 @@ struct Node {
   bool has_size = false, has_line_height = false;  // Text
   bool has_alpha = false;
   bool has_down_to = false;  // Fill
+  bool across = false;       // Fill
   std::uint16_t slot = no_slot;  // where id's box goes, or a let's value
   std::uint16_t style = 0;
   int hit = no_hit;

@@ -107,6 +107,7 @@ class Log final : public Canvas {
   float text_height(std::string_view text, const TextLook& look, float width) override { return std::ceil(static_cast<float>(text.size()) * 10 / width) * look.line_height; }
   void fill(Box b, Color c) override { add("fill " + str(b) + " " + str(c)); }
   void fill_down(Box b, float y0, float y1, std::span<const GradientStop> s) override { add("down " + str(b) + " " + str(y0) + ".." + str(y1) + " " + std::to_string(s.size())); }
+  void fill_across(Box b, std::span<const GradientStop> s) override { add("across " + str(b) + " " + std::to_string(s.size())); }
   void fill_round(Box b, float r, Color c) override { add("round " + str(b) + " " + str(r) + " " + str(c)); }
   void fill_round_down(Box b, float r, float y0, float y1, std::span<const GradientStop> s) override { add("rounddown " + str(b) + " " + str(r) + " " + str(y0) + ".." + str(y1) + " " + std::to_string(s.size())); }
   void frame(Box b, Color c) override { add("frame " + str(b) + " " + str(c)); }
@@ -221,6 +222,10 @@ void palettes_choose_colours_and_gradients() {
   CHECK(walk(R"({"fill":"$shade"})") == "down 100,200,300,400 200..600 2\n");
   CHECK(walk(R"({"fill":"$shade","down_to":20})") == "down 100,200,300,400 200..220 2\n");
   CHECK(walk(R"({"fill":"$shade","radius":3})") == "rounddown 100,200,300,400 3 200..600 2\n");
+  CHECK(walk(R"({"fill":"$shade","across":true})") == "across 100,200,300,400 2\n");
+  CHECK(walk(R"({"fill":"$face","across":true})") == "fill 100,200,300,400 1/0/0/1\n");  // a plain colour has no direction
+  CHECK(!load(R"({"fill":"$shade","across":true,"radius":3})").has_value());
+  CHECK(!load(R"({"fill":"$shade","across":1})").has_value());
   CHECK(walk(R"({"fill":"$face","radius":3})") == "round 100,200,300,400 3 1/0/0/1\n");
   CHECK(walk(R"({"fill":"99"})").empty());  // a number that is no entry draws nothing
   const auto pack = load(R"({"fill":"$face"})");

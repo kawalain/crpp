@@ -31,6 +31,7 @@ class SkinCanvas final : public skin::Canvas {
   void fill(skin::Box box, skin::Color color) override { p_.fill_rect(rect_of(box), color); }
   float text_height(std::string_view text, const skin::TextLook& look, float width) override;
   void fill_down(skin::Box box, float y0, float y1, std::span<const skin::GradientStop> stops) override { p_.fill_gradient(rect_of(box), {box.x, y0}, {box.x, y1}, stops); }
+  void fill_across(skin::Box box, std::span<const skin::GradientStop> stops) override { p_.fill_gradient(rect_of(box), {box.x, box.y}, {box.x + box.w, box.y}, stops); }
   void fill_round(skin::Box box, float radius, skin::Color color) override { p_.fill_round(rect_of(box), radius, color); }
   void fill_round_down(skin::Box box, float radius, float y0, float y1, std::span<const skin::GradientStop> stops) override { p_.fill_round_gradient(rect_of(box), radius, {box.x, y0}, {box.x, y1}, stops); }
   void frame(skin::Box box, skin::Color color) override { p_.frame(rect_of(box), color); }

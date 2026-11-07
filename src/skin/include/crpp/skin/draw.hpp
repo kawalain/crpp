@@ -32,6 +32,8 @@ class Canvas {
   virtual void fill(Box box, Color color) = 0;
   // A gradient straight down from y0 to y1, on the window.
   virtual void fill_down(Box box, float y0, float y1, std::span<const GradientStop> stops) = 0;
+  // From the box's left to its right. Nothing where only sizes are being worked out.
+  virtual void fill_across(Box, std::span<const GradientStop>) {}
   virtual void fill_round(Box box, float radius, Color color) = 0;
   virtual void fill_round_down(Box box, float radius, float y0, float y1, std::span<const GradientStop> stops) = 0;
   virtual void frame(Box box, Color color) = 0;

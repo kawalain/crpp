@@ -53,6 +53,7 @@ inline constexpr KeyDoc common_keys[] = {
 inline constexpr KeyDoc fill_keys[] = {
     {"radius", KeyType::Expr, "Rounds its corners."},
     {"down_to", KeyType::Expr, "How far down from its top a gradient ends, instead of its height."},
+    {"across", KeyType::Flag, "A gradient runs from left to right over its box, not downward. It takes no radius or down_to."},
 };
 inline constexpr KeyDoc stroke_keys[] = {
     {"radius", KeyType::Expr, "Rounds its corners."},

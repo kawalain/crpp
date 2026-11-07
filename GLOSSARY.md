@@ -38,6 +38,8 @@
 
 **Host**: the member who controls the Room's visibility and chat. When the Host leaves, another online member becomes Host.
 
+**Dark mode** (다크 모드): off, on or following the system, picked after the Theme. It chooses between a Theme and its dark variant, and is locked while the Theme has none.
+
 **Theme** (테마): what a user picks within a Skin in the display settings, for example classic or luna_blue in Retro. It has a Palette, and may have a dark variant, which is another Palette of the same Theme.
 
 **Skin**: how the program is built on screen: the shape of its controls, the layout of its screens, its window frame, its cursors and its motion. Features and behaviour do not depend on the Skin. There are two: Cloud and Retro. The program knows no Skin by name.

@@ -37,6 +37,26 @@ says the pack draws its window frame and gives every panel a window, which takes
 installed fonts, the first this system has. `cursors` names a part for each of the seven, drawn in a box of 32 by 32, with the point that
 clicks: look at them with the scene `cursors`. Without `cursors`, the pointer is the system's.
 
+## Motion
+
+A pack whose constant `moves` is not 0 can move. What changes between two states is a transition, a `let` that runs from 0
+to 1 and back:
+
+```jsonc
+{"hit": "join", "group": [
+  {"let": "over", "to": "hot", "ms": 150},
+  {"fill": "alpha($hl, over)", "radius": 13}
+]}
+```
+
+It takes `ms_off`, `curve` (`ease` or `linear`), `first: "jump"` for a state that is simply there when first seen, and `again`, whose new
+value runs it up again. What a frame does not walk is forgotten, so a screen that comes back runs again. A `to` asks for
+frames while it moves, even if nothing reads it, so guard one that should not run with `if`.
+
+A group takes `scale`, `opacity`, `dy`, `fade_top` and `fade_bottom`. `mix($a, $b, percent)` and `alpha($a, value)` work out colours anywhere a colour goes, and
+`dark` says whether this Palette is a dark variant. What stays in the engine, scrolling, the cross-fade between screens and the speaking discs, reads its
+numbers from the constants in `moving_constants` of `pack.hpp`.
+
 ## Themes, overlays and extending
 
 `themes` lists what a user picks in this Skin: its names by locale, and its Palette, which is named as the Theme unless it says

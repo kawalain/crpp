@@ -1,6 +1,6 @@
 if(WIN32)
   add_library(crpp_ui STATIC
-    gfx.cpp svg.cpp textfield.cpp png.cpp surface.cpp controls.cpp app.cpp
+    gfx.cpp svg.cpp textfield.cpp png.cpp surface.cpp themes.cpp controls.cpp app.cpp
     setup_screen.cpp prompt_screen.cpp home_screen.cpp room_screen.cpp chat_panel.cpp notice_card.cpp dialogs.cpp toasts.cpp emoji_picker.cpp
     offline_popup.cpp connection_feedback.cpp
     settings_panel.cpp settings_rows.cpp settings_sound_tab.cpp settings_display_tab.cpp settings_notify_tab.cpp settings_system_tab.cpp

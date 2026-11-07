@@ -165,7 +165,7 @@ bool scene(Shell& s, std::string_view name) {
   } else {
     return false;
   }
-  if (dark) s.app.set_theme(ThemeId::DarkCloud);
+  if (dark) s.app.set_theme("darkcloud");
   return true;
 }
 

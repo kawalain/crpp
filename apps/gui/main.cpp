@@ -132,6 +132,11 @@ int main(int argc, char** argv) {
     if (const locale::Locale* named = locale::find_locale(argv[argc - 1])) shot_locale = named;
     argc -= 2;
   }
+  std::string shot_theme;
+  if (argc >= 3 && std::string(argv[argc - 2]) == "--theme") {
+    shot_theme = argv[argc - 1];
+    argc -= 2;
+  }
   float shot_dpi = 96;
   if (argc >= 3 && std::string(argv[argc - 2]) == "--dpi") {
     shot_dpi = static_cast<float>(std::atof(argv[argc - 1]));
@@ -164,6 +169,7 @@ int main(int argc, char** argv) {
   if (argc >= 3 && std::string(argv[1]) == "--shot") {
     locale::set_current(*shot_locale);
     shell.app.ui().gfx.set_language(ui::widen(shot_locale->tag));
+    if (!shot_theme.empty()) shell.app.set_theme(shot_theme);
     return run_shot(shell, argc, argv, shot_dpi);
   }
   if (updated_from != 0) area::update::took_over(updated_from);

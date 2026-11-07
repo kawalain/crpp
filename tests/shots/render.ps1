@@ -3,7 +3,7 @@ Renders the scenes in scenes.txt on a hidden Win32 desktop, into a folder of PNG
 renders before and after, then compare.ps1 proves that nothing moved. Images depend on the machine
 (fonts, driver), so they are not committed.
 
-  tests/shots/render.ps1 -Exe build-msvc/apps/gui/crpp.exe -Out <folder> [-Dpi 144] [-Only home,chat] [-Extra '--locale','en']
+  tests/shots/render.ps1 -Exe build-msvc/apps/gui/crpp.exe -Out <folder> [-Dpi 144] [-Only home,chat] [-Extra '--theme','messenger','--locale','en']
 #>
 param(
   [Parameter(Mandatory)][string]$Exe,

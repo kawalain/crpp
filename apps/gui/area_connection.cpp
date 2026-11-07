@@ -103,12 +103,12 @@ bool scene(Shell& s, std::string_view name) {
     return true;
   }
   if (name == "offline" || name == "offline-dark") {
-    if (name == "offline-dark") s.app.set_theme(ThemeId::DarkCloud);
+    if (name == "offline-dark") s.app.set_theme("darkcloud");
     s.app.offline().show();
     return true;
   }
   if (name == "reconnecting" || name == "reconnecting-dark") {
-    if (name == "reconnecting-dark") s.app.set_theme(ThemeId::DarkCloud);
+    if (name == "reconnecting-dark") s.app.set_theme("darkcloud");
     demo_room(s);
     s.app.offline().show();
     return true;

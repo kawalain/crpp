@@ -1,5 +1,6 @@
 #pragma once
-// Colors of the three upstream themes (style.css :root variables).
+// A Theme's colours. The Cloud ones are upstream's (style.css :root variables). Which Themes
+// there are is in themes.hpp.
 #include <cstdint>
 
 namespace crpp::ui {
@@ -21,9 +22,11 @@ constexpr Color mix(Color a, Color b, float pct) {
 
 constexpr Color with_alpha(Color c, float a) { return {c.r, c.g, c.b, a}; }
 
-enum class ThemeId : std::uint8_t { Cloudroom, DarkCloud, Pastel };
+// Who draws: shape and layout. See docs/adr/0005-skins-own-shape-and-layout.md.
+enum class SkinId : std::uint8_t { Cloud };
 
 struct Theme {
+  SkinId skin = SkinId::Cloud;
   bool dark = false;
   Color sky, hl, hl_text, hl_text_soft, hl_text_dark, hl_soft, hl_dark, hl_pale, hl_pale2, hl_mid;
   Color surface, on_accent, droplet, entry, error_text;
@@ -31,33 +34,36 @@ struct Theme {
   float cloud_shadow_scale = 1;  // 0 for the dark theme (no glow)
 };
 
-constexpr Theme make_theme(ThemeId id) {
+constexpr Theme dark_cloud_palette() {
+  Theme t;
+  t.dark = true;
+  t.hl = rgb(0x4d7fab);
+  t.hl_dark = rgb(0x6393be);
+  t.hl_soft = rgb(0x3b5878);
+  t.hl_text = rgb(0xd0dfed);
+  t.hl_text_soft = rgb(0xa0b4c9);
+  t.hl_text_dark = rgb(0xecf3fa);
+  t.hl_pale = rgb(0x293a50);
+  t.hl_pale2 = rgb(0x344a63);
+  t.hl_mid = rgb(0x3c536e);
+  t.sky = rgb(0x101925);
+  t.surface = rgb(0x233145);
+  t.on_accent = rgb(0xeef5fb);
+  t.droplet = rgb(0x27374c);
+  t.error_text = rgb(0xf39b9b);
+  t.entry = rgb(0x344a63);
+  t.cloud_top = t.cloud_base = t.cloud_bottom = rgb(0x27374c);
+  t.cloud_mid = t.cloud_low = t.cloud_foot = rgb(0x27374c);
+  t.cloud_shadow = rgb(0x000000);
+  t.cloud_shadow_scale = 0;
+  return t;
+}
+
+// The light Cloud Themes differ by their accent.
+constexpr Theme light_cloud_palette(Color accent) {
   Theme t;
   const Color white = rgb(0xFFFFFF);
-  if (id == ThemeId::DarkCloud) {
-    t.dark = true;
-    t.hl = rgb(0x4d7fab);
-    t.hl_dark = rgb(0x6393be);
-    t.hl_soft = rgb(0x3b5878);
-    t.hl_text = rgb(0xd0dfed);
-    t.hl_text_soft = rgb(0xa0b4c9);
-    t.hl_text_dark = rgb(0xecf3fa);
-    t.hl_pale = rgb(0x293a50);
-    t.hl_pale2 = rgb(0x344a63);
-    t.hl_mid = rgb(0x3c536e);
-    t.sky = rgb(0x101925);
-    t.surface = rgb(0x233145);
-    t.on_accent = rgb(0xeef5fb);
-    t.droplet = rgb(0x27374c);
-    t.error_text = rgb(0xf39b9b);
-    t.entry = rgb(0x344a63);
-    t.cloud_top = t.cloud_base = t.cloud_bottom = rgb(0x27374c);
-    t.cloud_mid = t.cloud_low = t.cloud_foot = rgb(0x27374c);
-    t.cloud_shadow = rgb(0x000000);
-    t.cloud_shadow_scale = 0;
-    return t;
-  }
-  t.hl = id == ThemeId::Pastel ? rgb(0xb1dafd) : rgb(0x66ccff);
+  t.hl = accent;
   t.sky = t.hl;
   t.hl_text = t.hl;
   t.hl_soft = mix(t.hl, white, 70);

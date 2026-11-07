@@ -61,7 +61,8 @@ class App {
   // The settings surfaces read and change; in memory until the shell sets its own.
   void set_prefs(Prefs& prefs) { ui_.prefs = &prefs; }
 
-  void set_theme(ThemeId id) { ui_.theme = make_theme(id); }
+  // An id from themes.hpp; an unknown one means the default.
+  void set_theme(std::string_view id);
   void show_setup(int percent);
   void show_home();
   void show_session(std::string room_code);

@@ -16,19 +16,19 @@ void open(UiHarness& h, SettingsPage page) {
 
 void test_effective_theme() {
   MemoryPrefs prefs;
-  CHECK(effective_theme(prefs, false) == ThemeId::Cloudroom);
-  CHECK(effective_theme(prefs, true) == ThemeId::Cloudroom);  // the OS only counts when linked
+  CHECK(effective_theme(prefs, false).id == "cloudroom");
+  CHECK(effective_theme(prefs, true).id == "cloudroom");  // the OS only counts when linked
   prefs.set(pref::theme, "pastel");
-  CHECK(effective_theme(prefs, true) == ThemeId::Pastel);
+  CHECK(effective_theme(prefs, true).id == "pastel");
   prefs.set(pref::theme, "nonsense");
-  CHECK(effective_theme(prefs, false) == ThemeId::Cloudroom);
+  CHECK(effective_theme(prefs, false).id == "cloudroom");
 
   prefs.set(pref::system_theme, true);
   prefs.set(pref::light_theme, "pastel");
-  CHECK(effective_theme(prefs, false) == ThemeId::Pastel);
-  CHECK(effective_theme(prefs, true) == ThemeId::DarkCloud);
+  CHECK(effective_theme(prefs, false).id == "pastel");
+  CHECK(effective_theme(prefs, true).id == "darkcloud");
   prefs.set(pref::light_theme, "darkcloud");  // not a light theme
-  CHECK(effective_theme(prefs, false) == ThemeId::Cloudroom);
+  CHECK(effective_theme(prefs, false).id == "cloudroom");
 }
 
 void test_system_toggle_swaps_the_dropdowns() {

@@ -56,11 +56,11 @@ class Gfx {
 
   // SVG path data (M L H V C S A Z, absolute and relative) as a geometry.
   [[nodiscard]] ComPtr<ID2D1PathGeometry> parse_path(std::string_view d) const;
-  // The same, kept here until release_factory. Geometry that lasts beyond a frame lives
-  // here, so that nothing else can hold the factory alive.
   // Picks glyph variants, as a page's language does: "ko-kr".
   void set_language(std::wstring tag) { language_ = std::move(tag); }
 
+  // The same, kept here until release_factory. Geometry that lasts beyond a frame lives
+  // here, so that nothing else can hold the factory alive.
   [[nodiscard]] ID2D1PathGeometry* path(std::string_view d) const;
   // The factory holds the GPU device, and with it the driver's memory, until it goes.
   // Every resource made from it must be gone too; App::release_graphics sees to that.

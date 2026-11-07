@@ -10,6 +10,7 @@
 #include "crpp/ui/prefs.hpp"
 #include "crpp/ui/settings_rows.hpp"
 #include "crpp/ui/surface.hpp"
+#include "crpp/ui/themes.hpp"
 
 namespace crpp::ui {
 
@@ -116,7 +117,7 @@ class SoundTab final : public SettingsTab {
 };
 
 // The theme in use: upstream's effectiveTheme, with an unknown name taken as the default.
-[[nodiscard]] ThemeId effective_theme(const Prefs& prefs, bool system_dark);
+[[nodiscard]] const ThemeEntry& effective_theme(const Prefs& prefs, bool system_dark);
 
 class DisplayTab final : public SettingsTab {
  public:

@@ -65,7 +65,7 @@ void hold_a_seat(Shell& s) {
 bool scene(Shell& s, std::string_view name) {
   // "home-return@dark": any of this area's scenes in another theme.
   if (const auto at = name.find('@'); at != std::string_view::npos && name.starts_with("home")) {
-    s.app.set_theme(name.substr(at + 1) == "dark" ? ThemeId::DarkCloud : ThemeId::Pastel);
+    s.app.set_theme(name.substr(at + 1) == "dark" ? "darkcloud" : "pastel");
     name = name.substr(0, at);
   }
   if (name == "home-hover") {

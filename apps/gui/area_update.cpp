@@ -302,7 +302,7 @@ void shutdown(Shell&) {
 bool scene(Shell& s, std::string_view name) {
   const bool dark = name.ends_with("-dark");
   if (dark) {
-    s.app.set_theme(ThemeId::DarkCloud);
+    s.app.set_theme("darkcloud");
     name.remove_suffix(5);
   }
   if (name.starts_with("changelog=")) {  // a release's notes, to look at before publishing
@@ -327,7 +327,7 @@ bool scene(Shell& s, std::string_view name) {
   } else if (name == "changelog") {
     s.app.changelog().open(sample_entries(), 1);
   } else {
-    if (dark) s.app.set_theme(ThemeId::Cloudroom);
+    if (dark) s.app.set_theme("cloudroom");
     return false;
   }
   return true;

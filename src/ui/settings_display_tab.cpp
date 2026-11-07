@@ -9,35 +9,30 @@ namespace crpp::ui {
 
 namespace {
 
-// THEMES, LIGHT_THEMES and DARK_THEMES.
-constexpr std::array<std::string_view, 3> theme_ids{"cloudroom", "darkcloud", "pastel"};
-constexpr std::array<std::string_view, 2> light_ids{"cloudroom", "pastel"};
-constexpr std::array<std::string_view, 1> dark_ids{"darkcloud"};
-
 constexpr int scale_min = 80, scale_max = 150;  // CHAT_SCALE_MIN, CHAT_SCALE_MAX
 constexpr float row_step_theme = 52;
 constexpr float sample_w = 420, sample_h = 116;  // real pixels, whatever the stage's scale
 
-template <std::size_t N>
-int index_of(const std::array<std::string_view, N>& ids, const std::string& id) {
-  const auto it = std::ranges::find(ids, id);
-  return it == ids.end() ? 0 : static_cast<int>(it - ids.begin());
+// Which of these Themes a saved id is; the first for an id it does not know.
+int index_of(const std::vector<const ThemeEntry*>& list, const std::string& id) {
+  const auto it = std::ranges::find(list, std::string_view(id), &ThemeEntry::id);
+  return it == list.end() ? 0 : static_cast<int>(it - list.begin());
 }
 
-ThemeId theme_named(std::string_view id) {
-  if (id == "darkcloud") return ThemeId::DarkCloud;
-  if (id == "pastel") return ThemeId::Pastel;
-  return ThemeId::Cloudroom;
+std::vector<std::string> labels_of(const std::vector<const ThemeEntry*>& list) {
+  std::vector<std::string> labels;
+  for (const ThemeEntry* entry : list) labels.emplace_back(tr().*entry->label);
+  return labels;
 }
 
 }  // namespace
 
-ThemeId effective_theme(const Prefs& prefs, bool system_dark) {
+const ThemeEntry& effective_theme(const Prefs& prefs, bool system_dark) {
   if (prefs.get(pref::system_theme)) {
-    return system_dark ? theme_named(dark_ids[static_cast<std::size_t>(index_of(dark_ids, prefs.get(pref::dark_theme)))])
-                       : theme_named(light_ids[static_cast<std::size_t>(index_of(light_ids, prefs.get(pref::light_theme)))]);
+    const auto list = themes_of(system_dark);
+    return *list[static_cast<std::size_t>(index_of(list, prefs.get(system_dark ? pref::dark_theme : pref::light_theme)))];
   }
-  return theme_named(theme_ids[static_cast<std::size_t>(index_of(theme_ids, prefs.get(pref::theme)))]);
+  return theme_named(prefs.get(pref::theme));
 }
 
 DisplayTab::DisplayTab(Ui& ui) : SettingsTab(ui) {
@@ -69,9 +64,10 @@ void DisplayTab::paint(Painter& p, Rect area) {
   const Theme& t = ui_.theme;
   const Prefs& prefs = *ui_.prefs;
   const bool sync = prefs.get(pref::system_theme);
-  theme_.options = {tr().theme_cloud, tr().theme_dark_cloud, tr().theme_pastel};
-  light_.options = {tr().theme_cloud, tr().theme_pastel};
-  dark_.options = {tr().theme_dark_cloud};
+  const auto every = all_theme_entries(), light = themes_of(false), dark = themes_of(true);
+  theme_.options = labels_of(every);
+  light_.options = labels_of(light);
+  dark_.options = labels_of(dark);
   paint_heading(p, t, area, 25, tr().display_theme);
   paint_toggle(ui_, this, p, area, row_top, tr().display_sync, sync, SystemTheme, system_anim_);
 
@@ -83,10 +79,10 @@ void DisplayTab::paint(Painter& p, Rect area) {
   };
   const float first = row_top + row_step_theme;
   if (sync) {
-    row(light_, tr().display_light, first, index_of(light_ids, prefs.get(pref::light_theme)), list_rect_[1]);
-    row(dark_, tr().display_dark, first + row_step_theme, index_of(dark_ids, prefs.get(pref::dark_theme)), list_rect_[2]);
+    row(light_, tr().display_light, first, index_of(light, prefs.get(pref::light_theme)), list_rect_[1]);
+    row(dark_, tr().display_dark, first + row_step_theme, index_of(dark, prefs.get(pref::dark_theme)), list_rect_[2]);
   } else {
-    row(theme_, tr().display_general, first, index_of(theme_ids, prefs.get(pref::theme)), list_rect_[0]);
+    row(theme_, tr().display_general, first, index_of(every, prefs.get(pref::theme)), list_rect_[0]);
   }
 
   const float top = chat_top();
@@ -163,13 +159,13 @@ void DisplayTab::click(int id, float x, float, bool) {
     ui_.capture = this;
     drag(x, 0);
   } else if (theme_.owns(id)) {
-    if (theme_.click(id)) prefs.set(pref::theme, theme_ids[static_cast<std::size_t>(theme_.selected)]);
+    if (theme_.click(id)) prefs.set(pref::theme, all_theme_entries()[static_cast<std::size_t>(theme_.selected)]->id);
     if (theme_.open) place_dropdown(theme_, list_rect_[0]);
   } else if (light_.owns(id)) {
-    if (light_.click(id)) prefs.set(pref::light_theme, light_ids[static_cast<std::size_t>(light_.selected)]);
+    if (light_.click(id)) prefs.set(pref::light_theme, themes_of(false)[static_cast<std::size_t>(light_.selected)]->id);
     if (light_.open) place_dropdown(light_, list_rect_[1]);
   } else if (dark_.owns(id)) {
-    if (dark_.click(id)) prefs.set(pref::dark_theme, dark_ids[static_cast<std::size_t>(dark_.selected)]);
+    if (dark_.click(id)) prefs.set(pref::dark_theme, themes_of(true)[static_cast<std::size_t>(dark_.selected)]->id);
     if (dark_.open) place_dropdown(dark_, list_rect_[2]);
   }
 }

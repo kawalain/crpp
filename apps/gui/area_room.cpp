@@ -91,7 +91,7 @@ void wire(Shell& s) {
 bool scene(Shell& s, std::string_view name) {
   // Any of these in the dark theme: "room-menu-dark".
   if (name.starts_with("room-") && name.ends_with("-dark")) {
-    s.app.set_theme(ThemeId::DarkCloud);
+    s.app.set_theme("darkcloud");
     name.remove_suffix(5);
   }
   if (name == "session") {

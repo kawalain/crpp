@@ -2,6 +2,8 @@
 
 #include <windows.h>
 
+#include "crpp/ui/themes.hpp"
+
 namespace crpp::ui {
 
 App::App() {
@@ -33,6 +35,8 @@ void App::reload_assets(const std::filesystem::path& assets_dir) {
   ui_.gfx.load_font(assets_dir / "fonts" / "PretendardGOVVariable.ttf");
   ui_.emoji.emplace(assets_dir);
 }
+
+void App::set_theme(std::string_view id) { ui_.theme = theme_named(id).theme; }
 
 void App::view_left(View from) {
   if (!ui_.animations || from == view_) return;

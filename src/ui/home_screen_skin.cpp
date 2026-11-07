@@ -47,13 +47,13 @@ void HomeScreen::paint_pack(Painter& p, const skin::Screen& screen) {
       }
     }
 
-    float number(int id) override { return id == Seats ? static_cast<float>(seats_.size()) : 0; }
+    float number(int id, int) override { return id == Seats ? static_cast<float>(seats_.size()) : 0; }
 
-    void picture(int, skin::Box box) override {
+    void picture(int, int, skin::Box box, float, float) override {
       draw_svg(p_, home_.ui_.emoji_image(home_.my_emoji ? home_.my_emoji() : std::string{}), rect_of(box));
     }
 
-    void field(int, skin::Box box, const skin::FieldLook& look) override {
+    void field(int, int, skin::Box box, const skin::FieldLook& look) override {
       const TextStyle style = text_style_of(look.text);
       home_.pack_code_style_ = style;
       home_.code_x_ = box.x;

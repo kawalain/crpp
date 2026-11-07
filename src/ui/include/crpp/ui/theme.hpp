@@ -26,6 +26,7 @@ constexpr Color with_alpha(Color c, float a) { return {c.r, c.g, c.b, a}; }
 
 // Who draws: shape and layout. See docs/adr/0005-skins-own-shape-and-layout.md.
 enum class SkinId : std::uint8_t { Cloud, Luna };
+class Skin;
 
 // What only the Luna Skin draws with. The light values are XP.css's and the system colours of
 // its period; see docs/research/retro-messenger-look.md.
@@ -64,6 +65,7 @@ struct Theme {
   Color cloud_top, cloud_base, cloud_bottom, cloud_mid, cloud_low, cloud_foot, cloud_shadow;
   float cloud_shadow_scale = 1;  // 0 for the dark theme (no glow)
   LunaColors luna{};             // only for a Theme of the Luna Skin
+  const Skin* from_pack = nullptr;  // a Skin Pack draws this Theme's controls
 };
 
 constexpr Theme dark_cloud_palette() {

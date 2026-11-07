@@ -11,6 +11,7 @@
 #include <cstdint>
 #include <expected>
 #include <filesystem>
+#include <memory>
 #include <optional>
 #include <string>
 #include <string_view>
@@ -179,6 +180,7 @@ class App {
 
   Ui ui_;
   std::optional<skin::Pack> pack_;
+  std::unique_ptr<Skin> pack_skin_;
   std::string theme_id_;
   MemoryPrefs memory_prefs_;
   SetupScreen setup_{ui_};

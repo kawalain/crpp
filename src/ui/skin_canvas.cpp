@@ -9,7 +9,9 @@ TextStyle text_style_of(const skin::TextLook& look) {
           .align = static_cast<Align>(look.align),
           .wrap = look.wrap,
           .ellipsis = look.ellipsis,
+          .letter_spacing = look.letter_spacing,
           .exact = look.exact,
+          .role = static_cast<FontRole>(look.role),
           .keep_words = look.keep_words};
 }
 
@@ -22,6 +24,23 @@ float SkinCanvas::text_width(std::string_view text, const skin::TextLook& look) 
   DWRITE_TEXT_METRICS m{};
   if (const auto layout = p_.gfx().layout(widen(text), text_style_of(look), 1000)) layout->GetMetrics(&m);
   return m.widthIncludingTrailingWhitespace;
+}
+
+float SkinCanvas::snap(float value) { return p_.snap({value, 0, 1, 1}).x; }
+
+float SkinCanvas::text_height(std::string_view text, const skin::TextLook& look, float width) {
+  DWRITE_TEXT_METRICS m{};
+  if (const auto layout = p_.gfx().layout(widen(text), text_style_of(look), width)) layout->GetMetrics(&m);
+  return m.height;
+}
+
+void SkinCanvas::path(std::string_view data, float x, float y, float scale, skin::Color color, float width, bool round_caps) {
+  ID2D1PathGeometry* const shape = p_.gfx().path(data);
+  if (!shape) return;
+  p_.push(scale == 1 ? D2D1::Matrix3x2F::Translation(x, y) : D2D1::Matrix3x2F::Scale(scale, scale) * D2D1::Matrix3x2F::Translation(x, y));
+  if (width > 0) p_.stroke_geometry(shape, color, width, round_caps);
+  else p_.fill_geometry(shape, color);
+  p_.pop();
 }
 
 void SkinCanvas::push_clip(skin::Box box) {

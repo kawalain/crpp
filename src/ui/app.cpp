@@ -6,6 +6,7 @@
 #include <utility>
 
 #include "crpp/ui/luna.hpp"
+#include "crpp/ui/skin_canvas.hpp"
 #include "crpp/ui/themes.hpp"
 
 namespace crpp::ui {
@@ -71,7 +72,9 @@ std::expected<void, std::string> App::load_skin_dir(const std::filesystem::path&
   ui_.forget_render_target();  // brushes are kept by the address of their stops
   pack_ = std::move(*pack);
   ui_.pack = &*pack_;
+  pack_skin_ = make_pack_skin(ui_);
   ui_.palette = pack_->palette_of(theme_id_).value_or(-1);
+  ui_.theme.from_pack = ui_.palette >= 0 ? pack_skin_.get() : nullptr;
   return {};
 }
 
@@ -79,7 +82,10 @@ void App::set_theme(std::string_view id) {
   ui_.forget_render_target();  // brushes are kept by the address of the colours they show
   ui_.theme = theme_named(id).theme;
   theme_id_ = theme_named(id).id;
-  if (pack_) ui_.palette = pack_->palette_of(theme_id_).value_or(-1);
+  if (pack_) {
+    ui_.palette = pack_->palette_of(theme_id_).value_or(-1);
+    ui_.theme.from_pack = ui_.palette >= 0 ? pack_skin_.get() : nullptr;
+  }
   ui_.gfx.set_classic(!ui_.skin().scales_stage());
   set_animations(animations_wanted_);
   room_.chat().locale_changed();  // its rows hold their text, laid out in the other font

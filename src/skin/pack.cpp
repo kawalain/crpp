@@ -928,8 +928,12 @@ class Loader final : public Names {
           if (!expr_of(json, "again", out.size)) return false;
           out.has_size = true;
         }
-      } else if (json.find("ms") || json.find("ms_off") || json.find("curve") || json.find("first") || json.find("again")) {
-        return fail("ms, ms_off, curve, first and again go with to");
+        if (json.find("key")) {
+          if (!expr_of(json, "key", out.alpha)) return false;
+          out.has_alpha = true;
+        }
+      } else if (json.find("ms") || json.find("ms_off") || json.find("curve") || json.find("first") || json.find("again") || json.find("key")) {
+        return fail("ms, ms_off, curve, first, again and key go with to");
       } else if (!expr_of(json, "value", out.extra)) {
         return false;
       }

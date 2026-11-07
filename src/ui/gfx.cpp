@@ -276,6 +276,9 @@ ComPtr<ID2D1PathGeometry> Gfx::parse_path(std::string_view d) const {
     const bool rel = std::islower(static_cast<unsigned char>(cmd)) != 0;
     const float ox = rel ? cx : 0, oy = rel ? cy : 0;
     switch (std::toupper(static_cast<unsigned char>(cmd))) {
+      case 'F':
+        sink->SetFillMode(in.number() != 0 ? D2D1_FILL_MODE_WINDING : D2D1_FILL_MODE_ALTERNATE);
+        break;
       case 'M': {
         const float x = in.number() + ox, y = in.number() + oy;
         begin(x, y);

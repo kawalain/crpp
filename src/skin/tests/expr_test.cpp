@@ -111,6 +111,12 @@ void a_choice_nests_to_the_right() {
 }
 
 void functions() {
+  CHECK(run("ease(0)") == 0);
+  CHECK(run("ease(1)") == 1);
+  CHECK(run("ease(0.5)") > 0.5f);
+  CHECK(run("bezier(0, 0, 1, 1, 2)") == 1);
+  CHECK(std::abs(run("bezier(0, 0, 1, 1, 0.5)") - 0.5f) < 0.001f);
+  CHECK(run("bezier(0.3, 1.7, 0.5, 1, 0.5)") > 1);  // it may overshoot
   CHECK(run("min(3,4)") == 3);
   CHECK(run("max(3,4)") == 4);
   CHECK(run("floor(1.9)") == 1);
@@ -155,7 +161,7 @@ void a_lone_number_needs_no_program() {
 }
 
 void bad_expressions_are_refused() {
-  for (const std::string_view source : {"", "1+", "(1", "1)", "1 2", "nobody", "$nobody", "@nobody", "nobody.x", "field.nothing", "nothing(1)", "min(1)", "min(1,2", "1?2", "textw('nobody','#ok')",
+  for (const std::string_view source : {"", "1+", "(1", "1)", "1 2", "nobody", "$nobody", "@nobody", "nobody.x", "field.nothing", "nothing(1)", "min(1)", "min(1,2", "ease(1,2)", "bezier(1,2,3,4)", "bezier(1,2,3,4,5,6)", "1?2", "textw('nobody','#ok')",
                                         "textw('body','#nothing')", "textw('body')", "textw('body','#ok',", "texth('body','#ok')", "texth('nobody','#ok',1)", "snap()", "#", "1=2", "'text'"}) {
     CHECK(refused(source));
   }

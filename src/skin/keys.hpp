@@ -146,6 +146,7 @@ inline constexpr KeyDoc let_keys[] = {
     {"curve", KeyType::Curve, "Its curve: ease, as CSS's, when left out."},
     {"first", KeyType::Jump, "A state that is on when first seen starts at its end, as an element's first style does."},
     {"again", KeyType::Expr, "A new value of this starts it anew, as a new element would: on, it runs up from off; off, it is off at once."},
+    {"key", KeyType::Expr, "In a repeat: what this transition belongs to, when that is not the round, as someone whose place in a list can change."},
 };
 
 struct KindDoc {
@@ -161,7 +162,7 @@ inline constexpr std::array<KindDoc, 18> node_kinds{{
     {"frame", KeyType::Expr, "A line inside the edge of its box, in a Palette entry.", {}},
     {"stroke", KeyType::Expr, "A rounded line around its box, in a Palette entry.", stroke_keys},
     {"line", KeyType::Expr, "A line in a Palette entry, from x, y to x2, y2.", line_keys},
-    {"path", KeyType::Word, "SVG path data, drawn from x, y.", path_keys},
+    {"path", KeyType::Word, "SVG path data, drawn from x, y. F1 at its start fills where its shapes overlap, as XAML's path data does.", path_keys},
     {"text", KeyType::Text, "A text: #locale_key, @bound, or the words themselves.", text_keys},
     {"picture", KeyType::Screen, "A picture the screen supplies.", picture_keys},
     {"field", KeyType::Screen, "A text field the screen owns.", field_keys},

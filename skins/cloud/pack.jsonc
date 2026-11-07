@@ -180,7 +180,7 @@
     "account_handle": {"size": 16, "line_height": 20, "ellipsis": true},
     "account_display": {"size": 28, "weight": 700, "line_height": 34, "ellipsis": true},
     "account_tip": {"size": 16, "weight": 700, "line_height": 22, "align": "center"},
-    "modal_button_measure": {"size": 16, "weight": 700, "line_height": 0}
+    "modal_button_measure": {"size": 16, "weight": 700, "line_height": 0},
   },
   "parts": {
     // Upstream's cloud, set at this box's corner, with a soft shadow in the light Themes.
@@ -323,10 +323,10 @@
       ]
     },
     "switch": {
-      "args": {"on": 0, "off": 0},
+      "args": {"on": 0, "off": 0, "ms": 160},
       "draw": [
         {"let": "a", "value": "off ? 0.5 : 1"},
-        {"let": "at", "to": "on", "first": "jump", "ms": 160},
+        {"let": "at", "to": "on", "first": "jump", "ms": "ms"},
         {"let": "track", "value": "on ? $hl : (dark ? $hl_pale2 : $switch_off)"},
         {"fill": "alpha(hot && !off ? mix($black, track, 5) : track, a)", "radius": 14},
         {"fill": "alpha(dark ? (on ? $on_accent : $hl_text_soft) : $surface, a)", "ellipse": true, "x": "3+(W-H)*at", "y": 3, "w": "H-6", "h": "H-6"}

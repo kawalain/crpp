@@ -354,6 +354,19 @@ void test_scrolling_settles_and_the_bar_goes_away() {
   CHECK(!moving.after(1000));
 }
 
+void test_a_path_can_fill_where_its_shapes_overlap() {
+  UiHarness h;
+  CHECK(h.start(100, 100));
+  const auto inside = [&](std::string_view data) {
+    const auto shape = h.app.ui().gfx.parse_path(data);
+    BOOL contains = FALSE;
+    CHECK(shape && SUCCEEDED(shape->FillContainsPoint(D2D1::Point2F(5, 5), D2D1::IdentityMatrix(), &contains)));
+    return contains != FALSE;
+  };
+  CHECK(!inside("M0 0H10V10H0ZM0 0H10V10H0Z"));
+  CHECK(inside("F1 M0 0H10V10H0ZM0 0H10V10H0Z"));
+}
+
 }  // namespace
 
 int main() {
@@ -364,6 +377,7 @@ int main() {
   test_a_toast_comes_goes_and_is_gone();
   test_a_tip_fades_out_before_it_lets_go_of_its_text();
   test_the_offline_popup_rises_once();
+  test_a_path_can_fill_where_its_shapes_overlap();
   test_every_tab_stands_where_the_code_puts_it();
   test_clicks_in_the_tabs_do_what_they_do_on_the_code();
   test_a_scroll_asked_before_the_first_frame_waits_for_the_height();

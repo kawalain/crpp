@@ -540,6 +540,25 @@ void a_transition_is_asked_of_the_canvas() {
   CHECK(!load(R"J({"let":"v","to":"1","ms":1,"first":"late"})J"));
 }
 
+void a_transition_can_belong_to_a_number() {
+  const auto keys_of = [](std::string_view nodes) {
+    const auto pack = load(nodes);
+    CHECK(pack.has_value());
+    Log log;
+    TestSource source;
+    source.log = &log;
+    source.seats = 2;
+    if (pack) draw(*pack, *pack->screen("home"), 0, {0, 0, 100, 100}, log, source);
+    return log.keys;
+  };
+  // The same number, whichever round it is in; another number is another transition.
+  const auto same = keys_of(R"J({"repeat":"@seats","draw":[{"let":"v","to":"1","ms":1,"key":"7"}]})J");
+  CHECK(same.size() == 2 && same[0] == same[1]);
+  const auto apart = keys_of(R"J({"repeat":"@seats","draw":[{"let":"v","to":"1","ms":1,"key":"i"}]})J");
+  CHECK(apart.size() == 2 && apart[0] != apart[1]);
+  CHECK(!load(R"J({"let":"v","value":1,"key":"3"})J"));
+}
+
 void transitions_are_told_apart_where_they_are() {
   const auto keys_of = [](std::string_view nodes, int rounds) {
     const auto pack = load(nodes);
@@ -818,6 +837,7 @@ int main() {
   a_group_can_count_from_its_corner_and_go_down();
   a_clip_can_be_soft_and_a_path_stretched();
   a_transition_is_asked_of_the_canvas();
+  a_transition_can_belong_to_a_number();
   transitions_are_told_apart_where_they_are();
   colours_are_worked_out_in_expressions();
   dark_says_which_palette_is_a_dark_variant();

@@ -143,7 +143,7 @@ class Walker final : public Env {
     switch (n.kind) {
       case NodeKind::Let:
         if (n.transition) {
-          slots_[base_ + n.slot] = canvas_.transition(key_of(n), {.on = value(n.extra) != 0, .ms_on = value(n.width), .ms_off = value(n.extra2), .first_jumps = n.first_jumps, .curve = n.linear ? Curve::Linear : Curve::Ease, .again = n.has_size ? value(n.size) : 0});
+          slots_[base_ + n.slot] = canvas_.transition(n.has_alpha ? mixed(static_cast<std::uint64_t>(&n - pack_.nodes.data()), static_cast<std::uint64_t>(value(n.alpha))) : key_of(n), {.on = value(n.extra) != 0, .ms_on = value(n.width), .ms_off = value(n.extra2), .first_jumps = n.first_jumps, .curve = n.linear ? Curve::Linear : Curve::Ease, .again = n.has_size ? value(n.size) : 0});
           return;
         }
         [[fallthrough]];

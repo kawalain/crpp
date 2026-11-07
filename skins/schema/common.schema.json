@@ -413,7 +413,7 @@
         },
         "path": {
           "type": "string",
-          "description": "SVG path data, drawn from x, y."
+          "description": "SVG path data, drawn from x, y. F1 at its start fills where its shapes overlap, as XAML's path data does."
         },
         "color": {
           "$ref": "#/definitions/expression",
@@ -515,7 +515,7 @@
           "items": {
             "$ref": "#/definitions/expression"
           },
-          "maxItems": 8,
+          "maxItems": 16,
           "description": "Numbers for the screen, at most 8."
         },
         "styles": {
@@ -523,7 +523,7 @@
           "items": {
             "type": "string"
           },
-          "maxItems": 8,
+          "maxItems": 16,
           "description": "Styles for the screen, at most 8."
         },
         "colors": {
@@ -531,7 +531,7 @@
           "items": {
             "$ref": "#/definitions/expression"
           },
-          "maxItems": 8,
+          "maxItems": 16,
           "description": "Palette entries for the screen, at most 8."
         },
         "group": {
@@ -629,6 +629,10 @@
         "again": {
           "$ref": "#/definitions/expression",
           "description": "A new value of this starts it anew, as a new element would: on, it runs up from off; off, it is off at once."
+        },
+        "key": {
+          "$ref": "#/definitions/expression",
+          "description": "In a repeat: what this transition belongs to, when that is not the round, as someone whose place in a list can change."
         },
         "set": {
           "type": "string",
@@ -1163,7 +1167,8 @@
               "ms_off",
               "curve",
               "first",
-              "again"
+              "again",
+              "key"
             ]
           }
         },

@@ -22,6 +22,22 @@ float curve_at(Curve curve, float t) {
   return bezier(0.1f, 1.0f, (low + high) / 2);
 }
 
+float bezier_at(float x1, float y1, float x2, float y2, float t) {
+  if (t <= 0) return 0;
+  if (t >= 1) return 1;
+  const auto curve = [](float a, float b, float u) {
+    const float v = 1 - u;
+    return 3 * v * v * u * a + 3 * v * u * u * b + u * u * u;
+  };
+  float low = 0, high = 1;
+  for (int i = 0; i < 16; ++i) {
+    const float u = (low + high) / 2;
+    if (curve(x1, x2, u) < t) low = u;
+    else high = u;
+  }
+  return curve(y1, y2, (low + high) / 2);
+}
+
 namespace {
 
 float at(const auto& item, Curve curve, unsigned long long now) {

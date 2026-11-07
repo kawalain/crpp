@@ -1,6 +1,7 @@
 #pragma once
 // The arithmetic in a Skin Pack: numbers, names, + - * /, comparisons, && || !, a ? b : c, and
-// min, max, floor, ceil, round, snap, textw, texth, and mix and alpha of colours. It is compiled once, when the pack loads, into a short
+// min, max, floor, ceil, round, snap, textw, texth, ease(t) and bezier(x1, y1, x2, y2, t), the curves of a CSS
+// transition for a t from 0 to 1, and mix and alpha of colours. It is compiled once, when the pack loads, into a short
 // program in one array that all of a pack's expressions share; running one allocates nothing.
 // There are no assignments, loops or calls of anything else: a pack holds no code.
 #include <array>
@@ -21,7 +22,7 @@ enum class Op : std::uint8_t {
   Less, LessEq, Greater, GreaterEq, Equal, NotEqual,
   And, Or, Not, Neg, Select,
   Min, Max, Floor, Ceil, Round, Snap, TextWidth, TextWidthIn, TextHeight,
-  MixColor, AlphaColor,
+  MixColor, AlphaColor, Ease, Bezier,
 };
 
 struct Instr {

@@ -1,4 +1,5 @@
 #include "crpp/skin/expr.hpp"
+#include "crpp/skin/motion.hpp"
 
 #include <algorithm>
 #include <charconv>
@@ -243,6 +244,13 @@ class Compiler {
     if (word == "min") return two(Op::Min);
     if (word == "max") return two(Op::Max);
     if (word == "alpha") return two(Op::AlphaColor);
+    if (word == "ease") return one(Op::Ease);
+    if (word == "bezier") {
+      for (int i = 0; i < 4; ++i) {
+        if (!ternary() || !(eat(",") || fail("bezier takes x1, y1, x2, y2 and t"))) return false;
+      }
+      return ternary() && (eat(")") || fail("a ( has no )")) && emit(Op::Bezier, -4);
+    }
     if (word == "mix") {
       return ternary() && (eat(",") || fail("mix takes two colours and a percent")) && ternary() && (eat(",") || fail("mix takes two colours and a percent")) && ternary() &&
              (eat(")") || fail("a ( has no )")) && emit(Op::MixColor, -2);
@@ -353,6 +361,8 @@ float eval(std::span<const Instr> code, Expr expr, Env& env) {
       case Op::Round: stack[top] = std::round(stack[top]); break;
       case Op::MixColor: top -= 2; stack[top] = env.mix_colors(stack[top], stack[top + 1], stack[top + 2]); break;
       case Op::AlphaColor: --top; stack[top] = env.alpha_of(stack[top], stack[top + 1]); break;
+      case Op::Ease: stack[top] = curve_at(Curve::Ease, stack[top]); break;
+      case Op::Bezier: top -= 4; stack[top] = bezier_at(stack[top], stack[top + 1], stack[top + 2], stack[top + 3], stack[top + 4]); break;
     }
   }
   return stack[top];

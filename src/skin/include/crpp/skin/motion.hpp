@@ -10,6 +10,8 @@ enum class Curve : std::uint8_t { Ease, Linear };
 
 // How far along the curve, for t from 0 to 1.
 [[nodiscard]] float curve_at(Curve curve, float t);
+// CSS's cubic-bezier(x1, y1, x2, y2) at t, whose y may overshoot.
+[[nodiscard]] float bezier_at(float x1, float y1, float x2, float y2, float t);
 
 struct TransitionSpec {
   bool on = false;

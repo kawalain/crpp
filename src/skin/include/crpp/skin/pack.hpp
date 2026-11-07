@@ -18,7 +18,7 @@
 //           filling, with caps "round" (the default) or "flat", and soft: true for smooth edges
 //           under a Skin whose edges are whole pixels. A color that is a gradient runs from from_y to to_y
 //           of the path's own coordinates. With blur it is that shape's shadow, dy further down. With scale_y it is
-//           filled at that size downward and scale across
+//           filled at that size downward and scale across. Data that starts with F1 fills where its shapes overlap
 //   text    a text: #locale_key, @bound, or the words themselves, in a style and a color, and
 //           size and line_height to change the style's where it depends on the screen
 //   picture a picture the screen supplies, with opacity and gray
@@ -39,7 +39,8 @@
 //   let     a name for a number, with value. With to, it is a transition: it runs from 0 to 1 and back as to
 //           goes on and off, over ms (ms_off when going off, if it says), on a curve: "ease", the
 //           default, or "linear". first: "jump" has a state that is on when first seen start at its end.
-//           A new value of again starts it anew: on, it runs up from off; off, it is off at once.
+//           A new value of again starts it anew: on, it runs up from off; off, it is off at once. In a repeat it
+//           belongs to its round, or with key to that number, as someone whose place in a list can change.
 //   set     a new value for a name above it, as when a repeat looks for the widest
 //   report  a number for the screen, with value
 // and each may have: if, id (siblings can then read id.x, .y, .w, .h, .right, .bottom), x or right,
@@ -100,7 +101,7 @@ inline constexpr int max_repeat = 4096;
 // However parts and repeats multiply: what one walk of a screen goes through at most.
 inline constexpr int max_walk = 200000;
 inline constexpr int max_walk_depth = 64;
-inline constexpr std::size_t max_slot_values = 8;
+inline constexpr std::size_t max_slot_values = 16;
 inline constexpr int max_pack_levels = 4;
 inline constexpr int max_palette_levels = 8;
 
@@ -131,7 +132,7 @@ struct Node {
   bool stretched = false;   // Path: it has scale_y
   bool has_note_by = false;
   bool has_size = false, has_line_height = false;  // Text. Let: has_size says it has again
-  bool has_alpha = false;
+  bool has_alpha = false;   // Let: it has a key
   bool has_down_to = false;  // Fill
   bool across = false;       // Fill
   bool ellipse = false;      // Fill, Stroke

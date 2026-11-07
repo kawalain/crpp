@@ -1,14 +1,14 @@
 if(WIN32)
   add_library(crpp_ui STATIC
-    gfx.cpp svg.cpp textfield.cpp png.cpp surface.cpp themes.cpp skin.cpp skin_cloud.cpp skin_luna.cpp controls.cpp controls_sheet.cpp window_frame.cpp app.cpp
+    gfx.cpp svg.cpp textfield.cpp png.cpp surface.cpp themes.cpp skin.cpp skin_cloud.cpp skin_luna.cpp controls.cpp controls_sheet.cpp window_frame.cpp skin_canvas.cpp app.cpp
     setup_screen.cpp prompt_screen.cpp home_screen.cpp room_screen.cpp chat_panel.cpp notice_card.cpp dialogs.cpp toasts.cpp emoji_picker.cpp
     offline_popup.cpp connection_feedback.cpp
     settings_panel.cpp settings_rows.cpp settings_sound_tab.cpp settings_display_tab.cpp settings_notify_tab.cpp settings_system_tab.cpp
     settings_account_tab.cpp tip.cpp profile_card.cpp member_menu.cpp chat_logic.cpp
     update_popup.cpp changelog_view.cpp
-    home_screen_luna.cpp prompt_screen_luna.cpp room_screen_luna.cpp chat_panel_luna.cpp settings_luna.cpp)
+    home_screen_luna.cpp home_screen_skin.cpp prompt_screen_luna.cpp room_screen_luna.cpp chat_panel_luna.cpp settings_luna.cpp)
   target_include_directories(crpp_ui PUBLIC include)
-  target_link_libraries(crpp_ui PUBLIC crpp_session crpp_update crpp_locale d2d1 dwrite windowscodecs ole32 user32 gdi32)
+  target_link_libraries(crpp_ui PUBLIC crpp_session crpp_update crpp_locale crpp_skin d2d1 dwrite windowscodecs ole32 user32 gdi32)
   target_compile_definitions(crpp_ui PUBLIC NOMINMAX WIN32_LEAN_AND_MEAN)
   crpp_target_defaults(crpp_ui)
 
@@ -60,6 +60,19 @@ if(WIN32)
   target_include_directories(crpp_ui_luna_test PRIVATE ${PROJECT_SOURCE_DIR}/tests/support tests)
   crpp_target_defaults(crpp_ui_luna_test)
   add_test(NAME ui.luna COMMAND crpp_ui_luna_test)
+
+  add_executable(crpp_ui_skin_home_test tests/skin_home_test.cpp)
+  target_link_libraries(crpp_ui_skin_home_test PRIVATE crpp_ui)
+  target_include_directories(crpp_ui_skin_home_test PRIVATE ${PROJECT_SOURCE_DIR}/tests/support tests)
+  target_compile_definitions(crpp_ui_skin_home_test PRIVATE CRPP_TEST_SKINS="${PROJECT_SOURCE_DIR}/skins")
+  crpp_target_defaults(crpp_ui_skin_home_test)
+  add_test(NAME ui.skin_home COMMAND crpp_ui_skin_home_test)
+
+  # Not part of a normal build: see its first lines.
+  add_executable(crpp_ui_skin_bench EXCLUDE_FROM_ALL tests/skin_bench.cpp)
+  target_link_libraries(crpp_ui_skin_bench PRIVATE crpp_ui psapi)
+  target_include_directories(crpp_ui_skin_bench PRIVATE tests)
+  crpp_target_defaults(crpp_ui_skin_bench)
 
   add_executable(crpp_ui_update_test tests/update_ui_test.cpp)
   target_link_libraries(crpp_ui_update_test PRIVATE crpp_ui)

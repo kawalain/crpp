@@ -38,7 +38,8 @@ if(WIN32)
   # A development build runs from an assets folder next to the exe. A release is
   # the exe alone, and fetches them into the user's data folder.
   add_custom_command(TARGET crpp POST_BUILD
-    COMMAND ${CMAKE_COMMAND} -E copy_directory ${PROJECT_SOURCE_DIR}/assets $<TARGET_FILE_DIR:crpp>/assets)
+    COMMAND ${CMAKE_COMMAND} -E copy_directory ${PROJECT_SOURCE_DIR}/assets $<TARGET_FILE_DIR:crpp>/assets
+    COMMAND ${CMAKE_COMMAND} -E copy_directory ${PROJECT_SOURCE_DIR}/skins $<TARGET_FILE_DIR:crpp>/skins)
   if(CRPP_FETCH_DEV_ASSETS)
     add_custom_command(TARGET crpp POST_BUILD
       COMMAND ${CMAKE_COMMAND} -E make_directory ${CRPP_ASSET_CACHE}

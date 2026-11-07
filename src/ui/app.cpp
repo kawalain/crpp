@@ -2,6 +2,7 @@
 
 #include <windows.h>
 
+#include <fstream>
 #include <utility>
 
 #include "crpp/ui/luna.hpp"
@@ -51,9 +52,34 @@ void App::reload_assets(const std::filesystem::path& assets_dir) {
   ui_.emoji.emplace(assets_dir);
 }
 
+std::expected<void, std::string> App::load_skin_dir(const std::filesystem::path& dir) {
+  const auto read = [&dir](std::string_view path) -> std::optional<std::string> {
+    std::error_code error;
+    const std::filesystem::path file = dir / std::filesystem::path(path);
+    const auto size = std::filesystem::file_size(file, error);
+    if (error) return std::nullopt;
+    if (size > skin::max_file_bytes) return std::string(skin::max_file_bytes + 1, ' ');  // the loader says it is too large
+    std::ifstream in(file, std::ios::binary);
+    if (!in) return std::nullopt;
+    std::string text(size, '\0');
+    if (!in.read(text.data(), static_cast<std::streamsize>(size))) return std::nullopt;
+    return text;
+  };
+  const skin::ScreenSchema schemas[] = {HomeScreen::schema()};
+  auto pack = skin::load_pack(read, schemas);
+  if (!pack) return std::unexpected(std::move(pack.error()));
+  ui_.forget_render_target();  // brushes are kept by the address of their stops
+  pack_ = std::move(*pack);
+  ui_.pack = &*pack_;
+  ui_.palette = pack_->palette_of(theme_id_).value_or(-1);
+  return {};
+}
+
 void App::set_theme(std::string_view id) {
   ui_.forget_render_target();  // brushes are kept by the address of the colours they show
   ui_.theme = theme_named(id).theme;
+  theme_id_ = theme_named(id).id;
+  if (pack_) ui_.palette = pack_->palette_of(theme_id_).value_or(-1);
   ui_.gfx.set_classic(!ui_.skin().scales_stage());
   set_animations(animations_wanted_);
   room_.chat().locale_changed();  // its rows hold their text, laid out in the other font

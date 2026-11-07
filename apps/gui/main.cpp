@@ -11,6 +11,7 @@
 //   ... --locale <id>             (with --shot) in this Locale; otherwise Korean
 //   ... --dpi <n>                 (with --shot) render at that DPI; WxH stay in
 //                                 DIPs, so the image grows with it
+//   ... --skin-dir <dir>          draw from the unsigned Skin Pack in <dir>, for developing one
 //   ... --asset-url <url>         fetch assets from <url>, not the published
 //                                 ones; the manifest still decides what is kept
 //   ... --update-url <url>        (not in official builds) look for updates at <url>,
@@ -127,6 +128,11 @@ int main(int argc, char** argv) {
     shell.asset_manifest.sources = {};  // everything under its own path there
     argc -= 2;
   }
+  std::filesystem::path skin_dir;
+  if (argc >= 3 && std::string(argv[argc - 2]) == "--skin-dir") {
+    skin_dir = ui::widen(argv[argc - 1]);
+    argc -= 2;
+  }
   const locale::Locale* shot_locale = locale::find_locale("ko");
   if (argc >= 3 && std::string(argv[argc - 2]) == "--locale") {
     if (const locale::Locale* named = locale::find_locale(argv[argc - 1])) shot_locale = named;
@@ -159,6 +165,12 @@ int main(int argc, char** argv) {
     // There is no console to report to, and the app has no way to draw yet.
     MessageBoxW(nullptr, ui::widen(locale::tr().start_failed).c_str(), L"Cloudroom++", MB_OK | MB_ICONERROR);
     return 1;
+  }
+  if (!skin_dir.empty()) {
+    if (const auto loaded = shell.app.load_skin_dir(skin_dir); !loaded) {
+      MessageBoxW(nullptr, ui::widen(loaded.error()).c_str(), L"Cloudroom++", MB_OK | MB_ICONERROR);
+      return 1;
+    }
   }
   for (const std::string_view id : assets::picker_emoji()) shell.app.ui().emoji_ids.emplace_back(id);
   std::time_t now = std::time(nullptr);

@@ -3,6 +3,8 @@
 #include <algorithm>
 #include <ctime>
 
+#include "crpp/skin/pack.hpp"
+
 namespace crpp::ui {
 
 namespace {
@@ -24,6 +26,10 @@ void Ui::begin_frame(float window_w, float window_h, unsigned long long now) {
   content = modal_area = {0, 0, window_w, window_h};
   hits_.clear();
   hit_clips_.clear();
+}
+
+const skin::Screen* Ui::pack_screen(std::string_view name) const {
+  return pack && palette >= 0 ? pack->screen(name) : nullptr;
 }
 
 void Ui::add_hit(Surface* owner, Rect r, int id) { add_hit_window(owner, to_window(r), id); }

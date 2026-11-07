@@ -13,6 +13,11 @@
 #include "crpp/ui/svg.hpp"
 #include "crpp/ui/textfield.hpp"
 
+namespace crpp::skin {
+struct Pack;
+struct Screen;
+}  // namespace crpp::skin
+
 namespace crpp::ui {
 
 inline constexpr float stage_w = 951;
@@ -99,6 +104,13 @@ class Ui : public WindowState {
   Theme theme = light_cloud_palette(rgb(0x66ccff));
 
   [[nodiscard]] const Skin& skin() const { return skin_of(theme); }
+
+  // The Skin Pack in use and this Theme's Palette in it, while data draws what it has.
+  const skin::Pack* pack = nullptr;
+  int palette = -1;
+  // This screen in the pack, if the pack is for this Theme and has it.
+  [[nodiscard]] const skin::Screen* pack_screen(std::string_view name) const;
+
   [[nodiscard]] ID2D1PathGeometry* cloud() const { return gfx.path(cloud_path_data); }
 
   // Never null once App exists.

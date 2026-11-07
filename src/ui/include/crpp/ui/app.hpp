@@ -9,6 +9,7 @@
 // their own size, and a few controls fixed to the window corners.
 #include <array>
 #include <cstdint>
+#include <expected>
 #include <filesystem>
 #include <optional>
 #include <string>
@@ -99,6 +100,8 @@ class App {
 
   // An id from themes.hpp; an unknown one means the default.
   void set_theme(std::string_view id);
+  // Draws from the Skin Pack in this folder what it has. The error says what is wrong with it.
+  [[nodiscard]] std::expected<void, std::string> load_skin_dir(const std::filesystem::path& dir);
   // Whether the system or the caller wants motion; a Skin may have none anyway.
   void set_animations(bool wanted);
   void show_setup(int percent);
@@ -175,6 +178,8 @@ class App {
   void paint_layers(Painter& p);
 
   Ui ui_;
+  std::optional<skin::Pack> pack_;
+  std::string theme_id_;
   MemoryPrefs memory_prefs_;
   SetupScreen setup_{ui_};
   HomeScreen home_{ui_};

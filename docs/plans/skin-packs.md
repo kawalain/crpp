@@ -49,6 +49,18 @@ with the numbers:
 - Scrolling CPU grows at most 20%.
 - From reading a pack to the first screen: at most 100 ms.
 
+## Measured
+
+Step 1, Messenger's Home from data against its C++ layout, MSVC Release on a hidden desktop at 125%:
+
+- 84 renders, both Palettes at 100%, 125% and 150% in both Locales, give the same hash.
+- A pack changed on purpose gives other images, so the comparison is not comparing a thing with itself.
+- Idle: 0.00% of one core, working set 47.4-47.9 MB either way. The pack holds about 12 KB.
+- Reading the pack, then the first screen: 0.6 ms and 0.8 ms.
+- The pointer moving between links, drawing as fast as the display takes: 3.8-6.3% (mean 5.24%) from
+  C++, 4.4-6.1% (mean 5.22%) from data. Offscreen one frame costs 1.1% more. Scrolling is not comparable
+  until Settings is data, in step 2.
+
 ## Steps
 
 Start from `main` with the Messenger work merged, after the user has seen its real windows.

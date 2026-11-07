@@ -26,9 +26,16 @@ HomeScreen::HomeScreen(Ui& ui) : Surface(ui) {
   code_.uppercase = true;
 }
 
-TextStyle HomeScreen::field_style() const { return ui_.skin().scales_stage() ? code_style : luna_code_style(); }
+TextStyle HomeScreen::field_style() const {
+  if (ui_.pack_screen("home")) return pack_code_style_;
+  return ui_.skin().scales_stage() ? code_style : luna_code_style();
+}
 
 void HomeScreen::paint(Painter& p) {
+  if (const skin::Screen* screen = ui_.pack_screen("home")) {
+    paint_pack(p, *screen);
+    return;
+  }
   if (!ui_.skin().scales_stage()) {
     paint_luna(p);
     return;

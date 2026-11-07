@@ -30,8 +30,8 @@ and developer communities, not from memory.
 - Tests use CTest with the tiny `tests/support/check.hpp`; no framework.
   Golden vectors are derived from upstream `server/src/main.rs`.
 - Layout: `src/<module>/` (CMake static library) with `src/<module>/tests/`.
-  Dependency direction: `ui -> session -> wire`; `transport` and `input` are
-  reached from `session` only through interfaces.
+  Dependency direction: `ui -> session -> wire`, and `ui -> skin`; `transport` and `input`
+  are reached from `session` only through interfaces.
 - Audio is raw WASAPI with a hand-written WAV parser (no third party).
 - `client-apk` and the upstream Rust `app` are out of scope.
 - Goal: the same features and screens as upstream, one instance at a time.
@@ -183,6 +183,10 @@ Options are read from the end of the command line: `crpp --shot <png> <size> <ho
 with their data. A shot is in Korean and in the Theme of its scene unless `--locale <id>` or
 `--theme <id>` says otherwise. `auto` for the size renders the window size of the Skin's screen.
 A scene that opens a panel with a window of its own renders that window.
+
+`--skin-dir <dir>` draws from the unsigned Skin Pack in that folder what it has, and the C++ layout
+draws the rest until `docs/plans/skin-packs.md` is done. `crpp_ui_skin_bench`, not part of a normal
+build, measures a pack against the C++ layout.
 
 A change that must leave the screen as it was can prove it: `tests/shots/render.ps1` renders
 every scene in `scenes.txt` on a hidden desktop, before and after, and `compare.ps1` compares

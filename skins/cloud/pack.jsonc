@@ -35,7 +35,7 @@
       "cloud_gradient": [[0, "#ffffff"], [1, "#eff8ff"]],
       "cloud_shadow": "#4f7b99",
       "backdrop": "#365669",
-      "panel_shadow": "#2e78aa"
+      "panel_shadow": "#2e78aa",
     },
     "darkcloud": {
       "white": "#ffffff",
@@ -60,7 +60,7 @@
       "cloud_gradient": [[0, "#27374c"], [1, "#27374c"]],
       "cloud_shadow": "#000000",
       "backdrop": "#365669",
-      "panel_shadow": "#000000"
+      "panel_shadow": "#000000",
     },
     "pastel": {
       "white": "#ffffff",
@@ -85,7 +85,7 @@
       "cloud_gradient": [[0, "#ffffff"], [1, "#eff8ff"]],
       "cloud_shadow": "#4f7b99",
       "backdrop": "#365669",
-      "panel_shadow": "#2e78aa"
+      "panel_shadow": "#2e78aa",
     }
   },
   "styles": {
@@ -95,7 +95,8 @@
     "code_placeholder": {"size": 26, "line_height": 60},
     "tip": {"size": 16, "weight": 700, "line_height": 22, "align": "center"},
     "modal_text": {"size": 18, "weight": 700, "line_height": 27, "align": "center", "wrap": true},
-    "modal_button": {"size": 16, "weight": 700, "line_height": 38, "align": "center"},
+    "dialog_text": {"size": 18, "weight": 700, "line_height": 27, "align": "center", "wrap": true, "keep_words": true},
+    "button": {"size": 16, "weight": 700, "line_height": 0, "align": "center"},
     "modal_button_measure": {"size": 16, "weight": 700, "line_height": 0}
   },
   "parts": {
@@ -130,15 +131,15 @@
         {"x": "left", "y": "top", "w": "card_w", "h": "card_h", "group": [{"content": true}]}
       ]
     },
-    // .modal-confirm when primary, else .modal-cancel.
-    "modal_button": {
-      "args": {"primary": 0, "shown": 1, "hit": -1},
+    // .modal-confirm when primary, else .modal-cancel; other sizes for .update-button and a toast's.
+    "button": {
+      "args": {"primary": 1, "shown": 1, "radius": 10, "grow": 1.04, "size": 16},
       "draw": [
-        {"hit_by": "hit", "scale": "hot ? 1.04 : 1", "group": [
-          {"fill": "alpha(primary ? (hot ? $hl_dark : $hl) : (hot ? $hl_soft : $hl_pale2), shown)", "radius": 10},
-          {"text": "@label", "style": "modal_button", "color": "alpha(primary || hot ? $on_accent : $hl_text, shown)"}
+        {"scale": "hot ? grow : 1", "group": [
+          {"fill": "alpha(primary ? (hot ? $hl_dark : $hl) : (hot ? $hl_soft : $hl_pale2), shown)", "radius": "radius"},
+          {"text": "@label", "style": "button", "size": "size", "line_height": "H", "color": "alpha(primary || hot ? $on_accent : $hl_text, shown)"}
         ]}
       ]
-    }
+    },
   }
 }

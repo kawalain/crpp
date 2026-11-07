@@ -9,8 +9,8 @@
       {"let": "confirm_w", "value": "max(96, textw('modal_button_measure', '#home_return', 400)+28)"},
       {"let": "random_w", "value": "max(96, textw('modal_button_measure', '#home_random', 400)+28)"},
       {"let": "left", "value": "(W-confirm_w-10-random_w)/2"},
-      {"use": "modal_button", "text": "#home_return", "args": {"primary": 1, "shown": "shown", "hit": "hit('confirm')"}, "x": "left", "y": "H-58", "w": "confirm_w", "h": 38},
-      {"use": "modal_button", "text": "#home_random", "args": {"shown": "shown", "hit": "hit('random')"}, "x": "left+confirm_w+10", "y": "H-58", "w": "random_w", "h": 38}
+      {"use": "button", "text": "#home_return", "hit": "confirm", "args": {"shown": "shown"}, "x": "left", "y": "H-58", "w": "confirm_w", "h": 38},
+      {"use": "button", "text": "#home_random", "hit": "random", "args": {"primary": 0, "shown": "shown"}, "x": "left+confirm_w+10", "y": "H-58", "w": "random_w", "h": 38}
     ]}
   ]
 }

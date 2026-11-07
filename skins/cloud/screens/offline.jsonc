@@ -1,0 +1,17 @@
+{
+  "$schema": "../../schema/screen.offline.schema.json",
+  "draw": [
+    // Not walked under open settings, it rises only the first time.
+    {"if": "!@settled", "let": "rising", "to": 1, "ms": 160},
+    {"let": "shown", "value": "@settled ? 1 : rising"},
+    {"report": "shown", "value": "shown"},
+    {"let": "card_w", "value": "min(320, W-40)"},
+    {"let": "text_h", "value": "texth('dialog_text', '@message', card_w-50)"},
+    {"let": "card_h", "value": "24+text_h+20"},
+    {"report": "width", "value": "card_w"},
+    {"report": "height", "value": "card_h"},
+    {"use": "modal", "args": {"card_w": "card_w", "card_h": "card_h", "shown": "shown", "backdrop": "hit('backdrop')", "card": "hit('card')"}, "draw": [
+      {"text": "@message", "style": "dialog_text", "color": "alpha($hl_text, shown)", "x": 25, "y": 24, "w": "W-50", "h": "text_h"}
+    ]}
+  ]
+}

@@ -69,6 +69,12 @@ void draw_screen(Ui& ui, Painter& p, Surface* owner, const skin::Screen& screen,
   skin::draw(*ui.pack, screen, ui.palette, {area.x, area.y, area.w, area.h}, canvas, source);
 }
 
+void draw_layer(Ui& ui, Painter& p, Surface* owner, const skin::Screen& screen, Rect area, skin::Source& source) {
+  SkinCanvas canvas(ui, p, owner);
+  canvas.in_window_coordinates();
+  skin::draw(*ui.pack, screen, ui.palette, {area.x, area.y, area.w, area.h}, canvas, source);
+}
+
 void measure_screen(const Ui& ui, const skin::Screen& screen, Rect area, skin::Source& source) {
   MeasureCanvas canvas(ui.gfx);
   skin::draw(*ui.pack, screen, ui.palette, {area.x, area.y, area.w, area.h}, canvas, source);
@@ -99,7 +105,7 @@ void SkinCanvas::path(std::string_view data, float x, float y, float scale, skin
 
 float SkinCanvas::transition(std::uint64_t key, const skin::TransitionSpec& spec) {
   // The same part or screen is told apart by whose it is.
-  const std::uint64_t whose = std::bit_cast<std::uint64_t>(owner_) * 31 + static_cast<std::uint64_t>(hit_base_);
+  const std::uint64_t whose = std::bit_cast<std::uint64_t>(whose_ ? whose_ : owner_) * 31 + static_cast<std::uint64_t>(hit_base_);
   bool moving = false;
   const float shown = ui_.transitions.value(key ^ (whose * 0x9E3779B97F4A7C15ull), spec, ui_.now_ms, ui_.animations, moving);
   if (moving) ui_.more_frames = true;

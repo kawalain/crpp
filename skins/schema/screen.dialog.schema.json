@@ -1,7 +1,7 @@
 {
   "$schema": "http://json-schema.org/draft-07/schema#",
   "title": "The screen dialog of a Skin Pack",
-  "description": "A screen of a Skin Pack, as {\"draw\": [nodes]}. With no file for a screen, the program draws it itself.\nNumbers: @wide, @has_cancel.\nTexts: @text, @confirm, @cancel.\nHits: card, confirm, cancel.\nPictures: none.\nFields: none.\nSlots: none.\nReports: width, height.\nNotes: none.",
+  "description": "A screen of a Skin Pack, as {\"draw\": [nodes]}. With no file for a screen, the program draws it itself.\nNumbers: @wide, @has_cancel, @revision.\nTexts: @text, @confirm, @cancel.\nHits: backdrop, card, confirm, cancel.\nPictures: none.\nFields: none.\nSlots: none.\nReports: width, height.\nNotes: none.",
   "allowComments": true,
   "allowTrailingCommas": true,
   "type": "object",
@@ -47,6 +47,7 @@
       "properties": {
         "hit": {
           "enum": [
+            "backdrop",
             "card",
             "confirm",
             "cancel"

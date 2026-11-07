@@ -1,7 +1,7 @@
 {
   "$schema": "http://json-schema.org/draft-07/schema#",
   "title": "The screen offline of a Skin Pack",
-  "description": "A screen of a Skin Pack, as {\"draw\": [nodes]}. With no file for a screen, the program draws it itself.\nNumbers: none.\nTexts: @message.\nHits: card.\nPictures: none.\nFields: none.\nSlots: none.\nReports: width, height.\nNotes: none.",
+  "description": "A screen of a Skin Pack, as {\"draw\": [nodes]}. With no file for a screen, the program draws it itself.\nNumbers: @settled.\nTexts: @message.\nHits: backdrop, card.\nPictures: none.\nFields: none.\nSlots: none.\nReports: width, height, shown.\nNotes: none.",
   "allowComments": true,
   "allowTrailingCommas": true,
   "type": "object",
@@ -45,6 +45,7 @@
       "properties": {
         "hit": {
           "enum": [
+            "backdrop",
             "card"
           ]
         },
@@ -55,7 +56,8 @@
         "report": {
           "enum": [
             "width",
-            "height"
+            "height",
+            "shown"
           ]
         },
         "text": {

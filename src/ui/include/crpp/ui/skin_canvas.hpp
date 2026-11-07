@@ -15,6 +15,8 @@ namespace crpp::ui {
 
 // A screen walked on a Painter, with its hits going to `owner`, which may be nothing.
 void draw_screen(Ui& ui, Painter& p, Surface* owner, const skin::Screen& screen, Rect area, skin::Source& source);
+// A screen in the window's pixels, over the stage, as a modal and a toast are: its hits go there too.
+void draw_layer(Ui& ui, Painter& p, Surface* owner, const skin::Screen& screen, Rect area, skin::Source& source);
 // The same walk with nothing drawn, for what the screen reports about its size.
 void measure_screen(const Ui& ui, const skin::Screen& screen, Rect area, skin::Source& source);
 
@@ -24,6 +26,8 @@ class SkinCanvas final : public skin::Canvas {
   SkinCanvas(Ui& ui, Painter& painter, Surface* owner, int hit_base = 0) : ui_(ui), p_(painter), owner_(owner), hit_base_(hit_base) {}
   // What is drawn is in the window's pixels and not on the stage, as a modal is.
   void in_window_coordinates() { in_window_ = true; }
+  // Whose its transitions are, when that is not the owner of its hits.
+  void motion_of(const void* whose) { whose_ = whose; }
 
   skin::Box snap(skin::Box box) override;
   float snap(float value) override;
@@ -67,6 +71,7 @@ class SkinCanvas final : public skin::Canvas {
   Painter& p_;
   Surface* owner_;
   int hit_base_;
+  const void* whose_ = nullptr;
   bool in_window_ = false;
 };
 

@@ -67,7 +67,7 @@ void UpdatePopup::paint(Painter& p) {
      private:
       std::string_view text_, label_;
     } shown(text, label);
-    draw_screen(ui_, p, this, *screen, ui_.content, shown);
+    draw_layer(ui_, p, this, *screen, ui_.content, shown);
     return;
   }
 

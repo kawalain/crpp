@@ -41,6 +41,26 @@ void same_places(UiHarness& h, const std::vector<Place>& places) {
   }
 }
 
+void test_the_layers_stand_where_the_code_puts_them() {
+  UiHarness h;
+  CHECK(h.start(1200, 900));
+  h.app.show_home();
+  h.app.toasts().toast("A message", "Do it", [] {});
+  h.app.update_popup().show_available();
+  h.app.notice().set(Notice{"A longer notice that takes more than one line of this window to say what it wants to say", "Act", "Later"});
+  h.app.dialogs().show({"Is this a question that wraps on to a second line of its own?", "Yes", "No", false, nullptr, nullptr});
+  h.app.offline().show();
+  const Surface* dialogs = &h.app.dialogs();
+  const Surface* offline = &h.app.offline();
+  const Surface* notice = &h.app.notice();
+  const Surface* update = &h.app.update_popup();
+  same_places(h, {{dialogs, Dialogs::Backdrop}, {dialogs, Dialogs::Card}, {dialogs, Dialogs::Confirm}, {dialogs, Dialogs::Cancel},
+                  {offline, OfflinePopup::Backdrop}, {offline, OfflinePopup::Card},
+                  {notice, NoticeCard::Card}, {notice, NoticeCard::Action}, {notice, NoticeCard::Dismiss},
+                  {update, UpdatePopup::Card}, {update, UpdatePopup::Button},
+                  {&h.app.toasts(), Toasts::Action}});
+}
+
 // The clock is held, so that a frame's time is what the test says.
 class Moving {
  public:
@@ -153,6 +173,7 @@ void test_the_offline_popup_rises_once() {
 }  // namespace
 
 int main() {
+  test_the_layers_stand_where_the_code_puts_them();
   test_a_dialog_rises_and_then_asks_for_no_more_frames();
   test_a_toast_comes_goes_and_is_gone();
   test_a_tip_fades_out_before_it_lets_go_of_its_text();

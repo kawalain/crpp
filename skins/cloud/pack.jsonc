@@ -112,6 +112,12 @@
     "tip_measure": {"size": 16, "weight": 700, "line_height": 22},
     "tip_small_measure": {"size": 15, "weight": 700, "line_height": 22},
     "tip_volume_measure": {"size": 15, "line_height": 20},
+    "notice_text": {"size": 16, "line_height": 23, "wrap": true},
+    "notice_label": {"size": 15, "weight": 700, "line_height": 34, "align": "center"},
+    "update_text": {"size": 15, "weight": 700, "line_height": 22, "ellipsis": true},
+    "update_label": {"size": 15, "weight": 700, "line_height": 32, "align": "center"},
+    "setup_message": {"size": 18, "weight": 700, "line_height": 26, "align": "center", "wrap": true},
+    "setup_percent": {"size": 15, "line_height": 22, "align": "center"},
     "modal_button_measure": {"size": 16, "weight": 700, "line_height": 0}
   },
   "parts": {
@@ -146,6 +152,14 @@
         {"x": "left", "y": "top", "w": "card_w", "h": "card_h", "group": [{"content": true}]}
       ]
     },
+    // A panel whose shadow follows the dark Theme, as upstream's CSS has .modal-card and its lists.
+    "panel_list": {
+      "args": {"shown": 1},
+      "draw": [
+        {"shadow": "alpha($panel_shadow, (dark ? 0.33 : 0.22)*shown)", "radius": 14, "blur": "dark ? 38 : 16", "dy": "dark ? 12 : 4"},
+        {"fill": "alpha($surface, shown)", "radius": 14}
+      ]
+    },
     // One that keeps the light Theme's shadow in the dark one.
     "panel_info": {
       "args": {"shown": 1},
@@ -162,6 +176,22 @@
           {"fill": "alpha(primary ? (hot ? $hl_dark : $hl) : (hot ? $hl_soft : $hl_pale2), shown)", "radius": "radius"},
           {"text": "@label", "style": "button", "size": "size", "line_height": "H", "color": "alpha(primary || hot ? $on_accent : $hl_text, shown)"}
         ]}
+      ]
+    },
+    "notice_button": {
+      "args": {"primary": 1},
+      "draw": [
+        {"if": "primary", "fill": "hot ? $hl_dark : $hl", "radius": "H/2"},
+        {"if": "!primary && hot", "fill": "$hl_pale", "radius": "H/2"},
+        {"text": "@label", "style": "notice_label", "line_height": "H", "color": "primary ? $on_accent : $ink_strong"}
+      ]
+    },
+    // The accent color is the sky's, so both parts are drawn in the surface color.
+    "progress": {
+      "args": {"percent": 0},
+      "draw": [
+        {"fill": "alpha($surface, 0.35)", "radius": 4},
+        {"fill": "$surface", "radius": 4, "w": "max(H, W*percent/100)"}
       ]
     },
   }

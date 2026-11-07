@@ -37,7 +37,7 @@ void NoticeCard::paint(Painter& p) {
      private:
       const Notice& n_;
     } shown(*notice_);
-    draw_screen(ui_, p, this, *screen, ui_.content, shown);
+    draw_layer(ui_, p, this, *screen, ui_.content, shown);
     return;
   }
   const bool plain = !ui_.skin().moves();

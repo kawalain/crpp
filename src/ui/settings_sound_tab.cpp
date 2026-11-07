@@ -23,7 +23,7 @@ constexpr float slider_x = 16, slider_w = 244, slider_hit_h = 21;
 constexpr float row_x = 16, row_w = 505, row_h = 36, switch_w = 50, switch_h = 26;
 
 constexpr int balance_min = 55, balance_max = 90;  // BALANCE_MIN, BALANCE_MAX
-constexpr float balance_top = 725 + effects_shift;
+constexpr float balance_top = 749 + effects_shift;  // upstream 725, and a line of explanation
 // .balance-control: 385 wide, centered in the 550 column, 60 high, with a person on
 // each side of the slider and gaps of 10.
 constexpr float person_w = 46, person_h = 62, balance_left = (550 - 385) / 2.0f;
@@ -70,12 +70,17 @@ constexpr std::array<ToggleRow, 6> toggle_rows{{
     {SoundTab::MuteNotifications, "음소거 시 알림 소리도 끄기", pref::mute_notifications_on_mute, 528 - pen_shift},
     {SoundTab::MuteOnIdle, "자리비움 상태일 때 음소거 전환", pref::mute_on_idle, 580 - pen_shift},
     {SoundTab::Spatial, "가상 서라운드", pref::spatial_audio, 581 + effects_shift},
-    {SoundTab::BalanceEnabled, "채널 밸런스", pref::channel_balance_enabled, 633 + effects_shift},
+    {SoundTab::BalanceEnabled, "자리에 따라 좌우로 듣기", pref::channel_balance_enabled, 633 + effects_shift},
 }};
 
 constexpr bool row_shown(std::size_t row) { return show_pen || row < 3; }
 
 }  // namespace
+
+std::string_view balance_word(int value) {
+  if (value <= 65) return "약함";
+  return value <= 78 ? "보통" : "강함";
+}
 
 SoundTab::SoundTab(Ui& ui) : SettingsTab(ui) {
   speaker_.box.id_base = SpeakerList;
@@ -187,16 +192,17 @@ void SoundTab::paint_person(Painter& p, float x, float y, Color c, bool marked) 
 
 void SoundTab::paint_balance(Painter& p, Rect area) {
   const Theme& t = ui_.theme;
-  const bool on = ui_.prefs->get(pref::channel_balance_enabled);
+  // Without the surround every seat is centred, so this would change nothing.
+  const bool on = ui_.prefs->get(pref::spatial_audio) && ui_.prefs->get(pref::channel_balance_enabled);
   const float a = on ? 1 : off_alpha;
   const int value = std::clamp(ui_.prefs->get(pref::channel_balance), balance_min, balance_max);
 
   const Rect title{area.x + 16, area.y + 687 + effects_shift, row_w, 24};
-  p.text("밸런스 비율", title, {.size = 16, .line_height = 24}, with_alpha(t.hl_text, a));
-  char ratio[16];
-  std::snprintf(ratio, sizeof ratio, "%d:%d", value, 100 - value);
-  p.text(on ? std::string_view(ratio) : std::string_view("사용 안 함"), title,
+  p.text("좌우 차이", title, {.size = 16, .line_height = 24}, with_alpha(t.hl_text, a));
+  p.text(on ? balance_word(value) : std::string_view("사용 안 함"), title,
          {.size = 16, .weight = 700, .line_height = 24, .align = Align::Right}, with_alpha(t.hl_text, a));
+  p.text("옆자리 소리가 가까운 귀 쪽으로 치우치는 정도예요.", {title.x, title.y + 24, row_w, 20}, {.size = 14, .line_height = 20},
+         with_alpha(t.hl_text, a * 0.75f));
 
   const float top = area.y + balance_top;
   const Color ink = with_alpha(t.hl, a);
@@ -242,7 +248,9 @@ void SoundTab::paint(Painter& p, Rect area) {
 
   for (const ToggleRow& row : toggle_rows) {
     const float y = area.y + row.top;
-    p.text(row.label, {area.x + row_x, y, row_w - switch_w - 10, row_h}, {.size = 18, .line_height = row_h}, t.hl_text);
+    const bool locked = row.id == BalanceEnabled && !ui_.prefs->get(pref::spatial_audio);
+    p.text(row.label, {area.x + row_x, y, row_w - switch_w - 10, row_h}, {.size = 18, .line_height = row_h},
+           with_alpha(t.hl_text, locked ? off_alpha : 1));
     const Rect r{area.x + row_x + row_w - switch_w, y + (row_h - switch_h) / 2, switch_w, switch_h};
     const bool on = ui_.prefs->get(row.key);
     float at = on ? 1.0f : 0.0f;
@@ -250,8 +258,8 @@ void SoundTab::paint(Painter& p, Rect area) {
       const float moved = transition(ui_, knob_start_, knob_ms);
       at = on ? moved : 1 - moved;
     }
-    paint_switch_at(p, t, r, on, at, false, ui_.hot(this, row.id));
-    ui_.add_hit(this, r, row.id);
+    paint_switch_at(p, t, r, on, at, locked, ui_.hot(this, row.id));
+    if (!locked) ui_.add_hit(this, r, row.id);
   }
 
   paint_balance(p, area);

@@ -52,8 +52,8 @@ void the_controls_are_there_and_pen_is_hidden() {
   CHECK(f.h.drawn(f.tab, SoundTab::MouseList));
   CHECK(show_pen == f.h.drawn(f.tab, SoundTab::PenVolume));
   CHECK(show_pen == f.h.drawn(f.tab, SoundTab::PenList));
-  // Upstream's height: the balance control's bottom and the panel's padding.
-  CHECK(f.tab.content_height() == 845);
+  // Upstream's height, the balance control's bottom and the panel's padding, and a line more.
+  CHECK(f.tab.content_height() == 869);
 }
 
 void sliders_change_their_settings_and_only_when_different() {
@@ -116,6 +116,31 @@ void the_balance_runs_from_55_to_90_and_can_be_off() {
   CHECK(!f.h.drawn(f.tab, SoundTab::Balance));
   CHECK(f.h.click(f.tab, SoundTab::BalanceEnabled));
   CHECK(f.h.drawn(f.tab, SoundTab::Balance));
+}
+
+void the_balance_is_said_in_words() {
+  CHECK(balance_word(55) == "약함");
+  CHECK(balance_word(60) == "약함");
+  CHECK(balance_word(65) == "약함");
+  CHECK(balance_word(66) == "보통");
+  CHECK(balance_word(78) == "보통");
+  CHECK(balance_word(79) == "강함");
+  CHECK(balance_word(90) == "강함");
+}
+
+void the_balance_is_locked_without_the_surround() {
+  Fixture f;
+  f.show_end();
+  f.drag_to(SoundTab::Balance, 1);
+  CHECK(f.h.click(f.tab, SoundTab::Spatial));
+  CHECK(!f.prefs.get(pref::spatial_audio));
+  CHECK(!f.h.drawn(f.tab, SoundTab::Balance));
+  CHECK(!f.h.drawn(f.tab, SoundTab::BalanceEnabled));
+  CHECK(f.prefs.get(pref::channel_balance_enabled));  // kept for when it comes back
+  CHECK(f.prefs.get(pref::channel_balance) == 90);
+  CHECK(f.h.click(f.tab, SoundTab::Spatial));
+  CHECK(f.h.drawn(f.tab, SoundTab::Balance));
+  CHECK(f.h.drawn(f.tab, SoundTab::BalanceEnabled));
 }
 
 void a_pack_is_picked_from_its_list() {
@@ -228,6 +253,8 @@ int main() {
   a_slider_shows_its_tip_on_hover_and_while_dragged();
   every_toggle_flips_its_setting();
   the_balance_runs_from_55_to_90_and_can_be_off();
+  the_balance_is_said_in_words();
+  the_balance_is_locked_without_the_surround();
   a_pack_is_picked_from_its_list();
   one_list_is_open_at_a_time_and_escape_closes_it_first();
   a_click_elsewhere_closes_the_list_and_changes_nothing();

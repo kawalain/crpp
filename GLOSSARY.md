@@ -18,6 +18,10 @@
 
 **Pen** (타블렛): a stylus used on a drawing tablet or pen display. "Pen" is the canonical term; "타블렛" is only the label users see.
 
+**Virtual surround** (가상 서라운드): placing each Seat's sound around the listener by its place in the Room. Without it every Seat sounds centred.
+
+**Left-right difference** (좌우 차이): how strongly a Seat to one side leans toward the nearer ear, under Virtual surround. Upstream calls it channel balance; it is shown in words because it moves level, delay and muffling together.
+
 **Guest**: a member without an account. Identified only by a signed guest ID kept on their device.
 
 **Account**: an optional login (username and password) that adds a unique Handle.

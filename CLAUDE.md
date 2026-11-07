@@ -100,6 +100,9 @@ against a real `server/` yet; do that once a local build of it is available.
   resources are always released while the window is hidden, and after 30 s hidden so is
   the GPU driver's memory; see `docs/research/memory-floor.md`.
 - Escape closes every dialog that has a cancel action.
+- The channel balance is explained: "자리에 따라 좌우로 듣기" and "좌우 차이", in words
+  instead of a ratio that only holds for a seat straight to the side, and locked while
+  virtual surround is off, when it changes nothing. Its settings keys are upstream's.
 - Logging out inside a Room says it leaves the Room, then does so. Nickname and
   handle can be changed without leaving.
 - The first-run prompt shows only to someone with no stored identity: a saved

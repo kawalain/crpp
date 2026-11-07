@@ -36,6 +36,9 @@ struct SoundChoice {
 };
 enum class SoundDevice : std::uint8_t { Keyboard, Mouse, Pen };
 
+// What the left-right difference's slider says at a value from 55 to 90.
+[[nodiscard]] std::string_view balance_word(int value);
+
 class SoundTab final : public SettingsTab {
  public:
   explicit SoundTab(Ui& ui);

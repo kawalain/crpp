@@ -71,6 +71,44 @@ commit, whose owner was not identified. After the settings screen has been used 
 28-40, not 24. Three hide and show cycles past the delay, then ten quick ones, showed no growth in
 private, threads or handles.
 
+### Second pass (2026-11-08)
+
+Same machine and method; the app's Release build on a hidden desktop. "Resident private" is the
+unshared part of the working set, which is what Task Manager's Memory column shows.
+
+- **Where the commit is.** A walk from inside the process at Home: 5.5 private before the first
+  render target, 64.7 after. Of the 59 the device brought, 33.4 is writable driver image, 19.4
+  private allocations (one of 11.4, one of 4.2), about 7 heap. Fifteen of the 33 threads start in
+  `nvwgf2umx.dll`. The app's own share stays the 5 or so the probe found.
+- **Owning the device does not lower it.** A new probe drew the same scene through each path, three
+  runs each: HWND target 63-64 private and 30 threads; D3D11 device, bitblt swap chain 67-70 and 56;
+  with `PREVENT_INTERNAL_THREADING_OPTIMIZATIONS` 63-64 and 30, the same as the HWND target, which
+  already runs without those threads. `SINGLETHREADED`, feature level 10.0 and a frame latency of 1
+  changed nothing; flip 64-65. `ClearResources` with `Trim` saved under 1. So 2a, 3 and 5 above buy
+  nothing here, and the HWND target stays. Microsoft calls the threading flag "not recommended for
+  general use" (learn.microsoft.com/en-us/windows/win32/api/d3d11/ne-d3d11-d3d11_create_device_flag).
+- **Measure 4, done: trim when quiet.** A shown window outside a Room gives its pages back 10 s after
+  its last still frame (`apps/gui/area_os.cpp`, `trims_when_quiet` in `os_policy.hpp`): resident private
+  16.9 to 0.4, working set 49 to 0.6. A hover across Home brought 6.2 back, and the next quiet took it
+  to 0.4-1.6. Commit does not move. Not in a Room, where sound and input keep touching their pages.
+  Removed pages stay in RAM as transition pages and come back as soft faults
+  (learn.microsoft.com/en-us/windows/win32/memory/working-set); Task Manager's figure leaves out
+  trimmed memory that is still cached (Russinovich, PDC10, learn.microsoft.com/en-us/archive/blogs/tims/pdc10-mysteries-of-windows-memory-management-revealed-part-two).
+  Pavel Yosifovich calls commit the measure to judge by (scorpiosoftware.net/2023/04/12/memory-information-in-task-manager/);
+  both are recorded here.
+- **Measure 6, done.** `HeapOptimizeResources` runs with every trim.
+- **Measure 7, done: segment heap.** Settings open, six runs each, alternating: commit 76.0 to 75.2,
+  resident private 19.3 to 18.4, ranges not overlapping. Wheel scrolling 7.4% against 6.6% of a core,
+  within noise. Chromium reported a CPU cost (secondhand, crbug 1102281); not seen here.
+- **Releasing the device while shown: built, off.** `--release-unused <s>` lets the device go after
+  `<s>` seconds with no frame, outside a Room and while another program has the foreground. Home: commit
+  65 to 11.8, settings used: 75 to 12.4, Retro 60 to 11.6; `nvwgf2umx.dll` unloads. Activation or the
+  next frame makes it again. Ten cycles showed no growth in handles, threads or the peak. It stays off
+  until a real desktop shows that the window keeps its picture without a device; meant to run at 180 s.
+- **The hidden floor is 12, not 24.** Measured 15 s after the release it was 12.4 even after settings
+  had been used; 4 s after, it was still 35.7. The driver frees its memory several seconds late, so
+  the 24 above was probably measured too early.
+
 ## Ranked measures
 
 Savings are measured in the probe unless marked *estimate*; none has been tried in the app.

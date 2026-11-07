@@ -150,6 +150,19 @@ against a real `server/` yet; do that once a local build of it is available.
   loaded, and a first run ever does not open it. A new version's notes open when the app
   first notices it, not after the update, and not again once it is installed. They are
   the release's most important changes, then its commits by kind.
+- Two Themes upstream does not have, 메신저 and 메신저 다크, in the look of a messenger of the early
+  2000s (`docs/research/retro-messenger-look.md`). Values and shapes are re-created as vectors, and
+  nothing is taken from Windows or the old programs; no logo, person icon, sound or font of theirs,
+  and their names are never shown. 구름 stays the default. Under these Themes:
+  - The app draws its window frame, with minimize and close only. Those two are ordinary hits in
+    the client area, not caption buttons.
+  - The window has a size per screen, remembered per screen under `window<Screen>Width` and
+    `Height`, so it shrinks to Home and grows to a Room. Cloud's saved size is left alone.
+  - Home lists the Seats to return to, where Cloud asks once in a dialog.
+  - A menu bar holds only commands that work, by mouse and Escape; there are no Alt keys yet.
+  - Only links show the hand cursor, and none of the motion listed above runs.
+  - Text is Gulim and Tahoma, the fonts of the time on this system, not Pretendard.
+  - A message and someone entering sound as bells made in `synth`, not the pack's recordings.
 
 ## Build
 
@@ -164,7 +177,8 @@ so wait with `Start-Process -Wait`, and read `--smoke`'s result from the exit co
 
 Options are read from the end of the command line: `crpp --shot <png> <size> <hour> <scene>
 --data <dir>`. Put first, `--data` is ignored and the real app opens on the user's desktop
-with their data. A shot is in Korean unless `--locale <id>` says otherwise.
+with their data. A shot is in Korean and in the Theme of its scene unless `--locale <id>` or
+`--theme <id>` says otherwise. `auto` for the size renders the window size of the Skin's screen.
 
 A change that must leave the screen as it was can prove it: `tests/shots/render.ps1` renders
 every scene in `scenes.txt` on a hidden desktop, before and after, and `compare.ps1` compares
@@ -172,7 +186,9 @@ the folders by hash. A shot holds the clock, so the same scene always gives the 
 
 `crpp --data <dir>` keeps a run's data out of the user's folders, and with no
 `serverUrl` in it skips the startup `/health`, so scripted runs stay off the default
-server; seed `serverUrl` in its `crpp/settings.json` to test the offline popup. An exe with an
+server; seed `serverUrl` in its `crpp/settings.json` to test the offline popup. That covers only
+`/health`: a click on creating or joining a Room still goes to the default server, which is production,
+so a run that clicks needs a `serverUrl` on localhost. An exe with an
 `assets/` folder beside it, as every build has, runs from that folder; copy the
 exe elsewhere to test fetching, with `--asset-url` for a local server.
 
@@ -246,6 +262,12 @@ exist (real + test).
   every scroll area's wheel, stretch and edge fade. A motion's first frame has made no
   progress yet, so it must ask for the next frame from its start. `--shot ...
   motion-<name> --at <ms>` renders a moment of a motion; `apps/gui/shot.cpp` names them.
+  A Theme is one row of `themes.cpp`: a Skin and a Palette, which is all a new Palette takes. `Skin` draws
+  the controls and decides the window frame and motion (`docs/adr/0005-skins-own-shape-and-layout.md`).
+  Home, Room with its chat, the prompt and settings have a layout per Skin in `*_luna.cpp`, on the same
+  state, hit ids and callbacks; `luna.hpp` holds the Luna controls. `window_frame.cpp` says what each
+  point of an own-drawn frame is, and the shell answers `WM_NCHITTEST` from it. `App::screen_size` names
+  the size of the current screen, and the shell fits the window to it when a frame starts.
 
 ## Performance rules
 
@@ -262,6 +284,10 @@ exist (real + test).
   desktop, settings open: idle 0.0% of one core and about 47 MB working set; wheel
   scrolling without pause 0.6-1.9% at about 73 frames/s (a counter confirmed the frames),
   back to 0.0% afterwards. A real desktop adds composition, which this does not show.
+- The Messenger Themes, the same way with the wheel posted about 60 times a second, reversing every
+  20 notches, on the options window: idle 0.0%, about 43 MB working set and 59 MB private; scrolling
+  1.3-3.4%; 0.0% afterwards. Cloud under the same harder wheel: idle 0.0% and about 45 MB; scrolling
+  5.9-12.5%, where a build from before Skins gave 8.4-10.6%, so that is the stimulus, not a regression.
 
 ## Transport facts (verified on Windows 10 19044)
 
@@ -304,6 +330,14 @@ exist (real + test).
 - Coming back from a hidden window that gave up its graphics has only run on a hidden
   desktop, on one NVIDIA card. See it on a real desktop, and on Intel and AMD drivers. The
   same goes for a chat notification drawn in that state.
+- The own-drawn window frame has only run on a hidden desktop, where hit tests, the region and the
+  size per screen were checked. See on a real desktop: Snap, resizing by each edge, minimize and
+  restore, Alt+Space, a right-click on the caption, moving between monitors of different DPI, the
+  taskbar title, and what the region does to the shadow. Windows 11 has not run it at all, nor have
+  Intel and AMD drivers, and a Room with real members has not been seen under these Themes.
+- Following the OS theme with a Theme of another Skin on the other side has only run in tests: the
+  frame and window size should change with it.
+- The Messenger Themes' bells need ears: `crpp_soundtest --chimes`.
 - Dead-peer detection (network cut) is untested.
 - Shared store compatibility is tested against upstream's format as read from
   its source, not yet against the upstream client itself.

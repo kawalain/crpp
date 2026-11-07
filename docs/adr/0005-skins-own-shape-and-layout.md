@@ -9,7 +9,7 @@ A Theme used to be colours only, with radii, shadows and layout written at each 
 
 ## Consequences
 
-- Only Home, Room, the first-run prompt, the settings frame and the window frame have a layout per Skin. Other surfaces use the Skin's controls in one shared layout.
+- Only Home, Room with its chat, the first-run prompt, settings and the window frame have a layout per Skin. Other surfaces use the Skin's controls in one shared layout.
 - Screens that draw their own buttons and panels now go through the Skin.
-- A Skin decides its window frame and motion. Luna has no screen transitions, stretch or edge fades, which is why they are not global.
+- A Skin decides its window frame and motion. Luna has no screen transitions, stretch or edge fades, which is why they are not global. It also has notification sounds of its own.
 - A new Palette is one entry. A new Skin is large, on purpose.

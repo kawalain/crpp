@@ -46,7 +46,7 @@ if(WIN32)
   endif()
 
   # Not part of a normal build: see the tool's first lines.
-  add_executable(crpp_make_icon EXCLUDE_FROM_ALL tools/make_icon.cpp tray.cpp)
+  add_executable(crpp_make_icon EXCLUDE_FROM_ALL tools/make_icon.cpp)
   target_link_libraries(crpp_make_icon PRIVATE crpp_ui)
   target_include_directories(crpp_make_icon PRIVATE .)
   target_compile_definitions(crpp_make_icon PRIVATE _WIN32_WINNT=0x0A00)

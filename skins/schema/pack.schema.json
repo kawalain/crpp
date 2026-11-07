@@ -241,6 +241,10 @@
               "description": "The point that clicks, in that box."
             }
           }
+        },
+        "hard": {
+          "type": "boolean",
+          "description": "Hard edges in that box, then enlarged by whole pixels, so the steps of the grid show at any scale."
         }
       },
       "required": [

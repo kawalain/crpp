@@ -494,8 +494,15 @@ void test_cursors_are_all_there_or_refused() {
   if (good) {
     CHECK(good->cursors.has_value());
     CHECK((*good->cursors)[static_cast<std::size_t>(CursorKind::IBeam)].hot_y == 3);
+    CHECK(!good->cursors_hard);
   }
   CHECK(!with(R"({"arrow":{"part":"p","hot":[2,3]}})").has_value());
+  std::string hard = all;
+  hard.insert(1, R"("hard":true,)");
+  const auto with_hard_edges = with(hard);
+  CHECK(with_hard_edges.has_value() && with_hard_edges->cursors_hard);
+  hard.replace(hard.find("true"), 4, "1");
+  CHECK(!with(hard).has_value());
   std::string no_part = all;
   no_part.replace(no_part.find("\"p\""), 3, "\"nobody\"");
   CHECK(!with(no_part).has_value());

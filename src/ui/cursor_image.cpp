@@ -75,11 +75,13 @@ std::optional<CursorImage> make_cursor_image(const Ui& ui, skin::CursorKind kind
   const skin::PackCursor& cursor = (*ui.pack->cursors)[static_cast<std::size_t>(kind)];
   ID2D1Factory* const factory = ui.gfx.d2d();
   if (!factory) return std::nullopt;
+  const bool hard = ui.pack->cursors_hard;
+  const int drawn = hard ? static_cast<int>(skin::cursor_box) : size;
 
   BITMAPINFO info{};
   info.bmiHeader.biSize = sizeof info.bmiHeader;
-  info.bmiHeader.biWidth = size;
-  info.bmiHeader.biHeight = -size;  // top down
+  info.bmiHeader.biWidth = drawn;
+  info.bmiHeader.biHeight = -drawn;  // top down
   info.bmiHeader.biPlanes = 1;
   info.bmiHeader.biBitCount = 32;
   info.bmiHeader.biCompression = BI_RGB;
@@ -92,11 +94,12 @@ std::optional<CursorImage> make_cursor_image(const Ui& ui, skin::CursorKind kind
     HGDIOBJ const old = SelectObject(dc, bitmap);
     ComPtr<ID2D1DCRenderTarget> target;
     const auto props = D2D1::RenderTargetProperties(D2D1_RENDER_TARGET_TYPE_SOFTWARE, D2D1::PixelFormat(DXGI_FORMAT_B8G8R8A8_UNORM, D2D1_ALPHA_MODE_PREMULTIPLIED), 96, 96);
-    const RECT whole{0, 0, size, size};
+    const RECT whole{0, 0, drawn, drawn};
     if (SUCCEEDED(factory->CreateDCRenderTarget(&props, target.put())) && SUCCEEDED(target->BindDC(dc, &whole))) {
       const float scale = static_cast<float>(size) / skin::cursor_box;
-      const D2D1_MATRIX_3X2_F base = D2D1::Matrix3x2F::Scale(scale, scale);
+      const D2D1_MATRIX_3X2_F base = hard ? D2D1::Matrix3x2F::Identity() : D2D1::Matrix3x2F::Scale(scale, scale);
       target->BeginDraw();
+      if (hard) target->SetAntialiasMode(D2D1_ANTIALIAS_MODE_ALIASED);
       target->Clear(D2D1::ColorF(0, 0));
       target->SetTransform(base);
       CursorCanvas canvas(ui.gfx, target.get(), base);
@@ -109,7 +112,12 @@ std::optional<CursorImage> make_cursor_image(const Ui& ui, skin::CursorKind kind
         image->hot_x = std::clamp(static_cast<int>(std::lround(cursor.hot_x * scale)), 0, size - 1);
         image->hot_y = std::clamp(static_cast<int>(std::lround(cursor.hot_y * scale)), 0, size - 1);
         const auto* const first = static_cast<const std::uint32_t*>(bits);
-        image->pixels.assign(first, first + static_cast<std::size_t>(size) * static_cast<std::size_t>(size));
+        image->pixels.resize(static_cast<std::size_t>(size) * static_cast<std::size_t>(size));
+        for (int y = 0; y < size; ++y) {  // the nearest pixel of what was drawn
+          for (int x = 0; x < size; ++x) {
+            image->pixels[static_cast<std::size_t>(y * size + x)] = first[static_cast<std::size_t>(y * drawn / size * drawn + x * drawn / size)];
+          }
+        }
       }
     }
     SelectObject(dc, old);

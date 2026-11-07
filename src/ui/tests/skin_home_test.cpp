@@ -561,22 +561,39 @@ void test_the_cursors_of_the_pack_become_system_cursors() {
   const auto arrow = make_cursor_image(h.app.ui(), crpp::skin::CursorKind::Arrow, 32);
   CHECK(arrow.has_value());
   if (arrow) {
-    CHECK(arrow->hot_x == 1 && arrow->hot_y == 1);
+    CHECK(arrow->hot_x == 0 && arrow->hot_y == 0);
     HCURSOR cursor = make_system_cursor(*arrow);
     CHECK(drawn_over(cursor, 32, 0x000000, 4, 10) == 0xFFFFFF);
     CHECK(drawn_over(cursor, 32, 0xFFFFFF, 4, 10) == 0xFFFFFF);
     CHECK(drawn_over(cursor, 32, 0x123456, 30, 30) == 0x123456);
-    // A pixel the edge covers only partly comes out as it was drawn: its colour is not darkened twice.
-    for (int x = 0; x < 32; ++x) {
-      for (int y = 0; y < 32; ++y) {
-        const std::uint32_t pixel = arrow->pixels[static_cast<std::size_t>(y * 32 + x)];
-        const std::uint32_t alpha = pixel >> 24, blue = pixel & 255;
-        if (alpha == 0 || alpha == 255) continue;
-        CHECK(blue <= alpha);
-        const std::uint32_t over_black = drawn_over(cursor, 32, 0x000000, x, y) & 255;
-        CHECK(over_black + 2 >= blue && over_black <= blue + 2);
+    DestroyCursor(cursor);
+    // Hard edges: every pixel is whole, and the corner of the arrow climbs by one step of the grid.
+    CHECK(std::ranges::all_of(arrow->pixels, [](std::uint32_t pixel) { return (pixel >> 24) == 0 || (pixel >> 24) == 255; }));
+    const auto at = [&](int x, int y) { return arrow->pixels[static_cast<std::size_t>(y * 32 + x)] >> 24; };
+    CHECK(at(0, 0) == 255 && at(1, 0) == 0 && at(1, 1) == 255 && at(2, 1) == 0);
+  }
+  // Twice the size is the same picture with each pixel twice as wide: the steps grow with it.
+  const auto doubled = make_cursor_image(h.app.ui(), crpp::skin::CursorKind::Arrow, 64);
+  CHECK(arrow.has_value() && doubled.has_value());
+  if (arrow && doubled) {
+    bool same = true;
+    for (int y = 0; y < 64; ++y) {
+      for (int x = 0; x < 64; ++x) {
+        same = same && doubled->pixels[static_cast<std::size_t>(y * 64 + x)] == arrow->pixels[static_cast<std::size_t>(y / 2 * 32 + x / 2)];
       }
     }
+    CHECK(same);
+  }
+  {
+    // A pixel partly covered, as a pack without hard edges has them, comes out as it was drawn: its colour is not darkened twice.
+    CursorImage soft;
+    soft.size = 32;
+    soft.pixels.assign(32 * 32, 0);
+    soft.pixels[5 * 32 + 5] = 0x80808080;
+    HCURSOR cursor = make_system_cursor(soft);
+    CHECK(cursor != nullptr);
+    const std::uint32_t over_black = drawn_over(cursor, 32, 0x000000, 5, 5) & 255;
+    CHECK(over_black + 2 >= 0x80 && over_black <= 0x80 + 2);
     DestroyCursor(cursor);
   }
   const auto larger = make_cursor_image(h.app.ui(), crpp::skin::CursorKind::IBeam, 48);

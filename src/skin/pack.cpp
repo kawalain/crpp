@@ -236,7 +236,10 @@ class Loader final : public Names {
   bool load_cursors(const Json& json) {
     const Json::Object* all = json.as_object();
     if (!all) return fail("cursors is not an object");
-    if (all->size() != cursor_names.size()) return fail("cursors has to name all of them");
+    const Json* hard = json.find("hard");
+    if (hard && !hard->as_bool()) return fail("hard is not true or false");
+    if (all->size() != cursor_names.size() + (hard ? 1 : 0)) return fail("cursors has to name all of them");
+    pack_.cursors_hard = hard && *hard->as_bool();
     std::array<PackCursor, cursor_names.size()> cursors;
     for (std::size_t i = 0; i < cursor_names.size(); ++i) {
       const std::string name(cursor_names[i]);

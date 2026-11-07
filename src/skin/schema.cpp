@@ -302,6 +302,7 @@ std::string pack_json_schema() {
     cursor_names_json.set(std::string(name), cursor);
     required_cursors.push_back(text_json(name));
   }
+  cursor_names_json.set("hard", with_doc(typed("boolean"), "Hard edges in that box, then enlarged by whole pixels, so the steps of the grid show at any scale."));
   cursors.set("properties", std::move(cursor_names_json));
   cursors.set("required", Json(std::move(required_cursors)));
   cursors.set("additionalProperties", Json(false));

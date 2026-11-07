@@ -39,7 +39,8 @@
 // number, which a screen gives it as an argument with hit('name') or note('name'), and less than 0 for none.
 //
 // cursors names, for all seven of cursor_names, a part that draws it in a box of 32 by 32, and its hot
-// point there. A pack without them leaves the pointer to the system.
+// point there. A pack without them leaves the pointer to the system. With hard: true they are drawn with
+// hard edges in that box, then enlarged by whole pixels, so the steps of the grid are part of the look.
 //
 // Some constants are read by the program too: see required_constants. Fonts are installed ones, the
 // first of each list that this system has: korean for Korean and for every Hangul letter, other for
@@ -199,6 +200,7 @@ struct Pack {
   std::string id;
   std::optional<PackFonts> fonts;
   std::optional<std::array<PackCursor, cursor_names.size()>> cursors;
+  bool cursors_hard = false;
   std::vector<Node> nodes;
   std::vector<Instr> code;
   std::vector<Style> styles;

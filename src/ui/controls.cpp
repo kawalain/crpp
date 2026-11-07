@@ -10,10 +10,10 @@ namespace crpp::ui {
 namespace {
 constexpr float list_fade_ms = 120;
 
-enum ListNumberId : int { Items, Selected, Up, Offset };
+enum ListNumberId : int { Items, Selected, Up, Offset, FadeTop, FadeBottom };
 enum ListReportId : int { View, Content };
 constexpr skin::Name list_text_names[] = {{"item", 0}};
-constexpr skin::Name list_number_names[] = {{"items", Items}, {"selected", Selected}, {"up", Up}, {"scroll", Offset}};
+constexpr skin::Name list_number_names[] = {{"items", Items}, {"selected", Selected}, {"up", Up}, {"scroll", Offset}, {"fade_top", FadeTop}, {"fade_bottom", FadeBottom}};
 constexpr skin::Name list_hit_names[] = {{"item", 1}};
 constexpr skin::Name list_report_names[] = {{"view", View}, {"content", Content}};
 constexpr skin::Name list_note_names[] = {{"list", 0}};
@@ -68,6 +68,8 @@ void Dropdown::paint_list(Ui& ui, Surface* owner, Painter& p, Rect r) {
           case Items: return static_cast<float>(d_.options.size());
           case Selected: return index == d_.selected ? 1.0f : 0.0f;
           case Up: return d_.up ? 1.0f : 0.0f;
+          case FadeTop: return scroll_.fade_top();
+          case FadeBottom: return scroll_.fade_bottom();
           default: return scroll_.drawn();
         }
       }

@@ -61,6 +61,16 @@ void test_the_layers_stand_where_the_code_puts_them() {
                   {&h.app.toasts(), Toasts::Action}});
 }
 
+void test_a_list_stands_where_the_code_puts_it() {
+  UiHarness h;
+  CHECK(h.start(1200, 900));
+  h.app.show_home();
+  h.app.settings().open(SettingsPage::Display);
+  DisplayTab& display = h.app.settings().display();
+  display.click(DisplayTab::ThemeList, 0, 0, false);
+  same_places(h, {{&display, DisplayTab::ThemeList + 1}, {&display, DisplayTab::ThemeList + 2}});
+}
+
 // The clock is held, so that a frame's time is what the test says.
 class Moving {
  public:
@@ -174,6 +184,7 @@ void test_the_offline_popup_rises_once() {
 
 int main() {
   test_the_layers_stand_where_the_code_puts_them();
+  test_a_list_stands_where_the_code_puts_it();
   test_a_dialog_rises_and_then_asks_for_no_more_frames();
   test_a_toast_comes_goes_and_is_gone();
   test_a_tip_fades_out_before_it_lets_go_of_its_text();

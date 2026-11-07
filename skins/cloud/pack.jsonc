@@ -118,6 +118,9 @@
     "update_label": {"size": 15, "weight": 700, "line_height": 32, "align": "center"},
     "setup_message": {"size": 18, "weight": 700, "line_height": 26, "align": "center", "wrap": true},
     "setup_percent": {"size": 15, "line_height": 22, "align": "center"},
+    "dropdown": {"size": 17, "weight": 700, "line_height": 0, "ellipsis": true},
+    "list_item": {"size": 16, "line_height": 20, "ellipsis": true},
+    "list_item_selected": {"size": 16, "weight": 700, "line_height": 20, "ellipsis": true},
     "modal_button_measure": {"size": 16, "weight": 700, "line_height": 0}
   },
   "parts": {
@@ -194,5 +197,27 @@
         {"fill": "$surface", "radius": 4, "w": "max(H, W*percent/100)"}
       ]
     },
+    "dropdown": {
+      "args": {"open": 0, "off": 0},
+      "draw": [
+        {"let": "a", "value": "off ? 0.5 : 1"},
+        {"fill": "alpha(open ? $hl_soft : hot ? $hl_dark : $hl, a)", "radius": 10},
+        {"text": "@label", "style": "dropdown", "line_height": "H", "color": "alpha($on_accent, a)", "x": 12, "w": "W-48"},
+        {"let": "cx", "value": "W-13-7"},
+        {"let": "cy", "value": "H/2"},
+        {"line": "alpha($white, a)", "x": "cx-6", "y": "cy-3", "x2": "cx", "y2": "cy+3", "width": 2},
+        {"line": "alpha($white, a)", "x": "cx", "y": "cy+3", "x2": "cx+6", "y2": "cy-3", "width": 2}
+      ]
+    },
+    // li: padding 9 12, 20 tall.
+    "list_item": {
+      "args": {"selected": 0},
+      "draw": [
+        {"if": "selected", "fill": "$hl", "radius": 9},
+        {"if": "!selected && hot", "fill": "$hl_soft", "radius": 9},
+        {"if": "selected", "text": "@label", "style": "list_item_selected", "color": "$on_accent", "x": 12, "y": 9, "w": "W-24", "h": 20},
+        {"if": "!selected", "text": "@label", "style": "list_item", "color": "hot ? $on_accent : $hl_text", "x": 12, "y": 9, "w": "W-24", "h": 20}
+      ]
+    }
   }
 }

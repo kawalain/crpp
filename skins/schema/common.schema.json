@@ -1,0 +1,1060 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "What the schemas of a Skin Pack share",
+  "definitions": {
+    "expression": {
+      "type": [
+        "number",
+        "string",
+        "boolean"
+      ],
+      "description": "A number, or an expression with + - * / ( ) ?: < <= > >= == != && || ! and min max floor ceil round snap, textw('style', 'text') and texth('style', 'text', width). Names: W H X Y (the box around it), x y w h (its own, once worked out), u (a whole pixel), font_size, hot, pressed, i (the round of a repeat), flow (in a column), $palette_entry, @screen_number, id.right and the like of a sibling, hit('name') and note('name') of the screen, constants, lets and a part's arguments."
+    },
+    "plain_text": {
+      "anyOf": [
+        {
+          "enum": [
+            "#guest",
+            "#ok",
+            "#cancel",
+            "#mute",
+            "#unmute",
+            "#room_word_chat",
+            "#clock_am",
+            "#clock_pm",
+            "#clock_12h",
+            "#chat_yesterday",
+            "#chat_two_days_ago",
+            "#chat_earlier",
+            "#release_date",
+            "#stay_year",
+            "#stay_years",
+            "#stay_month",
+            "#stay_months",
+            "#stay_hour",
+            "#stay_hours",
+            "#stay_minute",
+            "#stay_minutes",
+            "#stay_under_a_minute",
+            "#times_one",
+            "#times_many",
+            "#chat_calm",
+            "#chat_send_failed",
+            "#chat_link_tip",
+            "#chat_placeholder",
+            "#chat_link_failed",
+            "#join_not_found",
+            "#join_room_full",
+            "#join_already_in_room",
+            "#join_server_full",
+            "#join_no_public",
+            "#join_failed",
+            "#lost_token_in_room",
+            "#lost_token",
+            "#connect_closed",
+            "#connect_no_reply",
+            "#connect_failed",
+            "#lost_room_closed",
+            "#lost_server",
+            "#offline_message",
+            "#home_create",
+            "#home_morning",
+            "#home_afternoon",
+            "#home_evening",
+            "#home_night",
+            "#home_hello",
+            "#home_find",
+            "#home_code_placeholder",
+            "#home_find_public",
+            "#home_return_question",
+            "#home_return",
+            "#home_random",
+            "#home_code_length",
+            "#member_profile",
+            "#member_volume",
+            "#profile_joined",
+            "#profile_stayed",
+            "#profile_inputs",
+            "#profile_change_icon",
+            "#profile_load_failed",
+            "#room_code",
+            "#room_public",
+            "#room_tip_leave",
+            "#room_tip_more",
+            "#room_tip_copy",
+            "#room_tip_host_only",
+            "#room_tip_unpin",
+            "#room_tip_pin",
+            "#room_tip_pin_blocked",
+            "#room_tip_chat_locked",
+            "#room_tip_host",
+            "#room_tip_offline",
+            "#room_copied",
+            "#room_copy_failed",
+            "#room_leave_question",
+            "#room_leave_delegates",
+            "#room_leave",
+            "#room_pin_notice",
+            "#room_public_notice",
+            "#room_public_confirm",
+            "#room_chat_notice",
+            "#room_chat_confirm",
+            "#prompt_back",
+            "#account_id",
+            "#account_id_placeholder",
+            "#account_id_hint",
+            "#account_id_link",
+            "#account_create",
+            "#account_password",
+            "#account_password_placeholder",
+            "#account_password_hint",
+            "#account_password_link",
+            "#account_confirm",
+            "#account_confirm_placeholder",
+            "#account_confirm_hint",
+            "#account_confirm_link",
+            "#account_login",
+            "#account_login_hint",
+            "#account_handle_heading",
+            "#account_handle",
+            "#account_handle_placeholder",
+            "#account_handle_hint",
+            "#account_nickname_heading",
+            "#account_nickname",
+            "#account_nickname_placeholder",
+            "#account_nickname_hint",
+            "#account_nickname_random",
+            "#account_use_handle",
+            "#account_nickname_too_long",
+            "#account_wrong_password",
+            "#account_username_taken",
+            "#account_invalid_username",
+            "#account_invalid_password",
+            "#account_weak_password",
+            "#account_handle_taken",
+            "#account_invalid_handle",
+            "#account_invalid_credentials",
+            "#account_rate_limited",
+            "#account_expired",
+            "#account_failed",
+            "#account_lock_hour",
+            "#account_lock_minutes",
+            "#account_locked",
+            "#account_bad_password_char",
+            "#account_password_mismatch",
+            "#account_skip_question",
+            "#account_logout_in_room",
+            "#account_logout_question",
+            "#account_logout",
+            "#tab_sound",
+            "#tab_display",
+            "#tab_notify",
+            "#tab_system",
+            "#tab_account",
+            "#tip_changelog",
+            "#tip_settings",
+            "#account_heading",
+            "#account_change_nickname",
+            "#account_change_handle",
+            "#menu_file",
+            "#menu_leave",
+            "#menu_exit",
+            "#menu_tools",
+            "#menu_options",
+            "#menu_help",
+            "#menu_changelog",
+            "#options_title",
+            "#options_close",
+            "#home_enter",
+            "#home_seats",
+            "#home_seats_empty",
+            "#home_tasks",
+            "#room_contacts",
+            "#room_options",
+            "#chat_says",
+            "#chat_send",
+            "#theme_cloud",
+            "#theme_dark_cloud",
+            "#theme_pastel",
+            "#theme_messenger",
+            "#theme_messenger_dark",
+            "#display_theme",
+            "#display_sync",
+            "#display_light",
+            "#display_dark",
+            "#display_general",
+            "#display_chat_size",
+            "#display_chat_sample",
+            "#notify_heading",
+            "#notify_on_message",
+            "#notify_tray",
+            "#notify_flash",
+            "#notify_sounds",
+            "#notify_preview",
+            "#notify_sound_chat",
+            "#notify_sound_enter",
+            "#sound_speaker",
+            "#sound_devices",
+            "#sound_effects",
+            "#sound_speaker_volume",
+            "#sound_keyboard_volume",
+            "#sound_mouse_volume",
+            "#sound_pen_volume",
+            "#sound_listen_self",
+            "#sound_others_use_mine",
+            "#sound_mute_notifications",
+            "#sound_mute_on_idle",
+            "#sound_spatial",
+            "#sound_balance_enabled",
+            "#sound_balance_weak",
+            "#sound_balance_medium",
+            "#sound_balance_strong",
+            "#sound_reverb",
+            "#sound_reverb_off",
+            "#sound_reverb_office",
+            "#sound_reverb_large",
+            "#sound_default_output",
+            "#sound_current_output",
+            "#sound_me",
+            "#sound_balance",
+            "#sound_balance_off",
+            "#sound_balance_hint",
+            "#sound_output_failed",
+            "#system_heading",
+            "#system_autostart",
+            "#system_tray",
+            "#system_detail",
+            "#system_detail_hint",
+            "#system_time",
+            "#system_24h",
+            "#system_idle",
+            "#system_idle_15",
+            "#system_idle_30",
+            "#system_idle_60",
+            "#system_language",
+            "#system_language_row",
+            "#system_language_auto",
+            "#system_advanced",
+            "#system_logging",
+            "#system_open_logs",
+            "#system_reset",
+            "#system_reset_question",
+            "#system_reset_confirm",
+            "#system_logs_failed",
+            "#system_autostart_failed",
+            "#setup_message",
+            "#notice_moved",
+            "#notice_erase",
+            "#notice_keep",
+            "#notice_erased",
+            "#notice_erase_failed",
+            "#notice_shared",
+            "#notice_move",
+            "#notice_close",
+            "#notice_move_failed",
+            "#notice_unreadable",
+            "#notice_corrupt",
+            "#notice_fetch_failed",
+            "#start_failed",
+            "#update_installing",
+            "#update_downloading",
+            "#update_failed_short",
+            "#update_retry",
+            "#update_available",
+            "#update_button",
+            "#update_failed",
+            "#update_latest",
+            "#changelog_failed",
+            "#changelog_newer_hint",
+            "#changelog_older_hint",
+            "#tray_still_connected",
+            "#tray_exit"
+          ]
+        },
+        {
+          "type": "string",
+          "pattern": "^$|^[^#@]"
+        }
+      ],
+      "description": "A text: #locale_key, @bound, or the words themselves."
+    },
+    "node_shape": {
+      "type": "object",
+      "description": "One thing to draw, chosen by which of fill, frame, stroke, line, path, text, picture, field, slot, group, column, use, content, repeat, let, set or report it has.",
+      "properties": {
+        "if": {
+          "$ref": "#/definitions/expression",
+          "description": "Draw this only when it is not 0. Its id then reads as zeros."
+        },
+        "id": {
+          "type": "string",
+          "description": "A name for its box: siblings further on read id.x, .y, .w, .h, .right and .bottom."
+        },
+        "x": {
+          "$ref": "#/definitions/expression",
+          "description": "From the left of the box around it. 0 when left out."
+        },
+        "right": {
+          "$ref": "#/definitions/expression",
+          "description": "Where its right edge goes, instead of x."
+        },
+        "y": {
+          "$ref": "#/definitions/expression",
+          "description": "From the top of the box around it. 0 when left out, or flow in a column."
+        },
+        "bottom": {
+          "$ref": "#/definitions/expression",
+          "description": "Where its bottom edge goes, instead of y."
+        },
+        "w": {
+          "$ref": "#/definitions/expression",
+          "description": "Its width. The box around it, or a part's own w, when left out."
+        },
+        "h": {
+          "$ref": "#/definitions/expression",
+          "description": "Its height. The box around it, or a part's own h, when left out."
+        },
+        "after": {
+          "$ref": "#/definitions/expression",
+          "description": "In a column: how much further down the next one goes."
+        },
+        "hit": {
+          "type": "string",
+          "description": "A name for clicks. What is inside reads hot and pressed. It goes on top of what was drawn before it, after this node's own children."
+        },
+        "hit_index": {
+          "$ref": "#/definitions/expression",
+          "description": "Added to the id of hit. i in a repeat when left out."
+        },
+        "hit_by": {
+          "$ref": "#/definitions/expression",
+          "description": "The id of a click as a number, instead of hit, for a part: a screen gives it with hit('name'). Less than 0 is none."
+        },
+        "live": {
+          "$ref": "#/definitions/expression",
+          "description": "0: what is inside is never hot or pressed."
+        },
+        "hit_if": {
+          "$ref": "#/definitions/expression",
+          "description": "0: it takes no clicks."
+        },
+        "note": {
+          "type": "string",
+          "description": "Its box goes to the screen under this name."
+        },
+        "note_by": {
+          "$ref": "#/definitions/expression",
+          "description": "note as a number, for a part: a screen gives it with note('name'). Less than 0 is none."
+        },
+        "snap": {
+          "type": "boolean",
+          "description": "Its box moves to whole pixels."
+        },
+        "alpha": {
+          "$ref": "#/definitions/expression",
+          "description": "The colour's alpha, from 0 to 1, on fill, frame, stroke and text."
+        },
+        "fill": {
+          "$ref": "#/definitions/expression",
+          "description": "Fills its box with a Palette entry, plain or a gradient."
+        },
+        "radius": {
+          "$ref": "#/definitions/expression",
+          "description": "Rounds its corners."
+        },
+        "down_to": {
+          "$ref": "#/definitions/expression",
+          "description": "How far down from its top a gradient ends, instead of its height."
+        },
+        "frame": {
+          "$ref": "#/definitions/expression",
+          "description": "A line inside the edge of its box, in a Palette entry."
+        },
+        "stroke": {
+          "$ref": "#/definitions/expression",
+          "description": "A rounded line around its box, in a Palette entry."
+        },
+        "width": {
+          "$ref": "#/definitions/expression",
+          "description": "How thick its line is."
+        },
+        "line": {
+          "$ref": "#/definitions/expression",
+          "description": "A line in a Palette entry, from x, y to x2, y2."
+        },
+        "x2": {
+          "$ref": "#/definitions/expression",
+          "description": "Where it ends, from the left of the box around it."
+        },
+        "y2": {
+          "$ref": "#/definitions/expression",
+          "description": "Where it ends, from the top of the box around it."
+        },
+        "path": {
+          "type": "string",
+          "description": "SVG path data, drawn from x, y."
+        },
+        "color": {
+          "$ref": "#/definitions/expression",
+          "description": "A Palette entry, as $name."
+        },
+        "scale": {
+          "$ref": "#/definitions/expression",
+          "description": "Its size. 1 when left out."
+        },
+        "caps": {
+          "enum": [
+            "round",
+            "flat"
+          ],
+          "description": "The ends of a stroke."
+        },
+        "soft": {
+          "type": "boolean",
+          "description": "Smooth edges under a Skin whose edges are whole pixels."
+        },
+        "text": {
+          "type": "string",
+          "description": "A text: #locale_key, @bound, or the words themselves."
+        },
+        "style": {
+          "type": "string",
+          "description": "A style of the pack."
+        },
+        "size": {
+          "$ref": "#/definitions/expression",
+          "description": "Instead of the style's, where it depends on the screen."
+        },
+        "line_height": {
+          "$ref": "#/definitions/expression",
+          "description": "Instead of the style's, where it depends on the screen."
+        },
+        "picture": {
+          "type": "string",
+          "description": "A picture the screen supplies."
+        },
+        "opacity": {
+          "$ref": "#/definitions/expression",
+          "description": "From 0 to 1."
+        },
+        "gray": {
+          "$ref": "#/definitions/expression",
+          "description": "How far it goes to gray, from 0 to 1."
+        },
+        "field": {
+          "type": "string",
+          "description": "A text field the screen owns."
+        },
+        "placeholder": {
+          "type": "string",
+          "description": "What it shows when empty."
+        },
+        "placeholder_color": {
+          "$ref": "#/definitions/expression",
+          "description": "A Palette entry, as $name."
+        },
+        "caret": {
+          "$ref": "#/definitions/expression",
+          "description": "A Palette entry, as $name."
+        },
+        "selection": {
+          "$ref": "#/definitions/expression",
+          "description": "A Palette entry, as $name."
+        },
+        "slot": {
+          "type": "string",
+          "description": "What only the screen can draw, in this box."
+        },
+        "numbers": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/expression"
+          },
+          "maxItems": 8,
+          "description": "Numbers for the screen, at most 8."
+        },
+        "styles": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "maxItems": 8,
+          "description": "Styles for the screen, at most 8."
+        },
+        "colors": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/expression"
+          },
+          "maxItems": 8,
+          "description": "Palette entries for the screen, at most 8."
+        },
+        "group": {
+          "type": "array",
+          "description": "A list of nodes inside this box."
+        },
+        "clip": {
+          "type": "boolean",
+          "description": "Nothing inside shows outside its box."
+        },
+        "column": {
+          "type": "array",
+          "description": "A list of nodes under each other: each goes at y = flow, and flow moves below it, by its after as well. Its height is what they took."
+        },
+        "use": {
+          "type": "string",
+          "description": "A part of pack.jsonc."
+        },
+        "args": {
+          "type": "object",
+          "additionalProperties": {
+            "$ref": "#/definitions/expression"
+          },
+          "description": "What the part's arguments are here."
+        },
+        "draw": {
+          "type": "array",
+          "description": "What goes where the part has a node {\"content\": true}."
+        },
+        "content": {
+          "const": true,
+          "description": "Where a part puts the draw list of whoever uses it."
+        },
+        "repeat": {
+          "$ref": "#/definitions/expression",
+          "description": "How many times its draw list runs."
+        },
+        "let": {
+          "type": "string",
+          "description": "A name for a number, for what comes after it and inside that."
+        },
+        "value": {
+          "$ref": "#/definitions/expression",
+          "description": "The number."
+        },
+        "set": {
+          "type": "string",
+          "description": "A new value for a name above it, as when a repeat looks for the widest."
+        },
+        "report": {
+          "type": "string",
+          "description": "A number for the screen."
+        }
+      },
+      "anyOf": [
+        {
+          "required": [
+            "fill"
+          ],
+          "propertyNames": {
+            "enum": [
+              "fill",
+              "if",
+              "id",
+              "x",
+              "right",
+              "y",
+              "bottom",
+              "w",
+              "h",
+              "after",
+              "hit",
+              "hit_index",
+              "hit_by",
+              "live",
+              "hit_if",
+              "note",
+              "note_by",
+              "snap",
+              "alpha",
+              "radius",
+              "down_to"
+            ]
+          }
+        },
+        {
+          "required": [
+            "frame"
+          ],
+          "propertyNames": {
+            "enum": [
+              "frame",
+              "if",
+              "id",
+              "x",
+              "right",
+              "y",
+              "bottom",
+              "w",
+              "h",
+              "after",
+              "hit",
+              "hit_index",
+              "hit_by",
+              "live",
+              "hit_if",
+              "note",
+              "note_by",
+              "snap",
+              "alpha"
+            ]
+          }
+        },
+        {
+          "required": [
+            "stroke"
+          ],
+          "propertyNames": {
+            "enum": [
+              "stroke",
+              "if",
+              "id",
+              "x",
+              "right",
+              "y",
+              "bottom",
+              "w",
+              "h",
+              "after",
+              "hit",
+              "hit_index",
+              "hit_by",
+              "live",
+              "hit_if",
+              "note",
+              "note_by",
+              "snap",
+              "alpha",
+              "radius",
+              "width"
+            ]
+          }
+        },
+        {
+          "required": [
+            "line"
+          ],
+          "propertyNames": {
+            "enum": [
+              "line",
+              "if",
+              "id",
+              "x",
+              "right",
+              "y",
+              "bottom",
+              "w",
+              "h",
+              "after",
+              "hit",
+              "hit_index",
+              "hit_by",
+              "live",
+              "hit_if",
+              "note",
+              "note_by",
+              "snap",
+              "alpha",
+              "x2",
+              "y2",
+              "width"
+            ]
+          }
+        },
+        {
+          "required": [
+            "path"
+          ],
+          "propertyNames": {
+            "enum": [
+              "path",
+              "if",
+              "id",
+              "x",
+              "right",
+              "y",
+              "bottom",
+              "w",
+              "h",
+              "after",
+              "hit",
+              "hit_index",
+              "hit_by",
+              "live",
+              "hit_if",
+              "note",
+              "note_by",
+              "snap",
+              "alpha",
+              "color",
+              "scale",
+              "width",
+              "caps",
+              "soft"
+            ]
+          }
+        },
+        {
+          "required": [
+            "text"
+          ],
+          "propertyNames": {
+            "enum": [
+              "text",
+              "if",
+              "id",
+              "x",
+              "right",
+              "y",
+              "bottom",
+              "w",
+              "h",
+              "after",
+              "hit",
+              "hit_index",
+              "hit_by",
+              "live",
+              "hit_if",
+              "note",
+              "note_by",
+              "snap",
+              "alpha",
+              "style",
+              "color",
+              "size",
+              "line_height"
+            ]
+          }
+        },
+        {
+          "required": [
+            "picture"
+          ],
+          "propertyNames": {
+            "enum": [
+              "picture",
+              "if",
+              "id",
+              "x",
+              "right",
+              "y",
+              "bottom",
+              "w",
+              "h",
+              "after",
+              "hit",
+              "hit_index",
+              "hit_by",
+              "live",
+              "hit_if",
+              "note",
+              "note_by",
+              "snap",
+              "alpha",
+              "opacity",
+              "gray"
+            ]
+          }
+        },
+        {
+          "required": [
+            "field"
+          ],
+          "propertyNames": {
+            "enum": [
+              "field",
+              "if",
+              "id",
+              "x",
+              "right",
+              "y",
+              "bottom",
+              "w",
+              "h",
+              "after",
+              "hit",
+              "hit_index",
+              "hit_by",
+              "live",
+              "hit_if",
+              "note",
+              "note_by",
+              "snap",
+              "alpha",
+              "style",
+              "color",
+              "placeholder",
+              "placeholder_color",
+              "caret",
+              "selection"
+            ]
+          }
+        },
+        {
+          "required": [
+            "slot"
+          ],
+          "propertyNames": {
+            "enum": [
+              "slot",
+              "if",
+              "id",
+              "x",
+              "right",
+              "y",
+              "bottom",
+              "w",
+              "h",
+              "after",
+              "hit",
+              "hit_index",
+              "hit_by",
+              "live",
+              "hit_if",
+              "note",
+              "note_by",
+              "snap",
+              "alpha",
+              "numbers",
+              "styles",
+              "colors"
+            ]
+          }
+        },
+        {
+          "required": [
+            "group"
+          ],
+          "propertyNames": {
+            "enum": [
+              "group",
+              "if",
+              "id",
+              "x",
+              "right",
+              "y",
+              "bottom",
+              "w",
+              "h",
+              "after",
+              "hit",
+              "hit_index",
+              "hit_by",
+              "live",
+              "hit_if",
+              "note",
+              "note_by",
+              "snap",
+              "alpha",
+              "clip"
+            ]
+          }
+        },
+        {
+          "required": [
+            "column"
+          ],
+          "propertyNames": {
+            "enum": [
+              "column",
+              "if",
+              "id",
+              "x",
+              "right",
+              "y",
+              "bottom",
+              "w",
+              "h",
+              "after",
+              "hit",
+              "hit_index",
+              "hit_by",
+              "live",
+              "hit_if",
+              "note",
+              "note_by",
+              "snap",
+              "alpha",
+              "clip"
+            ]
+          }
+        },
+        {
+          "required": [
+            "use"
+          ],
+          "propertyNames": {
+            "enum": [
+              "use",
+              "if",
+              "id",
+              "x",
+              "right",
+              "y",
+              "bottom",
+              "w",
+              "h",
+              "after",
+              "hit",
+              "hit_index",
+              "hit_by",
+              "live",
+              "hit_if",
+              "note",
+              "note_by",
+              "snap",
+              "alpha",
+              "args",
+              "text",
+              "draw"
+            ]
+          }
+        },
+        {
+          "required": [
+            "content"
+          ],
+          "propertyNames": {
+            "enum": [
+              "content",
+              "if",
+              "id",
+              "x",
+              "right",
+              "y",
+              "bottom",
+              "w",
+              "h",
+              "after",
+              "hit",
+              "hit_index",
+              "hit_by",
+              "live",
+              "hit_if",
+              "note",
+              "note_by",
+              "snap",
+              "alpha"
+            ]
+          }
+        },
+        {
+          "required": [
+            "repeat"
+          ],
+          "propertyNames": {
+            "enum": [
+              "repeat",
+              "if",
+              "id",
+              "x",
+              "right",
+              "y",
+              "bottom",
+              "w",
+              "h",
+              "after",
+              "hit",
+              "hit_index",
+              "hit_by",
+              "live",
+              "hit_if",
+              "note",
+              "note_by",
+              "snap",
+              "alpha",
+              "draw"
+            ]
+          }
+        },
+        {
+          "required": [
+            "let"
+          ],
+          "propertyNames": {
+            "enum": [
+              "let",
+              "if",
+              "id",
+              "x",
+              "right",
+              "y",
+              "bottom",
+              "w",
+              "h",
+              "after",
+              "hit",
+              "hit_index",
+              "hit_by",
+              "live",
+              "hit_if",
+              "note",
+              "note_by",
+              "snap",
+              "alpha",
+              "value"
+            ]
+          }
+        },
+        {
+          "required": [
+            "set"
+          ],
+          "propertyNames": {
+            "enum": [
+              "set",
+              "if",
+              "id",
+              "x",
+              "right",
+              "y",
+              "bottom",
+              "w",
+              "h",
+              "after",
+              "hit",
+              "hit_index",
+              "hit_by",
+              "live",
+              "hit_if",
+              "note",
+              "note_by",
+              "snap",
+              "alpha",
+              "value"
+            ]
+          }
+        },
+        {
+          "required": [
+            "report"
+          ],
+          "propertyNames": {
+            "enum": [
+              "report",
+              "if",
+              "id",
+              "x",
+              "right",
+              "y",
+              "bottom",
+              "w",
+              "h",
+              "after",
+              "hit",
+              "hit_index",
+              "hit_by",
+              "live",
+              "hit_if",
+              "note",
+              "note_by",
+              "snap",
+              "alpha",
+              "value"
+            ]
+          }
+        }
+      ]
+    }
+  }
+}

@@ -6,6 +6,7 @@
 
 #include "crpp/locale/locale.hpp"
 #include "crpp/store/json.hpp"
+#include "keys.hpp"
 
 namespace crpp::skin {
 
@@ -13,8 +14,6 @@ namespace {
 
 using store::Json;
 
-// In the order of NodeKind.
-constexpr std::string_view kind_keys[] = {"fill", "frame", "stroke", "line", "path", "text", "picture", "field", "slot", "group", "column", "use", "content", "repeat", "let", "set", "report"};
 
 [[nodiscard]] std::optional<int> find_name(std::span<const Name> names, std::string_view name) {
   for (const Name& n : names) {
@@ -44,29 +43,13 @@ constexpr std::string_view kind_keys[] = {"fill", "frame", "stroke", "line", "pa
 }
 
 [[nodiscard]] bool key_allowed(NodeKind kind, std::string_view key) {
-  const auto among = [&](std::initializer_list<std::string_view> keys) { return std::ranges::find(keys, key) != keys.end(); };
-  if (among({"if", "id", "x", "right", "y", "bottom", "w", "h", "after", "hit", "hit_index", "hit_by", "live", "hit_if", "note", "note_by", "snap", "alpha"})) return true;
-  switch (kind) {
-    case NodeKind::Fill: return among({"radius", "down_to"});
-    case NodeKind::Frame: return false;
-    case NodeKind::Stroke: return among({"radius", "width"});
-    case NodeKind::Line: return among({"x2", "y2", "width"});
-    case NodeKind::Path: return among({"color", "scale", "width", "caps", "soft"});
-    case NodeKind::Text: return among({"style", "color", "size", "line_height"});
-    case NodeKind::Picture: return among({"opacity", "gray"});
-    case NodeKind::Field: return among({"style", "color", "placeholder", "placeholder_color", "caret", "selection"});
-    case NodeKind::Slot: return among({"numbers", "styles", "colors"});
-    case NodeKind::Group: return among({"clip"});
-    case NodeKind::Column: return among({"clip"});
-    case NodeKind::Use: return among({"args", "text", "draw"});
-    case NodeKind::Content: return false;
-    case NodeKind::Repeat: return among({"draw"});
-    case NodeKind::Let:
-    case NodeKind::Set: return among({"value"});
-    case NodeKind::Report: return among({"value"});
-  }
-  return false;
+  const auto named = [&](const KeyDoc& k) { return k.key == key; };
+  return std::ranges::any_of(common_keys, named) || std::ranges::any_of(node_kinds[static_cast<std::size_t>(kind)].keys, named);
 }
+
+}  // namespace
+
+namespace {
 
 // Names visible where a node is being compiled.
 struct Scope {
@@ -601,12 +584,12 @@ class Loader final : public Names {
     if (!json.is_object()) return fail("a node is not an object");
     std::string_view kind;
     std::size_t kind_index = 0;
-    for (std::size_t i = 0; i < std::size(kind_keys); ++i) {
-      if (!json.find(kind_keys[i])) continue;
+    for (std::size_t i = 0; i < node_kinds.size(); ++i) {
+      if (!json.find(node_kinds[i].key)) continue;
       // A use may have a text for its part, and that does not make it a text.
-      if (kind_keys[i] == "text" && json.find("use")) continue;
-      if (!kind.empty()) return fail("a node is both \"" + std::string(kind) + "\" and \"" + std::string(kind_keys[i]) + "\"");
-      kind = kind_keys[i];
+      if (node_kinds[i].key == "text" && json.find("use")) continue;
+      if (!kind.empty()) return fail("a node is both \"" + std::string(kind) + "\" and \"" + std::string(node_kinds[i].key) + "\"");
+      kind = node_kinds[i].key;
       kind_index = i;
     }
     if (kind.empty()) return fail("a node says nothing to draw");

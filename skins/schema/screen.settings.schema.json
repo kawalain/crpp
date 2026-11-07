@@ -1,0 +1,88 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "The screen settings of a Skin Pack",
+  "description": "A screen of a Skin Pack, as {\"draw\": [nodes]}. With no file for a screen, the program draws it itself.\nNumbers: @page, @overflow, @view, @content, @offset, @has_version.\nTexts: @version.\nHits: overlay, droplet, thumb, version, track, tab.\nPictures: none.\nFields: none.\nSlots: tab, popups.\nReports: none.\nNotes: track.",
+  "allowComments": true,
+  "allowTrailingCommas": true,
+  "type": "object",
+  "required": [
+    "draw"
+  ],
+  "additionalProperties": false,
+  "properties": {
+    "$schema": {
+      "type": "string"
+    },
+    "draw": {
+      "$ref": "#/definitions/nodes"
+    }
+  },
+  "definitions": {
+    "text": {
+      "anyOf": [
+        {
+          "enum": [
+            "@version"
+          ]
+        },
+        {
+          "$ref": "common.schema.json#/definitions/plain_text"
+        }
+      ]
+    },
+    "nodes": {
+      "type": "array",
+      "items": {
+        "$ref": "#/definitions/node"
+      }
+    },
+    "node": {
+      "allOf": [
+        {
+          "$ref": "common.schema.json#/definitions/node_shape"
+        }
+      ],
+      "properties": {
+        "hit": {
+          "enum": [
+            "overlay",
+            "droplet",
+            "thumb",
+            "version",
+            "track",
+            "tab"
+          ]
+        },
+        "note": {
+          "enum": [
+            "track"
+          ]
+        },
+        "picture": false,
+        "field": false,
+        "slot": {
+          "enum": [
+            "tab",
+            "popups"
+          ]
+        },
+        "report": false,
+        "text": {
+          "$ref": "#/definitions/text"
+        },
+        "placeholder": {
+          "$ref": "#/definitions/text"
+        },
+        "group": {
+          "$ref": "#/definitions/nodes"
+        },
+        "column": {
+          "$ref": "#/definitions/nodes"
+        },
+        "draw": {
+          "$ref": "#/definitions/nodes"
+        }
+      }
+    }
+  }
+}

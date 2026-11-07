@@ -7,6 +7,7 @@
 // Layout follows the upstream web UI: a fixed 951x692 "stage" scaled to cover
 // the window (the cloud art), content areas that follow the window but keep
 // their own size, and a few controls fixed to the window corners.
+#include <span>
 #include <array>
 #include <cstdint>
 #include <expected>
@@ -65,6 +66,9 @@ struct PaneState {
   bool raising = false, hidden = false;
   bool operator==(const PaneState&) const = default;
 };
+
+// Every screen a Skin Pack can draw, with the names it may use there.
+[[nodiscard]] std::span<const skin::ScreenSchema> screen_schemas();
 
 class App {
  public:

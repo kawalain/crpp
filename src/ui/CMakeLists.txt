@@ -68,6 +68,13 @@ if(WIN32)
   crpp_target_defaults(crpp_ui_skin_home_test)
   add_test(NAME ui.skin_home COMMAND crpp_ui_skin_home_test)
 
+  # Writes and checks skins/schema, and checks a pack: see skins/README.md.
+  add_executable(crpp_skin_schema tests/skin_schema_tool.cpp)
+  target_link_libraries(crpp_skin_schema PRIVATE crpp_ui)
+  crpp_target_defaults(crpp_skin_schema)
+  add_test(NAME ui.skin_schema COMMAND crpp_skin_schema --check ${PROJECT_SOURCE_DIR}/skins/schema)
+  add_test(NAME ui.skin_pack_messenger COMMAND crpp_skin_schema --pack ${PROJECT_SOURCE_DIR}/skins/messenger)
+
   # Not part of a normal build: see its first lines.
   add_executable(crpp_ui_skin_bench EXCLUDE_FROM_ALL tests/skin_bench.cpp)
   target_link_libraries(crpp_ui_skin_bench PRIVATE crpp_ui psapi)

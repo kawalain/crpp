@@ -1,0 +1,90 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "The screen settings_display of a Skin Pack",
+  "description": "A screen of a Skin Pack, as {\"draw\": [nodes]}. With no file for a screen, the program draws it itself.\nNumbers: @sync, @percent.\nTexts: @sample_says, @percent_text.\nHits: system_theme, scale_slider.\nPictures: none.\nFields: none.\nSlots: theme_list, light_list, dark_list.\nReports: height.\nNotes: slider.",
+  "allowComments": true,
+  "allowTrailingCommas": true,
+  "type": "object",
+  "required": [
+    "draw"
+  ],
+  "additionalProperties": false,
+  "properties": {
+    "$schema": {
+      "type": "string"
+    },
+    "draw": {
+      "$ref": "#/definitions/nodes"
+    }
+  },
+  "definitions": {
+    "text": {
+      "anyOf": [
+        {
+          "enum": [
+            "@sample_says",
+            "@percent_text"
+          ]
+        },
+        {
+          "$ref": "common.schema.json#/definitions/plain_text"
+        }
+      ]
+    },
+    "nodes": {
+      "type": "array",
+      "items": {
+        "$ref": "#/definitions/node"
+      }
+    },
+    "node": {
+      "allOf": [
+        {
+          "$ref": "common.schema.json#/definitions/node_shape"
+        }
+      ],
+      "properties": {
+        "hit": {
+          "enum": [
+            "system_theme",
+            "scale_slider"
+          ]
+        },
+        "note": {
+          "enum": [
+            "slider"
+          ]
+        },
+        "picture": false,
+        "field": false,
+        "slot": {
+          "enum": [
+            "theme_list",
+            "light_list",
+            "dark_list"
+          ]
+        },
+        "report": {
+          "enum": [
+            "height"
+          ]
+        },
+        "text": {
+          "$ref": "#/definitions/text"
+        },
+        "placeholder": {
+          "$ref": "#/definitions/text"
+        },
+        "group": {
+          "$ref": "#/definitions/nodes"
+        },
+        "column": {
+          "$ref": "#/definitions/nodes"
+        },
+        "draw": {
+          "$ref": "#/definitions/nodes"
+        }
+      }
+    }
+  }
+}

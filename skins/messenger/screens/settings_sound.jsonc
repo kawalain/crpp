@@ -1,4 +1,5 @@
 {
+  "$schema": "../../schema/screen.settings_sound.schema.json",
   "draw": [
     {"id": "form", "y": 10, "column": [
       {"use": "form_group", "text": "#sound_speaker", "draw": [

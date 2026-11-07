@@ -1,4 +1,5 @@
 {
+  "$schema": "../../schema/screen.home.schema.json",
   "draw": [
     {"fill": "$face"},
 

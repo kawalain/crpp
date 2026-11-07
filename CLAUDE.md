@@ -247,7 +247,8 @@ exist (real + test).
   nothing left to refuse. `draw` walks a screen; `Canvas` is the seam for drawing and `Source` for what
   the screen shows. `pack.hpp` describes the format. Expressions are compiled to a short program, and
   running one allocates nothing. Pure. A screen says what a pack can name in a `ScreenSchema`, keeps
-  its state, hit ids and callbacks, and `SkinCanvas` in `ui` draws on a `Painter`. `skins/` holds the packs.
+  its state, hit ids and callbacks, and `SkinCanvas` in `ui` draws on a `Painter`. `skins/` holds the packs, and how to write one in its README.
+  `keys.hpp` lists what a node may have, for the loader and for the JSON Schemas in `skins/schema`, which `crpp_skin_schema` writes and a test compares.
 - `assets`: fetch and verify files against the manifest CMake builds into the
   exe from `assets/` and `cmake/remote_assets.txt`. This repository's files are pinned
   to the commit that last changed `assets/`, which must be on GitHub before a release

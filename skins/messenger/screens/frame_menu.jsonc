@@ -1,4 +1,5 @@
 {
+  "$schema": "../../schema/screen.frame_menu.schema.json",
   "draw": [
     {"let": "menu_w", "value": 120},
     {"repeat": "@items", "draw": [

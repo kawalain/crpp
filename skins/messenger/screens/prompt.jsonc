@@ -1,4 +1,5 @@
 {
+  "$schema": "../../schema/screen.prompt.schema.json",
   "draw": [
     {"fill": "$face"},
     {"let": "form_w", "value": "min(300, W-24)"},

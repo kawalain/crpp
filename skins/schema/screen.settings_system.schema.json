@@ -1,0 +1,84 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "The screen settings_system of a Skin Pack",
+  "description": "A screen of a Skin Pack, as {\"draw\": [nodes]}. With no file for a screen, the program draws it itself.\nNumbers: @autostart, @tray, @detail, @use_24h, @logging.\nTexts: none.\nHits: autostart, tray, detail, use_24h, logging, open_logs, reset.\nPictures: none.\nFields: none.\nSlots: idle_list, language_list.\nReports: height.\nNotes: none.",
+  "allowComments": true,
+  "allowTrailingCommas": true,
+  "type": "object",
+  "required": [
+    "draw"
+  ],
+  "additionalProperties": false,
+  "properties": {
+    "$schema": {
+      "type": "string"
+    },
+    "draw": {
+      "$ref": "#/definitions/nodes"
+    }
+  },
+  "definitions": {
+    "text": {
+      "anyOf": [
+        {
+          "$ref": "common.schema.json#/definitions/plain_text"
+        }
+      ]
+    },
+    "nodes": {
+      "type": "array",
+      "items": {
+        "$ref": "#/definitions/node"
+      }
+    },
+    "node": {
+      "allOf": [
+        {
+          "$ref": "common.schema.json#/definitions/node_shape"
+        }
+      ],
+      "properties": {
+        "hit": {
+          "enum": [
+            "autostart",
+            "tray",
+            "detail",
+            "use_24h",
+            "logging",
+            "open_logs",
+            "reset"
+          ]
+        },
+        "note": false,
+        "picture": false,
+        "field": false,
+        "slot": {
+          "enum": [
+            "idle_list",
+            "language_list"
+          ]
+        },
+        "report": {
+          "enum": [
+            "height"
+          ]
+        },
+        "text": {
+          "$ref": "#/definitions/text"
+        },
+        "placeholder": {
+          "$ref": "#/definitions/text"
+        },
+        "group": {
+          "$ref": "#/definitions/nodes"
+        },
+        "column": {
+          "$ref": "#/definitions/nodes"
+        },
+        "draw": {
+          "$ref": "#/definitions/nodes"
+        }
+      }
+    }
+  }
+}

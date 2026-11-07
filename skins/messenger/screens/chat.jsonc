@@ -1,4 +1,5 @@
 {
+  "$schema": "../../schema/screen.chat.schema.json",
   "draw": [
     {"let": "field_w", "value": "W-button_w-6"},
     {"let": "input_h", "value": "min(100, max(52, ceil(texth('chat_text', '@input_text', field_w-8))+8))"},

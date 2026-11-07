@@ -1,4 +1,5 @@
 {
+  "$schema": "../../schema/screen.settings.schema.json",
   "draw": [
     {"fill": "$face"},
     {"hit": "overlay", "group": []},

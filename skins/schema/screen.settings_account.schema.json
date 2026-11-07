@@ -1,0 +1,87 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "The screen settings_account of a Skin Pack",
+  "description": "A screen of a Skin Pack, as {\"draw\": [nodes]}. With no file for a screen, the program draws it itself.\nNumbers: @has_names, @has_account.\nTexts: @nickname, @handle, @display.\nHits: emoji, nickname, change_handle, logout.\nPictures: me.\nFields: none.\nSlots: none.\nReports: height.\nNotes: none.",
+  "allowComments": true,
+  "allowTrailingCommas": true,
+  "type": "object",
+  "required": [
+    "draw"
+  ],
+  "additionalProperties": false,
+  "properties": {
+    "$schema": {
+      "type": "string"
+    },
+    "draw": {
+      "$ref": "#/definitions/nodes"
+    }
+  },
+  "definitions": {
+    "text": {
+      "anyOf": [
+        {
+          "enum": [
+            "@nickname",
+            "@handle",
+            "@display"
+          ]
+        },
+        {
+          "$ref": "common.schema.json#/definitions/plain_text"
+        }
+      ]
+    },
+    "nodes": {
+      "type": "array",
+      "items": {
+        "$ref": "#/definitions/node"
+      }
+    },
+    "node": {
+      "allOf": [
+        {
+          "$ref": "common.schema.json#/definitions/node_shape"
+        }
+      ],
+      "properties": {
+        "hit": {
+          "enum": [
+            "emoji",
+            "nickname",
+            "change_handle",
+            "logout"
+          ]
+        },
+        "note": false,
+        "picture": {
+          "enum": [
+            "me"
+          ]
+        },
+        "field": false,
+        "slot": false,
+        "report": {
+          "enum": [
+            "height"
+          ]
+        },
+        "text": {
+          "$ref": "#/definitions/text"
+        },
+        "placeholder": {
+          "$ref": "#/definitions/text"
+        },
+        "group": {
+          "$ref": "#/definitions/nodes"
+        },
+        "column": {
+          "$ref": "#/definitions/nodes"
+        },
+        "draw": {
+          "$ref": "#/definitions/nodes"
+        }
+      }
+    }
+  }
+}

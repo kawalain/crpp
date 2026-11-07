@@ -1,0 +1,277 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "pack.jsonc of a Skin Pack",
+  "description": "A Skin Pack's Palettes, styles and parts. Its screens are files of their own, under screens/.",
+  "allowComments": true,
+  "allowTrailingCommas": true,
+  "type": "object",
+  "required": [
+    "format",
+    "id",
+    "palettes",
+    "styles",
+    "parts"
+  ],
+  "additionalProperties": false,
+  "properties": {
+    "$schema": {
+      "type": "string"
+    },
+    "format": {
+      "const": 1,
+      "description": "What the pack is written for; an exe that reads another number refuses it."
+    },
+    "id": {
+      "type": "string",
+      "description": "The name of the pack, in lower case."
+    },
+    "constants": {
+      "type": "object",
+      "additionalProperties": {
+        "type": "number"
+      },
+      "description": "Names for numbers, anywhere in the pack."
+    },
+    "palettes": {
+      "type": "object",
+      "additionalProperties": {
+        "$ref": "#/definitions/palette"
+      },
+      "description": "One per Theme id. All have the same entries."
+    },
+    "styles": {
+      "type": "object",
+      "additionalProperties": {
+        "$ref": "#/definitions/style"
+      },
+      "description": "Text styles."
+    },
+    "parts": {
+      "type": "object",
+      "additionalProperties": {
+        "$ref": "#/definitions/part"
+      },
+      "description": "Controls that screens use. A part can only use parts above it, and knows nothing of screens."
+    }
+  },
+  "definitions": {
+    "color": {
+      "type": "string",
+      "pattern": "^#([0-9a-fA-F]{6}|[0-9a-fA-F]{8})$",
+      "description": "#rrggbb or #rrggbbaa."
+    },
+    "palette": {
+      "type": "object",
+      "additionalProperties": {
+        "anyOf": [
+          {
+            "$ref": "#/definitions/color"
+          },
+          {
+            "type": "array",
+            "items": {
+              "type": "array",
+              "items": [
+                {
+                  "type": "number"
+                },
+                {
+                  "$ref": "#/definitions/color"
+                }
+              ],
+              "minItems": 2,
+              "maxItems": 2
+            },
+            "minItems": 2,
+            "maxItems": 16,
+            "description": "A gradient, as [[at, colour], ...]."
+          },
+          {
+            "type": "object",
+            "description": "[a, b, percent of a], of entries above it.",
+            "required": [
+              "mix"
+            ],
+            "additionalProperties": false,
+            "properties": {
+              "mix": {
+                "type": "array",
+                "items": [
+                  {
+                    "type": "string"
+                  },
+                  {
+                    "type": "string"
+                  },
+                  {
+                    "type": "number"
+                  }
+                ],
+                "minItems": 3,
+                "maxItems": 3
+              }
+            }
+          },
+          {
+            "type": "object",
+            "description": "[a, alpha], of an entry above it.",
+            "required": [
+              "alpha"
+            ],
+            "additionalProperties": false,
+            "properties": {
+              "alpha": {
+                "type": "array",
+                "items": [
+                  {
+                    "type": "string"
+                  },
+                  {
+                    "type": "number"
+                  }
+                ],
+                "minItems": 2,
+                "maxItems": 2
+              }
+            }
+          }
+        ]
+      }
+    },
+    "style": {
+      "type": "object",
+      "required": [
+        "size",
+        "line_height"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "size": {
+          "$ref": "common.schema.json#/definitions/expression",
+          "description": "Worked out for each node using it, in that node's box."
+        },
+        "line_height": {
+          "$ref": "common.schema.json#/definitions/expression",
+          "description": "Worked out for each node using it, in that node's box."
+        },
+        "weight": {
+          "type": "integer",
+          "minimum": 100,
+          "maximum": 900
+        },
+        "align": {
+          "enum": [
+            "left",
+            "center",
+            "right"
+          ]
+        },
+        "role": {
+          "enum": [
+            "body",
+            "caption"
+          ],
+          "description": "Which of the Skin's fonts."
+        },
+        "letter_spacing": {
+          "type": "number"
+        },
+        "wrap": {
+          "type": "boolean"
+        },
+        "ellipsis": {
+          "type": "boolean"
+        },
+        "exact": {
+          "type": "boolean",
+          "description": "The size means pixels, not a kind of text."
+        },
+        "keep_words": {
+          "type": "boolean",
+          "description": "A line breaks only between words."
+        }
+      }
+    },
+    "part": {
+      "type": "object",
+      "required": [
+        "draw"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "snap": {
+          "type": "boolean",
+          "description": "Its box moves to whole pixels."
+        },
+        "w": {
+          "$ref": "common.schema.json#/definitions/expression",
+          "description": "Its width where a use says none. It may read @label."
+        },
+        "h": {
+          "$ref": "common.schema.json#/definitions/expression",
+          "description": "Its height where a use says none. It may read @label."
+        },
+        "height": {
+          "$ref": "common.schema.json#/definitions/expression",
+          "description": "Worked out after it has drawn, from its own names: the height it took in a column."
+        },
+        "args": {
+          "type": "object",
+          "additionalProperties": {
+            "$ref": "common.schema.json#/definitions/expression"
+          },
+          "description": "Its arguments, with what they are when a use says nothing."
+        },
+        "draw": {
+          "$ref": "#/definitions/nodes"
+        }
+      }
+    },
+    "text": {
+      "anyOf": [
+        {
+          "const": "@label"
+        },
+        {
+          "$ref": "common.schema.json#/definitions/plain_text"
+        }
+      ]
+    },
+    "nodes": {
+      "type": "array",
+      "items": {
+        "$ref": "#/definitions/node"
+      }
+    },
+    "node": {
+      "allOf": [
+        {
+          "$ref": "common.schema.json#/definitions/node_shape"
+        }
+      ],
+      "properties": {
+        "hit": false,
+        "note": false,
+        "picture": false,
+        "field": false,
+        "slot": false,
+        "report": false,
+        "text": {
+          "$ref": "#/definitions/text"
+        },
+        "placeholder": {
+          "$ref": "#/definitions/text"
+        },
+        "group": {
+          "$ref": "#/definitions/nodes"
+        },
+        "column": {
+          "$ref": "#/definitions/nodes"
+        },
+        "draw": {
+          "$ref": "#/definitions/nodes"
+        }
+      }
+    }
+  }
+}

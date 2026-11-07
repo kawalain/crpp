@@ -53,6 +53,12 @@ void App::reload_assets(const std::filesystem::path& assets_dir) {
   ui_.emoji.emplace(assets_dir);
 }
 
+std::span<const skin::ScreenSchema> screen_schemas() {
+  static const skin::ScreenSchema schemas[] = {HomeScreen::schema(), PromptScreen::schema(), WindowFrame::schema(), WindowFrame::menu_schema(), RoomScreen::schema(), ChatPanel::schema(),
+                                               SettingsPanel::schema(), SoundTab::schema(), DisplayTab::schema(), NotifyTab::schema(), SystemTab::schema(), AccountTab::schema()};
+  return schemas;
+}
+
 std::expected<void, std::string> App::load_skin_dir(const std::filesystem::path& dir) {
   const auto read = [&dir](std::string_view path) -> std::optional<std::string> {
     std::error_code error;
@@ -66,9 +72,7 @@ std::expected<void, std::string> App::load_skin_dir(const std::filesystem::path&
     if (!in.read(text.data(), static_cast<std::streamsize>(size))) return std::nullopt;
     return text;
   };
-  const skin::ScreenSchema schemas[] = {HomeScreen::schema(), PromptScreen::schema(), WindowFrame::schema(), WindowFrame::menu_schema(), RoomScreen::schema(), ChatPanel::schema(),
-                                        SettingsPanel::schema(), SoundTab::schema(), DisplayTab::schema(), NotifyTab::schema(), SystemTab::schema(), AccountTab::schema()};
-  auto pack = skin::load_pack(read, schemas);
+  auto pack = skin::load_pack(read, screen_schemas());
   if (!pack) return std::unexpected(std::move(pack.error()));
   ui_.forget_render_target();  // brushes are kept by the address of their stops
   pack_ = std::move(*pack);

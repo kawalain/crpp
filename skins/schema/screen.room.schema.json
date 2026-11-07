@@ -1,0 +1,114 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "The screen room of a Skin Pack",
+  "description": "A screen of a Skin Pack, as {\"draw\": [nodes]}. With no file for a screen, the program draws it itself.\nNumbers: @muted, @options_open, @mute_popup_open, @controls_shown, @chat, @public, @public_off, @chat_off, @pin_public, @pin_chat, @volume, @members, @member_slot, @member_level, @member_muted, @member_offline, @muted_all, @members_scroll, @members_offset, @members_overflow.\nTexts: @contacts, @mute_label, @status, @code, @volume_text, @member_name.\nHits: mute, more, opt_code, opt_public, opt_chat, volume, popup, members_bar, member.\nPictures: member, muted.\nFields: none.\nSlots: chat.\nReports: members_view, members_content.\nNotes: members_area, fab_mute, fab_more, code, public, chat, volume, member, member_disc, members_track.",
+  "allowComments": true,
+  "allowTrailingCommas": true,
+  "type": "object",
+  "required": [
+    "draw"
+  ],
+  "additionalProperties": false,
+  "properties": {
+    "$schema": {
+      "type": "string"
+    },
+    "draw": {
+      "$ref": "#/definitions/nodes"
+    }
+  },
+  "definitions": {
+    "text": {
+      "anyOf": [
+        {
+          "enum": [
+            "@contacts",
+            "@mute_label",
+            "@status",
+            "@code",
+            "@volume_text",
+            "@member_name"
+          ]
+        },
+        {
+          "$ref": "common.schema.json#/definitions/plain_text"
+        }
+      ]
+    },
+    "nodes": {
+      "type": "array",
+      "items": {
+        "$ref": "#/definitions/node"
+      }
+    },
+    "node": {
+      "allOf": [
+        {
+          "$ref": "common.schema.json#/definitions/node_shape"
+        }
+      ],
+      "properties": {
+        "hit": {
+          "enum": [
+            "mute",
+            "more",
+            "opt_code",
+            "opt_public",
+            "opt_chat",
+            "volume",
+            "popup",
+            "members_bar",
+            "member"
+          ]
+        },
+        "note": {
+          "enum": [
+            "members_area",
+            "fab_mute",
+            "fab_more",
+            "code",
+            "public",
+            "chat",
+            "volume",
+            "member",
+            "member_disc",
+            "members_track"
+          ]
+        },
+        "picture": {
+          "enum": [
+            "member",
+            "muted"
+          ]
+        },
+        "field": false,
+        "slot": {
+          "enum": [
+            "chat"
+          ]
+        },
+        "report": {
+          "enum": [
+            "members_view",
+            "members_content"
+          ]
+        },
+        "text": {
+          "$ref": "#/definitions/text"
+        },
+        "placeholder": {
+          "$ref": "#/definitions/text"
+        },
+        "group": {
+          "$ref": "#/definitions/nodes"
+        },
+        "column": {
+          "$ref": "#/definitions/nodes"
+        },
+        "draw": {
+          "$ref": "#/definitions/nodes"
+        }
+      }
+    }
+  }
+}

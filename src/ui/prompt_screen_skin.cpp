@@ -8,11 +8,11 @@ namespace crpp::ui {
 namespace {
 
 enum TextId : int { Heading, Label, Prefix, Hint, Extra2Text, ExtraText, LinkText };
-enum NumberId : int { HasHeading, HasLabel, HasPrefix, HasLink, HasExtra, HasExtra2, Cancelable, Locked, Password, PasswordShown, HintError, Busy, SubmitOff };
+enum NumberId : int { HasHeading, HasLabel, HasPrefix, HasLink, HasExtra, HasExtra2, Cancelable, Locked, Password, PasswordShown, HintError, Busy, SubmitOff, Valid };
 
 constexpr skin::Name text_names[] = {{"heading", Heading}, {"label", Label}, {"prefix", Prefix}, {"hint", Hint}, {"extra2", Extra2Text}, {"extra", ExtraText}, {"link", LinkText}};
 constexpr skin::Name number_names[] = {{"has_heading", HasHeading}, {"has_label", HasLabel}, {"has_prefix", HasPrefix}, {"has_link", HasLink}, {"has_extra", HasExtra}, {"has_extra2", HasExtra2}, {"cancelable", Cancelable},
-                                       {"locked", Locked}, {"password", Password}, {"shown", PasswordShown}, {"hint_error", HintError}, {"busy", Busy}, {"submit_off", SubmitOff}};
+                                       {"locked", Locked}, {"password", Password}, {"shown", PasswordShown}, {"hint_error", HintError}, {"busy", Busy}, {"submit_off", SubmitOff}, {"valid", Valid}};
 constexpr skin::Name picture_names[] = {{"droplet", 0}};
 constexpr skin::Name slot_names[] = {{"field", 0}};
 constexpr skin::Name hit_names[] = {{"field", PromptScreen::Field}, {"submit", PromptScreen::Submit}, {"eye", PromptScreen::Eye}, {"back", PromptScreen::Back}, {"extra", PromptScreen::Extra}, {"extra2", PromptScreen::Extra2}, {"link", PromptScreen::Link}};
@@ -59,6 +59,7 @@ void PromptScreen::paint_pack(Painter& p, const skin::Screen& screen, bool is_lo
         case HintError: return yes(error_);
         case Busy: return yes(s_.busy_);
         case SubmitOff: return yes(!(s_.valid_ && !locked_) || s_.busy_);
+        case Valid: return yes(s_.valid_);
         default: return 0;
       }
     }
@@ -98,6 +99,7 @@ void PromptScreen::paint_pack(Painter& p, const skin::Screen& screen, bool is_lo
   } shown(*this, p, is_locked, hint_error);
 
   SkinCanvas canvas(ui_, p, this);
+  canvas.in_window_coordinates();
   const Rect c = ui_.content;
   skin::draw(*ui_.pack, screen, ui_.palette, {c.x, c.y, c.w, c.h}, canvas, shown);
 }

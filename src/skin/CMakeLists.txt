@@ -1,4 +1,4 @@
-add_library(crpp_skin STATIC expr.cpp pack.cpp draw.cpp schema.cpp)
+add_library(crpp_skin STATIC expr.cpp pack.cpp draw.cpp schema.cpp motion.cpp)
 target_include_directories(crpp_skin PUBLIC include)
 target_link_libraries(crpp_skin PRIVATE crpp_store crpp_locale)
 crpp_target_defaults(crpp_skin)
@@ -13,3 +13,4 @@ endfunction()
 
 crpp_skin_test(expr)
 crpp_skin_test(pack)
+crpp_skin_test(motion)

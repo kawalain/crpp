@@ -1,4 +1,4 @@
-// Home drawn from the Messenger pack in skins/: the same places to click as the C++ layout, and
+// Home drawn from the Retro pack in skins/: the same places to click as the C++ layout, and
 // the same results. Their pixels are compared with tests/shots while both forms exist.
 #include <algorithm>
 #include <cmath>
@@ -19,7 +19,7 @@ using test::UiHarness;
 
 namespace {
 
-constexpr const char* messenger_pack = CRPP_TEST_SKINS "/messenger";
+constexpr const char* retro_pack = CRPP_TEST_SKINS "/retro";
 
 struct Place {
   int id;
@@ -43,7 +43,7 @@ void hold_two_seats(UiHarness& h) {
 
 void start_on_home(UiHarness& h) {
   CHECK(h.start(300, 560));
-  h.app.set_theme("messenger");
+  h.app.set_theme("luna_blue");
   h.app.show_home();
   h.app.home().set_nickname("Me");
   hold_two_seats(h);
@@ -55,7 +55,7 @@ void test_the_pack_puts_everything_where_the_code_does() {
   h.render();
   const std::vector<Place> code = places(h);
   CHECK(code.size() == 6);
-  CHECK(h.app.load_skin_dir(messenger_pack).has_value());
+  CHECK(h.app.load_skin_dir(retro_pack).has_value());
   CHECK(h.app.ui().pack_screen("home") != nullptr);
   h.render();
   const std::vector<Place> pack = places(h);
@@ -70,7 +70,7 @@ void test_the_pack_puts_everything_where_the_code_does() {
 void test_clicks_on_the_pack_do_what_they_do_on_the_code() {
   UiHarness h;
   start_on_home(h);
-  CHECK(h.app.load_skin_dir(messenger_pack).has_value());
+  CHECK(h.app.load_skin_dir(retro_pack).has_value());
   HomeScreen& home = h.app.home();
   int created = 0, found = 0;
   std::string joined;
@@ -104,7 +104,7 @@ void test_clicks_on_the_pack_do_what_they_do_on_the_code() {
 void test_a_click_in_the_field_lands_in_the_text() {
   UiHarness h;
   start_on_home(h);
-  CHECK(h.app.load_skin_dir(messenger_pack).has_value());
+  CHECK(h.app.load_skin_dir(retro_pack).has_value());
   HomeScreen& home = h.app.home();
   h.render();
   CHECK(h.click(home, HomeScreen::Code));
@@ -127,14 +127,14 @@ void test_a_click_in_the_field_lands_in_the_text() {
 void test_a_theme_outside_the_pack_is_drawn_as_before() {
   UiHarness h;
   start_on_home(h);
-  CHECK(h.app.load_skin_dir(messenger_pack).has_value());
+  CHECK(h.app.load_skin_dir(retro_pack).has_value());
   CHECK(h.app.ui().pack_screen("home") != nullptr);
-  h.app.set_theme("messengerdark");
+  h.app.set_theme("luna_blue_dark");
   CHECK(h.app.ui().pack_screen("home") != nullptr);
   h.app.set_theme("cloud");
   CHECK(h.app.ui().pack_screen("home") == nullptr);
   CHECK(h.render());
-  h.app.set_theme("messenger");
+  h.app.set_theme("luna_blue");
   CHECK(h.app.ui().pack_screen("home") != nullptr);
   CHECK(h.render());
 }
@@ -142,7 +142,7 @@ void test_a_theme_outside_the_pack_is_drawn_as_before() {
 void test_graphics_can_be_let_go_with_a_pack_drawn() {
   UiHarness h;
   start_on_home(h);
-  CHECK(h.app.load_skin_dir(messenger_pack).has_value());
+  CHECK(h.app.load_skin_dir(retro_pack).has_value());
   CHECK(h.render());
   h.drop_target();
   h.app.release_graphics();
@@ -153,8 +153,8 @@ void test_graphics_can_be_let_go_with_a_pack_drawn() {
 void test_the_prompt_from_the_pack_takes_typing_and_clicks() {
   UiHarness h;
   CHECK(h.start(420, 400));
-  h.app.set_theme("messenger");
-  CHECK(h.app.load_skin_dir(messenger_pack).has_value());
+  h.app.set_theme("luna_blue");
+  CHECK(h.app.load_skin_dir(retro_pack).has_value());
   CHECK(h.app.ui().pack_screen("prompt") != nullptr);
   PromptScreen& prompt = h.app.prompt();
   std::string submitted;
@@ -183,8 +183,8 @@ void test_the_prompt_from_the_pack_takes_typing_and_clicks() {
 void test_a_room_from_the_pack_redraws_only_the_disc() {
   UiHarness h;
   CHECK(h.start(420, 400));
-  h.app.set_theme("messenger");
-  CHECK(h.app.load_skin_dir(messenger_pack).has_value());
+  h.app.set_theme("luna_blue");
+  CHECK(h.app.load_skin_dir(retro_pack).has_value());
   h.app.show_session("ABC234");
   h.app.room().set_room({{0, "Me", "", false, "c0"}, {1, "You", "", false, "c1"}}, 0, 0, false, true);
   h.render();
@@ -201,8 +201,8 @@ void test_a_room_from_the_pack_redraws_only_the_disc() {
 void test_the_chat_from_the_pack_scrolls_and_sends() {
   UiHarness h;
   CHECK(h.start(420, 400));
-  h.app.set_theme("messenger");
-  CHECK(h.app.load_skin_dir(messenger_pack).has_value());
+  h.app.set_theme("luna_blue");
+  CHECK(h.app.load_skin_dir(retro_pack).has_value());
   h.app.show_session("ABC234");
   h.app.room().set_room({{0, "Me", "", false, "c0"}, {1, "You", "", false, "c1"}}, 0, 0, false, true);
   h.render();
@@ -245,13 +245,12 @@ void open_every_panel(UiHarness& h) {
   room.show_profile({1, "You", "", std::optional<std::string>("you"), std::optional<std::int64_t>(1700000000), 3900, 12345});
   h.app.offline().show();
   h.app.settings().open(SettingsPage::Display);
-  h.app.settings().display().click(DisplayTab::ThemeList, 0, 0, false);
 }
 
 void test_the_panels_from_the_pack_stand_where_the_code_puts_them() {
   UiHarness h;
   CHECK(h.start(640, 500));
-  h.app.set_theme("messenger");
+  h.app.set_theme("luna_blue");
   open_every_panel(h);
   const NoticeCard& notice = h.app.notice();
   const MemberMenu& menu = h.app.room().member_menu();
@@ -271,8 +270,6 @@ void test_the_panels_from_the_pack_stand_where_the_code_puts_them() {
       {&h.app.dialogs(), Pane::Dialog, Dialogs::Cancel},
       {&h.app.room().profile_card(), Pane::Profile, ProfileCard::Card},
       {&h.app.offline(), Pane::Offline, OfflinePopup::Card},
-      {&h.app.settings().display(), Pane::Options, DisplayTab::ThemeList + 1},
-      {&h.app.settings().display(), Pane::Options, DisplayTab::ThemeList + 2},
   };
   const auto look = [&] {
     std::vector<Rect> found;
@@ -287,7 +284,7 @@ void test_the_panels_from_the_pack_stand_where_the_code_puts_them() {
   };
   const std::vector<Rect> code = look();
   const PaneInfo dialog = h.app.pane_info(Pane::Dialog), profile = h.app.pane_info(Pane::Profile), offline = h.app.pane_info(Pane::Offline), emoji = h.app.pane_info(Pane::Emoji);
-  CHECK(h.app.load_skin_dir(messenger_pack).has_value());
+  CHECK(h.app.load_skin_dir(retro_pack).has_value());
   const std::vector<Rect> pack = look();
   for (std::size_t i = 0; i < std::min(pack.size(), code.size()); ++i) {
     CHECK(std::abs(pack[i].x - code[i].x) < 0.01f && std::abs(pack[i].y - code[i].y) < 0.01f);
@@ -303,8 +300,8 @@ void test_the_panels_from_the_pack_stand_where_the_code_puts_them() {
 void test_the_panels_from_the_pack_do_what_they_do_on_the_code() {
   UiHarness h;
   CHECK(h.start(640, 500));
-  h.app.set_theme("messenger");
-  CHECK(h.app.load_skin_dir(messenger_pack).has_value());
+  h.app.set_theme("luna_blue");
+  CHECK(h.app.load_skin_dir(retro_pack).has_value());
   h.app.show_session("ABC234");
   h.app.room().set_room({{0, "Me", "", false, "c0"}, {1, "You", "", false, "c1"}}, 0, 0, false, true);
 
@@ -384,8 +381,8 @@ void test_the_panels_from_the_pack_do_what_they_do_on_the_code() {
 void test_the_emoji_from_the_pack_walk_only_what_is_in_view() {
   UiHarness h;
   CHECK(h.start(640, 500));
-  h.app.set_theme("messenger");
-  CHECK(h.app.load_skin_dir(messenger_pack).has_value());
+  h.app.set_theme("luna_blue");
+  CHECK(h.app.load_skin_dir(retro_pack).has_value());
   h.app.show_session("ABC234");
   const std::filesystem::path dir = std::filesystem::temp_directory_path() / "crpp_skin_emoji_test";
   std::filesystem::create_directories(dir / "emoji");
@@ -420,17 +417,17 @@ void test_the_emoji_from_the_pack_walk_only_what_is_in_view() {
 void test_a_list_from_the_pack_picks_and_the_notes_scroll() {
   UiHarness h;
   CHECK(h.start(640, 500));
-  h.app.set_theme("messenger");
-  CHECK(h.app.load_skin_dir(messenger_pack).has_value());
+  h.app.set_theme("luna_blue");
+  CHECK(h.app.load_skin_dir(retro_pack).has_value());
   h.app.show_home();
 
   h.app.settings().open(SettingsPage::Display);
   h.on_pane(Pane::Options);
   DisplayTab& display = h.app.settings().display();
-  CHECK(h.click(display, DisplayTab::ThemeList));
-  CHECK(h.drawn(display, DisplayTab::ThemeList + 1));
-  CHECK(h.click(display, DisplayTab::ThemeList + 2));
-  CHECK(!h.drawn(display, DisplayTab::ThemeList + 1));
+  CHECK(h.click(display, DisplayTab::SkinThemeList));
+  CHECK(h.drawn(display, DisplayTab::SkinThemeList + 1));
+  CHECK(h.click(display, DisplayTab::SkinThemeList + 2));
+  CHECK(!h.drawn(display, DisplayTab::SkinThemeList + 1));
   h.app.settings().close();
   h.on_pane(Pane::Main);
 
@@ -462,12 +459,12 @@ void test_a_list_from_the_pack_picks_and_the_notes_scroll() {
   h.on_pane(Pane::Main);
 }
 
-// A copy of the Messenger pack with one piece of it changed.
+// A copy of the Retro pack with one piece of it changed.
 std::filesystem::path pack_with(std::string_view file, std::string_view from, std::string_view to) {
   namespace fs = std::filesystem;
   const fs::path dir = fs::temp_directory_path() / "crpp_skin_changed_pack";
   fs::remove_all(dir);
-  fs::copy(messenger_pack, dir, fs::copy_options::recursive);
+  fs::copy(retro_pack, dir, fs::copy_options::recursive);
   std::ifstream in(dir / file, std::ios::binary);
   std::string text((std::istreambuf_iterator<char>(in)), std::istreambuf_iterator<char>());
   in.close();
@@ -478,12 +475,41 @@ std::filesystem::path pack_with(std::string_view file, std::string_view from, st
   return dir;
 }
 
+void test_a_theme_brings_its_overlay() {
+  UiHarness h;
+  CHECK(h.start(640, 500));
+  CHECK(h.app.load_skin_dir(retro_pack).has_value());
+  h.app.set_theme("classic");
+  h.app.show_home();
+  h.render();
+  CHECK(h.app.ui().palette >= 0);
+  const float classic_caption = h.app.frame_metrics().caption_h;
+  h.app.set_theme("luna_blue");
+  h.render();
+  CHECK(h.app.ui().palette >= 0);
+  CHECK(h.app.frame_metrics().caption_h != classic_caption);
+  // Within one overlay, nothing has to be read again; each of its Themes finds its Palette.
+  for (const std::string_view id : {"luna_blue_dark", "luna_homestead", "luna_homestead_dark", "luna_metallic", "luna_metallic_dark"}) {
+    h.app.set_theme(id);
+    h.render();
+    CHECK(h.app.ui().palette >= 0);
+  }
+  h.app.set_theme("classic_dark");
+  h.render();
+  CHECK(h.app.ui().palette >= 0);
+  CHECK(h.app.frame_metrics().caption_h == classic_caption);
+  // A Theme of no pack is drawn by the program.
+  h.app.set_theme("cloudroom");
+  h.render();
+  CHECK(h.app.ui().palette < 0);
+}
+
 void test_the_pack_says_how_windows_are_measured() {
   UiHarness h;
   CHECK(h.start(640, 500));
-  h.app.set_theme("messenger");
+  h.app.set_theme("luna_blue");
   h.app.show_home();
-  CHECK(h.app.load_skin_dir(pack_with("pack.jsonc", R"("caption_h": 28)", R"("caption_h": 40)")).has_value());
+  CHECK(h.app.load_skin_dir(pack_with("overlays/luna/pack.jsonc", R"("caption_h": 28)", R"("caption_h": 40)")).has_value());
   CHECK(h.app.frame_metrics().caption_h == 40);
   CHECK(WindowFrame::zone_at(100, 35, 640, 500, {}, h.app.frame_metrics()) == WindowFrame::Zone::Caption);
   h.render();
@@ -492,11 +518,16 @@ void test_the_pack_says_how_windows_are_measured() {
   CHECK(h.app.screen_size().w == 333);
   CHECK(h.app.load_skin_dir(pack_with("pack.jsonc", R"("window_options_min_h": 440)", R"("window_options_min_h": 444)")).has_value());
   CHECK(h.app.pane_info(Pane::Options).min_h == 444);
-  CHECK(h.app.load_skin_dir(pack_with("pack.jsonc", R"("korean_size": 12)", R"("korean_size": 15)")).has_value());
+  CHECK(h.app.load_skin_dir(pack_with("overlays/luna/pack.jsonc", R"("korean_size": 12)", R"("korean_size": 15)")).has_value());
   h.app.ui().gfx.set_language(L"ko");
   CHECK(h.app.ui().gfx.classic_size() == 15);
-  CHECK(h.app.load_skin_dir(pack_with("pack.jsonc", R"("moves": 0)", R"("moves": 1)")).has_value());
+  // A pack that moves says the numbers of what moves in the engine.
+  CHECK(!h.app.load_skin_dir(pack_with("pack.jsonc", R"("moves": 0)", R"("moves": 1)")).has_value());
+  CHECK(h.app.load_skin_dir(pack_with("pack.jsonc", R"("moves": 0)",
+                                      R"("moves": 1, "scroll_settle_ms": 10, "scroll_return_ms": 20, "scroll_stretch": 30, "edge_fade": 9, "screen_fade_ms": 40, "screen_rise": 2, "speaking_hold_ms": 50, "speaking_fade_ms": 60)")).has_value());
   CHECK(h.app.ui().skin().moves());
+  CHECK(h.app.ui().motion.scroll_stretch == 30);
+  CHECK(h.app.ui().motion.speaking_fade_ms == 60);
 
   // A number the program reads may not be missing.
   const auto refused = h.app.load_skin_dir(pack_with("pack.jsonc", R"("window_room_h": 500, )", ""));
@@ -533,10 +564,10 @@ std::uint32_t drawn_over(HCURSOR cursor, int size, std::uint32_t background, int
 void test_the_cursors_of_the_pack_become_system_cursors() {
   UiHarness h;
   CHECK(h.start(640, 500));
-  h.app.set_theme("messenger");
+  h.app.set_theme("luna_blue");
   CHECK(!make_cursor_image(h.app.ui(), crpp::skin::CursorKind::Arrow, 32).has_value());
   CHECK(!h.app.theme_cursors());
-  CHECK(h.app.load_skin_dir(messenger_pack).has_value());
+  CHECK(h.app.load_skin_dir(retro_pack).has_value());
   CHECK(h.app.theme_cursors());
 
   for (std::size_t i = 0; i < crpp::skin::cursor_names.size(); ++i) {
@@ -561,22 +592,39 @@ void test_the_cursors_of_the_pack_become_system_cursors() {
   const auto arrow = make_cursor_image(h.app.ui(), crpp::skin::CursorKind::Arrow, 32);
   CHECK(arrow.has_value());
   if (arrow) {
-    CHECK(arrow->hot_x == 1 && arrow->hot_y == 1);
+    CHECK(arrow->hot_x == 0 && arrow->hot_y == 0);
     HCURSOR cursor = make_system_cursor(*arrow);
     CHECK(drawn_over(cursor, 32, 0x000000, 4, 10) == 0xFFFFFF);
     CHECK(drawn_over(cursor, 32, 0xFFFFFF, 4, 10) == 0xFFFFFF);
     CHECK(drawn_over(cursor, 32, 0x123456, 30, 30) == 0x123456);
-    // A pixel the edge covers only partly comes out as it was drawn: its colour is not darkened twice.
-    for (int x = 0; x < 32; ++x) {
-      for (int y = 0; y < 32; ++y) {
-        const std::uint32_t pixel = arrow->pixels[static_cast<std::size_t>(y * 32 + x)];
-        const std::uint32_t alpha = pixel >> 24, blue = pixel & 255;
-        if (alpha == 0 || alpha == 255) continue;
-        CHECK(blue <= alpha);
-        const std::uint32_t over_black = drawn_over(cursor, 32, 0x000000, x, y) & 255;
-        CHECK(over_black + 2 >= blue && over_black <= blue + 2);
+    DestroyCursor(cursor);
+    // Hard edges: every pixel is whole, and the corner of the arrow climbs by one step of the grid.
+    CHECK(std::ranges::all_of(arrow->pixels, [](std::uint32_t pixel) { return (pixel >> 24) == 0 || (pixel >> 24) == 255; }));
+    const auto at = [&](int x, int y) { return arrow->pixels[static_cast<std::size_t>(y * 32 + x)] >> 24; };
+    CHECK(at(0, 0) == 255 && at(1, 0) == 0 && at(1, 1) == 255 && at(2, 1) == 0);
+  }
+  // Twice the size is the same picture with each pixel twice as wide: the steps grow with it.
+  const auto doubled = make_cursor_image(h.app.ui(), crpp::skin::CursorKind::Arrow, 64);
+  CHECK(arrow.has_value() && doubled.has_value());
+  if (arrow && doubled) {
+    bool same = true;
+    for (int y = 0; y < 64; ++y) {
+      for (int x = 0; x < 64; ++x) {
+        same = same && doubled->pixels[static_cast<std::size_t>(y * 64 + x)] == arrow->pixels[static_cast<std::size_t>(y / 2 * 32 + x / 2)];
       }
     }
+    CHECK(same);
+  }
+  {
+    // A pixel partly covered, as a pack without hard edges has them, comes out as it was drawn: its colour is not darkened twice.
+    CursorImage soft;
+    soft.size = 32;
+    soft.pixels.assign(32 * 32, 0);
+    soft.pixels[5 * 32 + 5] = 0x80808080;
+    HCURSOR cursor = make_system_cursor(soft);
+    CHECK(cursor != nullptr);
+    const std::uint32_t over_black = drawn_over(cursor, 32, 0x000000, 5, 5) & 255;
+    CHECK(over_black + 2 >= 0x80 && over_black <= 0x80 + 2);
     DestroyCursor(cursor);
   }
   const auto larger = make_cursor_image(h.app.ui(), crpp::skin::CursorKind::IBeam, 48);
@@ -620,6 +668,7 @@ int main() {
   test_the_panels_from_the_pack_do_what_they_do_on_the_code();
   test_the_emoji_from_the_pack_walk_only_what_is_in_view();
   test_a_list_from_the_pack_picks_and_the_notes_scroll();
+  test_a_theme_brings_its_overlay();
   test_the_pack_says_how_windows_are_measured();
   test_the_cursors_of_the_pack_become_system_cursors();
   test_a_folder_without_a_pack_is_refused_and_changes_nothing();

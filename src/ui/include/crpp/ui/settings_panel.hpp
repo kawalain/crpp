@@ -23,6 +23,7 @@ class SettingsPanel final : public Surface {
 
   // What a Skin Pack can name on this panel.
   [[nodiscard]] static skin::ScreenSchema schema();
+  [[nodiscard]] static skin::ScreenSchema droplet_schema();
 
   // The version button, which opens the changelog.
   std::function<void()> on_version;
@@ -70,6 +71,7 @@ class SettingsPanel final : public Surface {
   void paint_panel(Painter& p);
   void paint_tabs(Painter& p);
   void paint_scrollbar_faded(Painter& p);
+  void watch_scrollbar();
   void paint_version(Painter& p);
   void paint_droplet(Painter& p);
   void reset_scrollbar();
@@ -99,6 +101,9 @@ class SettingsPanel final : public Surface {
   bool bar_shown_ = false, bar_over_ = false, reveal_pending_ = false;
   unsigned long long hide_at_ = 0;
   float grab_y_ = 0, grab_offset_ = 0;
+  // Where scroll_to asked to go before a pack's tab said how tall it is; below 0, nowhere.
+  float pending_scroll_ = -1;
+  unsigned tab_changes_ = 0, selects_ = 0;
   bool was_animating_ = false;
 };
 

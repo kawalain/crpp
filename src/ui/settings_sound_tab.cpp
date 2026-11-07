@@ -14,7 +14,7 @@ namespace crpp::ui {
 namespace {
 
 constexpr skin::Name slider_tip_text_names[] = {{"text", 0}};
-constexpr skin::Name slider_tip_number_names[] = {{"track_x", 0}, {"track_y", 1}, {"track_w", 2}, {"percent", 3}};
+constexpr skin::Name slider_tip_number_names[] = {{"track_x", 0}, {"track_y", 1}, {"track_w", 2}, {"percent", 3}, {"on", 4}};
 
 // Vertical positions are main.js settingsContent's. Without the Pen row everything
 // below it moves up by this much.
@@ -169,6 +169,34 @@ void SoundTab::paint_tip(Painter& p, Rect area) {
     tip_on_ = on;
     tip_start_ = ui_.now_ms;
   }
+  if (const skin::Screen* screen = ui_.pack_screen("slider_tip")) {
+    if (tip_row_ < 0) return;
+    const auto row = static_cast<std::size_t>(tip_row_);
+    const int value = ui_.prefs->get(volume_rows[row].key);
+    const std::string text = std::to_string(value) + "%";
+    class Shown final : public skin::Source {
+     public:
+      Shown(std::string_view words, Rect track, int percent, bool on) : text_(words), track_(track), percent_(percent), on_(on) {}
+      std::string_view text(int, int) override { return text_; }
+      float number(int id, int) override {
+        switch (id) {
+          case 0: return track_.x;
+          case 1: return track_.y;
+          case 2: return track_.w;
+          case 4: return on_ ? 1.0f : 0.0f;
+          default: return static_cast<float>(percent_);
+        }
+      }
+
+     private:
+      std::string_view text_;
+      Rect track_;
+      int percent_;
+      bool on_;
+    } shown(text, slider_rects_[row], value, on);
+    draw_screen(ui_, p, this, *screen, {0, 0, ui_.width, ui_.height}, shown);
+    return;
+  }
   const float progress = transition(ui_, tip_start_, tip_ms);
   const float opacity = tip_on_ ? progress : 1 - progress;
   if (opacity <= 0 || tip_row_ < 0) return;
@@ -303,28 +331,6 @@ void SoundTab::paint_tip_luna(Painter& p, int row_index) {
   const auto row = static_cast<std::size_t>(row_index);
   const int value = ui_.prefs->get(volume_rows[row].key);
   const std::string text = std::to_string(value) + "%";
-  if (const skin::Screen* screen = ui_.pack_screen("slider_tip")) {
-    class Shown final : public skin::Source {
-     public:
-      Shown(std::string_view words, Rect track, int percent) : text_(words), track_(track), percent_(percent) {}
-      std::string_view text(int, int) override { return text_; }
-      float number(int id, int) override {
-        switch (id) {
-          case 0: return track_.x;
-          case 1: return track_.y;
-          case 2: return track_.w;
-          default: return static_cast<float>(percent_);
-        }
-      }
-
-     private:
-      std::string_view text_;
-      Rect track_;
-      int percent_;
-    } shown(text, slider_rects_[row], value);
-    draw_screen(ui_, p, this, *screen, {0, 0, ui_.width, ui_.height}, shown);
-    return;
-  }
   const float w = text_width(p, text, {.size = ui_.gfx.classic_size(), .exact = true}) + 10;
   const Rect s = slider_rects_[row];
   const float cx = s.x + slider_thumb / 2 + static_cast<float>(value) / 100 * (s.w - slider_thumb);
@@ -332,7 +338,7 @@ void SoundTab::paint_tip_luna(Painter& p, int row_index) {
 }
 
 void SoundTab::paint_popups(Painter& p, Rect area) {
-  if (!ui_.skin().scales_stage()) {
+  if (flows("settings_sound")) {
     for (std::size_t i = 0; i < volume_rows.size(); ++i) {
       if (row_shown(i)) picker_of_row(i)->box.paint_list(ui_, this, p, combo_rects_[i]);
     }
@@ -347,7 +353,7 @@ void SoundTab::paint_popups(Painter& p, Rect area) {
   reverb_.box.paint_list(ui_, this, p, {area.x + dropdown_x, area.y + reverb_dropdown_top, dropdown_w, dropdown_h});
 }
 
-float SoundTab::content_height() const { return ui_.skin().scales_stage() ? reverb_top + row_h + 25 : flow_height_; }
+float SoundTab::content_height() const { return flows("settings_sound") ? flow_height_ : reverb_top + row_h + 25; }
 
 void SoundTab::close_lists(const Picker* except) {
   speaker_.box.open = speaker_.box.open && &speaker_ == except;
@@ -371,7 +377,7 @@ void SoundTab::before_click(const Surface* owner, int id) {
 
 void SoundTab::set_slider(int id, float window_x) {
   const float x = ui_.to_stage_x(window_x);
-  if (!ui_.skin().scales_stage()) {
+  if (flows("settings_sound")) {
     if (id == Balance) {
       const int value = slider_value(balance_rect_, x, balance_min, balance_max);
       if (value != ui_.prefs->get(pref::channel_balance)) ui_.prefs->set(pref::channel_balance, value);
@@ -395,7 +401,7 @@ void SoundTab::set_slider(int id, float window_x) {
 }
 
 void SoundTab::pick(Picker& picker, int id) {
-  if (id == picker.box.id_base && !picker.box.open && !ui_.skin().scales_stage()) {
+  if (id == picker.box.id_base && !picker.box.open && flows("settings_sound")) {
     const auto row = &picker == &reverb_ ? std::size_t{4} : &picker == &speaker_ ? std::size_t{0} : static_cast<std::size_t>(&picker - packs_.data()) + 1;
     place_dropdown(ui_, picker.box, combo_rects_[row]);
   } else if (id == picker.box.id_base && !picker.box.open) {

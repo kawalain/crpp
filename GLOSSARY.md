@@ -38,17 +38,21 @@
 
 **Host**: the member who controls the Room's visibility and chat. When the Host leaves, another online member becomes Host.
 
-**Theme** (테마): what a user picks in the display settings. A Theme is one Skin with one Palette, for example 먹구름 or 메신저 다크.
+**Dark mode** (다크 모드): off, on or following the system, picked after the Theme. It chooses between a Theme and its dark variant, and is locked while the Theme has none.
 
-**Skin**: how the program is built on screen: the shape of its controls, the layout of its screens, its window frame, its cursors and its motion. Features and behaviour do not depend on the Skin. There are two: Cloud and Luna.
+**Theme** (테마): what a user picks within a Skin in the display settings, for example classic or luna_blue in Retro. It has a Palette, and may have a dark variant, which is another Palette of the same Theme.
 
-**Skin Pack** (스킨 팩): what is downloaded to get a Skin: all of the above with its Themes, fonts, pictures and notification sounds. It stands on its own and holds no code. Sound packs are not part of one, because another member's pack must be heard whichever Skin is in use.
+**Skin**: how the program is built on screen: the shape of its controls, the layout of its screens, its window frame, its cursors and its motion. Features and behaviour do not depend on the Skin. There are two: Cloud and Retro. The program knows no Skin by name.
 
-**Palette**: the colours of one Theme within a Skin. A dark Theme has the same shapes as a light one of its Skin and differs only in its Palette.
+**Skin Pack** (스킨 팩): what is downloaded to get a Skin: all of the above with its Themes, fonts, pictures and notification sounds. It holds no code, and may extend one other Skin Pack, its parent, changing only what differs. Sound packs are not part of one, because another member's pack must be heard whichever Skin is in use.
+
+**Palette**: the colours of one Theme, or of its dark variant. A dark variant has the same shapes as its Theme and differs only in its Palette.
 
 **Cloud**: the Skin of the upstream client, with clouds as its panels. 구름, 먹구름 and 파스텔 are its Themes.
 
-**Luna**: the Skin modelled on early-2000s messengers on Windows XP. 메신저 and 메신저 다크 are its Themes. "Luna", "XP" and "MSN" are never shown to users.
+**Retro**: the Skin of old Windows desktops. Its Themes are classic (the default), modelled on Windows 95 and 98, and the Luna Themes.
+
+**Luna**: the look of Windows XP written over classic, as the real one was. luna_blue, luna_homestead and luna_metallic are its Themes within Retro.
 
 **Locale** (언어): the language the program speaks: its wording, and how it writes times and counts. It never touches what members write, nor Nicknames.
 

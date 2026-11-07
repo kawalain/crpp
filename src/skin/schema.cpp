@@ -77,6 +77,16 @@ Json shape_of(KeyType type) {
       out.set("additionalProperties", ref_to("#/definitions/expression"));
       return out;
     }
+    case KeyType::Curve: {
+      Json out = Json::object();
+      out.set("enum", strings({"ease", "linear"}));
+      return out;
+    }
+    case KeyType::Jump: {
+      Json out = Json::object();
+      out.set("enum", strings({"jump"}));
+      return out;
+    }
     case KeyType::Caps: {
       Json out = Json::object();
       out.set("enum", strings({"round", "flat"}));
@@ -253,7 +263,8 @@ std::string screen_json_schema(const ScreenSchema& schema) {
 std::string pack_json_schema() {
   Json out = file_head("pack.jsonc of a Skin Pack", "A Skin Pack's Palettes, styles and parts. Its screens are files of their own, under screens/.");
   out.set("type", text_json("object"));
-  out.set("required", strings({"format", "id", "palettes", "styles", "parts"}));
+  // Palettes, styles and parts may come from what the pack extends, which the loader checks.
+  out.set("required", strings({"format", "id"}));
   out.set("additionalProperties", Json(false));
 
   const auto map_of = [](Json value) {
@@ -269,6 +280,19 @@ std::string pack_json_schema() {
   format.set("description", text_json("What the pack is written for; an exe that reads another number refuses it."));
   properties.set("format", std::move(format));
   properties.set("id", with_doc(typed("string"), "The name of the pack, in lower case."));
+  properties.set("names", with_doc(map_of(typed("string")), "What the user calls this Skin, by locale id."));
+  properties.set("extends", with_doc(typed("string"), "The id of the pack this one starts from. What this names replaces what that has by the same name."));
+  Json theme = typed("object");
+  theme.set("required", strings({"names"}));
+  theme.set("additionalProperties", Json(false));
+  Json theme_properties = Json::object();
+  theme_properties.set("names", with_doc(map_of(typed("string")), "What the user sees, by locale id."));
+  theme_properties.set("palette", with_doc(typed("string"), "Its Palette, when that is not named as the Theme is."));
+  theme_properties.set("dark", with_doc(typed("string"), "The Palette of its dark variant. Without this it has none."));
+  theme_properties.set("overlay", with_doc(typed("string"), "The folder under overlays/ it needs on top of the pack."));
+  theme.set("properties", std::move(theme_properties));
+  properties.set("themes", with_doc(map_of(std::move(theme)), "What a user can pick in this Skin. The pack holds only the Palettes of the Themes of one overlay at a time."));
+  properties.set("default_theme", with_doc(typed("string"), "The Theme this Skin goes to when it is picked."));
   properties.set("constants", with_doc(map_of(typed("number")), "Names for numbers, anywhere in the pack. The program reads the ones this requires."));
   Json fonts = typed("object");
   fonts.set("required", strings({"korean", "other", "caption", "korean_size", "other_size"}));
@@ -302,45 +326,17 @@ std::string pack_json_schema() {
     cursor_names_json.set(std::string(name), cursor);
     required_cursors.push_back(text_json(name));
   }
+  cursor_names_json.set("hard", with_doc(typed("boolean"), "Hard edges in that box, then enlarged by whole pixels, so the steps of the grid show at any scale."));
   cursors.set("properties", std::move(cursor_names_json));
   cursors.set("required", Json(std::move(required_cursors)));
   cursors.set("additionalProperties", Json(false));
   properties.set("cursors", with_doc(std::move(cursors), "The pointer in this pack's windows, all of it or none. Without this it is the system's."));
-  properties.set("palettes", with_doc(map_of(ref_to("#/definitions/palette")), "One per Theme id. All have the same entries."));
+  properties.set("palettes", with_doc(map_of(ref_to("#/definitions/palette")), "By the names themes gives them, or one per Theme without themes. Those of one overlay have the same entries."));
   properties.set("styles", with_doc(map_of(ref_to("#/definitions/style")), "Text styles."));
-  properties.set("parts", with_doc(map_of(ref_to("#/definitions/part")), "Controls that screens use. A part can only use parts above it, and knows nothing of screens."));
+  properties.set("parts", with_doc(map_of(ref_to("#/definitions/part")), "Controls that screens use. A part can only use parts above it, unless the pack extends another or has an overlay, and knows nothing of screens."));
   out.set("properties", std::move(properties));
 
-  // What the program reads itself.
-  const auto names_of = [](std::span<const std::string_view> names) {
-    Json::Array list;
-    for (const std::string_view name : names) list.push_back(text_json(name));
-    return Json(std::move(list));
-  };
-  Json required_here = Json::object();
-  required_here.set("required", names_of(required_constants()));
-  Json own = Json::object();
-  own.set("required", strings({"own_frame"}));
-  Json own_properties = Json::object();
-  Json not_zero = Json::object();
-  Json zero = Json::object();
-  zero.set("const", Json(0));
-  not_zero.set("not", std::move(zero));
-  own_properties.set("own_frame", std::move(not_zero));
-  own.set("properties", std::move(own_properties));
-  Json own_needs = Json::object();
-  own_needs.set("required", names_of(own_frame_constants()));
-  required_here.set("if", std::move(own));
-  required_here.set("then", std::move(own_needs));
-  Json constants_rule = Json::object();
-  Json constants_properties = Json::object();
-  constants_properties.set("constants", std::move(required_here));
-  constants_rule.set("properties", std::move(constants_properties));
-  constants_rule.set("required", strings({"constants"}));
-  Json::Array all_of;
-  all_of.push_back(std::move(constants_rule));
-  out.set("allOf", Json(std::move(all_of)));
-
+  // The constants the program reads may come from what a pack extends, so the loader checks those.
   Json definitions = Json::object();
 
   Json color = typed("string");
@@ -385,7 +381,11 @@ std::string pack_json_schema() {
   paints.push_back(entry_of("alpha", "[a, alpha], of an entry above it.", tuple({"string", "number"})));
   Json paint = Json::object();
   paint.set("anyOf", Json(std::move(paints)));
-  definitions.set("palette", map_of(std::move(paint)));
+  Json palette = map_of(std::move(paint));
+  Json palette_properties = Json::object();
+  palette_properties.set("extends", with_doc(typed("string"), "Another Palette, whose entries this one starts from."));
+  palette.set("properties", std::move(palette_properties));
+  definitions.set("palette", std::move(palette));
 
   Json style_keys = Json::object();
   style_keys.set("size", with_doc(common_ref("expression"), "Worked out for each node using it, in that node's box."));

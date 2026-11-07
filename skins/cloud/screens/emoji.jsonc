@@ -1,0 +1,51 @@
+{
+  "$schema": "../../schema/screen.emoji.schema.json",
+  "draw": [
+    {"let": "box_w", "value": 400},
+    {"let": "box_h", "value": 306},
+    {"let": "pad", "value": 14},
+    {"let": "gap", "value": 4},
+    {"let": "cols", "value": 8},
+    {"let": "cell_size", "value": "(box_w-2*pad-(cols-1)*gap)/cols"},
+    {"let": "step", "value": "cell_size+gap"},
+    {"let": "rows", "value": "ceil(@count/cols)"},
+    {"let": "view_h", "value": "box_h-2*pad"},
+    {"let": "content_h", "value": "rows>0 ? rows*step-gap : 0"},
+    {"report": "width", "value": "box_w"},
+    {"report": "height", "value": "box_h"},
+    {"report": "view", "value": "view_h"},
+    {"report": "content", "value": "content_h"},
+    // It comes and goes as one, and rises 6 px; going, it is only a picture until its fade is over.
+    {"let": "shown", "to": "@open", "ms": 160},
+    {"report": "shown", "value": "shown"},
+    {"if": "shown>0 || @open", "opacity": "shown", "group": [
+      {"dy": "6*(1-shown)", "group": [
+        {"fill": "alpha($backdrop, 0.28)"},
+        {"hit": "backdrop", "group": []},
+        {"x": "(W-box_w)/2", "y": "(H-box_h)/2", "w": "box_w", "h": "box_h", "group": [
+          {"use": "panel_info"},
+          {"hit": "card", "group": []},
+          // Only the rows in view are walked, so only they get parsed.
+          {"let": "first", "value": "max(0, floor(@scroll/step))"},
+          {"let": "last", "value": "min(rows-1, floor((@scroll+view_h)/step))"},
+          {"report": "first", "value": "first*cols"},
+          {"clip": true, "soft_clip": true, "x": "pad", "y": "pad", "w": "box_w-2*pad", "h": "view_h", "fade_top": "@fade_top", "fade_bottom": "@fade_bottom", "group": [
+            {"repeat": "min(@count-first*cols, (last-first+1)*cols)", "draw": [
+              {"let": "n", "value": "first*cols+i"},
+              {"let": "cell_x", "value": "(n-floor(n/cols)*cols)*step"},
+              {"let": "cell_y", "value": "floor(n/cols)*step-@scroll"},
+              {"use": "cell", "hit": "cell", "hit_index": "n", "x": "cell_x", "y": "cell_y", "w": "cell_size", "h": "cell_size", "args": {"selected": "@selected"}},
+              {"picture": "cell", "x": "cell_x+(cell_size-32)/2", "y": "cell_y+(cell_size-32)/2", "w": 32, "h": 32}
+            ]}
+          ]},
+          // .emoji-scrollbar: it shows while scrolling and under the pointer, then fades.
+          {"if": "@overflow", "note": "track", "hit": "track", "x": "W-12", "y": "pad", "w": 8, "h": "view_h", "group": []},
+          {"if": "@overflow", "hit": "thumb", "x": "W-12", "y": "@thumb_y-Y", "w": 8, "h": "@thumb_h", "group": [
+            {"let": "bar", "to": "@thumb_on", "first": "jump", "ms": 150, "ms_off": 500},
+            {"if": "bar>0", "fill": "alpha(mix($hl_soft, $hl_pale2, @thumb_over*100), bar)", "radius": 5}
+          ]}
+        ]}
+      ]}
+    ]}
+  ]
+}

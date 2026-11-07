@@ -59,25 +59,24 @@ struct Scope {
 
 class Loader final : public Names {
  public:
-  explicit Loader(const ReadFile& read) : read_(read) {}
+  Loader(const ReadFile& read, const LoadOptions& options) : read_(read), options_(options) {}
 
   bool load(std::span<const ScreenSchema> schemas) {
     // What a node has when it says nothing, shared by all.
     pack_.code.push_back({Op::Var, VarW, 0});
     pack_.code.push_back({Op::Var, VarH, 0});
     pack_.code.push_back({Op::Var, VarFlow, 0});
-    const auto root = parse_file("pack.jsonc", read_("pack.jsonc"));
-    if (!root) return false;
+    auto merged = gather();
+    if (!merged) return false;
+    Json& root = *merged;
     where_ = "pack.jsonc";
-    const Json* format = root->find("format");
-    if (!format || format->as_i64() != pack_format) return fail("this exe reads format " + std::to_string(pack_format));
-    const Json* id = root->find("id");
-    if (!id || !id->as_string()) return fail("no id");
-    pack_.id = std::string(*id->as_string());
-    if (const Json* constants = root->find("constants"); constants && !load_constants(*constants)) return false;
-    if (const Json* fonts = root->find("fonts"); fonts && !load_fonts(*fonts)) return false;
-    if (!load_palettes(root->find("palettes")) || !load_styles(root->find("styles")) || !load_parts(root->find("parts"))) return false;
-    if (const Json* cursors = root->find("cursors"); cursors && !load_cursors(*cursors)) return false;
+    if (!load_themes(root) || !keep_palettes(root) || (layers_.size() > 1 && !order_parts(root))) return false;
+    where_ = "pack.jsonc";
+    if (const Json* constants = root.find("constants"); constants && !load_constants(*constants)) return false;
+    if (const Json* fonts = root.find("fonts"); fonts && !load_fonts(*fonts)) return false;
+    if (!load_palettes(root.find("palettes")) || !load_styles(root.find("styles")) || !load_parts(root.find("parts"))) return false;
+    where_ = "pack.jsonc";
+    if (const Json* cursors = root.find("cursors"); cursors && !load_cursors(*cursors)) return false;
     for (const ScreenSchema& schema : schemas) {
       if (!load_screen(schema)) return false;
     }
@@ -173,6 +172,237 @@ class Loader final : public Names {
     return false;
   }
 
+  // --- Extending ---
+
+  bool right_format(const Json& root) {
+    const Json* format = root.find("format");
+    return format && format->as_i64() == pack_format ? true : fail("this exe reads format " + std::to_string(pack_format));
+  }
+
+  // Lays what `over` names on top of what `base` has.
+  static void merge_into(Json& base, const Json& over) {
+    for (const Json::Member& m : *over.as_object()) {
+      if (m.key == "id" || m.key == "format" || m.key == "extends" || m.key == "$schema") continue;
+      if (m.key == "constants" || m.key == "styles" || m.key == "parts" || m.key == "palettes" || m.key == "themes") {
+        if (!base.find(m.key)) base.set(m.key, Json::object());
+        if (const Json::Object* items = m.value.as_object()) {
+          for (const Json::Member& item : *items) base.find(m.key)->set(item.key, item.value);
+        }
+        continue;
+      }
+      base.set(m.key, m.value);
+    }
+  }
+
+  // The pack with its parents under it and its overlay on top, and where its screens are to be found.
+  std::optional<Json> gather() {
+    struct Level {
+      ReadFile read;
+      Json root;
+      std::string id;
+    };
+    std::vector<Level> levels;  // nearest first
+    ReadFile reader = read_;
+    std::string label = "pack.jsonc";
+    while (true) {
+      auto root = parse_file(label, reader("pack.jsonc"));
+      if (!root || !right_format(*root)) return std::nullopt;
+      const Json* id = root->find("id");
+      if (!id || !id->as_string()) {
+        fail("no id");
+        return std::nullopt;
+      }
+      const std::string name(*id->as_string());
+      if (std::ranges::any_of(levels, [&](const Level& l) { return l.id == name; })) {
+        fail("extends itself through \"" + name + "\"");
+        return std::nullopt;
+      }
+      if (static_cast<int>(levels.size()) == max_pack_levels) {
+        fail("more than " + std::to_string(max_pack_levels) + " packs extend each other");
+        return std::nullopt;
+      }
+      const Json* extends = root->find("extends");
+      std::string next;
+      if (extends) {
+        if (!extends->as_string()) {
+          fail("extends is not an id");
+          return std::nullopt;
+        }
+        next = std::string(*extends->as_string());
+      }
+      levels.push_back({reader, std::move(*root), name});
+      if (next.empty()) break;
+      auto found = options_.parent ? options_.parent(next) : std::nullopt;
+      if (!found) {
+        fail("extends \"" + next + "\", which is not here");
+        return std::nullopt;
+      }
+      reader = std::move(*found);
+      label = next + "/pack.jsonc";
+    }
+    pack_.id = levels.front().id;
+    pack_.overlay = options_.overlay;
+
+    Json merged = Json::object();
+    bool overlay_found = false;
+    for (auto level = levels.rbegin(); level != levels.rend(); ++level) {
+      merge_into(merged, level->root);
+      layers_.push_back(level->read);
+      if (options_.overlay.empty()) continue;
+      const std::string prefix = "overlays/" + options_.overlay + "/";
+      const auto text = level->read(prefix + "pack.jsonc");
+      if (!text) continue;
+      const auto root = parse_file(prefix + "pack.jsonc", text);
+      if (!root || !right_format(*root)) return std::nullopt;
+      merge_into(merged, *root);
+      layers_.push_back([read = level->read, prefix](std::string_view path) { return read(prefix + std::string(path)); });
+      overlay_found = true;
+    }
+    if (!options_.overlay.empty() && !overlay_found) {
+      where_ = "pack.jsonc";
+      fail("no overlay \"" + options_.overlay + "\"");
+      return std::nullopt;
+    }
+    return merged;
+  }
+
+  bool load_themes(const Json& root) {
+    if (const Json* names = root.find("names")) {
+      const Json::Object* each = names->as_object();
+      if (!each) return fail("names is not an object");
+      for (const Json::Member& name : *each) {
+        if (!name.value.as_string()) return fail("a name is not text");
+        pack_.names.emplace_back(name.key, *name.value.as_string());
+      }
+    }
+    if (const Json* fallback = root.find("default_theme")) {
+      if (!fallback->as_string()) return fail("default_theme is not an id");
+      pack_.default_theme = std::string(*fallback->as_string());
+    }
+    const Json* themes = root.find("themes");
+    if (!themes) return pack_.default_theme.empty() ? true : fail("a default_theme but no themes");
+    const Json::Object* all = themes->as_object();
+    if (!all) return fail("themes is not an object");
+    for (const Json::Member& m : *all) {
+      const std::string quoted = "the Theme \"" + m.key + "\"";
+      if (!m.value.is_object()) return fail(quoted + " is not an object");
+      PackTheme theme;
+      theme.id = m.key;
+      theme.palette = m.key;
+      const auto text = [&](std::string_view key, std::string& out) {
+        const Json* value = m.value.find(key);
+        if (!value) return true;
+        if (!value->as_string()) return fail(quoted + ": " + std::string(key) + " is not text");
+        out = std::string(*value->as_string());
+        return true;
+      };
+      if (!text("palette", theme.palette) || !text("dark", theme.dark) || !text("overlay", theme.overlay)) return false;
+      const Json* names = m.value.find("names");
+      const Json::Object* each = names ? names->as_object() : nullptr;
+      if (!each || each->empty()) return fail(quoted + " has no names");
+      for (const Json::Member& name : *each) {
+        if (!name.value.as_string()) return fail(quoted + ": a name is not text");
+        theme.names.emplace_back(name.key, *name.value.as_string());
+      }
+      pack_.themes.push_back(std::move(theme));
+    }
+    if (!pack_.default_theme.empty() && !std::ranges::any_of(pack_.themes, [&](const PackTheme& t) { return t.id == pack_.default_theme; })) {
+      return fail("default_theme names no Theme");
+    }
+    return true;
+  }
+
+  // A Palette with what it extends filled in.
+  std::optional<Json> palette_resolved(const Json& palettes, std::string_view id, int depth) {
+    const Json* own = palettes.find(id);
+    if (!own || !own->is_object()) {
+      fail("no Palette \"" + std::string(id) + "\"");
+      return std::nullopt;
+    }
+    if (depth > max_palette_levels) {
+      fail("Palettes extend each other too far at \"" + std::string(id) + "\"");
+      return std::nullopt;
+    }
+    Json out = Json::object();
+    if (const Json* extends = own->find("extends")) {
+      const auto name = extends->as_string();
+      auto base = name ? palette_resolved(palettes, *name, depth + 1) : std::nullopt;
+      if (!base) {
+        fail("the Palette \"" + std::string(id) + "\" extends nothing");
+        return std::nullopt;
+      }
+      out = std::move(*base);
+    }
+    for (const Json::Member& m : *own->as_object()) {
+      if (m.key != "extends") out.set(m.key, m.value);
+    }
+    return out;
+  }
+
+  // Only the Palettes that can be in use with this overlay, as they need not share entries with the others.
+  bool keep_palettes(Json& root) {
+    const Json* palettes = root.find("palettes");
+    if (!palettes || !palettes->as_object()) return true;  // load_palettes says so
+    Json kept = Json::object();
+    const auto wanted = [&](const std::string& id) {
+      return pack_.themes.empty() || std::ranges::any_of(pack_.themes, [&](const PackTheme& t) { return t.overlay == options_.overlay && (t.palette == id || t.dark == id); });
+    };
+    for (const PackTheme& theme : pack_.themes) {
+      if (theme.overlay != options_.overlay) continue;
+      if (!palettes->find(theme.palette)) return fail("the Theme \"" + theme.id + "\" names no Palette \"" + theme.palette + "\"");
+      if (!theme.dark.empty() && !palettes->find(theme.dark)) return fail("the Theme \"" + theme.id + "\" names no Palette \"" + theme.dark + "\"");
+    }
+    for (const Json::Member& m : *palettes->as_object()) {
+      // Each is checked, also one not in use here: a broken one should not wait for its Theme to be picked.
+      auto resolved = palette_resolved(*palettes, m.key, 0);
+      if (!resolved) return false;
+      if (wanted(m.key)) kept.set(m.key, std::move(*resolved));
+    }
+    root.set("palettes", std::move(kept));
+    return true;
+  }
+
+  static void uses_in(const Json& json, std::vector<std::string>& out) {
+    if (const Json::Array* items = json.as_array()) {
+      for (const Json& item : *items) uses_in(item, out);
+    } else if (const Json::Object* members = json.as_object()) {
+      for (const Json::Member& m : *members) {
+        if (m.key == "use" && m.value.as_string()) out.emplace_back(*m.value.as_string());
+        else uses_in(m.value, out);
+      }
+    }
+  }
+
+  // A part uses parts above it. Merged, a part that was replaced may use one that came after it.
+  bool order_parts(Json& root) {
+    const Json* parts = root.find("parts");
+    const Json::Object* all = parts ? parts->as_object() : nullptr;
+    if (!all) return true;  // load_parts says so
+    enum class Mark : std::uint8_t { None, Open, Done };
+    std::vector<Mark> marks(all->size(), Mark::None);
+    Json::Object ordered;
+    ordered.reserve(all->size());
+    const std::function<bool(std::size_t, int)> visit = [&](std::size_t at, int depth) {
+      if (marks[at] == Mark::Done) return true;
+      if (marks[at] == Mark::Open || depth > max_walk_depth) return fail("the part \"" + (*all)[at].key + "\" uses itself");
+      marks[at] = Mark::Open;
+      std::vector<std::string> uses;
+      uses_in((*all)[at].value, uses);
+      for (const std::string& name : uses) {
+        const auto found = std::ranges::find(*all, name, &Json::Member::key);
+        if (found != all->end() && !visit(static_cast<std::size_t>(found - all->begin()), depth + 1)) return false;
+      }
+      marks[at] = Mark::Done;
+      ordered.push_back((*all)[at]);
+      return true;
+    };
+    for (std::size_t i = 0; i < all->size(); ++i) {
+      if (!visit(i, 0)) return false;
+    }
+    root.set("parts", Json(std::move(ordered)));
+    return true;
+  }
+
   std::optional<Json> parse_file(std::string path, const std::optional<std::string>& text) {
     where_ = std::move(path);
     if (!text) {
@@ -236,7 +466,10 @@ class Loader final : public Names {
   bool load_cursors(const Json& json) {
     const Json::Object* all = json.as_object();
     if (!all) return fail("cursors is not an object");
-    if (all->size() != cursor_names.size()) return fail("cursors has to name all of them");
+    const Json* hard = json.find("hard");
+    if (hard && !hard->as_bool()) return fail("hard is not true or false");
+    if (all->size() != cursor_names.size() + (hard ? 1 : 0)) return fail("cursors has to name all of them");
+    pack_.cursors_hard = hard && *hard->as_bool();
     std::array<PackCursor, cursor_names.size()> cursors;
     for (std::size_t i = 0; i < cursor_names.size(); ++i) {
       const std::string name(cursor_names[i]);
@@ -491,6 +724,13 @@ class Loader final : public Names {
         !expr_of(json, "selection", field.selection)) {
       return false;
     }
+    if (const Json* other = json.find("placeholder_style")) {
+      const auto name = other->as_string();
+      const auto id = name ? style(*name) : std::nullopt;
+      if (!id) return fail("no such style \"" + std::string(name.value_or("")) + "\"");
+      field.has_placeholder_style = true;
+      field.placeholder_style = *id;
+    }
     out.first = static_cast<std::uint32_t>(pack_.fields.size());
     pack_.fields.push_back(field);
     return true;
@@ -582,6 +822,14 @@ class Loader final : public Names {
     return true;
   }
 
+  bool flag_of(const Json& json, std::string_view key, bool& out) {
+    if (const Json* value = json.find(key)) {
+      if (!value->as_bool()) return fail(std::string(key) + " is not true or false");
+      out = *value->as_bool();
+    }
+    return true;
+  }
+
   bool known_keys(const Json& json, NodeKind kind, std::string_view kind_key) {
     for (const Json::Member& m : *json.as_object()) {
       if (m.key != kind_key && !key_allowed(kind, m.key)) return fail("a \"" + std::string(kind_key) + "\" node has no \"" + m.key + "\"");
@@ -625,6 +873,18 @@ class Loader final : public Names {
     } else if (!optional_expr(json, "hit_index", out.hit_index, &out.has_hit_index)) {
       return false;
     }
+    if (const Json* shape = json.find("hit_path")) {
+      const auto data = shape->as_string();
+      if (!data) return fail("hit_path is not text");
+      if (out.hit == no_hit) return fail("hit_path goes with hit or hit_by");
+      HitShape hit_shape;
+      hit_shape.data = static_cast<std::uint32_t>(pack_.literals.size());
+      hit_shape.size = static_cast<std::uint32_t>(data->size());
+      pack_.literals += *data;
+      if (!optional_expr(json, "hit_path_x", hit_shape.x) || !optional_expr(json, "hit_path_y", hit_shape.y)) return false;
+      out.hit_shape = static_cast<std::uint32_t>(pack_.hit_shapes.size());
+      pack_.hit_shapes.push_back(hit_shape);
+    }
     return optional_expr(json, "note_by", out.note_by, &out.has_note_by) && optional_expr(json, "after", out.after, &out.has_after) &&
            optional_expr(json, "live", out.live, &out.has_live) && optional_expr(json, "hit_if", out.hit_if, &out.has_hit_if) &&
            optional_expr(json, "alpha", out.alpha, &out.has_alpha);
@@ -653,7 +913,39 @@ class Loader final : public Names {
     if (out.kind == NodeKind::Let) {
       const auto name = json.find("let")->as_string();
       if (!name) return fail("a let has no name");
-      if (!free_name(*name) || !expr_of(json, "value", out.extra) || !take_slots(1, out.slot)) return false;
+      if (!free_name(*name)) return false;
+      if (json.find("to")) {
+        if (json.find("value")) return fail("a let has both value and to");
+        out.transition = true;
+        if (!expr_of(json, "to", out.extra) || !expr_of(json, "ms", out.width)) return false;
+        if (json.find("ms_off")) {
+          if (!expr_of(json, "ms_off", out.extra2)) return false;
+        } else {
+          out.extra2 = out.width;
+        }
+        if (const Json* curve = json.find("curve")) {
+          const auto word = curve->as_string();
+          if (word != "ease" && word != "linear") return fail("curve is not ease or linear");
+          out.linear = word == "linear";
+        }
+        if (const Json* first = json.find("first")) {
+          if (first->as_string() != "jump") return fail("first is not jump");
+          out.first_jumps = true;
+        }
+        if (json.find("again")) {
+          if (!expr_of(json, "again", out.size)) return false;
+          out.has_size = true;
+        }
+        if (json.find("key")) {
+          if (!expr_of(json, "key", out.alpha)) return false;
+          out.has_alpha = true;
+        }
+      } else if (json.find("ms") || json.find("ms_off") || json.find("curve") || json.find("first") || json.find("again") || json.find("key")) {
+        return fail("ms, ms_off, curve, first, again and key go with to");
+      } else if (!expr_of(json, "value", out.extra)) {
+        return false;
+      }
+      if (!take_slots(1, out.slot)) return false;
       scope_->lets.emplace_back(*name, out.slot);
       return true;
     }
@@ -674,13 +966,23 @@ class Loader final : public Names {
       case NodeKind::Fill: {
         if (!expr_of(json, "fill", out.paint) || !optional_expr(json, "radius", out.extra)) return false;
         if (!optional_expr(json, "down_to", out.width, &out.has_down_to)) return false;
+        if (const Json* across = json.find("across")) {
+          if (!across->as_bool()) return fail("across is not true or false");
+          out.across = *across->as_bool();
+          if (out.across && (json.find("radius") || out.has_down_to)) return fail("across takes no radius or down_to");
+        }
+        if (!flag_of(json, "ellipse", out.ellipse)) return false;
         break;
       }
+      case NodeKind::Shadow:
+        if (!expr_of(json, "shadow", out.paint) || !expr_of(json, "radius", out.extra) || !expr_of(json, "blur", out.width) || !optional_expr(json, "dy", out.extra2)) return false;
+        break;
       case NodeKind::Frame:
         if (!expr_of(json, "frame", out.paint)) return false;
         break;
       case NodeKind::Stroke:
-        if (!expr_of(json, "stroke", out.paint) || !expr_of(json, "radius", out.extra) || !expr_of(json, "width", out.width)) return false;
+        if (!flag_of(json, "ellipse", out.ellipse)) return false;
+        if (!expr_of(json, "stroke", out.paint) || (!out.ellipse && !expr_of(json, "radius", out.extra)) || !expr_of(json, "width", out.width)) return false;
         break;
       case NodeKind::Line:
         if (!expr_of(json, "line", out.paint) || !expr_of(json, "x2", out.extra) || !expr_of(json, "y2", out.extra2) || !expr_of(json, "width", out.width)) return false;
@@ -702,6 +1004,19 @@ class Loader final : public Names {
           if (!soft->as_bool()) return fail("soft is not true or false");
           out.soft = *soft->as_bool();
         }
+        out.shadow = json.find("blur") != nullptr;
+        out.has_stops = json.find("from_y") != nullptr;
+        out.stretched = json.find("scale_y") != nullptr;
+        if (out.stretched && (out.shadow || out.has_stops || json.find("width"))) return fail("scale_y is for a path filled with one colour");
+        if (out.shadow || out.has_stops || out.stretched) {
+          if (out.shadow && out.has_stops) return fail("a path is a shadow or a gradient, not both");
+          PathExtra more;
+          if (out.shadow && (!expr_of(json, "blur", out.width) || !optional_expr(json, "dy", more.dy))) return false;
+          if (out.has_stops && (!expr_of(json, "from_y", more.from_y) || !expr_of(json, "to_y", more.to_y))) return false;
+          if (out.stretched && !expr_of(json, "scale_y", more.scale_y)) return false;
+          out.more = static_cast<std::uint32_t>(pack_.path_extras.size());
+          pack_.path_extras.push_back(more);
+        }
         break;
       }
       case NodeKind::Text:
@@ -719,10 +1034,30 @@ class Loader final : public Names {
       case NodeKind::Slot:
         if (!compile_slot(json, out)) return false;
         break;
-      case NodeKind::Group:
+      case NodeKind::Group: {
         if (const Json* clip = json.find("clip")) out.clip = clip->as_bool().value_or(false);
+        if (const Json* soft = json.find("soft_clip")) out.soft = soft->as_bool().value_or(false);
+        GroupEffects effects;
+        bool top = false, bottom = false;
+        if (!optional_expr(json, "scale", effects.scale, &effects.has_scale) || !optional_expr(json, "about_x", effects.about_x, &effects.has_about_x) ||
+            !optional_expr(json, "about_y", effects.about_y, &effects.has_about_y) || !optional_expr(json, "opacity", effects.opacity, &effects.has_opacity) ||
+            !optional_expr(json, "fade_top", effects.fade_top, &top) || !optional_expr(json, "fade_bottom", effects.fade_bottom, &bottom) ||
+            !optional_expr(json, "dy", effects.dy, &effects.has_dy)) {
+          return false;
+        }
+        effects.has_fade = top || bottom;
+        if (const Json* origin = json.find("origin")) {
+          effects.origin = origin->as_bool().value_or(false);
+          if (!effects.has_scale) return fail("origin goes with scale");
+        }
+        if (effects.has_scale || effects.has_opacity || effects.has_fade || effects.has_dy) {
+          out.has_effects = true;
+          out.more = static_cast<std::uint32_t>(pack_.effects.size());
+          pack_.effects.push_back(effects);
+        }
         if (!compile_list(*json.find("group"), out.first, out.count, depth + 1, false)) return false;
         break;
+      }
       case NodeKind::Column:
         if (const Json* clip = json.find("clip")) out.clip = clip->as_bool().value_or(false);
         out.auto_h = json.find("h") == nullptr;
@@ -795,7 +1130,8 @@ class Loader final : public Names {
 
   bool load_screen(const ScreenSchema& schema) {
     const std::string path = "screens/" + std::string(schema.screen) + ".jsonc";
-    const auto text = read_(path);
+    std::optional<std::string> text;
+    for (auto layer = layers_.rbegin(); layer != layers_.rend() && !text; ++layer) text = (*layer)(path);
     if (!text) return true;
     const auto root = parse_file(path, text);
     if (!root) return false;
@@ -815,6 +1151,8 @@ class Loader final : public Names {
   }
 
   const ReadFile& read_;
+  const LoadOptions& options_;
+  std::vector<ReadFile> layers_;  // what lies on top comes last
   Pack pack_;
   std::string error_, where_;
   std::vector<std::string> paint_names_, style_names_;
@@ -830,6 +1168,13 @@ std::optional<int> Pack::palette_of(std::string_view theme_id) const {
     if (palette_ids[i] == theme_id) return static_cast<int>(i);
   }
   return std::nullopt;
+}
+
+const PackTheme* Pack::theme_of_palette(std::string_view palette) const {
+  for (const PackTheme& theme : themes) {
+    if (theme.palette == palette || theme.dark == palette) return &theme;
+  }
+  return nullptr;
 }
 
 const Screen* Pack::screen(std::string_view name) const {
@@ -868,6 +1213,11 @@ std::span<const std::string_view> own_frame_constants() {
   return names;
 }
 
+std::span<const std::string_view> moving_constants() {
+  static constexpr std::string_view names[] = {"scroll_settle_ms", "scroll_return_ms", "scroll_stretch", "edge_fade", "screen_fade_ms", "screen_rise", "speaking_hold_ms", "speaking_fade_ms"};
+  return names;
+}
+
 std::optional<std::string_view> missing_constant(const Pack& pack) {
   const auto has = [&](std::string_view name) { return std::ranges::any_of(pack.constants, [&](const auto& c) { return c.first == name; }); };
   for (const std::string_view name : required_constants()) {
@@ -878,7 +1228,18 @@ std::optional<std::string_view> missing_constant(const Pack& pack) {
       if (!has(name)) return name;
     }
   }
+  if (pack.constant("moves") != 0) {
+    for (const std::string_view name : moving_constants()) {
+      if (!has(name)) return name;
+    }
+  }
   return std::nullopt;
+}
+
+bool Pack::palette_is_dark(int palette) const {
+  if (palette < 0 || static_cast<std::size_t>(palette) >= palette_ids.size()) return false;
+  const std::string& id = palette_ids[static_cast<std::size_t>(palette)];
+  return std::ranges::any_of(themes, [&](const PackTheme& theme) { return theme.dark == id; });
 }
 
 float Pack::constant(std::string_view name) const {
@@ -894,8 +1255,8 @@ const Paint* Pack::paint_named(int palette, std::string_view name) const {
   return paint(palette, static_cast<float>(found - paint_names_list.begin()));
 }
 
-std::expected<Pack, std::string> load_pack(const ReadFile& read, std::span<const ScreenSchema> schemas) {
-  Loader loader(read);
+std::expected<Pack, std::string> load_pack(const ReadFile& read, std::span<const ScreenSchema> schemas, const LoadOptions& options) {
+  Loader loader(read, options);
   if (!loader.load(schemas)) return std::unexpected(loader.error());
   return loader.take();
 }

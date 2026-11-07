@@ -70,6 +70,7 @@ void RoomScreen::enter_room(std::string room_code) {
 void RoomScreen::reset() {
   members_.clear();
   arrivals_.clear();
+  came_later_.clear();
   members_scroll_ = {};
   chat_panel_.clear();
   options_open_ = mute_popup_open_ = false;
@@ -98,10 +99,18 @@ void RoomScreen::set_room(std::vector<MemberView> members, std::uint32_t me, std
     const auto now = clock_ms();
     for (const MemberView& member : members) {
       const auto same = [&](const MemberView& known) { return known.slot == member.slot && known.cid == member.cid; };
-      if (std::ranges::none_of(members_, same)) arrivals_.emplace_back(member.slot, now);
+      if (std::ranges::none_of(members_, same)) {
+        if (ui_.pack_screen("room")) {
+          std::erase_if(came_later_, [&](const auto& c) { return c.first == member.slot; });
+          came_later_.emplace_back(member.slot, ++arrivals_counted_);
+        } else {
+          arrivals_.emplace_back(member.slot, now);
+        }
+      }
     }
   }
   members_ = std::move(members);
+  std::erase_if(came_later_, [&](const auto& c) { return std::ranges::find(members_, c.first, &MemberView::slot) == members_.end(); });
   me_ = me;
   host_ = host;
   public_ = is_public;
@@ -113,15 +122,15 @@ void RoomScreen::set_room(std::vector<MemberView> members, std::uint32_t me, std
 float RoomScreen::Pulse::level(unsigned long long now, bool animations) const {
   if (!animations) return now < until ? 1.0f : 0.0f;
   const auto risen = [&](unsigned long long at) {
-    return rise_from + (1 - rise_from) * ease(static_cast<float>(at - std::min(at, start)) / speaking_fade_ms);
+    return rise_from + (1 - rise_from) * ease(static_cast<float>(at - std::min(at, start)) / fade_ms);
   };
   if (now < until) return risen(now);
-  return risen(until) * (1 - ease(static_cast<float>(now - until) / speaking_fade_ms));
+  return risen(until) * (1 - ease(static_cast<float>(now - until) / fade_ms));
 }
 
 bool RoomScreen::Pulse::moving(unsigned long long now, bool animations) const {
   if (!animations) return false;
-  return now < start + static_cast<unsigned long long>(speaking_fade_ms) || now >= until;
+  return now < start + static_cast<unsigned long long>(fade_ms) || now >= until;
 }
 
 void RoomScreen::pulse(std::uint32_t slot) {
@@ -130,19 +139,20 @@ void RoomScreen::pulse(std::uint32_t slot) {
   const auto member = std::ranges::find(members_, slot, &MemberView::slot);
   if (member != members_.end() && slot != me_ && member_volume(member->cid) == 0) return;
   const auto now = clock_ms();
-  const auto until = now + speaking_hold_ms;
+  const auto until = now + static_cast<unsigned long long>(ui_.motion.speaking_hold_ms);
+  const float fade_ms = ui_.motion.speaking_fade_ms;
   for (auto& p : pulses_) {
     if (p.slot != slot) continue;
     // Still up, it stays up with nothing to draw; on its way down, it turns back.
     if (now < p.until) {
       p.until = until;
     } else {
-      p = {slot, p.level(now, ui_.animations), now, until};
+      p = {slot, p.level(now, ui_.animations), now, until, true, fade_ms};
       new_pulse_ = true;
     }
     return;
   }
-  pulses_.push_back({slot, 0, now, until});
+  pulses_.push_back({slot, 0, now, until, true, fade_ms});
   new_pulse_ = true;
 }
 
@@ -215,12 +225,13 @@ void RoomScreen::set_member_volume(std::uint32_t slot, int percent) {
 bool RoomScreen::chat_locked() const { return chat_ && clock_ms() >= chat_lock_at_; }
 
 bool RoomScreen::shaking() const {
+  if (ui_.pack_screen("tip")) return false;
   return ui_.animations && blocked_id_ >= 0 && static_cast<float>(ui_.now_ms - std::min(ui_.now_ms, blocked_at_)) < tip_shake_ms;
 }
 
 bool RoomScreen::others_moving() const {
   return !arrivals_.empty() || tip_.animating(ui_) || copy_tip_.animating(ui_) || shaking() || profile_.animating() ||
-         menu_.animating() || chat_panel_.animating();
+         menu_.animating() || (chat_ && chat_panel_.animating());
 }
 
 bool RoomScreen::animating() const {
@@ -231,7 +242,7 @@ bool RoomScreen::tick(unsigned long long now_ms) {
   // These change only the avatars, so they do not ask for the whole window.
   bool pulse_moved = false;
   std::erase_if(pulses_, [&](Pulse& p) {
-    const auto end = p.until + (ui_.animations ? static_cast<unsigned long long>(speaking_fade_ms) : 0);
+    const auto end = p.until + (ui_.animations ? static_cast<unsigned long long>(p.fade_ms) : 0);
     if (now_ms >= end) {
       add_area(ended_area_, p.slot);
       pulse_moved = true;
@@ -246,7 +257,8 @@ bool RoomScreen::tick(unsigned long long now_ms) {
   bool changed = false;
   if (tip_.animating(ui_) || copy_tip_.animating(ui_) || shaking() || menu_.animating()) changed = true;
   changed = profile_.tick(now_ms) || changed;
-  changed = chat_panel_.tick(now_ms) || changed;
+  // Not drawn without chat, so its link tip would wait for ever for a frame that shows the hover.
+  if (chat_) changed = chat_panel_.tick(now_ms) || changed;
   // The chat switch locks 5 minutes after chat was turned on.
   if (lock_pending_ && now_ms >= chat_lock_at_) {
     lock_pending_ = false;
@@ -514,6 +526,7 @@ std::optional<HoverTip::Spec> RoomScreen::tip_for_hover() const {
   const int id = ui_.hover_id;
   if ((id == Mute || id == More) && !ui_.skin().scales_stage()) return std::nullopt;  // they say it themselves
   HoverTip::Spec spec;
+  spec.shakes = blocked_times_;
   if (id == Leave && controls_shown_) {
     spec.text = tr().room_tip_leave;
     spec.anchor = fab_rects_[0];
@@ -535,6 +548,7 @@ std::optional<HoverTip::Spec> RoomScreen::tip_for_hover() const {
     if (!is_host()) {
       // Above the whole row (.host-tip).
       spec.text = tr().room_tip_host_only;
+      spec.look = HoverTip::Look::Small;
       spec.size = 15;
       spec.anchor = {sw.x, sw.y - 7, sw.w, sw.h + 14};
       return spec;
@@ -565,6 +579,7 @@ std::optional<HoverTip::Spec> RoomScreen::tip_for_hover() const {
     // .member > .tip: 6 from the left, its bottom 2 inside the row.
     spec.anchor = {rect->second.x + 6, rect->second.y, rect->second.w, rect->second.h};
     spec.place = HoverTip::Place::Left;
+    spec.look = HoverTip::Look::Member;
     spec.size = 15;
     spec.gap = -2;
   } else {
@@ -584,6 +599,7 @@ void RoomScreen::paint_tips(Painter& p) {
     copied.text = copy_text_;
     copied.anchor = code_rect_;
     copied.place = HoverTip::Place::Right;
+    copied.look = HoverTip::Look::Copied;
     copied.out_ms = 350;
   }
   copy_tip_.paint(ui_, p, copying ? &copied : nullptr);
@@ -642,6 +658,7 @@ void RoomScreen::block_switch(int id, const char* text) {
   blocked_id_ = id;
   blocked_text_ = text;
   blocked_at_ = clock_ms();
+  ++blocked_times_;
 }
 
 void RoomScreen::toggle_public() {

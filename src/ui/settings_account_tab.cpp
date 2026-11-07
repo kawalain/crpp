@@ -59,7 +59,7 @@ void AccountTab::paint(Painter& p, Rect area) {
   button({area.x + logout_rect.x, area.y + logout_rect.y, logout_rect.w, logout_rect.h}, tr().account_logout, Logout);
 }
 
-float AccountTab::content_height() const { return ui_.skin().scales_stage() ? logout_rect.bottom() + bottom_pad : flow_height_; }
+float AccountTab::content_height() const { return flows("settings_account") ? flow_height_ : logout_rect.bottom() + bottom_pad; }
 
 void AccountTab::click(int id, float, float, bool) {
   switch (id) {

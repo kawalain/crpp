@@ -86,6 +86,14 @@ class ChatPanel final : public Surface {
     float time_w = 0;
   };
 
+  // How the list of messages under a face, a name and a time looks.
+  struct RowLook {
+    float x = 0, right = 0, pad = 0, face = 0, face_gap = 0, head_h = 0, head_text_y = 0, pull = 0, gap = 0;
+    float arrive_ms = 0, rise = 0, tip_h = 0, tip_margin = 0, tip_below = 0;
+    TextStyle body, time, nick;
+    Color ink;
+  };
+
   // How the plain list of messages looks.
   struct MessageLook {
     float indent = 0, pad = 0, gap = 0, bar_w = 0;
@@ -96,6 +104,8 @@ class ChatPanel final : public Surface {
   void paint_pack(Painter& p, const skin::Screen& screen, Rect panel);
   void paint_messages(Painter& p, Rect inner);
   void append_message(std::size_t index, float list_w);
+  void paint_rows(Painter& p, Rect area);
+  void append_row_of_look(std::size_t index, float list_w, bool arriving);
   void paint_luna(Painter& p, Rect panel);
   [[nodiscard]] TextStyle luna_body() const;
   [[nodiscard]] TextStyle luna_input() const;
@@ -149,6 +159,8 @@ class ChatPanel final : public Surface {
   HoverTip::Spec link_tip_spec_;
   bool show_link_tip_ = false;
   MessageLook messages_;
+  RowLook rows_look_;
+  unsigned shakes_ = 0;
   TextStyle pack_input_style_;
 };
 

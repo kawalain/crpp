@@ -2,12 +2,14 @@
 //   crpp_skin_schema <folder>           writes the JSON Schemas into the folder
 //   crpp_skin_schema --check <folder>   says whether the folder holds exactly those, as a test does
 //   crpp_skin_schema --pack <folder>    loads a pack as the program does and says what it refuses
+#include <algorithm>
 #include <cstdio>
 #include <filesystem>
 #include <fstream>
 #include <map>
 #include <sstream>
 #include <string>
+#include <vector>
 
 #include "crpp/skin/schema.hpp"
 #include "crpp/ui/app.hpp"
@@ -58,22 +60,47 @@ int check_all(const fs::path& folder) {
   return wrong ? 1 : 0;
 }
 
-int check_pack(const fs::path& folder) {
-  const auto read = [&](std::string_view path) -> std::optional<std::string> {
+skin::ReadFile files_of(fs::path folder) {
+  return [folder = std::move(folder)](std::string_view path) -> std::optional<std::string> {
     const fs::path file = folder / std::string(path);
     if (!fs::exists(file)) return std::nullopt;
     return contents_of(file);
   };
-  const auto pack = skin::load_pack(read, ui::screen_schemas());
-  if (!pack) {
-    std::fprintf(stderr, "%s\n", pack.error().c_str());
-    return 1;
+}
+
+// As the program reads it: with each overlay its Themes name, and what it extends in a folder beside it.
+int check_pack(const fs::path& given) {
+  const fs::path folder = fs::absolute(given).lexically_normal();
+  const auto read_with = [&](const std::string& overlay) {
+    skin::LoadOptions options;
+    options.overlay = overlay;
+    options.parent = [&](std::string_view id) -> std::optional<skin::ReadFile> {
+      const fs::path beside = folder.parent_path() / std::string(id);
+      if (!fs::exists(beside / "pack.jsonc")) return std::nullopt;
+      return files_of(beside);
+    };
+    return skin::load_pack(files_of(folder), ui::screen_schemas(), options);
+  };
+  const auto report = [](const std::expected<skin::Pack, std::string>& pack, const std::string& overlay) {
+    if (!pack) {
+      std::fprintf(stderr, "%s%s%s\n", overlay.c_str(), overlay.empty() ? "" : ": ", pack.error().c_str());
+      return false;
+    }
+    if (const auto missing = skin::missing_constant(*pack)) {
+      std::fprintf(stderr, "%s%spack.jsonc: no constant \"%.*s\"\n", overlay.c_str(), overlay.empty() ? "" : ": ", static_cast<int>(missing->size()), missing->data());
+      return false;
+    }
+    std::printf("%s%s%s: %zu screens of %zu, %zu nodes\n", pack->id.c_str(), overlay.empty() ? "" : " with ", overlay.c_str(), pack->screens.size(), ui::screen_schemas().size(), pack->nodes.size());
+    return true;
+  };
+  const auto plain = read_with({});
+  if (!report(plain, {})) return 1;
+  std::vector<std::string> done;
+  for (const skin::PackTheme& theme : plain->themes) {
+    if (theme.overlay.empty() || std::ranges::find(done, theme.overlay) != done.end()) continue;
+    done.push_back(theme.overlay);
+    if (!report(read_with(theme.overlay), theme.overlay)) return 1;
   }
-  if (const auto missing = skin::missing_constant(*pack)) {
-    std::fprintf(stderr, "pack.jsonc: no constant \"%.*s\"\n", static_cast<int>(missing->size()), missing->data());
-    return 1;
-  }
-  std::printf("%s: %zu screens of %zu, %zu nodes\n", pack->id.c_str(), pack->screens.size(), ui::screen_schemas().size(), pack->nodes.size());
   return 0;
 }
 

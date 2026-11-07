@@ -107,13 +107,15 @@ int main(int argc, char** argv) {
   };
 
   if (chimes) {
-    for (const char* name : {"cloud_chat", "cloud_enter"}) {
-      std::printf("%s\n", name);
-      std::fflush(stdout);
-      kept.push_back(sound::synthesize_chime(name, *rate));
-      for (int i = 0; i < repeat; ++i) {
-        (void)mixer->trigger(kept.back(), sound::own_mix(), 1.0f);
-        std::this_thread::sleep_for(1500ms);
+    for (const sound::ChimeStyle style : {sound::ChimeStyle::Bells, sound::ChimeStyle::Plain}) {
+      for (const char* name : {"cloud_chat", "cloud_enter"}) {
+        std::printf("%s %s\n", style == sound::ChimeStyle::Bells ? "bells" : "plain", name);
+        std::fflush(stdout);
+        kept.push_back(sound::synthesize_chime(name, *rate, style));
+        for (int i = 0; i < repeat; ++i) {
+          (void)mixer->trigger(kept.back(), sound::own_mix(), 1.0f);
+          std::this_thread::sleep_for(1500ms);
+        }
       }
     }
     device.close();

@@ -24,8 +24,8 @@ The interface is in Korean and English. In these screenshots, the names and mess
   and reverb. Each member picks their own packs.
 - **Chat and profiles:** Room chat, nicknames, emoji and public Room search.
 - **Accounts are optional:** join as a Guest, or sign in to get a unique `@handle`.
-- **Themes:** the clouds of the official client in three colours, and Messenger and Messenger dark,
-  in the look of a desktop messenger of the early 2000s, with their own window and notification sounds.
+- **Skins:** Cloud, the look of the official client, and Retro, in the look of the desktops of the
+  1990s and early 2000s, with its own window and notification sounds. Pick a Skin, a Theme and a dark mode.
 - **Windows integration:** tray icon, chat notifications, taskbar flash and start with Windows.
 - **Light on resources:** native Win32 and Direct2D with no browser engine. While idle, the
   app draws nothing and doesn't poll.
@@ -84,7 +84,7 @@ On the first run it asks you to choose a nickname or sign in. Then, on the Home 
 1. Choose **구름 띄우기** to create a Room, or type a code under **구름 찾기** to join one.
 2. Share the Room's code with others.
 3. Type as usual. The droplet at the top right opens settings, including volume and sound packs.
-   Under the Messenger themes it is **Tools > Options** in the menu bar.
+   Under the Retro Skin it is **Tools > Options** in the menu bar.
 
 By default, closing the window hides it to the tray. If you are in a Room, **you stay
 connected** and your input timing keeps being shared, so leave the Room first if you don't
@@ -107,7 +107,7 @@ The build also makes two small command-line programs.
 build-msvc\apps\soundtest\crpp_soundtest.exe assets\sounds
 ```
 
-`--chimes` plays the notification sounds of the Messenger themes instead.
+`--chimes` plays the notification sounds of the Retro Skin instead.
 
 `crpp_cli` joins or creates a Room, sends one chat message and waits for it to come back. It
 exits with 0 only if it does:

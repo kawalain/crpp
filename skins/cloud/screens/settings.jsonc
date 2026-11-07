@@ -1,0 +1,59 @@
+{
+  "$schema": "../../schema/screen.settings.schema.json",
+  "draw": [
+    {"let": "shown", "to": "@open", "first": "jump", "ms": 160},
+    // The panel comes and goes as one, and rises 6 px of the window.
+    {"if": "shown>0", "x": -100, "y": -100, "w": "W+200", "h": "H+200", "opacity": "shown", "group": [
+      {"x": 100, "y": 100, "w": "W-200", "h": "H-200", "dy": "6*(1-shown)/@scale", "group": [
+        {"hit": "overlay", "hit_if": "@open", "x": "@window_x", "y": "@window_y", "w": "@window_w", "h": "@window_h", "group": [
+          {"fill": "alpha($black, 0.255)"}
+        ]},
+        // The cloud, mirrored (viewBox 0 0 496 330 stretched to 1091x733 at 15,-35).
+        {"path": "M388.527 317.44H101.915C54.679 317.44 16.386 279.073 16.386 231.744c0-42.356 30.678-77.512 70.979-84.436-.747-4.387-1.158-8.888-1.158-13.489 0-44 35.6-79.669 79.513-79.669 14.343 0 27.786 3.824 39.404 10.482C226.646 30.651 264.524 8.095 307.663 8.095c63.092 0 114.932 48.241 120.801 109.916 37.233 15.702 63.375 52.597 63.375 95.613 0 57.208-46.238 103.593-103.312 103.69Z", "color": "dark ? $surface : alpha($panel_cloud, 0.98)", "x": "15+1091", "y": -35, "scale": "-1091/496", "scale_y": "733/330"},
+
+          {"use": "settings_tab", "text": "#tab_sound", "hit": "tab", "hit_index": 0, "hit_if": "@open", "x": 103, "y": 309.5, "w": 172, "h": 37, "args": {"active": "@page==0"}},
+          {"use": "settings_tab", "text": "#tab_display", "hit": "tab", "hit_index": 1, "hit_if": "@open", "x": 103, "y": 355.5, "w": 172, "h": 37, "args": {"active": "@page==1"}},
+          {"use": "settings_tab", "text": "#tab_notify", "hit": "tab", "hit_index": 2, "hit_if": "@open", "x": 103, "y": 401.5, "w": 172, "h": 37, "args": {"active": "@page==2"}},
+          {"use": "settings_tab", "text": "#tab_system", "hit": "tab", "hit_index": 3, "hit_if": "@open", "x": 103, "y": 447.5, "w": 172, "h": 37, "args": {"active": "@page==3"}},
+          {"use": "settings_tab", "text": "#tab_account", "hit": "tab", "hit_index": 4, "hit_if": "@open", "x": 103, "y": 493.5, "w": 172, "h": 37, "args": {"active": "@page==4"}},
+
+        // The tab that shows, and the one it took over from, each with the edge fades of where it stands.
+        {"report": "view", "value": 504},
+        {"report": "content", "value": "@tab_height"},
+        {"let": "changing", "to": 1, "first": "jump", "again": "@tab_changes", "ms": 140},
+        {"note": "pane", "x": 296, "y": 137, "w": 566, "h": 504, "clip": true, "soft_clip": true, "group": [
+          {"if": "changing<1", "opacity": "1-changing", "fade_top": "@left_fade_top", "fade_bottom": "@left_fade_bottom", "group": [
+            {"slot": "leaving", "y": "-@left_scroll", "w": 550, "h": "@left_height"}
+          ]},
+          {"opacity": "changing", "fade_top": "@fade_top", "fade_bottom": "@fade_bottom", "group": [
+            {"slot": "current", "y": "-@scroll", "w": 550, "h": "@content"}
+          ]}
+        ]},
+
+        // .settings-scrollbar: the pointer on it, seen or not, brings it up and keeps it.
+        {"if": "@overflow", "group": [
+          {"note": "track", "hit": "track", "hit_if": "@open", "x": 835, "y": 187, "w": 8, "h": 403, "group": []},
+          {"hit": "thumb", "hit_if": "@open", "x": 835, "y": "@thumb_y", "w": 8, "h": "@thumb_h", "group": [
+            {"let": "bar", "to": "@bar_shown", "first": "jump", "again": "@selects", "ms": 150, "ms_off": 500},
+            {"let": "bar_hover", "to": "@bar_over", "first": "jump", "ms": 120},
+            {"if": "bar>0", "fill": "alpha(mix($hl_soft, $hl_pale2, bar_hover*100), bar)", "radius": 5}
+          ]}
+        ]},
+        {"slot": "popups"},
+
+        // .version .tip: over the button's right edge, 15 px, rising 4 px as it appears.
+        {"if": "@has_version", "hit": "version", "hit_if": "@open", "x": 103, "y": 624, "w": 172, "h": 20, "group": [
+          {"text": "@version", "style": "version", "color": "hot ? $hl_text : $version_ink"},
+          {"let": "tip", "to": "hot", "first": "jump", "ms": 150},
+          {"if": "tip>0", "group": [
+            {"let": "tip_w", "value": "textw('tip_small_measure', '#tip_changelog', 2000)+30"},
+            {"x": "W-tip_w", "y": "-8-32+4*(1-tip)", "w": "tip_w", "h": 32, "group": [
+              {"fill": "alpha($hl, tip)", "radius": 11},
+              {"text": "#tip_changelog", "style": "version_tip", "color": "alpha($on_accent, tip)"}
+            ]}
+          ]}
+        ]}
+      ]}
+    ]}
+  ]
+}

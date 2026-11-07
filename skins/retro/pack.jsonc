@@ -1,0 +1,454 @@
+{
+  "$schema": "../schema/pack.schema.json",
+  "format": 1,
+  "id": "retro",
+  "names": {"ko": "레트로", "en": "Retro"},
+  "themes": {
+    "classic": {"names": {"ko": "고전", "en": "Classic"}, "dark": "classic_dark"},
+    "luna_blue": {"names": {"ko": "루나 블루", "en": "Luna Blue"}, "dark": "luna_blue_dark", "overlay": "luna"},
+    "luna_homestead": {"names": {"ko": "루나 홈스테드", "en": "Luna Homestead"}, "dark": "luna_homestead_dark", "overlay": "luna"},
+    "luna_metallic": {"names": {"ko": "루나 메탈릭", "en": "Luna Metallic"}, "dark": "luna_metallic_dark", "overlay": "luna"}
+  },
+  "default_theme": "classic",
+  "constants": {
+    "own_frame": 1, "moves": 0, "notification_sounds": 2,
+    "caption_h": 22, "frame_w": 4, "menu_h": 20, "window_radius": 0,
+    "frame_edge": 4, "frame_corner": 12, "frame_button": 16, "frame_button_gap": 2, "frame_button_top": 5, "frame_button_right": 6,
+    "window_home_w": 300, "window_home_h": 560, "window_home_min_w": 260, "window_home_min_h": 400,
+    "window_room_w": 640, "window_room_h": 500, "window_room_min_w": 480, "window_room_min_h": 360,
+    "window_prompt_w": 360, "window_prompt_h": 420, "window_prompt_min_w": 320, "window_prompt_min_h": 360,
+    "window_options_w": 580, "window_options_h": 480, "window_options_min_w": 540, "window_options_min_h": 440,
+    "window_changelog_w": 560, "window_changelog_h": 560, "window_changelog_min_w": 400, "window_changelog_min_h": 300,
+    "button_w": 75, "button_h": 23, "field_h": 23, "check_size": 13, "row_h": 20, "scrollbar_w": 17,
+    "dialog_pad_top": 14, "dialog_pad_x": 14, "dialog_pad_bottom": 12, "dialog_gap": 14, "dialog_button_h": 23, "dialog_button_w": 75,
+    "dialog_button_gap": 6, "dialog_width": 280, "dialog_wide_width": 340, "dialog_margin": 16, "dialog_text_size": 16, "dialog_text_line": 18, "dialog_align": 0,
+    "list_pad": 1, "list_item_h": 17, "list_gap": 0, "list_max_h": 138, "list_margin": 0, "slider_thumb": 21
+  },
+  "fonts": {
+    // Gulim comes with an optional package of Windows; Malgun Gothic is always there.
+    "korean": ["Gulim", "Malgun Gothic"], "other": ["Microsoft Sans Serif", "Tahoma"], "caption": ["Microsoft Sans Serif", "Tahoma"],
+    "korean_size": 12, "other_size": 11
+  },
+  // Windows Standard of 98. See the Themes' colours in docs/research/retro-themes.md.
+  "palettes": {
+    "classic": {
+      "caption": [[0, "#000080"], [1, "#1084d0"]],
+      "caption_idle": [[0, "#808080"], [1, "#b8b4b8"]],
+      "caption_ink": "#ffffff",
+      "face": "#c0c0c0",
+      "field": "#ffffff",
+      "field_off": "#c0c0c0",
+      "edge_light": "#ffffff",
+      "edge_soft": "#dfdfdf",
+      "edge_dark": "#808080",
+      "edge_out": "#000000",
+      "hover_0": "#ffffff",
+      "off_ink": "#808080",
+      "off_shadow": "#ffffff",
+      "tick": "#000000",
+      "bar_track_from": "#dfdfdf",
+      "bar_arrow": "#000000",
+      "progress": "#000080",
+      "menu": "#c0c0c0",
+      "select": "#000080",
+      "select_ink": "#ffffff",
+      "tooltip": "#ffffc0",
+      "tooltip_line": "#000000",
+      "tooltip_ink": "#000000",
+      "header": "#dfdfdf",
+      "glow_0": "#000080",
+      "glow_1": "#1084d0",
+      "glow_2": "#a6caf0",
+      "ink": "#000000",
+      "ink_soft": "#404040",
+      "link": "#0000ff",
+      "picture_line": "#808080",
+      "selection": "#00008066",
+      "error_text": "#c00000",
+      "toolbar_down": {"mix": ["face", "edge_soft", 50]},
+      "hl_soft": {"mix": ["select", "field", 35]},
+      "hl_pale": {"mix": ["select", "field", 12]},
+      "hl_pale2": {"mix": ["select", "field", 24]},
+      "cursor_face": "#ffffff",
+      "cursor_line": "#000000"
+    },
+    // There was no dark classic: the same shapes, in colours chosen here.
+    "classic_dark": {
+      "extends": "classic",
+      "caption": [[0, "#1d2f52"], [1, "#3a5484"]],
+      "caption_idle": [[0, "#333333"], [1, "#555555"]],
+      "caption_ink": "#f2f2f2",
+      "face": "#2e2e2e",
+      "field": "#1a1a1a",
+      "field_off": "#2e2e2e",
+      "edge_light": "#5c5c5c",
+      "edge_soft": "#464646",
+      "edge_dark": "#1c1c1c",
+      "edge_out": "#000000",
+      "hover_0": "#464646",
+      "off_ink": "#777777",
+      "off_shadow": "#000000",
+      "tick": "#e6e6e6",
+      "bar_track_from": "#3a3a3a",
+      "bar_arrow": "#e6e6e6",
+      "progress": "#6d8fc4",
+      "menu": "#2e2e2e",
+      "select": "#3a5fa8",
+      "tooltip": "#3d3a26",
+      "tooltip_line": "#8c8660",
+      "tooltip_ink": "#f5f1d8",
+      "header": "#3a3a3a",
+      "ink": "#e6e6e6",
+      "ink_soft": "#b0b0b0",
+      "link": "#8db4f2",
+      "picture_line": "#5c5c5c",
+      "selection": "#3a5fa866",
+      "error_text": "#ff8f8f"
+    }
+  },
+  "styles": {
+    "body": {"size": "font_size", "line_height": "h", "ellipsis": true, "exact": true},
+    "body_center": {"size": "font_size", "line_height": "h", "align": "center", "ellipsis": true, "exact": true},
+    "body_right": {"size": "font_size", "line_height": "h", "align": "right", "ellipsis": true, "exact": true},
+    "bold": {"size": "font_size", "weight": 700, "line_height": "h", "ellipsis": true, "exact": true},
+    "bold_center": {"size": "font_size", "weight": 700, "line_height": "h", "align": "center", "ellipsis": true, "exact": true},
+    "button": {"size": "font_size", "line_height": "h", "align": "center", "ellipsis": true, "exact": true},
+    "paragraph": {"size": "font_size", "line_height": "font_size+4", "wrap": true, "exact": true, "keep_words": true},
+    "chat_text": {"size": "font_size", "line_height": "font_size+4", "wrap": true, "exact": true},
+    "paragraph_center": {"size": "font_size", "line_height": "font_size+4", "align": "center", "wrap": true, "exact": true},
+    "tip_line": {"size": "font_size", "line_height": 16, "exact": true},
+    "note_title": {"size": "font_size+2", "weight": 700, "line_height": "font_size+4", "wrap": true, "exact": true},
+    "note_version": {"size": "font_size", "line_height": 20, "exact": true},
+    "title": {"size": "font_size+2", "weight": 700, "line_height": "h", "ellipsis": true, "exact": true},
+    "sample": {"size": "font_size", "line_height": "font_size+4", "ellipsis": true, "exact": true},
+    "caption": {"size": "font_size", "weight": 700, "line_height": "h", "ellipsis": true, "exact": true, "role": "caption"}
+  },
+  "parts": {
+    // The look of the time is two lines of light from the top left and two of shade from the bottom right.
+    "bevel": {
+      "snap": true,
+      "args": {"top_out": 0, "low_out": 0, "top_in": 0, "low_in": 0},
+      "draw": [
+        {"fill": "low_out", "y": "H-u", "h": "u"},
+        {"fill": "low_out", "x": "W-u", "w": "u"},
+        {"fill": "top_out", "w": "W-u", "h": "u"},
+        {"fill": "top_out", "w": "u", "h": "H-u"},
+        {"fill": "low_in", "x": "u", "y": "H-2*u", "w": "W-2*u", "h": "u"},
+        {"fill": "low_in", "x": "W-2*u", "y": "u", "w": "u", "h": "H-2*u"},
+        {"fill": "top_in", "x": "u", "y": "u", "w": "W-3*u", "h": "u"},
+        {"fill": "top_in", "x": "u", "y": "u", "w": "u", "h": "H-3*u"}
+      ]
+    },
+    "raised": {"draw": [{"use": "bevel", "args": {"top_out": "$edge_light", "low_out": "$edge_out", "top_in": "$edge_soft", "low_in": "$edge_dark"}}]},
+    "sunken": {"draw": [{"use": "bevel", "args": {"top_out": "$edge_dark", "low_out": "$edge_light", "top_in": "$edge_out", "low_in": "$edge_soft"}}]},
+    "button": {
+      "snap": true,
+      "w": "max(75, ceil(textw('button', '@label'))+24)",
+      "h": 23,
+      "args": {"primary": 0, "focused": 0, "off": 0},
+      "draw": [
+        {"fill": "$face"},
+        {"if": "pressed && !off", "use": "bevel", "args": {"top_out": "$edge_out", "low_out": "$edge_light", "top_in": "$edge_dark", "low_in": "$edge_soft"}},
+        {"if": "(!pressed || off) && (primary || focused) && !off", "frame": "$edge_out"},
+        {"if": "(!pressed || off) && (primary || focused) && !off", "x": "u", "y": "u", "w": "W-2*u", "h": "H-2*u", "use": "raised"},
+        {"if": "(!pressed || off) && !(primary || focused) || off", "use": "raised"},
+        {"if": "off", "text": "@label", "style": "button", "color": "$off_shadow", "x": "u", "y": "u"},
+        {"if": "off", "text": "@label", "style": "button", "color": "$off_ink"},
+        {"if": "!off", "text": "@label", "style": "button", "color": "$ink", "x": "pressed ? u : 0", "y": "pressed ? u : 0"}
+      ]
+    },
+    "toolbar_button": {
+      "snap": true,
+      "h": 24,
+      "w": "ceil(textw('body', '@label'))+32",
+      "args": {"lit": 0},
+      "draw": [
+        {"if": "pressed || lit", "fill": "$toolbar_down"},
+        {"if": "hot || pressed || lit", "group": [
+          {"fill": "pressed || lit ? $edge_dark : $edge_light", "h": "u"},
+          {"fill": "pressed || lit ? $edge_dark : $edge_light", "w": "u"},
+          {"fill": "pressed || lit ? $edge_light : $edge_dark", "y": "H-u", "h": "u"},
+          {"fill": "pressed || lit ? $edge_light : $edge_dark", "x": "W-u", "w": "u"}
+        ]},
+        {"text": "@label", "style": "body", "color": "$ink", "x": "24+(pressed ? u : 0)", "y": "pressed ? u : 0", "w": "W-28"}
+      ]
+    },
+    "field": {
+      "args": {"off": 0},
+      "draw": [
+        {"fill": "off ? $field_off : $field"},
+        {"use": "sunken"}
+      ]
+    },
+    "check_box": {
+      "snap": true,
+      "w": 13,
+      "h": 13,
+      "args": {"on": 0, "off": 0},
+      "draw": [
+        {"fill": "off || (hot && pressed) ? $field_off : $field"},
+        {"use": "sunken"},
+        {"if": "on", "path": "M3.5 6.5 5.5 8.5 9.5 4", "color": "off ? $off_ink : $tick", "width": 2, "caps": "flat"}
+      ]
+    },
+    "combo_arrow": {
+      "snap": true,
+      "args": {"down": 0},
+      "draw": [
+        {"fill": "$face"},
+        {"if": "down", "frame": "$edge_dark"},
+        {"if": "!down", "use": "raised"},
+        {"path": "M-4 -2H4L0 2.5Z", "color": "$bar_arrow", "x": "W/2+(down ? u : 0)", "y": "H/2+(down ? u : 0)", "w": 1, "h": 1, "snap": true}
+      ]
+    },
+    "dropdown": {
+      "args": {"open": 0, "off": 0},
+      "draw": [
+        {"use": "field", "args": {"off": "off"}},
+        {"text": "@label", "style": "body", "color": "off ? $off_ink : $ink", "x": 4, "w": "W-24"},
+        {"use": "combo_arrow", "args": {"down": "open"}, "x": "W-17", "y": 2, "w": 15, "h": "H-4"}
+      ]
+    },
+    "picture_frame": {
+      "snap": true,
+      "args": {"glow": 0},
+      "draw": [
+        {"if": "glow > 0", "frame": "$glow_2", "alpha": "glow", "x": "-3*u", "y": "-3*u", "w": "W+6*u", "h": "H+6*u"},
+        {"if": "glow > 0", "frame": "$glow_1", "alpha": "glow", "x": "-2*u", "y": "-2*u", "w": "W+4*u", "h": "H+4*u"},
+        {"if": "glow > 0", "frame": "$glow_0", "alpha": "glow", "x": "-u", "y": "-u", "w": "W+2*u", "h": "H+2*u"},
+        {"fill": "$field"},
+        {"frame": "$picture_line"}
+      ]
+    },
+    "group_box": {
+      "snap": true,
+      "draw": [
+        {"frame": "$edge_dark", "w": "W-u", "h": "H-u"},
+        {"frame": "$edge_light", "x": "u", "y": "u", "w": "W-u", "h": "H-u"},
+        {"let": "legend_w", "value": "ceil(textw('body', '@label'))+6"},
+        {"fill": "$face", "x": 8, "y": -1, "w": "legend_w", "h": 3},
+        {"text": "@label", "style": "body", "color": "$ink", "x": 11, "y": -8, "w": "legend_w", "h": 16}
+      ]
+    },
+    "link": {
+      "draw": [
+        {"text": "@label", "style": "body", "color": "$link"},
+        {"if": "hot", "fill": "$link", "y": "floor(Y+H/2+font_size/2)-Y", "w": "textw('body', '@label')", "h": 1}
+      ]
+    },
+    "scroll_arrow": {
+      "snap": true,
+      "args": {"down": 0},
+      "draw": [
+        {"fill": "$face"},
+        {"if": "pressed", "frame": "$edge_dark"},
+        {"if": "!pressed", "use": "raised"},
+        {"if": "down", "path": "M-4 -2H4L0 2.5Z", "color": "$bar_arrow", "x": "W/2+(pressed ? u : 0)", "y": "H/2+(pressed ? u : 0)", "w": 1, "h": 1, "snap": true},
+        {"if": "!down", "path": "M-4 2H4L0 -2.5Z", "color": "$bar_arrow", "x": "W/2+(pressed ? u : 0)", "y": "H/2+(pressed ? u : 0)", "w": 1, "h": 1, "snap": true}
+      ]
+    },
+    "scroll_thumb": {
+      "snap": true,
+      "draw": [
+        {"fill": "$face"},
+        {"use": "raised"}
+      ]
+    },
+    "scrollbar": {
+      "args": {"view": 0, "content": 0, "offset": 0, "up": -1, "down": -1, "track": -1, "thumb": -1, "whole": 0, "track_note": -1},
+      "draw": [
+        {"let": "arrow_h", "value": "min(W, H/2)"},
+        {"let": "track_h", "value": "H-2*arrow_h"},
+        {"let": "room", "value": "content>view ? content-view : 0"},
+        {"let": "thumb_h", "value": "content>0 ? max(16, floor(track_h*min(1, view/content))) : track_h"},
+        {"let": "thumb_y", "value": "arrow_h+(room>0 ? floor((track_h-thumb_h)*offset/room) : 0)"},
+        {"fill": "$bar_track_from", "y": "arrow_h", "h": "track_h", "note_by": "track_note"},
+        {"hit_by": "track", "group": []},
+        {"use": "scroll_arrow", "hit_by": "up", "live": "!whole", "h": "arrow_h"},
+        {"use": "scroll_arrow", "hit_by": "down", "live": "!whole", "y": "H-arrow_h", "h": "arrow_h", "args": {"down": 1}},
+        {"hit_by": "thumb", "y": "thumb_y", "h": "thumb_h", "group": [
+          {"if": "track_h>=16 && thumb_h<track_h", "use": "scroll_thumb"}
+        ]}
+      ]
+    },
+    "check_row": {
+      "args": {"on": 0, "off": 0, "pinned": 0},
+      "draw": [
+        {"use": "check_box", "y": 5, "args": {"on": "on", "off": "off"}},
+        {"text": "@label", "style": "body", "color": "off ? $off_ink : $ink", "x": 18, "w": "W-30"},
+        {"if": "pinned", "fill": "$link", "x": "W-7", "y": 9, "w": 6, "h": 6}
+      ]
+    },
+    "plain_thumb": {
+      "snap": true,
+      "draw": [
+        {"fill": "$face"},
+        {"use": "raised"}
+      ]
+    },
+    "slider": {
+      "args": {"at": 0},
+      "draw": [
+        {"let": "cy", "value": "snap(Y+H/2)-Y"},
+        {"fill": "$edge_dark", "y": "cy-u", "h": 1},
+        {"fill": "$edge_out", "y": "cy", "h": 1},
+        {"fill": "$edge_light", "y": "cy+u", "h": 1},
+        {"x": "10.5+(W-21)*at-5", "y": "cy-9", "w": 11, "h": 19, "snap": true, "group": [
+          {"fill": "$face"},
+          {"use": "raised"}
+        ]}
+      ]
+    },
+    "switch": {
+      "args": {"on": 0, "off": 0},
+      "draw": [
+        {"use": "check_box", "args": {"on": "on", "off": "off"}, "y": "floor(Y+(H-13)/2)-Y"}
+      ]
+    },
+    "progress": {
+      "args": {"percent": 0},
+      "draw": [
+        {"y": "H/2-7", "h": 14, "snap": true, "group": [
+          {"fill": "$face"},
+          {"use": "sunken"},
+          {"let": "inner", "value": "W-4"},
+          {"let": "filled", "value": "inner*percent/100"},
+          {"repeat": "min(floor(filled/10)+1, ceil(inner/10))", "draw": [
+            {"fill": "$progress", "x": "2+i*10", "y": 2, "w": "min(8, inner-i*10)", "h": "H-4", "snap": true}
+          ]}
+        ]}
+      ]
+    },
+    "bubble": {
+      "snap": true,
+      "draw": [
+        {"fill": "$tooltip"},
+        {"frame": "$tooltip_line"}
+      ]
+    },
+    "cell": {
+      "args": {"selected": 0},
+      "draw": [
+        {"if": "selected", "fill": "$hl_soft"},
+        {"if": "selected || hot", "frame": "$select"}
+      ]
+    },
+    "list_item": {
+      "args": {"selected": 0},
+      "draw": [
+        {"if": "selected || hot", "fill": "$select"},
+        {"text": "@label", "style": "body", "color": "selected || hot ? $select_ink : $ink", "x": 3, "w": "W-6"}
+      ]
+    },
+    "menu_item": {
+      "args": {"active": 0, "off": 0},
+      "draw": [
+        {"if": "hot", "fill": "$select"},
+        {"text": "@label", "style": "body", "color": "off ? $off_ink : hot ? $select_ink : $ink", "x": 20, "w": "W-24"},
+        {"if": "active", "path": "M3.5 6.5 5.5 8.5 9.5 4", "color": "off ? $off_ink : hot ? $select_ink : $ink", "x": 2, "y": "round(Y+(H-13)/2)-Y", "width": 2, "caps": "flat"}
+      ]
+    },
+    "panel_modal": {"draw": [{"fill": "$face"}]},
+    "panel_list": {"draw": [{"fill": "$field"}, {"use": "sunken"}]},
+    "panel_menu": {"snap": true, "draw": [{"fill": "$menu"}, {"use": "raised"}]},
+    "panel_popup": {"snap": true, "draw": [{"fill": "$face"}, {"use": "raised"}]},
+    "panel_info": {"snap": true, "draw": [{"fill": "$face"}, {"use": "raised"}]},
+    "form_group": {
+      "height": "rows.bottom+20",
+      "draw": [
+        {"id": "rows", "x": 12, "y": 14, "w": "W-24", "column": [{"content": true}]},
+        {"use": "group_box", "text": "@label", "x": 2, "w": "W-4", "h": "rows.bottom+6"}
+      ]
+    },
+    "form_check": {
+      "h": "row_h",
+      "args": {"on": 0, "off": 0},
+      "draw": [
+        {"use": "check_box", "y": 3, "args": {"on": "on", "off": "off"}},
+        {"text": "@label", "style": "body", "color": "off ? $off_ink : $ink", "x": 18, "w": "W-18"}
+      ]
+    },
+    "form_text": {
+      "h": "texth('paragraph', '@label', W)",
+      "draw": [{"text": "@label", "style": "paragraph", "color": "$ink_soft"}]
+    },
+    "form_hint": {
+      "h": "texth('paragraph', '@label', W-18)",
+      "draw": [{"text": "@label", "style": "paragraph", "color": "$ink_soft"}]
+    },
+    "form_combo": {
+      "h": "field_h",
+      "draw": [
+        {"let": "list_w", "value": "min(170, floor(W*0.55))"},
+        {"text": "@label", "style": "body", "color": "$ink", "w": "W-list_w-6"},
+        {"x": "W-list_w", "w": "list_w", "group": [{"content": true}]}
+      ]
+    },
+    "form_slider": {
+      "h": "18+field_h",
+      "args": {"at": 0, "list": 0, "own": -1, "where": -1},
+      "draw": [
+        {"text": "@label", "style": "body", "color": "$ink", "h": 16},
+        {"let": "list_w", "value": "list ? floor(W*0.52) : 0"},
+        {"use": "slider", "hit_by": "own", "note_by": "where", "y": 18, "w": "W-(list ? list_w+8 : 0)", "h": "field_h", "args": {"at": "at"}},
+        {"if": "list", "x": "W-list_w", "y": 18, "w": "list_w", "h": "field_h", "group": [{"content": true}]}
+      ]
+    },
+    "options_tab": {
+      "args": {"active": 0},
+      "draw": [
+        {"if": "active", "fill": "$select"},
+        {"if": "!active && hot", "fill": "$hl_pale2"},
+        {"text": "@label", "style": "body", "color": "active ? $select_ink : $ink", "x": 6, "w": "W-12"}
+      ]
+    },
+    "frame_ring": {
+      "args": {"at": 0, "thick": 0, "top": 0, "left": 0, "right": 0, "bottom": 0},
+      "draw": [
+        {"fill": "left", "x": "at", "y": "top", "w": "thick", "h": "H-top-at"},
+        {"fill": "right", "x": "W-at-thick", "y": "top", "w": "thick", "h": "H-top-at"},
+        {"fill": "bottom", "x": "at", "y": "H-at-thick", "w": "W-2*at", "h": "thick"}
+      ]
+    },
+    "menu_title": {
+      "w": "ceil(textw('body_center', '@label'))+14",
+      "h": "menu_h-1",
+      "args": {"open": 0},
+      "draw": [
+        {"if": "open || hot", "fill": "$select"},
+        {"text": "@label", "style": "body_center", "color": "open || hot ? $select_ink : $ink"}
+      ]
+    },
+    "caption_button": {
+      "snap": true,
+      "args": {"close": 0},
+      "draw": [
+        {"fill": "$face"},
+        {"if": "pressed", "use": "bevel", "args": {"top_out": "$edge_out", "low_out": "$edge_light", "top_in": "$edge_dark", "low_in": "$edge_soft"}},
+        {"if": "!pressed", "use": "raised"},
+        {"if": "close", "line": "$ink", "x": "W*0.3+(pressed ? u : 0)", "y": "W*0.3+(pressed ? u : 0)", "x2": "W-W*0.3+(pressed ? u : 0)", "y2": "H-W*0.3+(pressed ? u : 0)", "width": 2},
+        {"if": "close", "line": "$ink", "x": "W-W*0.3+(pressed ? u : 0)", "y": "W*0.3+(pressed ? u : 0)", "x2": "W*0.3+(pressed ? u : 0)", "y2": "H-W*0.3+(pressed ? u : 0)", "width": 2},
+        {"if": "!close", "fill": "$ink", "x": "W*0.25+(pressed ? u : 0)", "y": "H-H*0.34+(pressed ? u : 0)", "w": "W*0.38", "h": 2}
+      ]
+    },
+    // The pointer, drawn here on a grid of whole pixels after the white arrow of the time. Both Palettes have the same two colours.
+    "cursor_arrow": {"draw": [{"path": "M1 2H2V3H1ZM1 3H3V4H1ZM1 4H4V5H1ZM1 5H5V6H1ZM1 6H6V7H1ZM1 7H7V8H1ZM1 8H8V9H1ZM1 9H9V10H1ZM1 10H6V11H1ZM1 11H3V12H1ZM4 11H6V12H4ZM1 12H2V13H1ZM5 12H7V13H5ZM5 13H7V14H5ZM6 14H8V15H6ZM6 15H8V16H6ZM7 16H9V17H7ZM7 17H9V18H7Z", "color": "$cursor_face"}, {"path": "M0 0H1V1H0ZM0 1H2V2H0ZM0 2H1V3H0ZM2 2H3V3H2ZM0 3H1V4H0ZM3 3H4V4H3ZM0 4H1V5H0ZM4 4H5V5H4ZM0 5H1V6H0ZM5 5H6V6H5ZM0 6H1V7H0ZM6 6H7V7H6ZM0 7H1V8H0ZM7 7H8V8H7ZM0 8H1V9H0ZM8 8H9V9H8ZM0 9H1V10H0ZM9 9H10V10H9ZM0 10H1V11H0ZM6 10H11V11H6ZM0 11H1V12H0ZM3 11H4V12H3ZM6 11H7V12H6ZM0 12H1V13H0ZM2 12H3V13H2ZM4 12H5V13H4ZM7 12H8V13H7ZM0 13H2V14H0ZM4 13H5V14H4ZM7 13H8V14H7ZM0 14H1V15H0ZM5 14H6V15H5ZM8 14H9V15H8ZM5 15H6V16H5ZM8 15H9V16H8ZM6 16H7V17H6ZM9 16H10V17H9ZM6 17H7V18H6ZM9 17H10V18H9ZM7 18H9V19H7Z", "color": "$cursor_line"}]},
+    "cursor_hand": {"draw": [{"path": "M5 1H7V2H5ZM5 2H7V3H5ZM5 3H7V4H5ZM5 4H7V5H5ZM5 5H7V6H5ZM5 6H7V7H5ZM8 6H10V7H8ZM5 7H7V8H5ZM8 7H10V8H8ZM11 7H13V8H11ZM5 8H7V9H5ZM8 8H10V9H8ZM11 8H13V9H11ZM14 8H15V9H14ZM1 9H3V10H1ZM5 9H15V10H5ZM16 9H17V10H16ZM1 10H4V11H1ZM5 10H17V11H5ZM2 11H17V12H2ZM3 12H17V13H3ZM3 13H16V14H3ZM4 14H16V15H4ZM4 15H15V16H4ZM5 16H15V17H5ZM5 17H15V18H5Z", "color": "$cursor_face"}, {"path": "M5 0H7V1H5ZM4 1H5V2H4ZM7 1H8V2H7ZM4 2H5V3H4ZM7 2H8V3H7ZM4 3H5V4H4ZM7 3H8V4H7ZM4 4H5V5H4ZM7 4H8V5H7ZM4 5H5V6H4ZM7 5H10V6H7ZM4 6H5V7H4ZM7 6H8V7H7ZM10 6H13V7H10ZM4 7H5V8H4ZM7 7H8V8H7ZM10 7H11V8H10ZM13 7H15V8H13ZM1 8H3V9H1ZM4 8H5V9H4ZM7 8H8V9H7ZM10 8H11V9H10ZM13 8H14V9H13ZM15 8H16V9H15ZM0 9H1V10H0ZM3 9H5V10H3ZM15 9H16V10H15ZM17 9H18V10H17ZM0 10H1V11H0ZM4 10H5V11H4ZM17 10H18V11H17ZM1 11H2V12H1ZM17 11H18V12H17ZM2 12H3V13H2ZM17 12H18V13H17ZM2 13H3V14H2ZM16 13H17V14H16ZM3 14H4V15H3ZM16 14H17V15H16ZM3 15H4V16H3ZM15 15H16V16H15ZM4 16H5V17H4ZM15 16H16V17H15ZM4 17H5V18H4ZM15 17H16V18H15ZM4 18H16V19H4Z", "color": "$cursor_line"}]},
+    "cursor_ibeam": {"draw": [{"path": "M12 7H21V8H12ZM12 8H13V9H12ZM16 8H17V9H16ZM20 8H21V9H20ZM12 9H16V10H12ZM17 9H21V10H17ZM15 10H16V11H15ZM17 10H18V11H17ZM15 11H16V12H15ZM17 11H18V12H17ZM15 12H16V13H15ZM17 12H18V13H17ZM15 13H16V14H15ZM17 13H18V14H17ZM15 14H16V15H15ZM17 14H18V15H17ZM15 15H16V16H15ZM17 15H18V16H17ZM15 16H16V17H15ZM17 16H18V17H17ZM15 17H16V18H15ZM17 17H18V18H17ZM15 18H16V19H15ZM17 18H18V19H17ZM15 19H16V20H15ZM17 19H18V20H17ZM15 20H16V21H15ZM17 20H18V21H17ZM15 21H16V22H15ZM17 21H18V22H17ZM15 22H16V23H15ZM17 22H18V23H17ZM12 23H16V24H12ZM17 23H21V24H17ZM12 24H13V25H12ZM16 24H17V25H16ZM20 24H21V25H20ZM12 25H21V26H12Z", "color": "$cursor_face"}, {"path": "M13 8H16V9H13ZM17 8H20V9H17ZM16 9H17V10H16ZM16 10H17V11H16ZM16 11H17V12H16ZM16 12H17V13H16ZM16 13H17V14H16ZM16 14H17V15H16ZM16 15H17V16H16ZM16 16H17V17H16ZM16 17H17V18H16ZM16 18H17V19H16ZM16 19H17V20H16ZM16 20H17V21H16ZM16 21H17V22H16ZM16 22H17V23H16ZM16 23H17V24H16ZM13 24H16V25H13ZM17 24H20V25H17Z", "color": "$cursor_line"}]},
+    "cursor_size_we": {"draw": [{"path": "M8 12H11V13H8ZM22 12H25V13H22ZM7 13H9V14H7ZM10 13H11V14H10ZM22 13H23V14H22ZM24 13H26V14H24ZM6 14H8V15H6ZM10 14H11V15H10ZM22 14H23V15H22ZM25 14H27V15H25ZM5 15H7V16H5ZM10 15H23V16H10ZM26 15H28V16H26ZM5 16H6V17H5ZM27 16H28V17H27ZM5 17H7V18H5ZM10 17H23V18H10ZM26 17H28V18H26ZM6 18H8V19H6ZM10 18H11V19H10ZM22 18H23V19H22ZM25 18H27V19H25ZM7 19H9V20H7ZM10 19H11V20H10ZM22 19H23V20H22ZM24 19H26V20H24ZM8 20H11V21H8ZM22 20H25V21H22Z", "color": "$cursor_face"}, {"path": "M9 13H10V14H9ZM23 13H24V14H23ZM8 14H10V15H8ZM23 14H25V15H23ZM7 15H10V16H7ZM23 15H26V16H23ZM6 16H27V17H6ZM7 17H10V18H7ZM23 17H26V18H23ZM8 18H10V19H8ZM23 18H25V19H23ZM9 19H10V20H9ZM23 19H24V20H23Z", "color": "$cursor_line"}]},
+    "cursor_size_ns": {"draw": [{"path": "M15 5H18V6H15ZM14 6H16V7H14ZM17 6H19V7H17ZM13 7H15V8H13ZM18 7H20V8H18ZM12 8H14V9H12ZM19 8H21V9H19ZM12 9H13V10H12ZM20 9H21V10H20ZM12 10H16V11H12ZM17 10H21V11H17ZM15 11H16V12H15ZM17 11H18V12H17ZM15 12H16V13H15ZM17 12H18V13H17ZM15 13H16V14H15ZM17 13H18V14H17ZM15 14H16V15H15ZM17 14H18V15H17ZM15 15H16V16H15ZM17 15H18V16H17ZM15 16H16V17H15ZM17 16H18V17H17ZM15 17H16V18H15ZM17 17H18V18H17ZM15 18H16V19H15ZM17 18H18V19H17ZM15 19H16V20H15ZM17 19H18V20H17ZM15 20H16V21H15ZM17 20H18V21H17ZM15 21H16V22H15ZM17 21H18V22H17ZM12 22H16V23H12ZM17 22H21V23H17ZM12 23H13V24H12ZM20 23H21V24H20ZM12 24H14V25H12ZM19 24H21V25H19ZM13 25H15V26H13ZM18 25H20V26H18ZM14 26H16V27H14ZM17 26H19V27H17ZM15 27H18V28H15Z", "color": "$cursor_face"}, {"path": "M16 6H17V7H16ZM15 7H18V8H15ZM14 8H19V9H14ZM13 9H20V10H13ZM16 10H17V11H16ZM16 11H17V12H16ZM16 12H17V13H16ZM16 13H17V14H16ZM16 14H17V15H16ZM16 15H17V16H16ZM16 16H17V17H16ZM16 17H17V18H16ZM16 18H17V19H16ZM16 19H17V20H16ZM16 20H17V21H16ZM16 21H17V22H16ZM16 22H17V23H16ZM13 23H20V24H13ZM14 24H19V25H14ZM15 25H18V26H15ZM16 26H17V27H16Z", "color": "$cursor_line"}]},
+    "cursor_size_nwse": {"draw": [{"path": "M8 8H16V9H8ZM8 9H9V10H8ZM15 9H16V10H15ZM8 10H9V11H8ZM14 10H16V11H14ZM8 11H9V12H8ZM13 11H15V12H13ZM8 12H9V13H8ZM13 12H15V13H13ZM8 13H9V14H8ZM11 13H13V14H11ZM14 13H16V14H14ZM8 14H9V15H8ZM10 14H14V15H10ZM15 14H17V15H15ZM8 15H11V16H8ZM13 15H15V16H13ZM16 15H18V16H16ZM14 16H16V17H14ZM17 16H19V17H17ZM15 17H17V18H15ZM18 17H20V18H18ZM22 17H25V18H22ZM16 18H18V19H16ZM19 18H23V19H19ZM24 18H25V19H24ZM17 19H19V20H17ZM20 19H22V20H20ZM24 19H25V20H24ZM18 20H20V21H18ZM24 20H25V21H24ZM18 21H20V22H18ZM24 21H25V22H24ZM17 22H19V23H17ZM24 22H25V23H24ZM17 23H18V24H17ZM24 23H25V24H24ZM17 24H25V25H17Z", "color": "$cursor_face"}, {"path": "M9 9H15V10H9ZM9 10H14V11H9ZM9 11H13V12H9ZM9 12H13V13H9ZM9 13H11V14H9ZM13 13H14V14H13ZM9 14H10V15H9ZM14 14H15V15H14ZM15 15H16V16H15ZM16 16H17V17H16ZM17 17H18V18H17ZM18 18H19V19H18ZM23 18H24V19H23ZM19 19H20V20H19ZM22 19H24V20H22ZM20 20H24V21H20ZM20 21H24V22H20ZM19 22H24V23H19ZM18 23H24V24H18Z", "color": "$cursor_line"}]},
+    "cursor_size_nesw": {"draw": [{"path": "M17 8H25V9H17ZM17 9H18V10H17ZM24 9H25V10H24ZM17 10H19V11H17ZM24 10H25V11H24ZM18 11H20V12H18ZM24 11H25V12H24ZM18 12H20V13H18ZM24 12H25V13H24ZM17 13H19V14H17ZM20 13H22V14H20ZM24 13H25V14H24ZM16 14H18V15H16ZM19 14H23V15H19ZM24 14H25V15H24ZM15 15H17V16H15ZM18 15H20V16H18ZM22 15H25V16H22ZM14 16H16V17H14ZM17 16H19V17H17ZM8 17H11V18H8ZM13 17H15V18H13ZM16 17H18V18H16ZM8 18H9V19H8ZM10 18H14V19H10ZM15 18H17V19H15ZM8 19H9V20H8ZM11 19H13V20H11ZM14 19H16V20H14ZM8 20H9V21H8ZM13 20H15V21H13ZM8 21H9V22H8ZM13 21H15V22H13ZM8 22H9V23H8ZM14 22H16V23H14ZM8 23H9V24H8ZM15 23H16V24H15ZM8 24H16V25H8Z", "color": "$cursor_face"}, {"path": "M18 9H24V10H18ZM19 10H24V11H19ZM20 11H24V12H20ZM20 12H24V13H20ZM19 13H20V14H19ZM22 13H24V14H22ZM18 14H19V15H18ZM23 14H24V15H23ZM17 15H18V16H17ZM16 16H17V17H16ZM15 17H16V18H15ZM9 18H10V19H9ZM14 18H15V19H14ZM9 19H11V20H9ZM13 19H14V20H13ZM9 20H13V21H9ZM9 21H13V22H9ZM9 22H14V23H9ZM9 23H15V24H9Z", "color": "$cursor_line"}]}
+  },
+  "cursors": {
+    // Hard edges on the grid of 32 by 32, then enlarged by whole pixels, so the steps stay in sight at any scale.
+    "hard": true,
+    "arrow": {"part": "cursor_arrow", "hot": [0, 0]},
+    "hand": {"part": "cursor_hand", "hot": [5, 0]},
+    "ibeam": {"part": "cursor_ibeam", "hot": [16, 16]},
+    "size_we": {"part": "cursor_size_we", "hot": [16, 16]},
+    "size_ns": {"part": "cursor_size_ns", "hot": [16, 16]},
+    "size_nwse": {"part": "cursor_size_nwse", "hot": [16, 16]},
+    "size_nesw": {"part": "cursor_size_nesw", "hot": [16, 16]}
+  }
+}

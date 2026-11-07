@@ -54,15 +54,17 @@ void App::reload_assets(const std::filesystem::path& assets_dir) {
 }
 
 std::span<const skin::ScreenSchema> screen_schemas() {
-  static const skin::ScreenSchema schemas[] = {HomeScreen::schema(), PromptScreen::schema(), WindowFrame::schema(), WindowFrame::menu_schema(), RoomScreen::schema(), ChatPanel::schema(),
-                                               SettingsPanel::schema(), SoundTab::schema(), DisplayTab::schema(), NotifyTab::schema(), SystemTab::schema(), AccountTab::schema(),
+  static const skin::ScreenSchema schemas[] = {HomeScreen::schema(), HomeScreen::return_schema(), PromptScreen::schema(), WindowFrame::schema(), WindowFrame::menu_schema(), RoomScreen::schema(), ChatPanel::schema(),
+                                               SettingsPanel::schema(), SettingsPanel::droplet_schema(), SoundTab::schema(), DisplayTab::schema(), NotifyTab::schema(), SystemTab::schema(), AccountTab::schema(),
                                                SetupScreen::schema(), Dialogs::schema(), OfflinePopup::schema(), NoticeCard::schema(), UpdatePopup::schema(), Toasts::schema(),
                                                Toasts::bubble_schema(), HoverTip::schema(), MemberMenu::schema(), ProfileCard::schema(), EmojiPicker::schema(), Dropdown::schema(), SoundTab::tip_schema(), ChangelogView::schema()};
   return schemas;
 }
 
-std::expected<void, std::string> App::load_skin_dir(const std::filesystem::path& dir) {
-  const auto read = [&dir](std::string_view path) -> std::optional<std::string> {
+namespace {
+
+skin::ReadFile files_of(std::filesystem::path dir) {
+  return [dir = std::move(dir)](std::string_view path) -> std::optional<std::string> {
     std::error_code error;
     const std::filesystem::path file = dir / std::filesystem::path(path);
     const auto size = std::filesystem::file_size(file, error);
@@ -74,15 +76,107 @@ std::expected<void, std::string> App::load_skin_dir(const std::filesystem::path&
     if (!in.read(text.data(), static_cast<std::streamsize>(size))) return std::nullopt;
     return text;
   };
-  auto pack = skin::load_pack(read, screen_schemas());
+}
+
+}  // namespace
+
+std::expected<void, std::string> App::read_pack(const std::string& overlay) {
+  skin::LoadOptions options;
+  options.overlay = overlay;
+  // What a pack extends is a folder beside it.
+  options.parent = [folders = pack_dir_.parent_path()](std::string_view id) -> std::optional<skin::ReadFile> {
+    const std::filesystem::path dir = folders / std::filesystem::path(id);
+    std::error_code error;
+    if (!std::filesystem::is_regular_file(dir / "pack.jsonc", error)) return std::nullopt;
+    return files_of(dir);
+  };
+  auto pack = skin::load_pack(files_of(pack_dir_), screen_schemas(), options);
   if (!pack) return std::unexpected(std::move(pack.error()));
-  ui_.forget_render_target();  // brushes are kept by the address of their stops
   if (const auto missing = skin::missing_constant(*pack)) return std::unexpected("pack.jsonc: no constant \"" + std::string(*missing) + "\"");
+  ui_.forget_render_target();  // brushes are kept by the address of their stops
+  previous_pack_ = std::move(pack_);  // a hit of the last frame can still point into it
   pack_ = std::move(*pack);
   ui_.pack = &*pack_;
   pack_skin_ = make_pack_skin(ui_);
+  return {};
+}
+
+int App::notification_style() const {
+  if (ui_.theme.from_pack) return static_cast<int>(pack_->constant("notification_sounds"));
+  return ui_.theme.skin == SkinId::Luna ? 1 : 0;
+}
+
+void App::point_at_palette() {
   ui_.palette = pack_->palette_of(theme_id_).value_or(-1);
   ui_.theme.from_pack = ui_.palette >= 0 ? pack_skin_.get() : nullptr;
+  ui_.motion = {};
+  if (ui_.palette < 0) return;
+  if (pack_->constant("moves") != 0) {
+    const skin::Pack& k = *pack_;
+    ui_.motion = {k.constant("scroll_settle_ms"), k.constant("scroll_return_ms"), k.constant("scroll_stretch"), k.constant("edge_fade"),
+                  k.constant("screen_fade_ms"), k.constant("screen_rise"), k.constant("speaking_hold_ms"), k.constant("speaking_fade_ms")};
+  }
+  ui_.theme.dark = pack_->palette_is_dark(ui_.palette);
+  if (const skin::Paint* sky = pack_->paint_named(ui_.palette, "sky")) ui_.theme.sky = sky->color;
+}
+
+bool App::find_skins(const std::filesystem::path& dir) {
+  ui_.skins.clear();
+  std::error_code error;
+  std::vector<std::filesystem::path> folders;
+  for (const auto& entry : std::filesystem::directory_iterator(dir, error)) {
+    if (entry.is_directory(error) && std::filesystem::is_regular_file(entry.path() / "pack.jsonc", error)) folders.push_back(entry.path());
+  }
+  std::ranges::sort(folders);
+  for (const std::filesystem::path& folder : folders) {
+    skin::LoadOptions options;
+    options.parent = [parents = dir](std::string_view id) -> std::optional<skin::ReadFile> {
+      const std::filesystem::path other = parents / std::filesystem::path(id);
+      std::error_code missing;
+      if (!std::filesystem::is_regular_file(other / "pack.jsonc", missing)) return std::nullopt;
+      return files_of(other);
+    };
+    // One that cannot be read is not offered, and the others still are.
+    if (const auto pack = skin::load_pack(files_of(folder), screen_schemas(), options); pack && !skin::missing_constant(*pack)) {
+      ui_.skins.push_back(skin_info(*pack, narrow(folder.wstring())));
+    }
+  }
+  return !ui_.skins.empty();
+}
+
+void App::apply_skin_choice(bool system_dark) {
+  const SkinChoice choice = choice_of(*ui_.prefs, ui_.skins);
+  if (!choice.skin || !choice.theme) return;
+  const std::string palette(choice.palette(system_dark));
+  const std::filesystem::path dir = widen(choice.skin->dir);
+  if (!pack_ || pack_dir_ != dir || pack_->overlay != choice.theme->overlay) {
+    const std::filesystem::path before = pack_dir_;
+    pack_dir_ = dir;
+    if (!read_pack(choice.theme->overlay)) {  // changed under the app since it was found: it stays as it is
+      pack_dir_ = before;
+      return;
+    }
+  }
+  set_theme(palette);
+}
+
+std::expected<void, std::string> App::load_skin_dir(const std::filesystem::path& dir) {
+  std::filesystem::path whole = std::filesystem::absolute(dir).lexically_normal();
+  if (!whole.has_filename()) whole = whole.parent_path();
+  const std::filesystem::path before = pack_dir_;
+  pack_dir_ = whole;
+  auto read = read_pack({});
+  // Which overlay a Theme needs is known once the pack has been read.
+  if (read) {
+    const skin::PackTheme* theme = pack_->theme_of_palette(theme_id_);
+    if (theme && !theme->overlay.empty()) read = read_pack(theme->overlay);
+  }
+  if (!read) {
+    pack_dir_ = before;
+    return read;
+  }
+  point_at_palette();
+  ui_.skins = {skin_info(*pack_, narrow(whole.wstring()))};
   skin_changed();
   return {};
 }
@@ -107,9 +201,18 @@ void App::set_theme(std::string_view id) {
   ui_.forget_render_target();  // brushes are kept by the address of the colours they show
   ui_.theme = theme_named(id).theme;
   theme_id_ = theme_named(id).id;
+  if (pack_ && theme_named(id).id != id) {
+    if (const skin::PackTheme* known = pack_->theme_of_palette(id)) {
+      // Only the pack knows it. What the program still reads of a Theme comes from the table until its layouts go.
+      theme_id_ = std::string(id);
+      ui_.theme = theme_named(known->dark == id ? "luna_blue_dark" : "luna_blue").theme;
+    }
+  }
   if (pack_) {
-    ui_.palette = pack_->palette_of(theme_id_).value_or(-1);
-    ui_.theme.from_pack = ui_.palette >= 0 ? pack_skin_.get() : nullptr;
+    // Read earlier and found good, so a failure now is a pack changed under the app: it draws as if it had no such Theme.
+    const skin::PackTheme* theme = pack_->theme_of_palette(theme_id_);
+    if (theme && theme->overlay != pack_->overlay) (void)read_pack(theme->overlay);
+    point_at_palette();
   }
   skin_changed();
 }
@@ -487,8 +590,7 @@ void App::paint_screen(Painter& p, View view) {
 }
 
 void App::paint_screens(Painter& p) {
-  constexpr float leaving_ms = 180, rise_px = 8;
-  const float t = left_at_ != 0 ? transition(ui_, left_at_, leaving_ms) : 1;
+  const float t = left_at_ != 0 ? transition(ui_, left_at_, ui_.motion.screen_fade_ms) : 1;
   if (t >= 1) {
     left_at_ = 0;
     finish_leaving_room();
@@ -502,7 +604,7 @@ void App::paint_screens(Painter& p) {
   p.pop_opacity();
   ui_.hits_enabled = true;
   p.push_opacity(t);
-  p.set_moved(0, rise_px * (1 - t));
+  p.set_moved(0, ui_.motion.screen_rise * (1 - t));
   paint_screen(p, view_);
   p.set_moved(0, 0);
   p.pop_opacity();

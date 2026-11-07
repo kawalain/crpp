@@ -1,7 +1,7 @@
 {
   "$schema": "http://json-schema.org/draft-07/schema#",
   "title": "The screen slider_tip of a Skin Pack",
-  "description": "A screen of a Skin Pack, as {\"draw\": [nodes]}. With no file for a screen, the program draws it itself.\nNumbers: @track_x, @track_y, @track_w, @percent.\nTexts: @text.\nHits: none.\nPictures: none.\nFields: none.\nSlots: none.\nReports: none.\nNotes: none.",
+  "description": "A screen of a Skin Pack, as {\"draw\": [nodes]}. With no file for a screen, the program draws it itself.\nNumbers: @track_x, @track_y, @track_w, @percent, @on.\nTexts: @text.\nHits: none.\nPictures: none.\nFields: none.\nSlots: none.\nReports: none.\nNotes: none.",
   "allowComments": true,
   "allowTrailingCommas": true,
   "type": "object",

@@ -1,5 +1,9 @@
 #include "crpp/ui/skin_canvas.hpp"
 
+#include <bit>
+
+#include "crpp/ui/controls.hpp"
+
 namespace crpp::ui {
 
 TextStyle text_style_of(const skin::TextLook& look) {
@@ -65,6 +69,12 @@ void draw_screen(Ui& ui, Painter& p, Surface* owner, const skin::Screen& screen,
   skin::draw(*ui.pack, screen, ui.palette, {area.x, area.y, area.w, area.h}, canvas, source);
 }
 
+void draw_layer(Ui& ui, Painter& p, Surface* owner, const skin::Screen& screen, Rect area, skin::Source& source) {
+  SkinCanvas canvas(ui, p, owner);
+  canvas.in_window_coordinates();
+  skin::draw(*ui.pack, screen, ui.palette, {area.x, area.y, area.w, area.h}, canvas, source);
+}
+
 void measure_screen(const Ui& ui, const skin::Screen& screen, Rect area, skin::Source& source) {
   MeasureCanvas canvas(ui.gfx);
   skin::draw(*ui.pack, screen, ui.palette, {area.x, area.y, area.w, area.h}, canvas, source);
@@ -93,9 +103,58 @@ void SkinCanvas::path(std::string_view data, float x, float y, float scale, skin
   p_.rt()->SetAntialiasMode(mode);
 }
 
+float SkinCanvas::transition(std::uint64_t key, const skin::TransitionSpec& spec) {
+  // The same part or screen is told apart by whose it is.
+  const std::uint64_t whose = std::bit_cast<std::uint64_t>(whose_ ? whose_ : owner_) * 31 + static_cast<std::uint64_t>(hit_base_);
+  bool moving = false;
+  const float shown = ui_.transitions.value(key ^ (whose * 0x9E3779B97F4A7C15ull), spec, ui_.now_ms, ui_.animations, moving);
+  if (moving) ui_.more_frames = true;
+  return shown;
+}
+
+void SkinCanvas::path_stretched(std::string_view data, float x, float y, float scale_x, float scale_y, skin::Color color) {
+  ID2D1PathGeometry* const shape = p_.gfx().path(data);
+  if (!shape) return;
+  p_.push(D2D1::Matrix3x2F::Scale(scale_x, scale_y) * D2D1::Matrix3x2F::Translation(x, y));
+  p_.fill_geometry(shape, color);
+  p_.pop();
+}
+
+void SkinCanvas::path_gradient(std::string_view data, float x, float y, float scale, float y0, float y1, std::span<const skin::GradientStop> stops) {
+  ID2D1PathGeometry* const shape = p_.gfx().path(data);
+  if (!shape) return;
+  std::vector<std::pair<float, Color>> list;
+  list.reserve(stops.size());
+  for (const skin::GradientStop& stop : stops) list.emplace_back(stop.at, stop.color);
+  p_.push(scale == 1 ? D2D1::Matrix3x2F::Translation(x, y) : D2D1::Matrix3x2F::Scale(scale, scale) * D2D1::Matrix3x2F::Translation(x, y));
+  p_.fill_vertical_gradient(shape, y0, y1, list);
+  p_.pop();
+}
+
+void SkinCanvas::path_shadow(std::string_view data, float x, float y, float scale, float blur, float dy, skin::Color color) {
+  ID2D1PathGeometry* const shape = p_.gfx().path(data);
+  if (!shape) return;
+  p_.push(scale == 1 ? D2D1::Matrix3x2F::Translation(x, y) : D2D1::Matrix3x2F::Scale(scale, scale) * D2D1::Matrix3x2F::Translation(x, y));
+  p_.shadow_geometry(shape, blur, dy, color);
+  p_.pop();
+}
+
+bool SkinCanvas::push_opacity(skin::Box box, float opacity) {
+  if (opacity >= 1) return false;
+  p_.push_opacity(opacity, rect_of(box));
+  return true;
+}
+
+bool SkinCanvas::push_edge_fade(skin::Box box, float top, float bottom) { return ::crpp::ui::push_edge_fade(ui_, p_, rect_of(box), top, bottom); }
+
 void SkinCanvas::push_clip(skin::Box box) {
   p_.rt()->PushAxisAlignedClip(D2D1::RectF(box.x, box.y, box.x + box.w, box.y + box.h), D2D1_ANTIALIAS_MODE_ALIASED);
-  ui_.push_hit_clip(ui_.to_window(rect_of(box)));
+  ui_.push_hit_clip(in_window_ ? rect_of(box) : ui_.to_window(rect_of(box)));
+}
+
+void SkinCanvas::push_soft_clip(skin::Box box) {
+  p_.rt()->PushAxisAlignedClip(D2D1::RectF(box.x, box.y, box.x + box.w, box.y + box.h), D2D1_ANTIALIAS_MODE_PER_PRIMITIVE);
+  ui_.push_hit_clip(in_window_ ? rect_of(box) : ui_.to_window(rect_of(box)));
 }
 
 void SkinCanvas::pop_clip() {

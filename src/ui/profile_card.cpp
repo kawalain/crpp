@@ -20,7 +20,7 @@ enum ReportId : int { Width, Height };
 constexpr skin::Name text_names[] = {{"nick", Nick}, {"handle", Handle}, {"joined", Joined}, {"stayed", Stayed}, {"inputs", Inputs}};
 constexpr skin::Name number_names[] = {{"mine", Mine}, {"has_handle", HasHandle}, {"has_joined", HasJoined}};
 constexpr skin::Name picture_names[] = {{"icon", 0}};
-constexpr skin::Name hit_names[] = {{"card", ProfileCard::Card}, {"icon", ProfileCard::Icon}};
+constexpr skin::Name hit_names[] = {{"backdrop", ProfileCard::Backdrop}, {"card", ProfileCard::Card}, {"icon", ProfileCard::Icon}};
 constexpr skin::Name report_names[] = {{"width", Width}, {"height", Height}};
 constexpr skin::Name note_names[] = {{"icon", 0}};
 
@@ -135,7 +135,7 @@ void ProfileCard::paint(Painter& p) {
     p.set_base(D2D1::Matrix3x2F::Identity());
     Rect icon;
     ShownProfile shown(profile_, mine_, ui_, &p, &icon);
-    draw_screen(ui_, p, this, *screen, ui_.content, shown);
+    draw_layer(ui_, p, this, *screen, ui_.content, shown);
     HoverTip::Spec spec;
     spec.text = tr().profile_change_icon;
     spec.anchor = icon;
@@ -205,7 +205,8 @@ bool ProfileCard::tick(unsigned long long now_ms) {
   bool changed = open_ && tip_.animating(ui_);
   if (was_animating_) {
     changed = true;
-    if (static_cast<float>(now_ms - std::min(now_ms, opened_at_)) >= modal_pop_ms) was_animating_ = false;
+    // A pack's card asks for its own frames from the one this brings.
+    if (ui_.pack_screen("profile") || static_cast<float>(now_ms - std::min(now_ms, opened_at_)) >= modal_pop_ms) was_animating_ = false;
   }
   if (pending_ && now_ms >= give_up_at_) {
     pending_.reset();

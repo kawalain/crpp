@@ -67,7 +67,10 @@ void SettingsPanel::select(SettingsPage page) {
     left_fade_top_ = scroll_.fade_top();
     left_fade_bottom_ = scroll_.fade_bottom();
     left_at_ = clock_ms();
+    ++tab_changes_;
   }
+  ++selects_;
+  pending_scroll_ = -1;
   page_ = page;
   scroll_.jump_to(0);
   reset_scrollbar();
@@ -79,6 +82,7 @@ void SettingsPanel::scroll_to(float offset) {
   scroll_.view_h = content_area_.h;
   scroll_.content_h = tab().content_height();
   scroll_.jump_to(offset);
+  if (ui_.pack_screen("settings") && scroll_.content_h <= 0) pending_scroll_ = offset;
 }
 
 const char* locale::Strings::*SettingsPanel::tab_name(std::size_t index) { return tab_buttons[index].name; }
@@ -195,11 +199,24 @@ void SettingsPanel::paint_panel(Painter& p) {
 }
 
 void SettingsPanel::paint_scrollbar_faded(Painter& p) {
+  watch_scrollbar();
+  if (scroll_.max_offset() <= 0) return;
+  const Theme& t = ui_.theme;
+  const bool over = bar_over_;
+  bar_.set(ui_, bar_shown_, 150, 500);
+  thumb_hover_.set(ui_, over, 120);
+  const float shown = bar_.value(ui_);
+  const Rect thumb = scroll_.thumb(scroll_track_);
+  if (shown > 0) ui_.skin().scrollbar(p, t, thumb, thumb_hover_.value(ui_), shown);
+  ui_.add_hit(this, scroll_track_, Track);
+  ui_.add_hit(this, thumb, Thumb);
+}
+
+void SettingsPanel::watch_scrollbar() {
   if (scroll_.max_offset() <= 0) {  // .no-overflow
     reset_scrollbar();
     return;
   }
-  const Theme& t = ui_.theme;
   // .settings-scrollbar: the pointer on it, seen or not, brings it up and keeps it.
   const bool over = ui_.hot(this, Track) || ui_.hot(this, Thumb) || ui_.capture == this;
   if (over) {
@@ -210,14 +227,6 @@ void SettingsPanel::paint_scrollbar_faded(Painter& p) {
   }
   bar_over_ = over;
   reveal_pending_ = false;
-
-  bar_.set(ui_, bar_shown_, 150, 500);
-  thumb_hover_.set(ui_, over, 120);
-  const float shown = bar_.value(ui_);
-  const Rect thumb = scroll_.thumb(scroll_track_);
-  if (shown > 0) ui_.skin().scrollbar(p, t, thumb, thumb_hover_.value(ui_), shown);
-  ui_.add_hit(this, scroll_track_, Track);
-  ui_.add_hit(this, thumb, Thumb);
 }
 
 void SettingsPanel::paint_version(Painter& p) {

@@ -276,6 +276,9 @@ ComPtr<ID2D1PathGeometry> Gfx::parse_path(std::string_view d) const {
     const bool rel = std::islower(static_cast<unsigned char>(cmd)) != 0;
     const float ox = rel ? cx : 0, oy = rel ? cy : 0;
     switch (std::toupper(static_cast<unsigned char>(cmd))) {
+      case 'F':
+        sink->SetFillMode(in.number() != 0 ? D2D1_FILL_MODE_WINDING : D2D1_FILL_MODE_ALTERNATE);
+        break;
       case 'M': {
         const float x = in.number() + ox, y = in.number() + oy;
         begin(x, y);
@@ -549,6 +552,23 @@ void Painter::push_opacity(float opacity, Rect bounds) {
 }
 
 void Painter::push(const D2D1_MATRIX_3X2_F& m) { rt_->SetTransform(m * base_); }
+
+void Painter::push_group(const D2D1_MATRIX_3X2_F& m) {
+  if (group_depth_ < most_groups) {
+    groups_[group_depth_] = base_;
+    base_ = m * base_;
+    rt_->SetTransform(base_);
+  }
+  ++group_depth_;
+}
+
+void Painter::pop_group() {
+  --group_depth_;
+  if (group_depth_ < most_groups) {
+    base_ = groups_[group_depth_];
+    rt_->SetTransform(base_);
+  }
+}
 
 void Painter::clear(Color c) { rt_->Clear(to_d2d(c)); }
 

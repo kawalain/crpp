@@ -133,6 +133,10 @@ bool HomeScreen::tip_wanted(unsigned long long now) const { return ui_.hot(this,
 
 void HomeScreen::paint_return(Painter& p) {
   if (!return_open_) return;
+  if (const skin::Screen* screen = ui_.pack_screen("home_return")) {
+    paint_return_pack(p, *screen);
+    return;
+  }
   const char* question = tr().home_return_question;
   const char* confirm = tr().home_return;
   const char* random = tr().home_random;
@@ -167,7 +171,7 @@ void HomeScreen::refresh_seat(unsigned long long now) {
 }
 
 bool HomeScreen::accepts(int id, float x, float y) const {
-  if (id != Create || !ui_.skin().scales_stage()) return true;
+  if (id != Create || !ui_.skin().scales_stage() || ui_.pack_screen("home")) return true;
   // The click area is the cloud's shape, not a rectangle.
   BOOL inside = FALSE;
   if (ID2D1PathGeometry* const shape = ui_.cloud()) {
@@ -281,6 +285,7 @@ Cursor HomeScreen::cursor(int id) const {
 }
 
 bool HomeScreen::moving(unsigned long long now) const {
+  if (ui_.pack_screen("home")) return false;  // a pack's transitions ask for their own frames
   return (return_open_ && static_cast<float>(now - return_opened_at_) < modal_pop_ms) ||
          create_hover_.moving(ui_.hot(this, Create), now) || entry_focus_.moving(ui_.focus == &code_, now) ||
          enter_hover_.moving(ui_.hot(this, Join), now) || search_color_.moving(ui_.hot(this, Find), now) ||

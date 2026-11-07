@@ -12,16 +12,16 @@ namespace crpp::ui {
 namespace {
 
 enum TextId : int { Text, ConfirmText, CancelText };
-enum NumberId : int { Wide, HasCancel };
+enum NumberId : int { Wide, HasCancel, Revision };
 enum ReportId : int { Width, Height };
 constexpr skin::Name text_names[] = {{"text", Text}, {"confirm", ConfirmText}, {"cancel", CancelText}};
-constexpr skin::Name number_names[] = {{"wide", Wide}, {"has_cancel", HasCancel}};
-constexpr skin::Name hit_names[] = {{"card", Dialogs::Card}, {"confirm", Dialogs::Confirm}, {"cancel", Dialogs::Cancel}};
+constexpr skin::Name number_names[] = {{"wide", Wide}, {"has_cancel", HasCancel}, {"revision", Revision}};
+constexpr skin::Name hit_names[] = {{"backdrop", Dialogs::Backdrop}, {"card", Dialogs::Card}, {"confirm", Dialogs::Confirm}, {"cancel", Dialogs::Cancel}};
 constexpr skin::Name report_names[] = {{"width", Width}, {"height", Height}};
 
 class Shown final : public skin::Source {
  public:
-  explicit Shown(const Dialog& dialog) : d_(dialog) {}
+  Shown(const Dialog& dialog, unsigned revision) : d_(dialog), revision_(revision) {}
 
   std::string_view text(int id, int) override {
     switch (id) {
@@ -30,13 +30,17 @@ class Shown final : public skin::Source {
       default: return d_.cancel;
     }
   }
-  float number(int id, int) override { return (id == Wide ? d_.wide : !d_.cancel.empty()) ? 1.0f : 0.0f; }
+  float number(int id, int) override {
+    if (id == Revision) return static_cast<float>(revision_);
+    return (id == Wide ? d_.wide : !d_.cancel.empty()) ? 1.0f : 0.0f;
+  }
   void report(int id, float value) override { (id == Width ? size.width : size.height) = value; }
 
   D2D1_SIZE_F size{};
 
  private:
   const Dialog& d_;
+  unsigned revision_;
 };
 
 }  // namespace
@@ -60,7 +64,7 @@ float Dialogs::width_here() const {
 D2D1_SIZE_F Dialogs::content_size() const {
   if (!dialog_) return {0, 0};
   if (const skin::Screen* screen = ui_.pack_screen("dialog")) {
-    Shown shown(*dialog_);
+    Shown shown(*dialog_, revision_);
     measure_screen(ui_, *screen, ui_.content, shown);
     return shown.size;
   }
@@ -76,8 +80,8 @@ void Dialogs::paint(Painter& p) {
   if (!dialog_) return;
   if (const skin::Screen* screen = ui_.pack_screen("dialog")) {
     p.set_base(D2D1::Matrix3x2F::Identity());
-    Shown shown(*dialog_);
-    draw_screen(ui_, p, this, *screen, ui_.content, shown);
+    Shown shown(*dialog_, revision_);
+    draw_layer(ui_, p, this, *screen, ui_.content, shown);
     return;
   }
   const DialogMetrics m = ui_.skin().dialog_metrics();
@@ -120,7 +124,7 @@ bool Dialogs::escape() {
 
 Cursor Dialogs::cursor(int id) const { return id == Confirm || id == Cancel ? Cursor::Hand : Cursor::Arrow; }
 
-bool Dialogs::animating() const { return ui_.animations && was_animating_; }
+bool Dialogs::animating() const { return ui_.animations && was_animating_ && !ui_.pack_screen("dialog"); }
 
 bool Dialogs::tick(unsigned long long now_ms) {
   if (!was_animating_) return false;

@@ -347,9 +347,9 @@ void Engine::play(const Event& event) {
 }
 
 std::span<const float> Engine::generated_chime(const std::string& name) {
-  const std::string key = "chime:" + name;
+  const std::string key = "chime:" + std::to_string(static_cast<int>(settings_.chimes)) + ":" + name;
   if (const auto found = recordings_.find(key); found != recordings_.end()) return found->second;
-  return recordings_.emplace(key, synthesize_chime(name, rate_)).first->second;
+  return recordings_.emplace(key, synthesize_chime(name, rate_, settings_.chimes)).first->second;
 }
 
 void Engine::play_cue(const Cue& cue) {
@@ -358,7 +358,7 @@ void Engine::play_cue(const Cue& cue) {
       (settings_.idle_muted || (settings_.muted && settings_.mute_notifications))) {
     return;
   }
-  if (settings_.chimes && cue.kind != CueKind::System && can_chime(cue.name)) {
+  if (settings_.chimes != ChimeStyle::None && cue.kind != CueKind::System && can_chime(cue.name)) {
     if (ensure_open()) start_voice(generated_chime(cue.name), own_mix(), 1.0f);
     return;
   }

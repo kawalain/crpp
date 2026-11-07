@@ -25,8 +25,10 @@ inline constexpr float synth_longest_ms = 80;
 // The chimes of a Skin that has its own notification sounds: small bells going up, made here and
 // not modelled on any recording. Only a message and someone entering have one.
 inline constexpr float chime_longest_ms = 500;
+// Bells go up in quick notes. Plain is one soft tone, or two a step apart, as simple desktops had.
+enum class ChimeStyle : unsigned char { None, Bells, Plain };
 [[nodiscard]] bool can_chime(std::string_view name) noexcept;
 // Empty for any other name.
-[[nodiscard]] std::vector<float> synthesize_chime(std::string_view name, std::uint32_t rate);
+[[nodiscard]] std::vector<float> synthesize_chime(std::string_view name, std::uint32_t rate, ChimeStyle style = ChimeStyle::Bells);
 
 }  // namespace crpp::sound

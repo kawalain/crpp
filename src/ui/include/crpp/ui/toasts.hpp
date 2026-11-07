@@ -47,6 +47,7 @@ class Toasts final : public Surface {
   void paint_toast(Painter& p);
   void paint_bubble(Painter& p);
   [[nodiscard]] float visibility(const Message& m, float duration_ms) const;
+  [[nodiscard]] bool up(const Message& m) const { return !ui_.animations || !m.hide_at || ui_.now_ms < m.hide_at; }
   [[nodiscard]] bool moving(const Message& m, float duration_ms, unsigned long long now) const;
 
   Message toast_;
@@ -55,6 +56,9 @@ class Toasts final : public Surface {
   Message bubble_;
   Rect anchor_;
   float gap_ = 8;
+  unsigned bubbles_ = 0;
+  // How long each takes to come and go (.toast and .btn-notice transition), until a pack reports its own.
+  float toast_ms_ = 180, bubble_ms_ = 150;
 };
 
 }  // namespace crpp::ui

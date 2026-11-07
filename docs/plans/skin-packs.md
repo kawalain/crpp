@@ -33,12 +33,33 @@ A smaller exe and less memory are not goals.
   once at start, files arrive behind the app and apply on the next start, with no polling.
 - **Cursors.** Part of a pack, drawn as vectors, made into `HCURSOR` at run time with `SetCursor` only, so they
   stop at the app's windows. Seven: arrow, hand, I-beam and four for resizing. Cloud's pack has none and uses the
-  system's. Both Messenger Themes share one set, modelled on the white arrow of the time and drawn here, with an
+  system's. All of Retro shares one set, modelled on the white arrow of the time and drawn here, with an
   I-beam that has a white edge to show on any field. They scale with the window's DPI and follow Windows' pointer
-  size. The shadow is left to the system, as no source says whether it adds one to such a cursor and drawing one could
+  size. A pack asks for hard edges, and then the steps of the grid are part of the look. The shadow is left to the system, as no source says whether it adds one to such a cursor and drawing one could
   double it. A "테마 커서 사용" check in the display tab, on by default and shown only for a Theme
   with cursors, turns them off (`themeCursor`, a key of this client's own). OS menus and IME windows stay the
   system's. Whether resizing keeps them during the drag needs a real desktop.
+
+- **What the program knows.** Decided on 2026-11-08. Generic nodes, the names of app state and commands, screen
+  slots and wording keys. It does not know a pack's name, a Theme's id, or any colour, size, duration or curve: those
+  are read from packs. What is hard to express as data, such as scrolling's settling or a partial redraw, stays a
+  general feature of the engine, with its numbers from the pack. Which pack comes first is the catalog's to say.
+- **Skins and Themes.** A user picks a Skin, then a Theme, then a dark mode: off, on or following the system. Dark is a
+  variant of a Theme with its own Palette, and is locked while the Theme has none, without losing the choice. Changing
+  Skin goes to that Skin's default Theme. These replace the lists of light and dark Themes, and the choice is kept under
+  this client's own keys `skin`, `skinTheme` and `darkMode`. When they are absent upstream's `theme` is read once;
+  upstream's keys are never written.
+- **Packs.** `skins/cloud` has 구름 (dark variant 먹구름) and 파스텔 (no dark variant). `skins/retro` has `classic`, the
+  default, then `luna_blue`, `luna_homestead` and `luna_metallic`, shown as 고전, 루나 블루, 루나 홈스테드 and 루나 메탈릭,
+  all four with a dark variant. Classic is 98's look with its blue gradient caption. Colours come from public sources,
+  and no file of Windows is copied.
+- **Luna within Retro.** Luna differs in its frame, controls, fonts and sounds, not only colours, so `retro` holds an
+  overlay `luna` that its Themes name. An overlay is merged by the same code as a parent pack.
+- **Extending.** A pack may name a parent with `"extends"`. Constants, fonts, parts, cursors and screens are replaced
+  whole by name, with no patches inside a node tree. Themes are inherited, and a child adds to them or replaces one by
+  name. A dark variant inherits its Theme's colours by name. At most four levels; a cycle or another `format` is refused.
+  A parent is a pack of its own, fetched with its child, and cannot be removed while a child uses it. No official pack
+  extends another yet, so a test pack proves this.
 
 ## Limits on cost
 
@@ -78,24 +99,58 @@ Step 2 done, all of Messenger from data, on 26 screens and 595 nodes:
 - From the pack on a hidden desktop: the frame's hit tests, window sizes per screen and panel, a question holding the others off, and leaving for Cloud's
   Theme all behave. The cursors themselves need a real desktop, which is in Verification debt.
 
+Steps 3 to 5, Cloud from its pack against the C++ layouts at 2680ddd, on 26 screens and 668 nodes, MSVC Release on a hidden desktop at 100%, settings open, the
+wheel posted about 60 times a second and reversing every 20 notches, seven rounds of each taken in turn:
+
+- 74 scenes in Korean at 100% and 150% and English at 100%, moments of motion included, give the hash of the C++ layouts. The exceptions are `luna-controls`, which
+  is not a Cloud screen, and the display tab and `motion-tab`, which have the new rows. Three of those were looked at: `settings-display-tip`, `settings-display-dark` and `motion-tab`.
+  `settings-display-dark` shows the mode as off, because the scene sets the Theme without the settings. Retro's Luna is unchanged but for its display tab.
+- Idle CPU 0.00% in both. Tests show a Room, chat and settings ask for no frames once settled.
+- Scrolling: 4.88-9.77% (mean 7.48%) before, 5.47-7.81% (mean 6.47%) now. Within the limit.
+- Reading the pack 3.5 ms and the first screen 0.8 ms. A frame offscreen: +1.3%. The pack holds about 183 KB.
+- **Idle memory is over the limit by its mean:** working set 45.7-51.6 MB (mean 47.6) before, 52.1-52.5 MB (mean 52.3) now, so +9.9%. Private 73.9 MB to 75.8 MB, +2.6%.
+  The earlier build lands either near 46 or near 52, and the new one always at the top of that, so this may be which mode it lands in and not what it holds. Not looked into: it goes to the user.
+
+## Open
+
+Reported by the user on 2026-11-08 after trying the build. None is fixed yet:
+
+- Under Retro's classic, the changelog page and a message box have Luna's background colour.
+- Under Retro, a button acts as soon as the button goes down. It should act when it comes up in the same place.
+- Under Retro, a scrollbar's buttons show no pressed look.
+- Retro's cursors, the hand above all, differ somewhat from the real ones.
+
+Waiting for a decision from the user: idle memory over its limit, under Measured.
+
 ## Steps
 
-Start from `main` with the Messenger work merged, after the user has seen its real windows.
+Start from `main` with the Messenger work merged, after the user has seen its real windows. Steps 1 to 5 are done, but for the user's hands on step 4 and the
+memory above.
 
 1. **Engine, proved on one screen.** A pure, portable module for parsing and layout, tested by CTest and GCC, and a
    painter on `Gfx` in `ui`. Move Messenger's Home to data beside the C++ one and measure the limits. Stop here if
    they do not hold.
 2. **All of Messenger as data.** Screens, settings, panels' windows, frame, controls and cursors, including the
    cursor setting. It has no motion, so it proves layout first. Compared by eye at 100%, 125% and 150%.
-3. **Cloud as data.** Add transitions and what its art needs. Done when every scene in `tests/shots/scenes.txt`
+   Then, on 2026-11-08, its pointers were redrawn: drawn with hard edges on the 32 by 32 grid, then enlarged by nearest
+   neighbour, so the steps grow with the display's scale.
+3. **Extending, and Retro.** The engine for `extends` and overlays. `skins/messenger` becomes `skins/retro` with the
+   overlay `luna`, proved by the hashes: `luna_blue` and its dark variant against what `messenger` and `messengerdark`
+   draw today. Then `classic` and the other Luna Themes, which have nothing to compare with and need the user's eyes.
+4. **Cloud as data.** Value changes such as hover, toggles, tabs, dropdowns and dialogs state a duration and a curve in
+   the pack. Scrolling, screen changes, speaking discs and reusing chat rows stay in the engine with numbers from the
+   pack. Edge fades and layered shadows become nodes. Done when every scene in `tests/shots/scenes.txt`
    renders to the same hash in Korean at 100% and 150% and in English at 100%. That proves the look and not the feel,
-   so motion scenes (`--at`) are compared as well.
-4. **Packs and download.** `skins/` in this repository, catalog and signature, the second key, the first-run screen,
+   so motion scenes (`--at`) are compared as well, and the user tries scrolling and transitions by hand with
+   `--skin-dir` before the next step.
+5. **Choosing.** The Skin, Theme and dark mode rows, their keys, and the list of Themes read from packs, which needs
+   Cloud's pack first.
+6. **Packs and download.** `skins/` in this repository, catalog and signature, the second key, the first-run screen,
    the second source, the display tab's list, removal and background updates. Generating the key is the user's step,
    as in `docs/signing-key.md`. The Cloud pack refers to Pretendard at its own pinned source.
-5. **Remove the C++.** Delete Luna's and Cloud's layouts and `Skin`, and fix ADR 0004 and the module design. Measure
+7. **Remove the C++.** Delete Luna's and Cloud's layouts and `Skin`, and fix ADR 0004 and the module design. Measure
    again.
-6. **Release path.** `docs/releases/README.md` and its script publish the catalog. A clean install is tried with a
+8. **Release path.** `docs/releases/README.md` and its script publish the catalog. A clean install is tried with a
    local server, then for real once the files are on GitHub.
 
 ## Testing

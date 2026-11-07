@@ -152,10 +152,17 @@ against a real `server/` yet; do that once a local build of it is available.
   loaded, and a first run ever does not open it. A new version's notes open when the app
   first notices it, not after the update, and not again once it is installed. They are
   the release's most important changes, then its commits by kind.
-- Two Themes upstream does not have, 메신저 and 메신저 다크, in the look of a messenger of the early
-  2000s (`docs/research/retro-messenger-look.md`). Values and shapes are re-created as vectors, and
-  nothing is taken from Windows or the old programs; no logo, person icon, sound or font of theirs,
-  and their names are never shown. 구름 stays the default. Under these Themes:
+- A user picks a Skin, a Theme and a dark mode (off, on, following the system) in the display tab, where
+  upstream has a toggle and lists of light and dark Themes. They are read from the packs in `skins/` beside
+  the exe and kept under `skin`, `skinTheme` and `darkMode`; until those are set upstream's `theme`,
+  `systemTheme` and `lightTheme` are read, and the choice never writes them. The dark mode is locked while
+  a Theme has no dark variant, keeping its value. Another Skin goes to its default Theme.
+- The create cloud on Home really grows under the pointer, as upstream's does. The C++ layout asked for it
+  and its cloud reset the transform it was under.
+- A second Skin upstream does not have, Retro, in the look of the desktops of the 1990s and early 2000s
+  (`docs/research/retro-messenger-look.md`, `docs/research/retro-themes.md`). Values and shapes are re-created
+  as vectors, and nothing is taken from Windows or the old programs: no logo, person icon, sound or font of
+  theirs. 구름 stays the default. Under Retro:
   - The app draws its window frame, with minimize and close only. Those two are ordinary hits in
     the client area, not caption buttons.
   - The window has a size per screen, remembered per screen under `window<Screen>Width` and
@@ -166,8 +173,9 @@ against a real `server/` yet; do that once a local build of it is available.
   - Home lists the Seats to return to, where Cloud asks once in a dialog.
   - A menu bar holds only commands that work, by mouse and Escape; there are no Alt keys yet.
   - Only links show the hand cursor, and none of the motion listed above runs.
-  - Text is Gulim and Tahoma, the fonts of the time on this system, not Pretendard.
-  - A message and someone entering sound as bells made in `synth`, not the pack's recordings.
+  - Text is in the fonts of the time on this system, not Pretendard.
+  - A message and someone entering sound as tones made in `synth`, not the pack's recordings: plain tones
+    under classic, and bells under Luna.
   - The pointer is drawn here too, and only in the app's windows: seven vector cursors of the Skin Pack, made into
     system cursors when first needed. "테마 커서 사용" in the display tab, on by default and shown only for a Theme
     with cursors, gives the system's back (`themeCursor`, a key of this client's own).
@@ -190,7 +198,9 @@ A shot is in Korean and in the Theme of its scene unless `--locale <id>` or
 A scene that opens a panel with a window of its own renders that window. Under `--skin-dir`, the scene `cursors`, which
 is not in `scenes.txt`, is a sheet of the pack's cursors.
 
-`--skin-dir <dir>` draws from the unsigned Skin Pack in that folder what it has, and the C++ layout
+A normal run offers every pack in `skins/` beside the exe, and draws with the C++ layouts when there is none. A shot
+without `--skin-dir` always draws with them, so that it can be compared with what a pack draws.
+`--skin-dir <dir>` draws from the unsigned Skin Pack in that folder what it has and offers only that pack, and the C++ layout
 draws the rest until `docs/plans/skin-packs.md` is done. `crpp_ui_skin_bench`, not part of a normal
 build, measures a pack against the C++ layout.
 
@@ -325,7 +335,7 @@ exist (real + test).
   desktop, settings open: idle 0.0% of one core and about 47 MB working set; wheel
   scrolling without pause 0.6-1.9% at about 73 frames/s (a counter confirmed the frames),
   back to 0.0% afterwards. A real desktop adds composition, which this does not show.
-- The Messenger Themes, the same way with the wheel posted about 60 times a second, reversing every
+- Retro, the same way with the wheel posted about 60 times a second, reversing every
   20 notches, on the options window: idle 0.0%, about 43 MB working set and 59 MB private; scrolling
   1.3-3.4%; 0.0% afterwards. With the options window open the second render target costs about 8 MB of
   working set (about 52 MB), until it closes. Cloud under the same harder wheel: idle 0.0% and about 45 MB; scrolling
@@ -381,7 +391,12 @@ exist (real + test).
   Intel and AMD drivers, and a Room with real members has not been seen under these Themes.
 - Following the OS theme with a Theme of another Skin on the other side has only run in tests: the
   frame and window size should change with it.
-- The Messenger Themes' bells need ears: `crpp_soundtest --chimes`.
+- The tones of Retro's Themes need ears: `crpp_soundtest --chimes`, bells and then plain tones.
+- Retro's colours for Homestead, Metallic and the dark variants are drawn here (`docs/research/retro-themes.md`),
+  and only some of their screens have been seen, on a hidden desktop. Choosing a Skin and going from one to
+  another has run in tests and on a hidden desktop only: see it on a real one.
+- Cloud from its pack gives the C++ layout's image in every scene, moments of motion included, which proves the look
+  and not the feel. Try scrolling, hovering and every transition by hand.
 - The pack's cursors have only been drawn into bitmaps, with `DrawIconEx` for the blending. See on a real desktop: their edges,
   whether a resize keeps them during the drag, and whether the system puts its pointer shadow on them; Microsoft does not say,
   so they draw none. `CursorBaseSize` for "Pointer size" is undocumented and taken from what Qt does; try other sizes, and whether

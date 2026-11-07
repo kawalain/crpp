@@ -1,0 +1,49 @@
+{
+  "$schema": "../../schema/screen.settings_display.schema.json",
+  "draw": [
+    {"text": "#display_theme", "style": "heading", "color": "$hl_text", "x": 9, "y": 25, "w": "W-9", "h": 32},
+    {"text": "#display_skin", "style": "row_label", "color": "$hl_text", "x": 16, "y": 81, "w": 260, "h": 26},
+    {"slot": "skin_list", "x": 285, "y": 75, "w": 246, "h": 38},
+    {"text": "#display_skin_theme", "style": "row_label", "color": "$hl_text", "x": 16, "y": 133, "w": 260, "h": 26},
+    {"slot": "theme_list", "x": 285, "y": 127, "w": 246, "h": 38},
+    {"text": "#display_dark_mode", "style": "row_label", "color": "$hl_text", "x": 16, "y": 185, "w": 260, "h": 26},
+    {"slot": "dark_mode_list", "x": 285, "y": 179, "w": 246, "h": 38},
+
+    {"let": "chat_top", "value": "76+52*2+62+76-25"},
+    {"text": "#room_word_chat", "style": "heading", "color": "$hl_text", "x": 9, "y": "chat_top-51", "w": "W-9", "h": 32},
+    // The sample cancels the stage's scale: it shows what the chat, which is not scaled with the window, will really look like.
+    {"let": "zoom", "value": "@percent/100"},
+    {"let": "sample_h", "value": "116/@scale"},
+    {"fill": "alpha($hl, 0.1)", "radius": 14, "x": 8, "y": "chat_top", "w": "420/@scale", "h": "sample_h"},
+    {"x": 8, "y": "chat_top", "w": "420/@scale", "h": "sample_h", "clip": true, "soft_clip": true, "group": [
+      {"scale": "zoom/@scale", "origin": true, "group": [
+        // .chat-sample .chat-list has padding 14 18; the rest is .chat-head and .chat-text.
+        {"let": "inner_w", "value": "420/zoom-36"},
+        {"picture": "sample_emoji", "x": 18, "y": 14, "w": 25, "h": 25},
+        {"text": "@sample_time", "style": "sample_time", "color": "$hl_text", "x": 18, "y": 16.5, "w": "inner_w", "h": 20},
+        {"let": "time_w", "value": "textw('sample_time', '@sample_time', inner_w)"},
+        {"text": "@sample_nick", "style": "sample_nick", "color": "$hl_text", "x": 50, "y": 16.5, "w": "max(20, inner_w-25-7-time_w-7)", "h": 20},
+        {"text": "#display_chat_sample", "style": "sample_text", "color": "$hl_text", "x": 18, "y": 41, "w": 2000, "h": 19}
+      ]}
+    ]},
+
+    {"let": "label_y", "value": "chat_top+sample_h+14"},
+    {"text": "#display_chat_size", "style": "row_label", "color": "$hl_text", "x": 16, "y": "label_y", "w": 300, "h": 26},
+    {"note": "slider", "x": 16, "y": "label_y+26+8", "w": 244, "h": 14, "group": [
+      {"let": "at", "value": "(@percent-80)/70"},
+      {"use": "slider", "args": {"at": "at"}},
+      {"hit": "scale_slider", "y": -4, "h": "H+8", "group": [
+        // .volume-tooltip, centered over the thumb.
+        {"let": "shown", "to": "hot || @dragging", "first": "jump", "ms": 120},
+        {"if": "shown>0", "group": [
+          {"let": "tip_w", "value": "textw('slider_value_measure', '@percent_text', 2000)+18"},
+          {"x": "10.5+at*(W-21)-tip_w/2", "y": "4-26-11", "w": "tip_w", "h": 26, "group": [
+            {"fill": "alpha($volume_tip, shown)", "radius": 13},
+            {"text": "@percent_text", "style": "slider_value", "color": "alpha($white, shown)"}
+          ]}
+        ]}
+      ]}
+    ]},
+    {"report": "height", "value": "chat_top+sample_h+14+26+8+14+25"}
+  ]
+}

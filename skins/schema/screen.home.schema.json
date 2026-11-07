@@ -1,7 +1,7 @@
 {
   "$schema": "http://json-schema.org/draft-07/schema#",
   "title": "The screen home of a Skin Pack",
-  "description": "A screen of a Skin Pack, as {\"draw\": [nodes]}. With no file for a screen, the program draws it itself.\nNumbers: @seats.\nTexts: @nickname, @greeting, @seat.\nHits: create, join, code, find, seat.\nPictures: my_emoji.\nFields: code.\nSlots: none.\nReports: none.\nNotes: none.",
+  "description": "A screen of a Skin Pack, as {\"draw\": [nodes]}. With no file for a screen, the program draws it itself.\nNumbers: @seats, @returning, @code_focus, @find_tip.\nTexts: @nickname, @greeting, @seat, @hello.\nHits: create, join, code, find, seat.\nPictures: my_emoji.\nFields: code.\nSlots: none.\nReports: none.\nNotes: none.",
   "allowComments": true,
   "allowTrailingCommas": true,
   "type": "object",
@@ -24,7 +24,8 @@
           "enum": [
             "@nickname",
             "@greeting",
-            "@seat"
+            "@seat",
+            "@hello"
           ]
         },
         {

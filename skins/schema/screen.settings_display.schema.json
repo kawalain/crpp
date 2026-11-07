@@ -1,7 +1,7 @@
 {
   "$schema": "http://json-schema.org/draft-07/schema#",
   "title": "The screen settings_display of a Skin Pack",
-  "description": "A screen of a Skin Pack, as {\"draw\": [nodes]}. With no file for a screen, the program draws it itself.\nNumbers: @sync, @percent, @has_cursors, @theme_cursor.\nTexts: @sample_says, @percent_text.\nHits: system_theme, scale_slider, theme_cursor.\nPictures: none.\nFields: none.\nSlots: theme_list, light_list, dark_list.\nReports: height.\nNotes: slider.",
+  "description": "A screen of a Skin Pack, as {\"draw\": [nodes]}. With no file for a screen, the program draws it itself.\nNumbers: @percent, @has_cursors, @theme_cursor, @scale, @dragging.\nTexts: @sample_says, @percent_text, @sample_nick, @sample_time.\nHits: scale_slider, theme_cursor.\nPictures: sample_emoji.\nFields: none.\nSlots: skin_list, theme_list, dark_mode_list.\nReports: height.\nNotes: slider.",
   "allowComments": true,
   "allowTrailingCommas": true,
   "type": "object",
@@ -23,7 +23,9 @@
         {
           "enum": [
             "@sample_says",
-            "@percent_text"
+            "@percent_text",
+            "@sample_nick",
+            "@sample_time"
           ]
         },
         {
@@ -46,7 +48,6 @@
       "properties": {
         "hit": {
           "enum": [
-            "system_theme",
             "scale_slider",
             "theme_cursor"
           ]
@@ -56,13 +57,17 @@
             "slider"
           ]
         },
-        "picture": false,
+        "picture": {
+          "enum": [
+            "sample_emoji"
+          ]
+        },
         "field": false,
         "slot": {
           "enum": [
+            "skin_list",
             "theme_list",
-            "light_list",
-            "dark_list"
+            "dark_mode_list"
           ]
         },
         "report": {

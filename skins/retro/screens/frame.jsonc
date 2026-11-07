@@ -1,0 +1,30 @@
+{
+  "$schema": "../../schema/screen.frame.schema.json",
+  "draw": [
+    {"let": "cap", "value": "snap(caption_h)"},
+    {"let": "band", "value": "snap(frame_w)"},
+    {"fill": "$face", "h": "cap"},
+    {"use": "frame_ring", "args": {"at": "2*u", "thick": "band-2*u", "top": "cap", "left": "$face", "right": "$face", "bottom": "$face"}},
+    {"use": "frame_ring", "args": {"at": "u", "thick": "u", "top": "u", "left": "$edge_soft", "right": "$edge_dark", "bottom": "$edge_dark"}},
+    {"use": "frame_ring", "args": {"at": 0, "thick": "u", "top": 0, "left": "$edge_light", "right": "$edge_out", "bottom": "$edge_out"}},
+    {"fill": "$edge_soft", "x": "u", "y": "u", "w": "W-3*u", "h": "u"},
+    {"fill": "$edge_light", "w": "W-u", "h": "u"},
+    {"fill": "@active ? $caption : $caption_idle", "across": true, "x": "band", "y": "band", "w": "W-2*band", "h": "cap-band"},
+
+    {"picture": "droplet", "x": "band+1", "y": "band+1", "w": 16, "h": 16},
+    {"let": "button_left", "value": "W-frame_button_right-frame_button"},
+    {"let": "minimize_left", "value": "button_left-frame_button-frame_button_gap"},
+    {"let": "title_end", "value": "@minimize ? minimize_left : @close ? button_left : W"},
+    {"text": "@title", "style": "caption", "color": "$caption_ink", "x": "band+20", "y": "band", "w": "max(0, title_end-band-24)", "h": "cap-band"},
+    {"if": "@minimize", "use": "caption_button", "hit": "minimize", "x": "minimize_left", "y": "frame_button_top", "w": "frame_button", "h": "frame_button-2"},
+    {"if": "@close", "use": "caption_button", "hit": "close", "args": {"close": 1}, "x": "button_left", "y": "frame_button_top", "w": "frame_button", "h": "frame_button-2"},
+
+    {"if": "@menu_shown", "x": "frame_w", "y": "caption_h", "w": "W-2*frame_w", "h": "menu_h", "group": [
+      {"fill": "$face"},
+      {"fill": "$edge_dark", "y": "H-1", "h": 1},
+      {"use": "menu_title", "id": "one", "text": "#menu_file", "hit": "menu", "hit_index": 0, "note": "menu_0", "args": {"open": "@open_menu==0"}},
+      {"use": "menu_title", "id": "two", "text": "#menu_tools", "hit": "menu", "hit_index": 1, "note": "menu_1", "args": {"open": "@open_menu==1"}, "x": "one.right"},
+      {"use": "menu_title", "text": "#menu_help", "hit": "menu", "hit_index": 2, "note": "menu_2", "args": {"open": "@open_menu==2"}, "x": "two.right"}
+    ]}
+  ]
+}

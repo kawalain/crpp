@@ -7,10 +7,7 @@
   "type": "object",
   "required": [
     "format",
-    "id",
-    "palettes",
-    "styles",
-    "parts"
+    "id"
   ],
   "additionalProperties": false,
   "properties": {
@@ -24,6 +21,53 @@
     "id": {
       "type": "string",
       "description": "The name of the pack, in lower case."
+    },
+    "names": {
+      "type": "object",
+      "additionalProperties": {
+        "type": "string"
+      },
+      "description": "What the user calls this Skin, by locale id."
+    },
+    "extends": {
+      "type": "string",
+      "description": "The id of the pack this one starts from. What this names replaces what that has by the same name."
+    },
+    "themes": {
+      "type": "object",
+      "additionalProperties": {
+        "type": "object",
+        "required": [
+          "names"
+        ],
+        "additionalProperties": false,
+        "properties": {
+          "names": {
+            "type": "object",
+            "additionalProperties": {
+              "type": "string"
+            },
+            "description": "What the user sees, by locale id."
+          },
+          "palette": {
+            "type": "string",
+            "description": "Its Palette, when that is not named as the Theme is."
+          },
+          "dark": {
+            "type": "string",
+            "description": "The Palette of its dark variant. Without this it has none."
+          },
+          "overlay": {
+            "type": "string",
+            "description": "The folder under overlays/ it needs on top of the pack."
+          }
+        }
+      },
+      "description": "What a user can pick in this Skin. The pack holds only the Palettes of the Themes of one overlay at a time."
+    },
+    "default_theme": {
+      "type": "string",
+      "description": "The Theme this Skin goes to when it is picked."
     },
     "constants": {
       "type": "object",
@@ -241,6 +285,10 @@
               "description": "The point that clicks, in that box."
             }
           }
+        },
+        "hard": {
+          "type": "boolean",
+          "description": "Hard edges in that box, then enlarged by whole pixels, so the steps of the grid show at any scale."
         }
       },
       "required": [
@@ -260,7 +308,7 @@
       "additionalProperties": {
         "$ref": "#/definitions/palette"
       },
-      "description": "One per Theme id. All have the same entries."
+      "description": "By the names themes gives them, or one per Theme without themes. Those of one overlay have the same entries."
     },
     "styles": {
       "type": "object",
@@ -274,75 +322,9 @@
       "additionalProperties": {
         "$ref": "#/definitions/part"
       },
-      "description": "Controls that screens use. A part can only use parts above it, and knows nothing of screens."
+      "description": "Controls that screens use. A part can only use parts above it, unless the pack extends another or has an overlay, and knows nothing of screens."
     }
   },
-  "allOf": [
-    {
-      "properties": {
-        "constants": {
-          "required": [
-            "own_frame",
-            "moves",
-            "list_pad",
-            "list_item_h",
-            "list_gap",
-            "list_max_h",
-            "list_margin"
-          ],
-          "if": {
-            "required": [
-              "own_frame"
-            ],
-            "properties": {
-              "own_frame": {
-                "not": {
-                  "const": 0
-                }
-              }
-            }
-          },
-          "then": {
-            "required": [
-              "caption_h",
-              "frame_w",
-              "menu_h",
-              "window_radius",
-              "frame_edge",
-              "frame_corner",
-              "frame_button",
-              "frame_button_gap",
-              "frame_button_top",
-              "frame_button_right",
-              "window_home_w",
-              "window_home_h",
-              "window_home_min_w",
-              "window_home_min_h",
-              "window_room_w",
-              "window_room_h",
-              "window_room_min_w",
-              "window_room_min_h",
-              "window_prompt_w",
-              "window_prompt_h",
-              "window_prompt_min_w",
-              "window_prompt_min_h",
-              "window_options_w",
-              "window_options_h",
-              "window_options_min_w",
-              "window_options_min_h",
-              "window_changelog_w",
-              "window_changelog_h",
-              "window_changelog_min_w",
-              "window_changelog_min_h"
-            ]
-          }
-        }
-      },
-      "required": [
-        "constants"
-      ]
-    }
-  ],
   "definitions": {
     "color": {
       "type": "string",
@@ -425,6 +407,12 @@
             }
           }
         ]
+      },
+      "properties": {
+        "extends": {
+          "type": "string",
+          "description": "Another Palette, whose entries this one starts from."
+        }
       }
     },
     "style": {

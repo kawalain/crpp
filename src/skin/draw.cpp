@@ -23,6 +23,7 @@ class Walker final : public Env {
     start(part.snap ? canvas_.snap(box) : box);
     frame_size_ = part.frame;
     label_ = call.label;
+    seed_ = call.seed;
     vars[VarHot] = call.hot ? 1.0f : 0.0f;
     vars[VarPressed] = call.pressed ? 1.0f : 0.0f;
     for (std::size_t i = 0; i < part.argument_names.size(); ++i) {
@@ -43,6 +44,10 @@ class Walker final : public Env {
 
   float snap(float v) override { return canvas_.snap(v); }
 
+  // A worked-out colour is a value below 0, which says where it is among the last few.
+  float mix_colors(float a, float b, float percent) override { return worked_out(mix(color_at(a), color_at(b), percent)); }
+  float alpha_of(float color, float alpha) override { return worked_out(with_alpha(color_at(color), alpha)); }
+
  private:
   void start(Box area) {
     vars[VarX] = area.x;
@@ -51,6 +56,7 @@ class Walker final : public Env {
     vars[VarH] = area.h;
     vars[VarU] = canvas_.line();
     vars[VarFontSize] = canvas_.font_size();
+    vars[VarDark] = pack_.palette_is_dark(palette_) ? 1.0f : 0.0f;
     frame = slots_.data();
   }
 
@@ -72,10 +78,23 @@ class Walker final : public Env {
     return {.size = value(s.size), .line_height = value(s.line_height), .letter_spacing = s.letter_spacing, .weight = s.weight, .align = s.align, .role = s.role, .wrap = s.wrap, .ellipsis = s.ellipsis, .exact = s.exact, .keep_words = s.keep_words};
   }
 
-  [[nodiscard]] Color color_of(Expr e) {
-    const Paint* paint = pack_.paint(palette_, value(e));
+  [[nodiscard]] Color color_at(float v) {
+    if (v < 0) return worked_[static_cast<std::size_t>(-v - 1) % worked_.size()];
+    const Paint* paint = pack_.paint(palette_, v);
     return paint ? paint->color : Color{0, 0, 0, 0};
   }
+
+  [[nodiscard]] float worked_out(Color c) {
+    const std::size_t at = next_worked_++ % worked_.size();
+    worked_[at] = c;
+    return -static_cast<float>(at) - 1;
+  }
+
+  [[nodiscard]] Color color_of(Expr e) { return color_at(value(e)); }
+
+  [[nodiscard]] std::uint64_t key_of(const Node& n) const { return mixed(seed_, static_cast<std::uint64_t>(&n - pack_.nodes.data())); }
+
+  [[nodiscard]] static std::uint64_t mixed(std::uint64_t a, std::uint64_t b) { return (a ^ (b + 0x9E3779B97F4A7C15ull + (a << 6) + (a >> 2))) * 0xFF51AFD7ED558CCDull; }
 
   [[nodiscard]] Color color_of(const Node& n) {
     Color c = color_of(n.paint);
@@ -123,6 +142,11 @@ class Walker final : public Env {
     }
     switch (n.kind) {
       case NodeKind::Let:
+        if (n.transition) {
+          slots_[base_ + n.slot] = canvas_.transition(n.has_alpha ? mixed(static_cast<std::uint64_t>(&n - pack_.nodes.data()), static_cast<std::uint64_t>(value(n.alpha))) : key_of(n), {.on = value(n.extra) != 0, .ms_on = value(n.width), .ms_off = value(n.extra2), .first_jumps = n.first_jumps, .curve = n.linear ? Curve::Linear : Curve::Ease, .again = n.has_size ? value(n.size) : 0});
+          return;
+        }
+        [[fallthrough]];
       case NodeKind::Set: slots_[base_ + n.slot] = value(n.extra); return;
       case NodeKind::Report: source_.report(n.bound, value(n.extra)); return;
       case NodeKind::Content: content(); return;
@@ -162,9 +186,13 @@ class Walker final : public Env {
     switch (n.kind) {
       case NodeKind::Fill: fill(n, box); break;
       case NodeKind::Frame: canvas_.frame(box, color_of(n)); break;
-      case NodeKind::Stroke: canvas_.stroke_round(box, value(n.extra), color_of(n), value(n.width)); break;
+      case NodeKind::Stroke:
+        if (n.ellipse) canvas_.stroke_ellipse(box, color_of(n), value(n.width));
+        else canvas_.stroke_round(box, value(n.extra), color_of(n), value(n.width));
+        break;
+      case NodeKind::Shadow: canvas_.shadow_round(box, value(n.extra), value(n.width), value(n.extra2), color_of(n)); break;
       case NodeKind::Line: canvas_.line(box.x, box.y, vars[VarX] + value(n.extra), vars[VarY] + value(n.extra2), color_of(n.paint), value(n.width)); break;
-      case NodeKind::Path: canvas_.path(std::string_view(pack_.literals).substr(n.text, n.count), box.x, box.y, value(n.extra), color_of(n.paint), value(n.width), n.round_caps, n.soft); break;
+      case NodeKind::Path: path(n, box); break;
       case NodeKind::Text: {
         TextLook look = look_of(n.style);
         if (n.has_size) look.size = value(n.size);
@@ -176,8 +204,10 @@ class Walker final : public Env {
       case NodeKind::Field: field(n, box); break;
       case NodeKind::Slot: slot(n, box); break;
       case NodeKind::Group:
-        if (n.clip) canvas_.push_clip(box);
-        inside(box, n.first, n.count);
+        if (n.clip && n.soft) canvas_.push_soft_clip(box);
+        else if (n.clip) canvas_.push_clip(box);
+        if (n.has_effects) with_effects(n, box);
+        else inside(box, n.first, n.count);
         if (n.clip) canvas_.pop_clip();
         break;
       case NodeKind::Column: {
@@ -198,10 +228,13 @@ class Walker final : public Env {
       case NodeKind::Repeat: {
         const int rounds = std::clamp(static_cast<int>(value(n.extra)), 0, max_repeat);
         const float outer = vars[VarI];
+        const std::uint64_t outer_seed = seed_;
         for (int round = 0; round < rounds; ++round) {
           vars[VarI] = static_cast<float>(round);
+          seed_ = mixed(outer_seed, static_cast<std::uint64_t>(round));
           inside(box, n.first, n.count);
         }
+        seed_ = outer_seed;
         vars[VarI] = outer;
         break;
       }
@@ -210,7 +243,14 @@ class Walker final : public Env {
       case NodeKind::Set:
       case NodeKind::Report: break;
     }
-    if (hit != no_hit && (!n.has_hit_if || value(n.hit_if) != 0)) canvas_.hit(at, hit);
+    if (hit != no_hit && (!n.has_hit_if || value(n.hit_if) != 0)) {
+      if (n.hit_shape != no_text) {
+        const HitShape& shape = pack_.hit_shapes[n.hit_shape];
+        canvas_.hit_shape(at, hit, std::string_view(pack_.literals).substr(shape.data, shape.size), vars[VarX] + value(shape.x), vars[VarY] + value(shape.y));
+      } else {
+        canvas_.hit(at, hit);
+      }
+    }
     vars[VarHot] = hot;
     vars[VarPressed] = pressed;
     label_ = outer_label;
@@ -219,12 +259,73 @@ class Walker final : public Env {
     drew_ = true;
   }
 
+  void with_effects(const Node& n, Box box) {
+    const GroupEffects& e = pack_.effects[n.more];
+    const bool layer = e.has_opacity && canvas_.push_opacity(box, value(e.opacity));
+    const bool fade = e.has_fade && canvas_.push_edge_fade(box, value(e.fade_top), value(e.fade_bottom));
+    if (e.has_dy) canvas_.push_down(value(e.dy));
+    if (e.origin) {
+      canvas_.push_scale_at(box.x, box.y, value(e.scale));
+      inside({0, 0, box.w, box.h}, n.first, n.count);
+      canvas_.pop_scale();
+      if (e.has_dy) canvas_.pop_scale();
+      if (fade) canvas_.pop_layer();
+      if (layer) canvas_.pop_layer();
+      return;
+    }
+    if (e.has_scale) {
+      const float about_x = e.has_about_x ? vars[VarX] + value(e.about_x) : box.x + box.w / 2;
+      const float about_y = e.has_about_y ? vars[VarY] + value(e.about_y) : box.y + box.h / 2;
+      canvas_.push_scale(about_x, about_y, value(e.scale));
+    }
+    inside(box, n.first, n.count);
+    if (e.has_scale) canvas_.pop_scale();
+    if (e.has_dy) canvas_.pop_scale();
+    if (fade) canvas_.pop_layer();
+    if (layer) canvas_.pop_layer();
+  }
+
+  void path(const Node& n, Box box) {
+    const std::string_view data = std::string_view(pack_.literals).substr(n.text, n.count);
+    const float scale = value(n.extra);
+    if (n.stretched) {
+      canvas_.path_stretched(data, box.x, box.y, scale, value(pack_.path_extras[n.more].scale_y), color_of(n.paint));
+      return;
+    }
+    if (n.shadow) {
+      canvas_.path_shadow(data, box.x, box.y, scale, value(n.width), value(pack_.path_extras[n.more].dy), color_of(n.paint));
+      return;
+    }
+    const float paint_at = value(n.paint);
+    const Paint* paint = paint_at >= 0 ? pack_.paint(palette_, paint_at) : nullptr;
+    if (n.has_stops && paint && paint->stops != 0) {
+      const PathExtra& more = pack_.path_extras[n.more];
+      canvas_.path_gradient(data, box.x, box.y, scale, value(more.from_y), value(more.to_y), std::span<const GradientStop>(pack_.stops.data() + paint->first_stop, paint->stops));
+      return;
+    }
+    canvas_.path(data, box.x, box.y, scale, color_at(paint_at), value(n.width), n.round_caps, n.soft);
+  }
+
   void fill(const Node& n, Box box) {
-    const Paint* paint = pack_.paint(palette_, value(n.paint));
+    const float paint_at = value(n.paint);
+    if (paint_at < 0 || n.ellipse) {
+      Color color = color_at(paint_at);
+      if (n.has_alpha) color.a = value(n.alpha);
+      const float round = value(n.extra);
+      if (n.ellipse) canvas_.fill_ellipse(box, color);
+      else if (round > 0) canvas_.fill_round(box, round, color);
+      else canvas_.fill(box, color);
+      return;
+    }
+    const Paint* paint = pack_.paint(palette_, paint_at);
     if (!paint) return;
     const float radius = value(n.extra);
     if (paint->stops != 0) {
       const std::span<const GradientStop> stops(pack_.stops.data() + paint->first_stop, paint->stops);
+      if (n.across) {
+        canvas_.fill_across(box, stops);
+        return;
+      }
       const float y1 = n.has_down_to ? box.y + value(n.width) : box.y + box.h;
       if (radius > 0) canvas_.fill_round_down(box, radius, box.y, y1, stops);
       else canvas_.fill_down(box, box.y, y1, stops);
@@ -238,6 +339,7 @@ class Walker final : public Env {
   void field(const Node& n, Box box) {
     const FieldNode& f = pack_.fields[n.first];
     const FieldLook look{.text = look_of(n.style),
+                         .placeholder_text = look_of(f.has_placeholder_style ? f.placeholder_style : n.style),
                          .color = color_of(n.paint),
                          .placeholder_color = color_of(f.placeholder_color),
                          .caret = color_of(f.caret),
@@ -295,6 +397,8 @@ class Walker final : public Env {
       const Argument& a = pack_.arguments[u.first_argument + i];
       slots_[callee + a.slot] = value(a.value);
     }
+    const std::uint64_t outer_seed = seed_;
+    seed_ = mixed(seed_, static_cast<std::uint64_t>(&n - pack_.nodes.data()));
     const Call call{&u, base_, frame_size_, outer_label, call_};
     const Call* const outer_call = call_;
     const std::uint32_t outer_base = base_, outer_size = frame_size_;
@@ -307,6 +411,7 @@ class Walker final : public Env {
     list(part.first, part.count);
     const float height = part.has_height ? value(part.height) : saved[Varh];
     vars = saved;
+    seed_ = outer_seed;
     call_ = outer_call;
     base_ = outer_base;
     frame_size_ = outer_size;
@@ -328,6 +433,9 @@ class Walker final : public Env {
   const Call* call_ = nullptr;
   bool drew_ = false;
   float below_ = 0;
+  std::uint64_t seed_ = 0;
+  std::array<Color, 64> worked_;
+  std::size_t next_worked_ = 0;
 };
 
 }  // namespace

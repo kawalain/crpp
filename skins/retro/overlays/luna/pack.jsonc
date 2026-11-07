@@ -1,20 +1,11 @@
 {
-  "$schema": "../schema/pack.schema.json",
+  "$schema": "../../../schema/pack.schema.json",
   "format": 1,
-  "id": "messenger",
+  "id": "luna",
+  // The look of Windows XP, written over classic. Only what differs is here.
   "constants": {
-    "own_frame": 1, "moves": 0,
-    "caption_h": 28, "frame_w": 3, "menu_h": 20, "window_radius": 8,
-    "frame_edge": 4, "frame_corner": 12, "frame_button": 21, "frame_button_gap": 2, "frame_button_top": 4, "frame_button_right": 5,
-    "window_home_w": 300, "window_home_h": 560, "window_home_min_w": 260, "window_home_min_h": 400,
-    "window_room_w": 640, "window_room_h": 500, "window_room_min_w": 480, "window_room_min_h": 360,
-    "window_prompt_w": 360, "window_prompt_h": 420, "window_prompt_min_w": 320, "window_prompt_min_h": 360,
-    "window_options_w": 580, "window_options_h": 480, "window_options_min_w": 540, "window_options_min_h": 440,
-    "window_changelog_w": 560, "window_changelog_h": 560, "window_changelog_min_w": 400, "window_changelog_min_h": 300,
-    "button_w": 75, "button_h": 23, "field_h": 23, "check_size": 13, "row_h": 20, "scrollbar_w": 17,
-    "dialog_pad_top": 14, "dialog_pad_x": 14, "dialog_pad_bottom": 12, "dialog_gap": 14, "dialog_button_h": 23, "dialog_button_w": 75,
-    "dialog_button_gap": 6, "dialog_width": 280, "dialog_wide_width": 340, "dialog_margin": 16, "dialog_text_size": 16, "dialog_text_line": 18, "dialog_align": 0,
-    "list_pad": 1, "list_item_h": 17, "list_gap": 0, "list_max_h": 138, "list_margin": 0, "slider_thumb": 21
+    "notification_sounds": 1,
+    "caption_h": 28, "frame_w": 3, "window_radius": 8, "frame_button": 21, "frame_button_top": 4, "frame_button_right": 5
   },
   "fonts": {
     // Gulim comes with an optional package of Windows; Malgun Gothic is always there.
@@ -22,7 +13,7 @@
     "korean_size": 12, "other_size": 11
   },
   "palettes": {
-    "messenger": {
+    "luna_blue": {
       "caption": [[0, "#0997ff"], [0.08, "#0053ee"], [0.4, "#0050ee"], [0.88, "#0066ff"], [0.93, "#0066ff"], [0.95, "#005bff"], [0.96, "#003dd7"], [1, "#003dd7"]],
       "caption_idle": [[0, "#a9c0f0"], [0.08, "#7a96df"], [0.4, "#7a96df"], [0.88, "#8aa7e4"], [0.93, "#8aa7e4"], [0.95, "#7d9ae0"], [0.96, "#6f8bd6"], [1, "#6f8bd6"]],
       "caption_ink": "#ffffff",
@@ -114,9 +105,10 @@
       "close_down": "#b8351a",
       "minimize_down": "#1740a8",
       "cursor_face": "#ffffff",
-      "cursor_line": "#000000"
+      "cursor_line": "#000000",
+      "edge_soft": {"mix": ["face", "edge_light", 50]}
     },
-    "messengerdark": {
+    "luna_blue_dark": {
       "caption": [[0, "#4a6491"], [0.08, "#1d2f52"], [0.4, "#1d2f52"], [0.88, "#253a63"], [0.93, "#253a63"], [0.95, "#1d2f52"], [0.96, "#142440"], [1, "#142440"]],
       "caption_idle": [[0, "#3a4252"], [0.08, "#2a303c"], [0.4, "#2a303c"], [0.88, "#303744"], [0.93, "#303744"], [0.95, "#2a303c"], [0.96, "#232833"], [1, "#232833"]],
       "caption_ink": "#f2f5fb",
@@ -208,24 +200,153 @@
       "close_down": "#b8351a",
       "minimize_down": "#1740a8",
       "cursor_face": "#ffffff",
-      "cursor_line": "#000000"
+      "cursor_line": "#000000",
+      "edge_soft": {"mix": ["face", "edge_light", 50]}
+    },
+    // No public source gives the gradients of these two; docs/research/retro-themes.md says what is sourced and what is drawn here.
+    "luna_homestead": {
+      "extends": "luna_blue",
+      "caption": [[0, "#bccb97"], [0.08, "#8ba169"], [0.4, "#8ba169"], [0.88, "#9bb078"], [0.93, "#9bb078"], [0.95, "#8ba169"], [0.96, "#6f8550"], [1, "#6f8550"]],
+      "caption_idle": [[0, "#e6e8d6"], [0.08, "#d4d6ba"], [0.4, "#d4d6ba"], [0.88, "#dcdec6"], [0.93, "#dcdec6"], [0.95, "#d4d6ba"], [0.96, "#c2c4a6"], [1, "#c2c4a6"]],
+      "caption_shadow": "#4b5a2e",
+      "frame_out": "#6f8550",
+      "frame_mid": "#8ba169",
+      "frame_in": "#7d9560",
+      "frame_low_out": "#4b5a2e",
+      "frame_low_mid": "#5f7340",
+      "frame_low_in": "#7d9560",
+      "caption_button": [[0, "#a3b884"], [1, "#7d9560"]],
+      "caption_button_hot": [[0, "#bccd9f"], [1, "#93a870"]],
+      "field_line": "#a5ab80",
+      "button_line": "#37512f",
+      "focus_0": "#e2e8c8",
+      "focus_1": "#b9c48f",
+      "focus_2": "#ced8a8",
+      "focus_3": "#a3b07a",
+      "check_line": "#4b5a2e",
+      "thumb_line": "#a5ab80",
+      "bar_thumb": "#d5dcb8",
+      "bar_thumb_in": "#c8d0a8",
+      "bar_thumb_low": "#b8c298",
+      "bar_arrow": "#5f7340",
+      "legend": "#5f7340",
+      "select": "#93a070",
+      "header": [[0, "#f2f4e4"], [1, "#d8dfbc"]],
+      "info": [[0, "#eef1dc"], [1, "#d8dfbc"]],
+      "info_line": "#a5ab80",
+      "link": "#4b6a2e",
+      "picture_line": "#a5ab80",
+      "selection": "#93a07066",
+      "minimize_down": "#5f7340"
+    },
+    "luna_homestead_dark": {
+      "extends": "luna_blue_dark",
+      "caption": [[0, "#6b7a4c"], [0.08, "#3c4a28"], [0.4, "#3c4a28"], [0.88, "#47562f"], [0.93, "#47562f"], [0.95, "#3c4a28"], [0.96, "#2a3519"], [1, "#2a3519"]],
+      "caption_shadow": "#141a0a",
+      "frame_out": "#2a3519",
+      "frame_mid": "#47562f",
+      "frame_in": "#3c4a28",
+      "frame_low_out": "#1a2110",
+      "frame_low_mid": "#2a3519",
+      "frame_low_in": "#3c4a28",
+      "caption_button": [[0, "#5a6b3c"], [1, "#47562f"]],
+      "caption_button_hot": [[0, "#74875a"], [1, "#5f7340"]],
+      "field_line": "#5f6b46",
+      "focus_0": "#93a070",
+      "focus_1": "#6b7a4c",
+      "focus_2": "#7d8c5c",
+      "focus_3": "#5a6b3c",
+      "check_line": "#93a070",
+      "thumb_line": "#93a070",
+      "bar_thumb": "#47562f",
+      "bar_thumb_in": "#404e2a",
+      "bar_thumb_low": "#354224",
+      "legend": "#bccb97",
+      "select": "#6b7f45",
+      "header": [[0, "#363f2a"], [1, "#2c3422"]],
+      "info": [[0, "#3a4628"], [1, "#2e3820"]],
+      "info_line": "#5f6b46",
+      "link": "#bccb97",
+      "picture_line": "#5f6b46",
+      "selection": "#6b7f4566",
+      "minimize_down": "#2a3519"
+    },
+    "luna_metallic": {
+      "extends": "luna_blue",
+      "caption": [[0, "#f4f4f6"], [0.08, "#c0c0c8"], [0.4, "#c0c0c8"], [0.88, "#d2d2d8"], [0.93, "#d2d2d8"], [0.95, "#b8b8c0"], [0.96, "#8e8e9c"], [1, "#8e8e9c"]],
+      "caption_idle": [[0, "#ffffff"], [0.08, "#ededf0"], [0.4, "#ededf0"], [0.88, "#f4f4f6"], [0.93, "#f4f4f6"], [0.95, "#e4e4e8"], [0.96, "#cfcfd6"], [1, "#cfcfd6"]],
+      "caption_ink": "#000000",
+      "caption_shadow": "#ffffff",
+      "frame_out": "#8e8e9c",
+      "frame_mid": "#c0c0c8",
+      "frame_in": "#a8a8b4",
+      "frame_low_out": "#6c6c78",
+      "frame_low_mid": "#8e8e9c",
+      "frame_low_in": "#a8a8b4",
+      "caption_button": [[0, "#e4e4ea"], [1, "#b4b4c0"]],
+      "caption_button_hot": [[0, "#f4f4f8"], [1, "#ccccd6"]],
+      "face": "#e0dfe3",
+      "field_off": "#e0dfe3",
+      "edge_dark": "#9d9da1",
+      "field_line": "#9d9da1",
+      "button_line": "#5c5c68",
+      "focus_0": "#e8e8ee",
+      "focus_1": "#b2b4bf",
+      "focus_2": "#ccced6",
+      "focus_3": "#9d9fac",
+      "check_line": "#5c5c68",
+      "thumb_line": "#9d9da1",
+      "bar_thumb": "#dcdce4",
+      "bar_thumb_in": "#d0d0da",
+      "bar_thumb_low": "#c0c0cc",
+      "bar_arrow": "#5c5c68",
+      "legend": "#5c5c68",
+      "group_line": "#c8c7cc",
+      "menu_line": "#9d9da1",
+      "select": "#b2b4bf",
+      "select_ink": "#000000",
+      "header": [[0, "#f4f4f6"], [1, "#d8d8e0"]],
+      "info": [[0, "#f0f0f4"], [1, "#d8d8e0"]],
+      "info_line": "#9d9da1",
+      "link": "#34456e",
+      "picture_line": "#9d9da1",
+      "selection": "#b2b4bf99",
+      "minimize_down": "#8e8e9c"
+    },
+    "luna_metallic_dark": {
+      "extends": "luna_blue_dark",
+      "caption": [[0, "#70707c"], [0.08, "#40404a"], [0.4, "#40404a"], [0.88, "#4c4c58"], [0.93, "#4c4c58"], [0.95, "#40404a"], [0.96, "#2e2e36"], [1, "#2e2e36"]],
+      "caption_shadow": "#101014",
+      "frame_out": "#2e2e36",
+      "frame_mid": "#4c4c58",
+      "frame_in": "#40404a",
+      "frame_low_out": "#1c1c22",
+      "frame_low_mid": "#2e2e36",
+      "frame_low_in": "#40404a",
+      "caption_button": [[0, "#5c5c68"], [1, "#4c4c58"]],
+      "caption_button_hot": [[0, "#7c7c8a"], [1, "#60606c"]],
+      "field_line": "#5c5c68",
+      "focus_0": "#9d9fac",
+      "focus_1": "#70707c",
+      "focus_2": "#858592",
+      "focus_3": "#5c5c68",
+      "check_line": "#9d9fac",
+      "thumb_line": "#9d9fac",
+      "bar_thumb": "#4c4c58",
+      "bar_thumb_in": "#44444f",
+      "bar_thumb_low": "#383842",
+      "legend": "#c0c2cc",
+      "select": "#62646f",
+      "header": [[0, "#36363e"], [1, "#2c2c33"]],
+      "info": [[0, "#3a3a44"], [1, "#2e2e36"]],
+      "info_line": "#5c5c68",
+      "link": "#c0c2cc",
+      "picture_line": "#5c5c68",
+      "selection": "#62646f66",
+      "minimize_down": "#2e2e36"
     }
   },
   "styles": {
-    "body": {"size": "font_size", "line_height": "h", "ellipsis": true, "exact": true},
-    "body_center": {"size": "font_size", "line_height": "h", "align": "center", "ellipsis": true, "exact": true},
-    "body_right": {"size": "font_size", "line_height": "h", "align": "right", "ellipsis": true, "exact": true},
-    "bold": {"size": "font_size", "weight": 700, "line_height": "h", "ellipsis": true, "exact": true},
-    "bold_center": {"size": "font_size", "weight": 700, "line_height": "h", "align": "center", "ellipsis": true, "exact": true},
-    "button": {"size": "font_size", "line_height": "h", "align": "center", "ellipsis": true, "exact": true},
-    "paragraph": {"size": "font_size", "line_height": "font_size+4", "wrap": true, "exact": true, "keep_words": true},
-    "chat_text": {"size": "font_size", "line_height": "font_size+4", "wrap": true, "exact": true},
-    "paragraph_center": {"size": "font_size", "line_height": "font_size+4", "align": "center", "wrap": true, "exact": true},
-    "tip_line": {"size": "font_size", "line_height": 16, "exact": true},
-    "note_title": {"size": "font_size+2", "weight": 700, "line_height": "font_size+4", "wrap": true, "exact": true},
-    "note_version": {"size": "font_size", "line_height": 20, "exact": true},
-    "title": {"size": "font_size+2", "weight": 700, "line_height": "h", "ellipsis": true, "exact": true},
-    "sample": {"size": "font_size", "line_height": "font_size+4", "ellipsis": true, "exact": true},
     "caption": {"size": 13, "weight": 700, "line_height": "h", "ellipsis": true, "exact": true, "role": "caption"}
   },
   "parts": {
@@ -247,22 +368,6 @@
         {"if": "off", "text": "@label", "style": "button", "color": "$off_shadow", "x": "u", "y": "u"},
         {"if": "off", "text": "@label", "style": "button", "color": "$off_ink"},
         {"if": "!off", "text": "@label", "style": "button", "color": "$ink", "x": "pressed ? u : 0", "y": "pressed ? u : 0"}
-      ]
-    },
-    "toolbar_button": {
-      "snap": true,
-      "h": 24,
-      "w": "ceil(textw('body', '@label'))+32",
-      "args": {"lit": 0},
-      "draw": [
-        {"if": "pressed || lit", "fill": "$toolbar_down"},
-        {"if": "hot || pressed || lit", "group": [
-          {"fill": "pressed || lit ? $edge_dark : $edge_light", "h": "u"},
-          {"fill": "pressed || lit ? $edge_dark : $edge_light", "w": "u"},
-          {"fill": "pressed || lit ? $edge_light : $edge_dark", "y": "H-u", "h": "u"},
-          {"fill": "pressed || lit ? $edge_light : $edge_dark", "x": "W-u", "w": "u"}
-        ]},
-        {"text": "@label", "style": "body", "color": "$ink", "x": "24+(pressed ? u : 0)", "y": "pressed ? u : 0", "w": "W-28"}
       ]
     },
     "field": {
@@ -302,25 +407,6 @@
         {"path": "M-4 -2H4L0 2.5Z", "color": "$bar_arrow", "x": "W/2", "y": "H/2", "w": 1, "h": 1, "snap": true}
       ]
     },
-    "dropdown": {
-      "args": {"open": 0, "off": 0},
-      "draw": [
-        {"use": "field", "args": {"off": "off"}},
-        {"text": "@label", "style": "body", "color": "off ? $off_ink : $ink", "x": 4, "w": "W-24"},
-        {"use": "combo_arrow", "args": {"down": "open"}, "x": "W-17", "y": 2, "w": 15, "h": "H-4"}
-      ]
-    },
-    "picture_frame": {
-      "snap": true,
-      "args": {"glow": 0},
-      "draw": [
-        {"if": "glow > 0", "frame": "$glow_2", "alpha": "glow", "x": "-3*u", "y": "-3*u", "w": "W+6*u", "h": "H+6*u"},
-        {"if": "glow > 0", "frame": "$glow_1", "alpha": "glow", "x": "-2*u", "y": "-2*u", "w": "W+4*u", "h": "H+4*u"},
-        {"if": "glow > 0", "frame": "$glow_0", "alpha": "glow", "x": "-u", "y": "-u", "w": "W+2*u", "h": "H+2*u"},
-        {"fill": "$field"},
-        {"frame": "$picture_line"}
-      ]
-    },
     "group_box": {
       "snap": true,
       "draw": [
@@ -328,12 +414,6 @@
         {"let": "legend_w", "value": "ceil(textw('body', '@label'))+6"},
         {"fill": "$face", "x": 8, "y": -1, "w": "legend_w", "h": 3},
         {"text": "@label", "style": "body", "color": "$legend", "x": 11, "y": -8, "w": "legend_w", "h": 16}
-      ]
-    },
-    "link": {
-      "draw": [
-        {"text": "@label", "style": "body", "color": "$link"},
-        {"if": "hot", "fill": "$link", "y": "floor(Y+H/2+font_size/2)-Y", "w": "textw('body', '@label')", "h": 1}
       ]
     },
     "scroll_arrow": {
@@ -358,31 +438,6 @@
         ]}
       ]
     },
-    "scrollbar": {
-      "args": {"view": 0, "content": 0, "offset": 0, "up": -1, "down": -1, "track": -1, "thumb": -1, "whole": 0, "track_note": -1},
-      "draw": [
-        {"let": "arrow_h", "value": "min(W, H/2)"},
-        {"let": "track_h", "value": "H-2*arrow_h"},
-        {"let": "room", "value": "content>view ? content-view : 0"},
-        {"let": "thumb_h", "value": "content>0 ? max(16, floor(track_h*min(1, view/content))) : track_h"},
-        {"let": "thumb_y", "value": "arrow_h+(room>0 ? floor((track_h-thumb_h)*offset/room) : 0)"},
-        {"fill": "$bar_track_from", "y": "arrow_h", "h": "track_h", "note_by": "track_note"},
-        {"hit_by": "track", "group": []},
-        {"use": "scroll_arrow", "hit_by": "up", "live": "!whole", "h": "arrow_h"},
-        {"use": "scroll_arrow", "hit_by": "down", "live": "!whole", "y": "H-arrow_h", "h": "arrow_h", "args": {"down": 1}},
-        {"hit_by": "thumb", "y": "thumb_y", "h": "thumb_h", "group": [
-          {"if": "track_h>=16 && thumb_h<track_h", "use": "scroll_thumb"}
-        ]}
-      ]
-    },
-    "check_row": {
-      "args": {"on": 0, "off": 0, "pinned": 0},
-      "draw": [
-        {"use": "check_box", "y": 5, "args": {"on": "on", "off": "off"}},
-        {"text": "@label", "style": "body", "color": "off ? $off_ink : $ink", "x": 18, "w": "W-30"},
-        {"if": "pinned", "fill": "$link", "x": "W-7", "y": 9, "w": 6, "h": 6}
-      ]
-    },
     "plain_thumb": {
       "snap": true,
       "draw": [
@@ -405,12 +460,6 @@
         ]}
       ]
     },
-    "switch": {
-      "args": {"on": 0, "off": 0},
-      "draw": [
-        {"use": "check_box", "args": {"on": "on", "off": "off"}, "y": "floor(Y+(H-13)/2)-Y"}
-      ]
-    },
     "progress": {
       "args": {"percent": 0},
       "draw": [
@@ -425,36 +474,6 @@
         ]}
       ]
     },
-    "bubble": {
-      "snap": true,
-      "draw": [
-        {"fill": "$tooltip"},
-        {"frame": "$tooltip_line"}
-      ]
-    },
-    "cell": {
-      "args": {"selected": 0},
-      "draw": [
-        {"if": "selected", "fill": "$hl_soft"},
-        {"if": "selected || hot", "frame": "$select"}
-      ]
-    },
-    "list_item": {
-      "args": {"selected": 0},
-      "draw": [
-        {"if": "selected || hot", "fill": "$select"},
-        {"text": "@label", "style": "body", "color": "selected || hot ? $select_ink : $ink", "x": 3, "w": "W-6"}
-      ]
-    },
-    "menu_item": {
-      "args": {"active": 0, "off": 0},
-      "draw": [
-        {"if": "hot", "fill": "$select"},
-        {"text": "@label", "style": "body", "color": "off ? $off_ink : hot ? $select_ink : $ink", "x": 20, "w": "W-24"},
-        {"if": "active", "path": "M3.5 6.5 5.5 8.5 9.5 4", "color": "off ? $off_ink : hot ? $select_ink : $ink", "x": 2, "y": "round(Y+(H-13)/2)-Y", "width": 2, "caps": "flat"}
-      ]
-    },
-    "panel_modal": {"draw": [{"fill": "$face"}]},
     "panel_list": {"draw": [{"fill": "$field"}, {"frame": "$list_line"}]},
     "panel_menu": {"draw": [
       {"fill": "$menu_shadow", "x": 2, "y": 2},
@@ -470,72 +489,6 @@
       {"fill": "$edge_dark", "x": "W-2*u", "y": "u", "w": "u", "h": "H-2*u"}
     ]},
     "panel_info": {"draw": [{"fill": "$info"}, {"frame": "$info_line"}]},
-    "form_group": {
-      "height": "rows.bottom+20",
-      "draw": [
-        {"id": "rows", "x": 12, "y": 14, "w": "W-24", "column": [{"content": true}]},
-        {"use": "group_box", "text": "@label", "x": 2, "w": "W-4", "h": "rows.bottom+6"}
-      ]
-    },
-    "form_check": {
-      "h": "row_h",
-      "args": {"on": 0, "off": 0},
-      "draw": [
-        {"use": "check_box", "y": 3, "args": {"on": "on", "off": "off"}},
-        {"text": "@label", "style": "body", "color": "off ? $off_ink : $ink", "x": 18, "w": "W-18"}
-      ]
-    },
-    "form_text": {
-      "h": "texth('paragraph', '@label', W)",
-      "draw": [{"text": "@label", "style": "paragraph", "color": "$ink_soft"}]
-    },
-    "form_hint": {
-      "h": "texth('paragraph', '@label', W-18)",
-      "draw": [{"text": "@label", "style": "paragraph", "color": "$ink_soft"}]
-    },
-    "form_combo": {
-      "h": "field_h",
-      "draw": [
-        {"let": "list_w", "value": "min(170, floor(W*0.55))"},
-        {"text": "@label", "style": "body", "color": "$ink", "w": "W-list_w-6"},
-        {"x": "W-list_w", "w": "list_w", "group": [{"content": true}]}
-      ]
-    },
-    "form_slider": {
-      "h": "18+field_h",
-      "args": {"at": 0, "list": 0, "own": -1, "where": -1},
-      "draw": [
-        {"text": "@label", "style": "body", "color": "$ink", "h": 16},
-        {"let": "list_w", "value": "list ? floor(W*0.52) : 0"},
-        {"use": "slider", "hit_by": "own", "note_by": "where", "y": 18, "w": "W-(list ? list_w+8 : 0)", "h": "field_h", "args": {"at": "at"}},
-        {"if": "list", "x": "W-list_w", "y": 18, "w": "list_w", "h": "field_h", "group": [{"content": true}]}
-      ]
-    },
-    "options_tab": {
-      "args": {"active": 0},
-      "draw": [
-        {"if": "active", "fill": "$select"},
-        {"if": "!active && hot", "fill": "$hl_pale2"},
-        {"text": "@label", "style": "body", "color": "active ? $select_ink : $ink", "x": 6, "w": "W-12"}
-      ]
-    },
-    "frame_ring": {
-      "args": {"at": 0, "thick": 0, "top": 0, "left": 0, "right": 0, "bottom": 0},
-      "draw": [
-        {"fill": "left", "x": "at", "y": "top", "w": "thick", "h": "H-top-at"},
-        {"fill": "right", "x": "W-at-thick", "y": "top", "w": "thick", "h": "H-top-at"},
-        {"fill": "bottom", "x": "at", "y": "H-at-thick", "w": "W-2*at", "h": "thick"}
-      ]
-    },
-    "menu_title": {
-      "w": "ceil(textw('body_center', '@label'))+14",
-      "h": "menu_h-1",
-      "args": {"open": 0},
-      "draw": [
-        {"if": "open || hot", "fill": "$select"},
-        {"text": "@label", "style": "body_center", "color": "open || hot ? $select_ink : $ink"}
-      ]
-    },
     "caption_button": {
       "snap": true,
       "args": {"close": 0},
@@ -547,23 +500,6 @@
         {"if": "close", "line": "$caption_ink", "x": "W-W*0.3", "y": "W*0.3", "x2": "W*0.3", "y2": "H-W*0.3", "width": 2},
         {"if": "!close", "fill": "$caption_ink", "x": "W*0.25", "y": "H-H*0.34", "w": "W*0.38", "h": 3}
       ]
-    },
-    // The pointer, made here after the white arrow of the time. Both Palettes have the same two colours.
-    "cursor_arrow": {"draw": [{"path": "M1.5 1.5 V18.5 L5.6 14.6 L8.6 21.5 L11.5 20.2 L8.5 13.5 H14 Z", "color": "$cursor_face", "soft": true}, {"path": "M1.5 1.5 V18.5 L5.6 14.6 L8.6 21.5 L11.5 20.2 L8.5 13.5 H14 Z", "color": "$cursor_line", "width": 1, "caps": "flat", "soft": true}]},
-    "cursor_hand": {"draw": [{"path": "M9 1.5 C10 1.5 10.5 2.2 10.5 3 V8.5 C11.5 8 13 8 13.5 9.5 C14.5 8.5 16 8.5 16.5 10 C17.5 9.2 19.5 9.5 19.5 11.5 V16 C19.5 18 18.5 19.5 18.5 21.5 H10.5 C10 19.5 7 17 4.8 14 C4 12.8 5.4 11.2 7.5 13.5 V3 C7.5 2.2 8 1.5 9 1.5 Z", "color": "$cursor_face", "soft": true}, {"path": "M9 1.5 C10 1.5 10.5 2.2 10.5 3 V8.5 C11.5 8 13 8 13.5 9.5 C14.5 8.5 16 8.5 16.5 10 C17.5 9.2 19.5 9.5 19.5 11.5 V16 C19.5 18 18.5 19.5 18.5 21.5 H10.5 C10 19.5 7 17 4.8 14 C4 12.8 5.4 11.2 7.5 13.5 V3 C7.5 2.2 8 1.5 9 1.5 Z", "color": "$cursor_line", "width": 1, "caps": "flat", "soft": true}, {"path": "M10.5 9 V14 M13.5 10 V14 M16.5 10.5 V14", "color": "$cursor_line", "width": 1, "caps": "flat", "soft": true}]},
-    "cursor_ibeam": {"draw": [{"path": "M13 7.5 H15 L16.5 9 L18 7.5 H20 M16.5 9 V24 M13 25.5 H15 L16.5 24 L18 25.5 H20", "color": "$cursor_face", "width": 3, "caps": "flat", "soft": true}, {"path": "M13 7.5 H15 L16.5 9 L18 7.5 H20 M16.5 9 V24 M13 25.5 H15 L16.5 24 L18 25.5 H20", "color": "$cursor_line", "width": 1, "caps": "flat", "soft": true}]},
-    "cursor_size_we": {"draw": [{"path": "M6 16 L11 11 V15 H21 V11 L26 16 L21 21 V17 H11 V21 Z", "color": "$cursor_face", "width": 2, "caps": "flat", "soft": true}, {"path": "M6 16 L11 11 V15 H21 V11 L26 16 L21 21 V17 H11 V21 Z", "color": "$cursor_line", "soft": true}]},
-    "cursor_size_ns": {"draw": [{"path": "M16 6 L21 11 H17 V21 H21 L16 26 L11 21 H15 V11 H11 Z", "color": "$cursor_face", "width": 2, "caps": "flat", "soft": true}, {"path": "M16 6 L21 11 H17 V21 H21 L16 26 L11 21 H15 V11 H11 Z", "color": "$cursor_line", "soft": true}]},
-    "cursor_size_nwse": {"draw": [{"path": "M8 8 H14.4 L12.2 10.2 L21.8 19.8 L24 17.6 V24 H17.6 L19.8 21.8 L10.2 12.2 L8 14.4 Z", "color": "$cursor_face", "width": 2, "caps": "flat", "soft": true}, {"path": "M8 8 H14.4 L12.2 10.2 L21.8 19.8 L24 17.6 V24 H17.6 L19.8 21.8 L10.2 12.2 L8 14.4 Z", "color": "$cursor_line", "soft": true}]},
-    "cursor_size_nesw": {"draw": [{"path": "M24 8 H17.6 L19.8 10.2 L10.2 19.8 L8 17.6 V24 H14.4 L12.2 21.8 L21.8 12.2 L24 14.4 Z", "color": "$cursor_face", "width": 2, "caps": "flat", "soft": true}, {"path": "M24 8 H17.6 L19.8 10.2 L10.2 19.8 L8 17.6 V24 H14.4 L12.2 21.8 L21.8 12.2 L24 14.4 Z", "color": "$cursor_line", "soft": true}]}
-  },
-  "cursors": {
-    "arrow": {"part": "cursor_arrow", "hot": [1, 1]},
-    "hand": {"part": "cursor_hand", "hot": [9, 1]},
-    "ibeam": {"part": "cursor_ibeam", "hot": [16, 16]},
-    "size_we": {"part": "cursor_size_we", "hot": [16, 16]},
-    "size_ns": {"part": "cursor_size_ns", "hot": [16, 16]},
-    "size_nwse": {"part": "cursor_size_nwse", "hot": [16, 16]},
-    "size_nesw": {"part": "cursor_size_nesw", "hot": [16, 16]}
+    }
   }
 }

@@ -1,0 +1,25 @@
+{
+  "$schema": "../../schema/screen.dropdown.schema.json",
+  "draw": [
+    {"let": "content_h", "value": "@items*(list_item_h+list_gap)-list_gap+2*list_pad"},
+    {"let": "list_h", "value": "min(content_h, list_max_h)"},
+    {"report": "view", "value": "list_h"},
+    {"report": "content", "value": "content_h"},
+    {"let": "shown", "to": 1, "ms": 120},
+    {"let": "blur", "value": "dark ? 38 : 16"},
+    {"let": "drop", "value": "dark ? 12 : 4"},
+    {"note": "list", "y": "@up ? -list_margin-list_h : H+list_margin", "h": "list_h", "group": [
+      // The whole list fades in, with its shadow.
+      {"x": "-blur", "y": "-blur", "w": "W+2*blur", "h": "H+2*blur+drop", "opacity": "shown", "group": [
+        {"x": "blur", "y": "blur", "w": "W-2*blur", "h": "H-2*blur-drop", "group": [
+          {"use": "panel_list"},
+          {"clip": true, "soft_clip": true, "fade_top": "@fade_top", "fade_bottom": "@fade_bottom", "group": [
+            {"repeat": "@items", "draw": [
+              {"use": "list_item", "text": "@item", "hit": "item", "hit_index": "i", "x": "list_pad", "y": "list_pad-@scroll+i*(list_item_h+list_gap)", "w": "W-2*list_pad", "h": "list_item_h", "args": {"selected": "@selected"}}
+            ]}
+          ]}
+        ]}
+      ]}
+    ]}
+  ]
+}

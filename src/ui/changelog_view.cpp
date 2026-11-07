@@ -48,18 +48,19 @@ float layout_height(IDWriteTextLayout* layout) {
 }
 
 enum TextId : int { Tagline, Date, Version, Hint };
-enum NumberId : int { HasEntries, HasTagline, HasDate, HasVersion, ShownHint, Overflow, View, Content, Offset };
+enum NumberId : int { HasEntries, HasTagline, HasDate, HasVersion, ShownHint, Overflow, View, Content, Offset, HintOn };
 constexpr skin::Name text_names[] = {{"tagline", Tagline}, {"date", Date}, {"version", Version}, {"hint", Hint}};
 constexpr skin::Name number_names[] = {{"has_entries", HasEntries}, {"has_tagline", HasTagline}, {"has_date", HasDate}, {"has_version", HasVersion}, {"shown_hint", ShownHint},
-                                       {"overflow", Overflow}, {"view", View}, {"content", Content}, {"offset", Offset}};
-constexpr skin::Name hit_names[] = {{"card", ChangelogView::Card}, {"bar_track", ChangelogView::BarTrack}, {"bar_thumb", ChangelogView::BarThumb}};
+                                       {"overflow", Overflow}, {"view", View}, {"content", Content}, {"offset", Offset}, {"hint_on", HintOn}};
+constexpr skin::Name hit_names[] = {{"backdrop", ChangelogView::Backdrop}, {"close", ChangelogView::Close}, {"card", ChangelogView::Card}, {"bar_track", ChangelogView::BarTrack}, {"bar_thumb", ChangelogView::BarThumb}};
 constexpr skin::Name slot_names[] = {{"body", 0}};
 constexpr skin::Name note_names[] = {{"bar_track", 0}};
+constexpr skin::Name report_names[] = {{"hint_left", 0}};
 
 }  // namespace
 
 skin::ScreenSchema ChangelogView::schema() {
-  return {.screen = "changelog", .texts = text_names, .numbers = number_names, .hits = hit_names, .slots = slot_names, .notes = note_names};
+  return {.screen = "changelog", .texts = text_names, .numbers = number_names, .hits = hit_names, .slots = slot_names, .reports = report_names, .notes = note_names};
 }
 
 ChangelogOverscroll::Result ChangelogOverscroll::step(int direction, unsigned long long now, bool can_go, bool at_edge, float notches) {
@@ -254,10 +255,8 @@ void ChangelogView::paint_pack(Painter& p, const skin::Screen& screen) {
    public:
     Shown(ChangelogView& view, Painter& painter) : v_(view), p_(painter) {
       if (v_.index_ < v_.entries_.size()) entry_ = &v_.entries_[v_.index_];
-      if (v_.hint_shown_ != 0) {
-        const float progress = transition(v_.ui_, v_.hint_changed_at_, hint_fade_ms);
-        if ((v_.hint_ != 0 ? progress : 1 - progress) > 0) hint_ = v_.hint_shown_;
-      }
+      // Going, it stays until the screen says its fade is over. What does not move is gone at once.
+      if (v_.hint_ != 0 || v_.ui_.animations) hint_ = v_.hint_shown_;
     }
     std::string_view text(int id, int) override {
       switch (id) {
@@ -276,6 +275,7 @@ void ChangelogView::paint_pack(Painter& p, const skin::Screen& screen) {
         case HasVersion: return yes(entry_ && !entry_->version.empty());
         case ShownHint: return static_cast<float>(hint_);
         case Overflow: return yes(v_.scroll_.max_offset() > 0);
+        case HintOn: return yes(v_.hint_ != 0);
         case View: return v_.scroll_.view_h;
         case Content: return v_.scroll_.content_h;
         default: return v_.scroll_.offset;
@@ -294,6 +294,9 @@ void ChangelogView::paint_pack(Painter& p, const skin::Screen& screen) {
       v_.paint_body(p_, rect_of(box), item, item.line_height, values.colors[0]);
     }
     void note(int, int, skin::Box box) override { v_.bar_track_ = rect_of(box); }
+    void report(int, float value) override {
+      if (v_.hint_ == 0 && value <= 0) v_.hint_shown_ = 0;
+    }
 
    private:
     ChangelogView& v_;
@@ -301,7 +304,7 @@ void ChangelogView::paint_pack(Painter& p, const skin::Screen& screen) {
     const ChangelogEntry* entry_ = nullptr;
     int hint_ = 0;
   } shown(*this, p);
-  draw_screen(ui_, p, this, screen, ui_.content, shown);
+  draw_layer(ui_, p, this, screen, ui_.content, shown);
 }
 
 void ChangelogView::paint(Painter& p) {
@@ -439,7 +442,10 @@ bool ChangelogView::tick(unsigned long long now_ms) {
     show_hint(0);
     changed = true;
   }
-  if (was_animating_) {
+  if (was_animating_ && ui_.pack_screen("changelog")) {
+    was_animating_ = false;  // its screen asks for its own frames from the one this brings
+    changed = true;
+  } else if (was_animating_) {
     if (static_cast<float>(now_ms - opened_at_) >= modal_pop_ms && static_cast<float>(now_ms - hint_changed_at_) >= hint_fade_ms) {
       was_animating_ = false;
       if (hint_ == 0) hint_shown_ = 0;

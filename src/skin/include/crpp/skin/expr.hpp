@@ -1,6 +1,7 @@
 #pragma once
 // The arithmetic in a Skin Pack: numbers, names, + - * /, comparisons, && || !, a ? b : c, and
-// min, max, floor, ceil, round, snap, textw, texth. It is compiled once, when the pack loads, into a short
+// min, max, floor, ceil, round, snap, textw, texth, ease(t) and bezier(x1, y1, x2, y2, t), the curves of a CSS
+// transition for a t from 0 to 1, and mix and alpha of colours. It is compiled once, when the pack loads, into a short
 // program in one array that all of a pack's expressions share; running one allocates nothing.
 // There are no assignments, loops or calls of anything else: a pack holds no code.
 #include <array>
@@ -21,6 +22,7 @@ enum class Op : std::uint8_t {
   Less, LessEq, Greater, GreaterEq, Equal, NotEqual,
   And, Or, Not, Neg, Select,
   Min, Max, Floor, Ceil, Round, Snap, TextWidth, TextWidthIn, TextHeight,
+  MixColor, AlphaColor, Ease, Bezier,
 };
 
 struct Instr {
@@ -62,7 +64,8 @@ class Expr {
 //   hot pressed  the pointer is over, or the button went down on, the nearest hit around this
 //   i      which round of the nearest repeat this is
 //   flow   how far down the nearest column has come, and 0 outside one
-enum Var : std::uint8_t { VarW, VarH, VarX, VarY, Varx, Vary, Varw, Varh, VarU, VarFontSize, VarHot, VarPressed, VarI, VarFlow, VarCount };
+//   dark   1 when this Palette is the dark variant of a Theme
+enum Var : std::uint8_t { VarW, VarH, VarX, VarY, Varx, Vary, Varw, Varh, VarU, VarFontSize, VarHot, VarPressed, VarI, VarFlow, VarDark, VarCount };
 
 [[nodiscard]] std::optional<Var> var_named(std::string_view name);
 
@@ -107,6 +110,9 @@ class Env {
   [[nodiscard]] virtual float text_height(std::uint16_t /*style*/, std::uint32_t /*text*/, float /*width*/) { return 0; }
   // To whole pixels of what is being drawn on.
   [[nodiscard]] virtual float snap(float value) { return value; }
+  // A colour worked out here, as a value that goes where a $name's does.
+  [[nodiscard]] virtual float mix_colors(float a, float /*b*/, float /*percent*/) { return a; }
+  [[nodiscard]] virtual float alpha_of(float color, float /*alpha*/) { return color; }
 };
 
 [[nodiscard]] float eval(std::span<const Instr> code, Expr expr, Env& env);

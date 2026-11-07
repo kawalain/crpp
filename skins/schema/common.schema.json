@@ -176,13 +176,19 @@
             "#theme_cloud",
             "#theme_dark_cloud",
             "#theme_pastel",
-            "#theme_messenger",
-            "#theme_messenger_dark",
+            "#theme_luna_blue",
+            "#theme_luna_blue_dark",
             "#display_theme",
             "#display_sync",
             "#display_theme_cursor",
             "#display_light",
             "#display_dark",
+            "#display_skin",
+            "#display_skin_theme",
+            "#display_dark_mode",
+            "#display_dark_off",
+            "#display_dark_on",
+            "#display_dark_system",
             "#display_general",
             "#display_chat_size",
             "#display_chat_sample",
@@ -355,6 +361,18 @@
           "$ref": "#/definitions/expression",
           "description": "The colour's alpha, from 0 to 1, on fill, frame, stroke and text."
         },
+        "hit_path": {
+          "type": "string",
+          "description": "SVG path data: the hit takes this shape inside its box."
+        },
+        "hit_path_x": {
+          "$ref": "#/definitions/expression",
+          "description": "Where that shape's origin is, from the left of the box around it."
+        },
+        "hit_path_y": {
+          "$ref": "#/definitions/expression",
+          "description": "Where that shape's origin is, from the top of the box around it."
+        },
         "fill": {
           "$ref": "#/definitions/expression",
           "description": "Fills its box with a Palette entry, plain or a gradient."
@@ -366,6 +384,14 @@
         "down_to": {
           "$ref": "#/definitions/expression",
           "description": "How far down from its top a gradient ends, instead of its height."
+        },
+        "across": {
+          "type": "boolean",
+          "description": "A gradient runs from left to right over its box, not downward. It takes no radius or down_to."
+        },
+        "ellipse": {
+          "type": "boolean",
+          "description": "Fills the ellipse in its box."
         },
         "frame": {
           "$ref": "#/definitions/expression",
@@ -393,7 +419,7 @@
         },
         "path": {
           "type": "string",
-          "description": "SVG path data, drawn from x, y."
+          "description": "SVG path data, drawn from x, y. F1 at its start fills where its shapes overlap, as XAML's path data does."
         },
         "color": {
           "$ref": "#/definitions/expression",
@@ -402,6 +428,10 @@
         "scale": {
           "$ref": "#/definitions/expression",
           "description": "Its size. 1 when left out."
+        },
+        "scale_y": {
+          "$ref": "#/definitions/expression",
+          "description": "Its size downward, when that differs from scale, which is then only across. For a filled path, and below 0 mirrors it."
         },
         "caps": {
           "enum": [
@@ -413,6 +443,22 @@
         "soft": {
           "type": "boolean",
           "description": "Smooth edges under a Skin whose edges are whole pixels."
+        },
+        "from_y": {
+          "$ref": "#/definitions/expression",
+          "description": "With a color that is a gradient: where it starts, in the path's own coordinates."
+        },
+        "to_y": {
+          "$ref": "#/definitions/expression",
+          "description": "Where that gradient ends."
+        },
+        "blur": {
+          "$ref": "#/definitions/expression",
+          "description": "Draws this shape's soft shadow in the color, instead of the shape."
+        },
+        "dy": {
+          "$ref": "#/definitions/expression",
+          "description": "How far down that shadow goes, before the path's scale."
         },
         "text": {
           "type": "string",
@@ -450,6 +496,10 @@
           "type": "string",
           "description": "What it shows when empty."
         },
+        "placeholder_style": {
+          "type": "string",
+          "description": "A style for that, instead of its own."
+        },
         "placeholder_color": {
           "$ref": "#/definitions/expression",
           "description": "A Palette entry, as $name."
@@ -471,7 +521,7 @@
           "items": {
             "$ref": "#/definitions/expression"
           },
-          "maxItems": 8,
+          "maxItems": 16,
           "description": "Numbers for the screen, at most 8."
         },
         "styles": {
@@ -479,7 +529,7 @@
           "items": {
             "type": "string"
           },
-          "maxItems": 8,
+          "maxItems": 16,
           "description": "Styles for the screen, at most 8."
         },
         "colors": {
@@ -487,7 +537,7 @@
           "items": {
             "$ref": "#/definitions/expression"
           },
-          "maxItems": 8,
+          "maxItems": 16,
           "description": "Palette entries for the screen, at most 8."
         },
         "group": {
@@ -497,6 +547,30 @@
         "clip": {
           "type": "boolean",
           "description": "Nothing inside shows outside its box."
+        },
+        "soft_clip": {
+          "type": "boolean",
+          "description": "That clip has partial pixels along an edge that falls between pixels, instead of cutting at whole ones."
+        },
+        "fade_top": {
+          "$ref": "#/definitions/expression",
+          "description": "What is inside fades out over this length at the top of its box."
+        },
+        "fade_bottom": {
+          "$ref": "#/definitions/expression",
+          "description": "What is inside fades out over this length at the bottom of its box."
+        },
+        "origin": {
+          "type": "boolean",
+          "description": "With scale: what is inside counts from 0, 0 at the corner of its box, which stays still. What is inside takes no clicks."
+        },
+        "about_x": {
+          "$ref": "#/definitions/expression",
+          "description": "What stays still when it grows, from the left of the box around it. The middle of its box when left out."
+        },
+        "about_y": {
+          "$ref": "#/definitions/expression",
+          "description": "What stays still when it grows, from the top of the box around it. The middle of its box when left out."
         },
         "column": {
           "type": "array",
@@ -533,6 +607,39 @@
           "$ref": "#/definitions/expression",
           "description": "The number."
         },
+        "to": {
+          "$ref": "#/definitions/expression",
+          "description": "Instead of value: this name is a transition, running from 0 to 1 and back as this goes on and off."
+        },
+        "ms": {
+          "$ref": "#/definitions/expression",
+          "description": "How long a transition takes."
+        },
+        "ms_off": {
+          "$ref": "#/definitions/expression",
+          "description": "How long it takes going off, when that differs."
+        },
+        "curve": {
+          "enum": [
+            "ease",
+            "linear"
+          ],
+          "description": "Its curve: ease, as CSS's, when left out."
+        },
+        "first": {
+          "enum": [
+            "jump"
+          ],
+          "description": "A state that is on when first seen starts at its end, as an element's first style does."
+        },
+        "again": {
+          "$ref": "#/definitions/expression",
+          "description": "A new value of this starts it anew, as a new element would: on, it runs up from off; off, it is off at once."
+        },
+        "key": {
+          "$ref": "#/definitions/expression",
+          "description": "In a repeat: what this transition belongs to, when that is not the round, as someone whose place in a list can change."
+        },
         "set": {
           "type": "string",
           "description": "A new value for a name above it, as when a repeat looks for the widest."
@@ -540,6 +647,10 @@
         "report": {
           "type": "string",
           "description": "A number for the screen."
+        },
+        "shadow": {
+          "$ref": "#/definitions/expression",
+          "description": "A soft shadow under a rounded box, in a Palette entry."
         }
       },
       "anyOf": [
@@ -568,8 +679,13 @@
               "note_by",
               "snap",
               "alpha",
+              "hit_path",
+              "hit_path_x",
+              "hit_path_y",
               "radius",
-              "down_to"
+              "down_to",
+              "across",
+              "ellipse"
             ]
           }
         },
@@ -597,7 +713,10 @@
               "note",
               "note_by",
               "snap",
-              "alpha"
+              "alpha",
+              "hit_path",
+              "hit_path_x",
+              "hit_path_y"
             ]
           }
         },
@@ -626,8 +745,12 @@
               "note_by",
               "snap",
               "alpha",
+              "hit_path",
+              "hit_path_x",
+              "hit_path_y",
               "radius",
-              "width"
+              "width",
+              "ellipse"
             ]
           }
         },
@@ -656,6 +779,9 @@
               "note_by",
               "snap",
               "alpha",
+              "hit_path",
+              "hit_path_x",
+              "hit_path_y",
               "x2",
               "y2",
               "width"
@@ -687,11 +813,19 @@
               "note_by",
               "snap",
               "alpha",
+              "hit_path",
+              "hit_path_x",
+              "hit_path_y",
               "color",
               "scale",
+              "scale_y",
               "width",
               "caps",
-              "soft"
+              "soft",
+              "from_y",
+              "to_y",
+              "blur",
+              "dy"
             ]
           }
         },
@@ -720,6 +854,9 @@
               "note_by",
               "snap",
               "alpha",
+              "hit_path",
+              "hit_path_x",
+              "hit_path_y",
               "style",
               "color",
               "size",
@@ -752,6 +889,9 @@
               "note_by",
               "snap",
               "alpha",
+              "hit_path",
+              "hit_path_x",
+              "hit_path_y",
               "opacity",
               "gray"
             ]
@@ -782,9 +922,13 @@
               "note_by",
               "snap",
               "alpha",
+              "hit_path",
+              "hit_path_x",
+              "hit_path_y",
               "style",
               "color",
               "placeholder",
+              "placeholder_style",
               "placeholder_color",
               "caret",
               "selection"
@@ -816,6 +960,9 @@
               "note_by",
               "snap",
               "alpha",
+              "hit_path",
+              "hit_path_x",
+              "hit_path_y",
               "numbers",
               "styles",
               "colors"
@@ -847,7 +994,19 @@
               "note_by",
               "snap",
               "alpha",
-              "clip"
+              "hit_path",
+              "hit_path_x",
+              "hit_path_y",
+              "clip",
+              "soft_clip",
+              "opacity",
+              "fade_top",
+              "fade_bottom",
+              "scale",
+              "origin",
+              "dy",
+              "about_x",
+              "about_y"
             ]
           }
         },
@@ -876,6 +1035,9 @@
               "note_by",
               "snap",
               "alpha",
+              "hit_path",
+              "hit_path_x",
+              "hit_path_y",
               "clip"
             ]
           }
@@ -905,6 +1067,9 @@
               "note_by",
               "snap",
               "alpha",
+              "hit_path",
+              "hit_path_x",
+              "hit_path_y",
               "args",
               "text",
               "draw"
@@ -935,7 +1100,10 @@
               "note",
               "note_by",
               "snap",
-              "alpha"
+              "alpha",
+              "hit_path",
+              "hit_path_x",
+              "hit_path_y"
             ]
           }
         },
@@ -964,6 +1132,9 @@
               "note_by",
               "snap",
               "alpha",
+              "hit_path",
+              "hit_path_x",
+              "hit_path_y",
               "draw"
             ]
           }
@@ -993,7 +1164,17 @@
               "note_by",
               "snap",
               "alpha",
-              "value"
+              "hit_path",
+              "hit_path_x",
+              "hit_path_y",
+              "value",
+              "to",
+              "ms",
+              "ms_off",
+              "curve",
+              "first",
+              "again",
+              "key"
             ]
           }
         },
@@ -1022,6 +1203,9 @@
               "note_by",
               "snap",
               "alpha",
+              "hit_path",
+              "hit_path_x",
+              "hit_path_y",
               "value"
             ]
           }
@@ -1051,7 +1235,44 @@
               "note_by",
               "snap",
               "alpha",
+              "hit_path",
+              "hit_path_x",
+              "hit_path_y",
               "value"
+            ]
+          }
+        },
+        {
+          "required": [
+            "shadow"
+          ],
+          "propertyNames": {
+            "enum": [
+              "shadow",
+              "if",
+              "id",
+              "x",
+              "right",
+              "y",
+              "bottom",
+              "w",
+              "h",
+              "after",
+              "hit",
+              "hit_index",
+              "hit_by",
+              "live",
+              "hit_if",
+              "note",
+              "note_by",
+              "snap",
+              "alpha",
+              "hit_path",
+              "hit_path_x",
+              "hit_path_y",
+              "radius",
+              "blur",
+              "dy"
             ]
           }
         }

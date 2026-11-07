@@ -10,10 +10,10 @@ namespace crpp::ui {
 namespace {
 constexpr float list_fade_ms = 120;
 
-enum ListNumberId : int { Items, Selected, Up, Offset };
+enum ListNumberId : int { Items, Selected, Up, Offset, FadeTop, FadeBottom };
 enum ListReportId : int { View, Content };
 constexpr skin::Name list_text_names[] = {{"item", 0}};
-constexpr skin::Name list_number_names[] = {{"items", Items}, {"selected", Selected}, {"up", Up}, {"scroll", Offset}};
+constexpr skin::Name list_number_names[] = {{"items", Items}, {"selected", Selected}, {"up", Up}, {"scroll", Offset}, {"fade_top", FadeTop}, {"fade_bottom", FadeBottom}};
 constexpr skin::Name list_hit_names[] = {{"item", 1}};
 constexpr skin::Name list_report_names[] = {{"view", View}, {"content", Content}};
 constexpr skin::Name list_note_names[] = {{"list", 0}};
@@ -23,22 +23,7 @@ skin::ScreenSchema Dropdown::schema() {
   return {.screen = "dropdown", .texts = list_text_names, .numbers = list_number_names, .hits = list_hit_names, .reports = list_report_names, .notes = list_note_names};
 }
 
-float ease(float t) {
-  // cubic-bezier(.25, .1, .25, 1): find the curve's parameter for x = t, then its y.
-  if (t <= 0) return 0;
-  if (t >= 1) return 1;
-  const auto bezier = [](float a, float b, float u) {
-    const float v = 1 - u;
-    return 3 * v * v * u * a + 3 * v * u * u * b + u * u * u;
-  };
-  float low = 0, high = 1;
-  for (int i = 0; i < 12; ++i) {
-    const float u = (low + high) / 2;
-    if (bezier(0.25f, 0.25f, u) < t) low = u;
-    else high = u;
-  }
-  return bezier(0.1f, 1.0f, (low + high) / 2);
-}
+float ease(float t) { return skin::curve_at(skin::Curve::Ease, t); }
 
 float transition(const Ui& ui, unsigned long long start, float duration_ms) {
   if (!ui.animations || ui.now_ms <= start) return ui.animations ? 0.0f : 1.0f;
@@ -83,6 +68,8 @@ void Dropdown::paint_list(Ui& ui, Surface* owner, Painter& p, Rect r) {
           case Items: return static_cast<float>(d_.options.size());
           case Selected: return index == d_.selected ? 1.0f : 0.0f;
           case Up: return d_.up ? 1.0f : 0.0f;
+          case FadeTop: return scroll_.fade_top();
+          case FadeBottom: return scroll_.fade_bottom();
           default: return scroll_.drawn();
         }
       }
@@ -187,12 +174,14 @@ void Scroll::wheel(const Ui& ui, float delta, float px_per_notch) {
   if (past != 0 && max > 0) {
     // The further out, the heavier the pull.
     constexpr float give = 0.4f;
-    stretch = std::clamp(stretch + past * give * (1 - std::abs(stretch) / longest_stretch), -longest_stretch, longest_stretch);
+    const float longest = ui.motion.scroll_stretch;
+    stretch = std::clamp(stretch + past * give * (1 - std::abs(stretch) / longest), -longest, longest);
     pulled_at = ui.now_ms;
   }
 }
 
 void Scroll::advance(Ui& ui) {
+  edge_fade = ui.motion.edge_fade;
   if (!ui.animations) {
     jump_to(target);
     return;
@@ -204,7 +193,8 @@ void Scroll::advance(Ui& ui) {
   // Time constants for settling in about 160 ms from a notch away, and coming back from
   // the furthest stretch in about 240 ms. A longer gap between frames than the cap, as
   // when a dialog held them up, must not read as a jump.
-  constexpr float settle_ms = 32, return_ms = 52, longest_step_ms = 50, near_px = 0.5f;
+  const float settle_ms = ui.motion.scroll_settle_ms, return_ms = ui.motion.scroll_return_ms;
+  constexpr float longest_step_ms = 50, near_px = 0.5f;
   constexpr unsigned long long hold_ms = 60;  // a wheel still turning keeps it stretched
   const float dt = moved_at == 0 ? 8 : std::min(longest_step_ms, static_cast<float>(ui.now_ms - std::min(ui.now_ms, moved_at)));
   moved_at = ui.now_ms;
@@ -217,9 +207,9 @@ void Scroll::advance(Ui& ui) {
   ui.more_frames = true;
 }
 
-float Scroll::fade_top() const { return std::clamp(drawn(), 0.0f, edge_fade_px); }
+float Scroll::fade_top() const { return std::clamp(drawn(), 0.0f, edge_fade); }
 
-float Scroll::fade_bottom() const { return std::clamp(max_offset() - drawn(), 0.0f, edge_fade_px); }
+float Scroll::fade_bottom() const { return std::clamp(max_offset() - drawn(), 0.0f, edge_fade); }
 
 Rect Scroll::thumb(Rect track) const {
   const float h = content_h > 0 ? std::max(28.0f, track.h * std::min(1.0f, view_h / content_h)) : track.h;

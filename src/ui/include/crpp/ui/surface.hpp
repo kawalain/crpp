@@ -8,9 +8,11 @@
 #include <utility>
 #include <vector>
 
+#include "crpp/skin/motion.hpp"
 #include "crpp/skin/pack.hpp"
 #include "crpp/ui/gfx.hpp"
 #include "crpp/ui/skin.hpp"
+#include "crpp/ui/skin_choice.hpp"
 #include "crpp/ui/svg.hpp"
 #include "crpp/ui/textfield.hpp"
 
@@ -40,6 +42,14 @@ inline D2D1_MATRIX_3X2_F scale_about(float cx, float cy, float s) {
   return D2D1::Matrix3x2F::Translation(-cx, -cy) * D2D1::Matrix3x2F::Scale(s, s) * D2D1::Matrix3x2F::Translation(cx, cy);
 }
 
+// The numbers of the motion that stays in the engine: a pack that moves gives them all. These
+// are for what the program draws without a pack.
+struct EngineMotion {
+  float scroll_settle_ms = 32, scroll_return_ms = 52, scroll_stretch = 48, edge_fade = 27;
+  float screen_fade_ms = 180, screen_rise = 8;
+  float speaking_hold_ms = 160, speaking_fade_ms = 100;
+};
+
 class Surface;
 class Prefs;
 class Dialogs;
@@ -54,6 +64,8 @@ struct WindowState {
 
   // Set while painting by whatever needs another frame after this one.
   bool more_frames = false;
+  // What a Skin Pack's transitions have under way in this window.
+  skin::Transitions transitions;
 
   // The stage is scaled to cover the window; the overflow is cropped, centered.
   float scale = 1, ox = 0, oy = 0, width = stage_w, height = stage_h;
@@ -85,6 +97,9 @@ struct WindowState {
     Rect rect;  // window coordinates
     Surface* owner;
     int id;
+    // Only this shape takes it: path data, its origin on the stage.
+    std::string_view shape = {};
+    float shape_x = 0, shape_y = 0;
   };
 
  protected:
@@ -108,9 +123,14 @@ class Ui : public WindowState {
 
   // The Skin Pack in use and this Theme's Palette in it, while data draws what it has.
   const skin::Pack* pack = nullptr;
+  EngineMotion motion;
+  // Every pack there is to choose from.
+  std::vector<SkinInfo> skins;
   int palette = -1;
   // This screen in the pack, if the pack is for this Theme and has it.
   [[nodiscard]] const skin::Screen* pack_screen(std::string_view name) const;
+  // Where a screen is drawn: on the stage when that is scaled to the window, otherwise inside the frame.
+  [[nodiscard]] Rect screen_area() const;
 
   [[nodiscard]] ID2D1PathGeometry* cloud() const { return gfx.path(cloud_path_data); }
 
@@ -138,6 +158,7 @@ class Ui : public WindowState {
 
   void add_hit(Surface* owner, Rect stage_rect, int id);
   void add_hit_window(Surface* owner, Rect window_rect, int id);
+  void add_hit_shape(Surface* owner, Rect stage_rect, int id, std::string_view data, float x, float y);
   // Hits added until pop_hit_clip are cut to this rectangle, for scrolled content.
   void push_hit_clip(Rect window_rect);
   void pop_hit_clip();

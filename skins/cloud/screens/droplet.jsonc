@@ -1,0 +1,25 @@
+{
+  "$schema": "../../schema/screen.droplet.schema.json",
+  "draw": [
+    // In the window's top-right corner, whatever the stage does. Its tip shows only while the panel is closed,
+    // falling 4 px, and grows with it.
+    {"let": "fit", "value": "35/36"},
+    {"hit": "droplet", "x": "W-18-35", "y": 16, "w": 35, "h": 49, "group": [
+      {"let": "over", "to": "hot", "first": "jump", "ms": 150},
+      {"let": "grow", "to": "hot", "first": "jump", "ms": 140},
+      {"scale": "1+0.08*grow", "about_x": 17.5, "about_y": 24.5, "group": [
+        {"path": "M18 1C13 10 2 20 2 31a16 16 0 0 0 32 0C34 20 23 10 18 1Z", "color": "mix(mix($droplet, $hl_text_dark, 92), $droplet, over*100)", "y": "(49-49*fit)/2", "scale": "fit"},
+        {"if": "@open", "path": "M12 25 24 37M24 25 12 37", "color": "mix($hl_text_dark, $hl_text, over*100)", "y": "(49-49*fit)/2", "scale": "fit", "width": 4.4, "caps": "flat"}
+      ]},
+      {"let": "tip", "to": "hot && !@open", "first": "jump", "ms": 150},
+      {"if": "tip>0 && !@open", "scale": "1+0.08*grow", "about_x": 17.5, "about_y": 24.5, "group": [
+        {"let": "tip_w", "value": "textw('tip_measure', '#tip_settings', 2000)+30"},
+        {"x": "W-tip_w", "y": "H+8-4*(1-tip)", "w": "tip_w", "h": 32, "group": [
+          {"shadow": "alpha($tip_shadow, 0.2*tip)", "radius": 11, "blur": 8, "dy": 2},
+          {"fill": "alpha($surface, tip)", "radius": 11},
+          {"text": "#tip_settings", "style": "droplet_tip", "color": "alpha($hl_text, tip)"}
+        ]}
+      ]}
+    ]}
+  ]
+}

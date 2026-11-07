@@ -39,6 +39,7 @@ class OfflinePopup final : public Surface {
   bool shown_ = false;
   bool covered_ = false;
   bool was_animating_ = false;
+  bool settled_ = false;  // it has risen once, so coming out from under the settings does not rise again
   unsigned long long opened_at_ = 0;
   unsigned long long retry_at_ = 0;  // 0 = none
 };

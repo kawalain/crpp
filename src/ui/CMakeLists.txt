@@ -1,6 +1,6 @@
 if(WIN32)
   add_library(crpp_ui STATIC
-    gfx.cpp svg.cpp textfield.cpp png.cpp surface.cpp themes.cpp skin.cpp skin_cloud.cpp skin_luna.cpp controls.cpp controls_sheet.cpp cursor_image.cpp window_frame.cpp skin_canvas.cpp skin_pack.cpp app.cpp
+    gfx.cpp svg.cpp textfield.cpp png.cpp surface.cpp themes.cpp skin.cpp skin_cloud.cpp skin_luna.cpp controls.cpp controls_sheet.cpp cursor_image.cpp window_frame.cpp skin_canvas.cpp skin_pack.cpp skin_choice.cpp app.cpp
     setup_screen.cpp prompt_screen.cpp home_screen.cpp room_screen.cpp chat_panel.cpp notice_card.cpp dialogs.cpp toasts.cpp emoji_picker.cpp
     offline_popup.cpp connection_feedback.cpp
     settings_panel.cpp settings_rows.cpp settings_sound_tab.cpp settings_display_tab.cpp settings_notify_tab.cpp settings_system_tab.cpp
@@ -68,12 +68,26 @@ if(WIN32)
   crpp_target_defaults(crpp_ui_skin_home_test)
   add_test(NAME ui.skin_home COMMAND crpp_ui_skin_home_test)
 
+  add_executable(crpp_ui_skin_choice_test tests/skin_choice_test.cpp)
+  target_link_libraries(crpp_ui_skin_choice_test PRIVATE crpp_ui)
+  target_include_directories(crpp_ui_skin_choice_test PRIVATE ${PROJECT_SOURCE_DIR}/tests/support)
+  crpp_target_defaults(crpp_ui_skin_choice_test)
+  add_test(NAME ui.skin_choice COMMAND crpp_ui_skin_choice_test)
+
+  add_executable(crpp_ui_skin_cloud_test tests/skin_cloud_test.cpp)
+  target_link_libraries(crpp_ui_skin_cloud_test PRIVATE crpp_ui)
+  target_include_directories(crpp_ui_skin_cloud_test PRIVATE ${PROJECT_SOURCE_DIR}/tests/support tests)
+  target_compile_definitions(crpp_ui_skin_cloud_test PRIVATE CRPP_TEST_SKINS="${PROJECT_SOURCE_DIR}/skins")
+  crpp_target_defaults(crpp_ui_skin_cloud_test)
+  add_test(NAME ui.skin_cloud COMMAND crpp_ui_skin_cloud_test)
+
   # Writes and checks skins/schema, and checks a pack: see skins/README.md.
   add_executable(crpp_skin_schema tests/skin_schema_tool.cpp)
   target_link_libraries(crpp_skin_schema PRIVATE crpp_ui)
   crpp_target_defaults(crpp_skin_schema)
   add_test(NAME ui.skin_schema COMMAND crpp_skin_schema --check ${PROJECT_SOURCE_DIR}/skins/schema)
-  add_test(NAME ui.skin_pack_messenger COMMAND crpp_skin_schema --pack ${PROJECT_SOURCE_DIR}/skins/messenger)
+  add_test(NAME ui.skin_pack_retro COMMAND crpp_skin_schema --pack ${PROJECT_SOURCE_DIR}/skins/retro)
+  add_test(NAME ui.skin_pack_cloud COMMAND crpp_skin_schema --pack ${PROJECT_SOURCE_DIR}/skins/cloud)
 
   # Not part of a normal build: see its first lines.
   add_executable(crpp_ui_skin_bench EXCLUDE_FROM_ALL tests/skin_bench.cpp)

@@ -1,7 +1,7 @@
 {
   "$schema": "http://json-schema.org/draft-07/schema#",
   "title": "The screen prompt of a Skin Pack",
-  "description": "A screen of a Skin Pack, as {\"draw\": [nodes]}. With no file for a screen, the program draws it itself.\nNumbers: @has_heading, @has_label, @has_prefix, @has_link, @has_extra, @has_extra2, @cancelable, @locked, @password, @shown, @hint_error, @busy, @submit_off.\nTexts: @heading, @label, @prefix, @hint, @extra2, @extra, @link.\nHits: field, submit, eye, back, extra, extra2, link.\nPictures: droplet.\nFields: none.\nSlots: field.\nReports: none.\nNotes: none.",
+  "description": "A screen of a Skin Pack, as {\"draw\": [nodes]}. With no file for a screen, the program draws it itself.\nNumbers: @has_heading, @has_label, @has_prefix, @has_link, @has_extra, @has_extra2, @cancelable, @locked, @password, @shown, @hint_error, @busy, @submit_off, @valid.\nTexts: @heading, @label, @prefix, @hint, @extra2, @extra, @link.\nHits: field, submit, eye, back, extra, extra2, link.\nPictures: droplet.\nFields: none.\nSlots: field.\nReports: none.\nNotes: none.",
   "allowComments": true,
   "allowTrailingCommas": true,
   "type": "object",

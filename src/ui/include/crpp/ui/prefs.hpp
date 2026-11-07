@@ -48,6 +48,10 @@ inline constexpr Text reverb{"reverb", "office"};
 inline constexpr Text theme{"theme", "cloudroom"};
 inline constexpr Bool system_theme{"systemTheme", false};
 inline constexpr Bool theme_cursor{"themeCursor", true};  // a key of this client's own
+// This client's own, and until they are set the choice is read from upstream's three.
+inline constexpr Text skin{"skin", ""};
+inline constexpr Text skin_theme{"skinTheme", ""};
+inline constexpr Text dark_mode{"darkMode", ""};  // "off", "on" or "system"
 inline constexpr Text light_theme{"lightTheme", "cloudroom"};
 inline constexpr Text dark_theme{"darkTheme", "darkcloud"};
 inline constexpr Int chat_scale{"chatScale", 100};
@@ -82,7 +86,7 @@ inline constexpr std::array all_bool{mute_others,       listen_self,       other
 inline constexpr std::array all_int{volume, keyboard_volume, mouse_volume, pen_volume, channel_balance, chat_scale, idle_minutes};
 inline constexpr std::array all_text{speaker_device, speaker_device_name, keyboard_sound, mouse_sound, pen_sound,
                                      reverb,         theme,               light_theme,    dark_theme,
-                                     language};
+                                     language,       skin,                skin_theme,     dark_mode};
 
 // The key of a sound in notificationSounds: its file name stem without the order
 // prefix, lower case ("01_Cloud_Chat" -> "cloud_chat"), as upstream derives it.

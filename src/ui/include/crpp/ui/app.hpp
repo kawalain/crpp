@@ -108,6 +108,12 @@ class App {
 
   // An id from themes.hpp; an unknown one means the default.
   void set_theme(std::string_view id);
+  // The Skin's own notification sounds: 0 none, 1 small bells, 2 plain tones.
+  [[nodiscard]] int notification_style() const;
+  // Every folder with a pack.jsonc in `dir` can be chosen. False when there is none.
+  bool find_skins(const std::filesystem::path& dir);
+  // Draws what the settings choose, among the packs found.
+  void apply_skin_choice(bool system_dark);
   // Draws from the Skin Pack in this folder what it has. The error says what is wrong with it.
   [[nodiscard]] std::expected<void, std::string> load_skin_dir(const std::filesystem::path& dir);
   void skin_changed();
@@ -191,9 +197,13 @@ class App {
   void paint_layers(Painter& p);
 
   Ui ui_;
+  [[nodiscard]] std::expected<void, std::string> read_pack(const std::string& overlay);
+  void point_at_palette();
+  std::filesystem::path pack_dir_;
   std::optional<skin::Pack> pack_;
   std::unique_ptr<Skin> pack_skin_;
-  std::string theme_id_;
+  std::optional<skin::Pack> previous_pack_;
+  std::string theme_id_ = "cloudroom";  // the Theme a Ui starts with, until a choice is read
   MemoryPrefs memory_prefs_;
   SetupScreen setup_{ui_};
   HomeScreen home_{ui_};

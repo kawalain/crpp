@@ -8,16 +8,17 @@ namespace crpp::ui {
 
 namespace {
 
-enum TextId : int { Nickname, Greeting, Seat };
-enum NumberId : int { Seats };
+enum TextId : int { Nickname, Greeting, Seat, Hello };
+enum NumberId : int { Seats, Returning, CodeFocus, FindTip };
 enum PictureId : int { MyEmoji };
 enum FieldId : int { CodeField };
 
-constexpr skin::Name text_names[] = {{"nickname", Nickname}, {"greeting", Greeting}, {"seat", Seat}};
-constexpr skin::Name number_names[] = {{"seats", Seats}};
+constexpr skin::Name text_names[] = {{"nickname", Nickname}, {"greeting", Greeting}, {"seat", Seat}, {"hello", Hello}};
+constexpr skin::Name number_names[] = {{"seats", Seats}, {"returning", Returning}, {"code_focus", CodeFocus}, {"find_tip", FindTip}};
 constexpr skin::Name picture_names[] = {{"my_emoji", MyEmoji}};
 constexpr skin::Name field_names[] = {{"code", CodeField}};
 constexpr skin::Name hit_names[] = {{"create", HomeScreen::Create}, {"join", HomeScreen::Join}, {"code", HomeScreen::Code}, {"find", HomeScreen::Find}, {"seat", HomeScreen::SeatBase}};
+constexpr skin::Name return_hit_names[] = {{"backdrop", HomeScreen::ReturnBackdrop}, {"card", HomeScreen::ReturnCard}, {"confirm", HomeScreen::ReturnConfirm}, {"random", HomeScreen::ReturnRandom}};
 
 }  // namespace
 
@@ -25,14 +26,24 @@ skin::ScreenSchema HomeScreen::schema() {
   return {.screen = "home", .texts = text_names, .numbers = number_names, .pictures = picture_names, .fields = field_names, .hits = hit_names};
 }
 
+skin::ScreenSchema HomeScreen::return_schema() { return {.screen = "home_return", .hits = return_hit_names}; }
+
+void HomeScreen::paint_return_pack(Painter& p, const skin::Screen& screen) {
+  p.set_base(D2D1::Matrix3x2F::Identity());
+  SkinCanvas canvas(ui_, p, this);
+  canvas.in_window_coordinates();
+  skin::Source nothing;
+  skin::draw(*ui_.pack, screen, ui_.palette, {0, 0, ui_.width, ui_.height}, canvas, nothing);
+}
+
 void HomeScreen::paint_pack(Painter& p, const skin::Screen& screen) {
   refresh_seat(ui_.now_ms);
-  p.set_base(D2D1::Matrix3x2F::Identity());
 
   class Shown final : public skin::Source {
    public:
     Shown(HomeScreen& home, Painter& painter) : home_(home), p_(painter) {
       if (home_.held_seats) seats_ = home_.held_seats();
+      hello_ = locale::fill(tr().home_hello, {home_.nickname_});
     }
 
     std::string_view text(int id, int index) override {
@@ -43,11 +54,20 @@ void HomeScreen::paint_pack(Painter& p, const skin::Screen& screen) {
           return hour >= 5 && hour < 12 ? tr().home_morning : hour >= 12 && hour < 18 ? tr().home_afternoon : hour >= 18 && hour < 22 ? tr().home_evening : tr().home_night;
         }
         case Seat: return static_cast<std::size_t>(index) < seats_.size() ? seats_[static_cast<std::size_t>(index)] : std::string_view{};
+        case Hello: return hello_;
         default: return {};
       }
     }
 
-    float number(int id, int) override { return id == Seats ? static_cast<float>(seats_.size()) : 0; }
+    float number(int id, int) override {
+      switch (id) {
+        case Seats: return static_cast<float>(seats_.size());
+        case Returning: return home_.returning() ? 1.0f : 0.0f;
+        case CodeFocus: return home_.ui_.focus == &home_.code_ ? 1.0f : 0.0f;
+        case FindTip: return home_.tip_wanted(home_.ui_.now_ms) ? 1.0f : 0.0f;
+        default: return 0;
+      }
+    }
 
     void picture(int, int, skin::Box box, float, float) override {
       draw_svg(p_, home_.ui_.emoji_image(home_.my_emoji ? home_.my_emoji() : std::string{}), rect_of(box));
@@ -57,22 +77,24 @@ void HomeScreen::paint_pack(Painter& p, const skin::Screen& screen) {
       const TextStyle style = text_style_of(look.text);
       home_.pack_code_style_ = style;
       home_.code_x_ = box.x;
-      home_.ui_.caret = home_.code_.paint(p_, rect_of(box), style, look.color, widen(look.placeholder), style, look.placeholder_color, look.caret, look.selection, home_.ui_.focus == &home_.code_, home_.ui_.caret_on);
+      home_.ui_.caret = home_.ui_.to_window(home_.code_.paint(p_, rect_of(box), style, look.color, widen(look.placeholder), text_style_of(look.placeholder_text), look.placeholder_color, look.caret, look.selection, home_.ui_.focus == &home_.code_, home_.ui_.caret_on));
     }
 
    private:
     HomeScreen& home_;
     Painter& p_;
     std::vector<std::string> seats_;
+    std::string hello_;
   } shown(*this, p);
 
   SkinCanvas canvas(ui_, p, this);
-  const Rect c = ui_.content;
+  const Rect c = ui_.screen_area();
   skin::draw(*ui_.pack, screen, ui_.palette, {c.x, c.y, c.w, c.h}, canvas, shown);
 
-  // A click and a bubble go by where these were drawn.
-  if (const Ui::Hit* hit = ui_.find_hit(this, Join)) join_rect_ = hit->rect;
-  if (const Ui::Hit* hit = ui_.find_hit(this, Find)) find_rect_ = hit->rect;
+  // A bubble goes by where these were drawn.
+  const auto on_stage = [&](Rect r) { return Rect{ui_.to_stage_x(r.x), ui_.to_stage_y(r.y), r.w / ui_.scale, r.h / ui_.scale}; };
+  if (const Ui::Hit* hit = ui_.find_hit(this, Join)) join_rect_ = on_stage(hit->rect);
+  if (const Ui::Hit* hit = ui_.find_hit(this, Find)) find_rect_ = on_stage(hit->rect);
 }
 
 }  // namespace crpp::ui

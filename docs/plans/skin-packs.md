@@ -103,12 +103,24 @@ Steps 3 to 5, Cloud from its pack against the C++ layouts at 2680ddd, on 26 scre
 wheel posted about 60 times a second and reversing every 20 notches, seven rounds of each taken in turn:
 
 - 74 scenes in Korean at 100% and 150% and English at 100%, moments of motion included, give the hash of the C++ layouts. The exceptions are `luna-controls`, which
-  is not a Cloud screen, and the display tab and `motion-tab`, which have the new rows and were looked at. Retro's Luna is unchanged but for its display tab.
+  is not a Cloud screen, and the display tab and `motion-tab`, which have the new rows. Three of those were looked at: `settings-display-tip`, `settings-display-dark` and `motion-tab`.
+  `settings-display-dark` shows the mode as off, because the scene sets the Theme without the settings. Retro's Luna is unchanged but for its display tab.
 - Idle CPU 0.00% in both. Tests show a Room, chat and settings ask for no frames once settled.
 - Scrolling: 4.88-9.77% (mean 7.48%) before, 5.47-7.81% (mean 6.47%) now. Within the limit.
 - Reading the pack 3.5 ms and the first screen 0.8 ms. A frame offscreen: +1.3%. The pack holds about 183 KB.
 - **Idle memory is over the limit by its mean:** working set 45.7-51.6 MB (mean 47.6) before, 52.1-52.5 MB (mean 52.3) now, so +9.9%. Private 73.9 MB to 75.8 MB, +2.6%.
   The earlier build lands either near 46 or near 52, and the new one always at the top of that, so this may be which mode it lands in and not what it holds. Not looked into: it goes to the user.
+
+## Open
+
+Reported by the user on 2026-11-08 after trying the build. None is fixed yet:
+
+- Under Retro's classic, the changelog page and a message box have Luna's background colour.
+- Under Retro, a button acts as soon as the button goes down. It should act when it comes up in the same place.
+- Under Retro, a scrollbar's buttons show no pressed look.
+- Retro's cursors, the hand above all, differ somewhat from the real ones.
+
+Waiting for a decision from the user: idle memory over its limit, under Measured.
 
 ## Steps
 

@@ -94,8 +94,10 @@ against a real `server/` yet; do that once a local build of it is available.
 ## Differences from upstream
 
 - No input log. The advanced settings keep a diagnostic log without input data.
-- "키보드 문자열 구분" is replaced by the Detail mode toggle: the row of a key is
-  never sent (`docs/adr/0003-presence-mode-by-default.md`).
+- "키보드 문자열 구분" is replaced by the Detail mode toggle, off by default: only with it on
+  are the row of a key and the special keys sent
+  (`docs/adr/0003-presence-mode-by-default.md`). The row is the key's place on the keyboard,
+  so another layout than QWERTY can give another row than upstream's.
 - No "최소화 시 절전 모드" toggle: it switches a WebView2 memory mode. Render
   resources are always released while the window is hidden, and after 30 s hidden so is
   the GPU driver's memory; see `docs/research/memory-floor.md`.
@@ -127,6 +129,8 @@ against a real `server/` yet; do that once a local build of it is available.
 - Reconnecting backs off and gives up at the server's grace instead of retrying every
   3 s forever; it does not ask `/health` first. A connection error names no reason in
   parentheses, because the transport reports none.
+- A speaking disc costs less than upstream's: held up by someone who keeps typing it draws
+  no frame, and otherwise only the avatars are drawn.
 - A Room that cannot be resumed at startup says so; upstream returns to Home silently.
 - The program calls itself Cloudroom++, so its autostart entry does not collide with upstream's.
 - Assets may be missing without stopping the app; see ADR 0004.
@@ -224,7 +228,9 @@ exist (real + test).
   to let go of them all. A test counts the factory's references to prove it.
   Motion runs on `clock_ms()` (QPC). Anything still moving says so with `Ui::more_frames`
   while painting or with `animating()`; only then does the shell draw the next frame,
-  paced by the display, so a still window draws nothing. `Scroll` in `controls.hpp` is
+  paced by the display, so a still window draws nothing. The render target retains its frame,
+  and a frame clips to what `WM_PAINT` was asked to draw: speaking discs invalidate only
+  themselves, with `App::only_moving_area`. The whole frame is still walked for its hits. `Scroll` in `controls.hpp` is
   every scroll area's wheel, stretch and edge fade. A motion's first frame has made no
   progress yet, so it must ask for the next frame from its start. `--shot ...
   motion-<name> --at <ms>` renders a moment of a motion; `apps/gui/shot.cpp` names them.

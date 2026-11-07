@@ -40,17 +40,45 @@ float read_at(std::span<const float> s, float position) noexcept {
   return s[i] + (next - s[i]) * (position - static_cast<float>(i));
 }
 
+double desk_x(std::size_t desk) noexcept { return (static_cast<double>(desk % 4) - 1.5) * desk_spacing_m; }
+double desk_y(std::size_t desk) noexcept { return (static_cast<double>((desk / 4) % 4) - 1.5) * desk_spacing_m; }
+
+// -1 straight to the left, +1 straight to the right.
+double desk_side(std::size_t desk) noexcept {
+  const double distance = std::hypot(desk_x(desk), desk_y(desk));
+  return distance > 0 ? desk_x(desk) / distance : 0;
+}
+
 }  // namespace
+
+std::size_t farthest_desks(const std::array<bool, desk_count>& taken, std::array<std::size_t, desk_count>& out) noexcept {
+  constexpr double same = 1e-9;
+  double best = -1;
+  std::size_t count = 0;
+  for (std::size_t desk = 0; desk < desk_count; ++desk) {
+    if (taken[desk]) continue;
+    double gap = std::abs(desk_side(desk));
+    for (std::size_t other = 0; other < desk_count; ++other) {
+      if (taken[other]) gap = std::min(gap, std::abs(desk_side(desk) - desk_side(other)));
+    }
+    if (gap > best + same) {
+      best = gap;
+      count = 0;
+    }
+    if (gap > best - same) out[count++] = desk;
+  }
+  if (count > 0) return count;
+  for (std::size_t desk = 0; desk < desk_count; ++desk) out[desk] = desk;
+  return desk_count;
+}
 
 DeskMix desk_mix(std::size_t desk, std::uint32_t rate, const SpatialConfig& config) noexcept {
   if (!config.spatial) return {};
-  const double column = static_cast<double>(desk % 4) - 1.5, row = static_cast<double>((desk / 4) % 4) - 1.5;
-  const double x = column * desk_spacing_m, y = row * desk_spacing_m;
-  const double distance = std::hypot(x, y);
+  const double distance = std::hypot(desk_x(desk), desk_y(desk));
   const double far_distance = std::hypot(1.5, 1.5) * desk_spacing_m;
   const double nearness = (distance - desk_spacing_m * std::hypot(0.5, 0.5)) /
                           (far_distance - desk_spacing_m * std::hypot(0.5, 0.5));
-  const double side = distance > 0 ? x / distance : 0;  // -1 left, +1 right
+  const double side = desk_side(desk);
   const double theta = std::asin(std::abs(side));
 
   // Leaning: straight to one side, the two amplitudes are balance : 100 - balance.

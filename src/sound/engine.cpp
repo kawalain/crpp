@@ -245,14 +245,12 @@ void Engine::place_members() {
   });
   for (const Member& member : members_) {
     if (std::ranges::any_of(desks_, [&](const auto& desk) { return desk.first == member.slot; })) continue;
-    // Everyone sits somewhere random, and alone while a desk is free.
-    std::array<std::size_t, desk_count> free_desks{};
-    std::size_t free_count = 0;
-    for (std::size_t desk = 0; desk < desk_count; ++desk) {
-      if (std::ranges::none_of(desks_, [&](const auto& taken) { return taken.second == desk; })) free_desks[free_count++] = desk;
-    }
-    const std::size_t desk = free_count > 0 ? free_desks[random_.below(free_count)] : random_.below(desk_count);
-    desks_.emplace_back(member.slot, desk);
+    // Everyone sits alone while a Desk is free, spread out left to right.
+    std::array<bool, desk_count> taken{};
+    for (const auto& [slot, desk] : desks_) taken[desk] = true;
+    std::array<std::size_t, desk_count> choices{};
+    const std::size_t count = farthest_desks(taken, choices);
+    desks_.emplace_back(member.slot, choices[random_.below(count)]);
   }
 }
 

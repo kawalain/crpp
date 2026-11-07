@@ -34,6 +34,12 @@ struct SpatialConfig {
 // In the listener's own head: for their own sounds.
 [[nodiscard]] constexpr DeskMix own_mix() noexcept { return {}; }
 
+// The Desks a newcomer may get: the free ones whose direction is farthest from the
+// directions already taken and from straight ahead, so that the first few members can
+// be told apart. Fills `out` and returns how many; with none free, every Desk.
+[[nodiscard]] std::size_t farthest_desks(const std::array<bool, desk_count>& taken,
+                                         std::array<std::size_t, desk_count>& out) noexcept;
+
 // Keeps a sum inside full scale: unchanged up to 0.85, then a smooth bend.
 [[nodiscard]] float soft_clip(float x) noexcept;
 

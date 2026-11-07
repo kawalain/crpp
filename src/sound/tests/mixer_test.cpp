@@ -1,8 +1,11 @@
 #include "crpp/sound/mixer.hpp"
 
 #include <algorithm>
+#include <array>
 #include <cmath>
+#include <initializer_list>
 #include <memory>
+#include <span>
 #include <vector>
 
 #include "check.hpp"
@@ -112,6 +115,34 @@ void every_desk_is_sane() {
   }
 }
 
+void the_first_members_sit_far_apart() {
+  std::array<bool, desk_count> taken{};
+  std::array<std::size_t, desk_count> choices{};
+  const auto are = [&](std::size_t count, std::initializer_list<std::size_t> desks) {
+    if (count != desks.size()) return false;
+    return std::ranges::equal(std::span(choices).first(count), desks);
+  };
+  // Alone, straight to one side: never nearly ahead.
+  CHECK(are(farthest_desks(taken, choices), {4, 7, 8, 11}));
+  taken[4] = true;  // left
+  CHECK(are(farthest_desks(taken, choices), {7, 11}));
+  taken[7] = true;  // and right
+  // The next is nearly ahead, the farthest from both sides that is left.
+  CHECK(are(farthest_desks(taken, choices), {1, 2, 13, 14}));
+}
+
+void everyone_gets_a_desk_of_their_own_until_they_run_out() {
+  std::array<bool, desk_count> taken{};
+  std::array<std::size_t, desk_count> choices{};
+  for (std::size_t member = 0; member < desk_count; ++member) {
+    const std::size_t count = farthest_desks(taken, choices);
+    CHECK(count > 0);
+    CHECK(!taken[choices[count - 1]]);
+    taken[choices[count - 1]] = true;
+  }
+  CHECK(farthest_desks(taken, choices) == desk_count);
+}
+
 void reverb_rings_on_then_stops() {
   auto mixer = ready_mixer();
   const auto sample = click();
@@ -200,6 +231,8 @@ int main() {
   balance_controls_the_lean();
   without_spatial_audio_everything_is_centred();
   every_desk_is_sane();
+  the_first_members_sit_far_apart();
+  everyone_gets_a_desk_of_their_own_until_they_run_out();
   reverb_rings_on_then_stops();
   the_output_stays_in_range();
   soft_clip_is_smooth();

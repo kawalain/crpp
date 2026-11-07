@@ -136,9 +136,12 @@ void RoomScreen::pulse(std::uint32_t slot) {
   for (auto& p : pulses_) {
     if (p.slot != slot) continue;
     // Still up, it stays up with nothing to draw; on its way down, it turns back.
-    if (now < p.until) p.until = until;
-    else p = {slot, p.level(now, ui_.animations), now, until};
-    if (now >= p.until || p.start == now) new_pulse_ = true;
+    if (now < p.until) {
+      p.until = until;
+    } else {
+      p = {slot, p.level(now, ui_.animations), now, until};
+      new_pulse_ = true;
+    }
     return;
   }
   pulses_.push_back({slot, 0, now, until});

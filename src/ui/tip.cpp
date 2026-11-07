@@ -9,13 +9,14 @@ namespace crpp::ui {
 
 namespace {
 
-enum NumberId : int { AnchorX, AnchorY, AnchorW, PlaceOf, Gap, Shift };
+enum NumberId : int { AnchorX, AnchorY, AnchorW, PlaceOf, Gap, Shift, LookOf, On, Again };
 constexpr skin::Name text_names[] = {{"text", 0}};
-constexpr skin::Name number_names[] = {{"anchor_x", AnchorX}, {"anchor_y", AnchorY}, {"anchor_w", AnchorW}, {"place", PlaceOf}, {"gap", Gap}, {"dx", Shift}};
+constexpr skin::Name number_names[] = {{"anchor_x", AnchorX}, {"anchor_y", AnchorY}, {"anchor_w", AnchorW}, {"place", PlaceOf}, {"gap", Gap}, {"dx", Shift}, {"look", LookOf}, {"on", On}, {"again", Again}};
+constexpr skin::Name report_names[] = {{"shown", 0}};
 
 }  // namespace
 
-skin::ScreenSchema HoverTip::schema() { return {.screen = "tip", .texts = text_names, .numbers = number_names}; }
+skin::ScreenSchema HoverTip::schema() { return {.screen = "tip", .texts = text_names, .numbers = number_names, .reports = report_names}; }
 
 float keyframes(float t, std::span<const std::pair<float, float>> stops) {
   for (std::size_t i = 1; i < stops.size(); ++i) {
@@ -32,7 +33,10 @@ void HoverTip::paint(Ui& ui, Painter& p, const Spec* want) {
   seen_owner_ = ui.hover_owner;
   seen_id_ = ui.hover_id;
   if (want) {
-    if (!shown_ || want->text != spec_.text) since_ = ui.now_ms;
+    if (!shown_ || want->text != spec_.text) {
+      since_ = ui.now_ms;
+      ++fades_in_;
+    }
     shown_ = true;
     spec_ = *want;
   } else if (shown_) {
@@ -41,14 +45,10 @@ void HoverTip::paint(Ui& ui, Painter& p, const Spec* want) {
   }
   if (spec_.text.empty()) return;
 
-  const float moved = transition(ui, since_, shown_ ? spec_.in_ms : spec_.out_ms);
-  const float alpha = shown_ ? moved : 1 - moved;
-  if (alpha <= 0) return;
-
   if (const skin::Screen* screen = ui.pack_screen("tip")) {
     class Shown final : public skin::Source {
      public:
-      explicit Shown(const Spec& spec) : s_(spec) {}
+      Shown(const Spec& spec, bool on, unsigned again) : s_(spec), on_(on), again_(again) {}
       std::string_view text(int, int) override { return s_.text; }
       float number(int id, int) override {
         switch (id) {
@@ -57,16 +57,32 @@ void HoverTip::paint(Ui& ui, Painter& p, const Spec* want) {
           case AnchorW: return s_.anchor.w;
           case PlaceOf: return static_cast<float>(s_.place);
           case Gap: return s_.gap;
+          case LookOf: return static_cast<float>(s_.look);
+          case On: return on_ ? 1.0f : 0.0f;
+          case Again: return static_cast<float>(again_);
           default: return s_.dx;
         }
       }
+      void report(int, float value) override { left = value; }
+
+      float left = 0;  // a pack that says nothing has no fade to wait for
 
      private:
       const Spec& s_;
-    } shown(spec_);
-    draw_screen(ui, p, nullptr, *screen, {0, 0, ui.width, ui.height}, shown);
+      bool on_;
+      unsigned again_;
+    } shown(spec_, shown_, fades_in_);
+    SkinCanvas canvas(ui, p, nullptr);
+    canvas.in_window_coordinates();
+    canvas.motion_of(this);
+    skin::draw(*ui.pack, *screen, ui.palette, {0, 0, ui.width, ui.height}, canvas, shown);
+    if (!shown_ && shown.left <= 0) spec_.text.clear();
     return;
   }
+
+  const float moved = transition(ui, since_, shown_ ? spec_.in_ms : spec_.out_ms);
+  const float alpha = shown_ ? moved : 1 - moved;
+  if (alpha <= 0) return;
 
   if (!ui.skin().moves()) {  // a small box against what it is about
     spec_.pad_x = 4;

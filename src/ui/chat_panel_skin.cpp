@@ -184,6 +184,7 @@ void ChatPanel::paint_messages(Painter& p, Rect inner) {
       layout->SetUnderline(true, {link.start, link.length});
       if (ui_.hot(this, id)) {
         link_tip_spec_.text = tr().chat_link_tip;
+        link_tip_spec_.look = HoverTip::Look::Link;
         link_tip_spec_.gap = 2;
         link_tip_spec_.slide = 0;
         show_link_tip_ = true;

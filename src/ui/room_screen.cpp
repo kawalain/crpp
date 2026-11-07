@@ -535,6 +535,7 @@ std::optional<HoverTip::Spec> RoomScreen::tip_for_hover() const {
     if (!is_host()) {
       // Above the whole row (.host-tip).
       spec.text = tr().room_tip_host_only;
+      spec.look = HoverTip::Look::Small;
       spec.size = 15;
       spec.anchor = {sw.x, sw.y - 7, sw.w, sw.h + 14};
       return spec;
@@ -565,6 +566,7 @@ std::optional<HoverTip::Spec> RoomScreen::tip_for_hover() const {
     // .member > .tip: 6 from the left, its bottom 2 inside the row.
     spec.anchor = {rect->second.x + 6, rect->second.y, rect->second.w, rect->second.h};
     spec.place = HoverTip::Place::Left;
+    spec.look = HoverTip::Look::Member;
     spec.size = 15;
     spec.gap = -2;
   } else {
@@ -584,6 +586,7 @@ void RoomScreen::paint_tips(Painter& p) {
     copied.text = copy_text_;
     copied.anchor = code_rect_;
     copied.place = HoverTip::Place::Right;
+    copied.look = HoverTip::Look::Copied;
     copied.out_ms = 350;
   }
   copy_tip_.paint(ui_, p, copying ? &copied : nullptr);

@@ -83,6 +83,56 @@ void test_a_dialog_rises_and_then_asks_for_no_more_frames() {
   h.app.dialogs().close();
 }
 
+void test_a_toast_comes_goes_and_is_gone() {
+  UiHarness h;
+  CHECK(h.start(1200, 900));
+  h.app.show_home();
+  CHECK(h.app.load_skin_dir(cloud_pack).has_value());
+  h.render();
+  Moving moving(h);
+  bool acted = false;
+  h.app.toasts().toast("A message", "Do it", [&] { acted = true; }, 1000);
+  CHECK(moving.after(0));
+  CHECK(h.drawn(h.app.toasts(), Toasts::Action));
+  CHECK(moving.after(90));
+  CHECK(!moving.after(90));
+  CHECK(!moving.after(400));
+  CHECK(h.app.toasts().wake_at() != 0);
+  CHECK(moving.after(420));  // past its time, it slides away
+  CHECK(h.drawn(h.app.toasts(), Toasts::Action));
+  CHECK(moving.after(90));
+  CHECK(!moving.after(90));
+  CHECK(!h.drawn(h.app.toasts(), Toasts::Action));
+  CHECK(h.app.toasts().wake_at() == 0);
+  CHECK(!acted);
+}
+
+void test_a_tip_fades_out_before_it_lets_go_of_its_text() {
+  UiHarness h;
+  CHECK(h.start(1200, 900));
+  h.app.show_session("ABC234");
+  h.app.room().set_room({{0, "Me", "", false, "c0"}, {1, "You", "", false, "c1"}}, 0, 0, false, true);
+  CHECK(h.app.load_skin_dir(cloud_pack).has_value());
+  h.render();
+  RoomScreen& room = h.app.room();
+  Moving moving(h);
+  h.app.ui().hover_owner = &room;
+  h.app.ui().hover_id = RoomScreen::Leave;
+  CHECK(moving.after(0));
+  CHECK(room.hover_tip().visible());
+  CHECK(!moving.after(150));
+  const std::string words = room.hover_tip().text();
+  CHECK(!words.empty());
+  h.app.ui().hover_owner = nullptr;
+  h.app.ui().hover_id = 0;
+  CHECK(moving.after(0));
+  CHECK(!room.hover_tip().visible());
+  CHECK(room.hover_tip().text() == words);
+  (void)moving.after(150);
+  CHECK(room.hover_tip().text().empty());
+  CHECK(!moving.after(1000));
+}
+
 void test_the_offline_popup_rises_once() {
   UiHarness h;
   CHECK(h.start(1200, 900));
@@ -104,6 +154,8 @@ void test_the_offline_popup_rises_once() {
 
 int main() {
   test_a_dialog_rises_and_then_asks_for_no_more_frames();
+  test_a_toast_comes_goes_and_is_gone();
+  test_a_tip_fades_out_before_it_lets_go_of_its_text();
   test_the_offline_popup_rises_once();
   return crpp_test_result();
 }

@@ -10,20 +10,19 @@
 namespace crpp::ui {
 
 namespace {
-constexpr float toast_ms = 180;   // .toast transition
-constexpr float bubble_ms = 150;  // .btn-notice transition
-
 enum TextId : int { Text, ActionText };
-enum BubbleNumberId : int { AnchorRight, AnchorY, Gap };
+enum NumberId : int { HasAction, Up };
+enum BubbleNumberId : int { AnchorRight, AnchorY, Gap, BubbleUp, Again };
 constexpr skin::Name text_names[] = {{"text", Text}, {"action", ActionText}};
-constexpr skin::Name number_names[] = {{"has_action", 0}};
+constexpr skin::Name number_names[] = {{"has_action", HasAction}, {"up", Up}};
+constexpr skin::Name report_names[] = {{"ms", 0}};
 constexpr skin::Name hit_names[] = {{"action", Toasts::Action}};
 constexpr skin::Name bubble_text_names[] = {{"text", Text}};
-constexpr skin::Name bubble_number_names[] = {{"anchor_right", AnchorRight}, {"anchor_y", AnchorY}, {"gap", Gap}};
+constexpr skin::Name bubble_number_names[] = {{"anchor_right", AnchorRight}, {"anchor_y", AnchorY}, {"gap", Gap}, {"up", BubbleUp}, {"again", Again}};
 }  // namespace
 
-skin::ScreenSchema Toasts::schema() { return {.screen = "toast", .texts = text_names, .numbers = number_names, .hits = hit_names}; }
-skin::ScreenSchema Toasts::bubble_schema() { return {.screen = "bubble", .texts = bubble_text_names, .numbers = bubble_number_names}; }
+skin::ScreenSchema Toasts::schema() { return {.screen = "toast", .texts = text_names, .numbers = number_names, .hits = hit_names, .reports = report_names}; }
+skin::ScreenSchema Toasts::bubble_schema() { return {.screen = "bubble", .texts = bubble_text_names, .numbers = bubble_number_names, .reports = report_names}; }
 
 void Toasts::toast(std::string text, unsigned long long duration_ms) { toast(std::move(text), {}, nullptr, duration_ms); }
 
@@ -46,6 +45,7 @@ void Toasts::bubble(Rect anchor, std::string text, float gap, unsigned long long
   bubble_ = {std::move(text), now, duration_ms ? now + duration_ms : 0};
   anchor_ = anchor;
   gap_ = gap;
+  ++bubbles_;
 }
 
 void Toasts::clear() {
@@ -70,14 +70,17 @@ void Toasts::paint_toast(Painter& p) {
   if (const skin::Screen* screen = ui_.pack_screen("toast")) {
     class Shown final : public skin::Source {
      public:
-      Shown(std::string_view words, std::string_view action) : text_(words), action_(action) {}
+      Shown(std::string_view words, std::string_view action, bool up, float& ms) : text_(words), action_(action), up_(up), ms_(ms) {}
       std::string_view text(int id, int) override { return id == Text ? text_ : action_; }
-      float number(int, int) override { return action_.empty() ? 0.0f : 1.0f; }
+      float number(int id, int) override { return (id == Up ? up_ : !action_.empty()) ? 1.0f : 0.0f; }
+      void report(int, float value) override { ms_ = value; }
 
      private:
       std::string_view text_, action_;
-    } shown(toast_.text, action_);
-    draw_screen(ui_, p, this, *screen, ui_.content, shown);
+      bool up_;
+      float& ms_;
+    } shown(toast_.text, action_, up(toast_), toast_ms_);
+    draw_layer(ui_, p, this, *screen, ui_.content, shown);
     return;
   }
   const Theme& t = ui_.theme;
@@ -98,7 +101,7 @@ void Toasts::paint_toast(Painter& p) {
   const float inner_h = std::max(size.height, action_w > 0 ? action_h : 0.0f);
   const float w = size.widthIncludingTrailingWhitespace + 2 * pad_x + (action_w > 0 ? action_w + gap : 0);
   const float h = inner_h + 2 * pad_y;
-  const float shown = visibility(toast_, toast_ms);
+  const float shown = visibility(toast_, toast_ms_);
   // Slides from above the window to 8 below its top (translate(-50%, -150%)).
   const float y = ui_.content.y + 8 - (h * 1.5f + 8) * (1 - shown);
   const Rect card{(ui_.width - w) / 2, y, w, h};
@@ -116,22 +119,28 @@ void Toasts::paint_bubble(Painter& p) {
   if (const skin::Screen* screen = ui_.pack_screen("bubble")) {
     class Shown final : public skin::Source {
      public:
-      Shown(std::string_view words, Rect anchor, float gap) : text_(words), anchor_(anchor), gap_(gap) {}
+      Shown(std::string_view words, Rect anchor, float gap, bool up, unsigned again, float& ms) : text_(words), anchor_(anchor), gap_(gap), up_(up), again_(again), ms_(ms) {}
       std::string_view text(int, int) override { return text_; }
       float number(int id, int) override {
         switch (id) {
           case AnchorRight: return anchor_.right();
           case AnchorY: return anchor_.y;
+          case BubbleUp: return up_ ? 1.0f : 0.0f;
+          case Again: return static_cast<float>(again_);
           default: return gap_;
         }
       }
+      void report(int, float value) override { ms_ = value; }
 
      private:
       std::string_view text_;
       Rect anchor_;
       float gap_;
-    } shown(bubble_.text, anchor_, gap_);
-    draw_screen(ui_, p, this, *screen, {0, 0, ui_.width, ui_.height}, shown);
+      bool up_;
+      unsigned again_;
+      float& ms_;
+    } shown(bubble_.text, anchor_, gap_, up(bubble_), bubbles_, bubble_ms_);
+    draw_layer(ui_, p, this, *screen, {0, 0, ui_.width, ui_.height}, shown);
     return;
   }
   const Theme& t = ui_.theme;
@@ -141,7 +150,7 @@ void Toasts::paint_bubble(Painter& p) {
   DWRITE_TEXT_METRICS size{};
   if (const auto layout = ui_.gfx.layout(widen(bubble_.text), body, 420 - 2 * pad_x)) layout->GetMetrics(&size);
   const float w = size.widthIncludingTrailingWhitespace + 2 * pad_x, h = size.height + 2 * pad_y;
-  const float shown = visibility(bubble_, bubble_ms);
+  const float shown = visibility(bubble_, bubble_ms_);
   const Rect r{anchor_.right() - w, anchor_.y - gap_ - h + 4 * (1 - shown), w, h};
   const Color written = ui_.skin().bubble(p, t, r, 11, t.hl, t.on_accent, shown);
   p.text(bubble_.text, {r.x + pad_x, r.y + pad_y, w - 2 * pad_x + 1, size.height}, body, written);
@@ -164,22 +173,22 @@ bool Toasts::moving(const Message& m, float duration_ms, unsigned long long now)
 bool Toasts::animating() const {
   if (!ui_.animations) return false;
   const auto now = clock_ms();
-  return moving(toast_, toast_ms, now) || moving(bubble_, bubble_ms, now);
+  return moving(toast_, toast_ms_, now) || moving(bubble_, bubble_ms_, now);
 }
 
 bool Toasts::tick(unsigned long long now_ms) {
-  const bool was_moving = moving(toast_, toast_ms, now_ms) || moving(bubble_, bubble_ms, now_ms);
+  const bool was_moving = moving(toast_, toast_ms_, now_ms) || moving(bubble_, bubble_ms_, now_ms);
   const auto expired = [&](const Message& m, float duration_ms) {
     return m.active() && m.hide_at && static_cast<float>(static_cast<long long>(now_ms - m.hide_at)) >= duration_ms &&
            now_ms >= m.hide_at;
   };
   bool changed = was_moving;
-  if (expired(toast_, toast_ms)) {
+  if (expired(toast_, toast_ms_)) {
     toast_ = {};
     on_action_ = nullptr;
     changed = true;
   }
-  if (expired(bubble_, bubble_ms)) {
+  if (expired(bubble_, bubble_ms_)) {
     bubble_ = {};
     changed = true;
   }

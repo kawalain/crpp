@@ -93,6 +93,7 @@ HoverTip::Spec MemberMenu::volume_tip() const {
   HoverTip::Spec tip;
   tip.text = std::to_string(volume_) + "%";
   tip.anchor = {track_.x + thumb / 2 + (track_.w - thumb) * at, track_.y, 0, track_.h};
+  tip.look = HoverTip::Look::Volume;
   tip.size = 15;
   tip.weight = 400;
   tip.line_height = 20;

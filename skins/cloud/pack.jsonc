@@ -36,6 +36,8 @@
       "cloud_shadow": "#4f7b99",
       "backdrop": "#365669",
       "panel_shadow": "#2e78aa",
+      "info_shadow": "#2e78aa",
+      "volume_tip": "#75ccff"
     },
     "darkcloud": {
       "white": "#ffffff",
@@ -61,6 +63,8 @@
       "cloud_shadow": "#000000",
       "backdrop": "#365669",
       "panel_shadow": "#000000",
+      "info_shadow": "#2e78aa",
+      "volume_tip": "#75ccff"
     },
     "pastel": {
       "white": "#ffffff",
@@ -86,6 +90,8 @@
       "cloud_shadow": "#4f7b99",
       "backdrop": "#365669",
       "panel_shadow": "#2e78aa",
+      "info_shadow": "#2e78aa",
+      "volume_tip": "#75ccff"
     }
   },
   "styles": {
@@ -97,6 +103,15 @@
     "modal_text": {"size": 18, "weight": 700, "line_height": 27, "align": "center", "wrap": true},
     "dialog_text": {"size": 18, "weight": 700, "line_height": 27, "align": "center", "wrap": true, "keep_words": true},
     "button": {"size": 16, "weight": 700, "line_height": 0, "align": "center"},
+    "toast_text": {"size": 15, "weight": 700, "line_height": 22, "wrap": true},
+    "toast_action": {"size": 15, "weight": 700, "line_height": 32, "align": "center"},
+    "bubble_text": {"size": 16, "weight": 700, "line_height": 22, "align": "center", "wrap": true},
+    "tip_text": {"size": 16, "weight": 700, "line_height": 22, "align": "center", "wrap": true},
+    "tip_small_text": {"size": 15, "weight": 700, "line_height": 22, "align": "center", "wrap": true},
+    "tip_volume_text": {"size": 15, "line_height": 20, "align": "center", "wrap": true},
+    "tip_measure": {"size": 16, "weight": 700, "line_height": 22},
+    "tip_small_measure": {"size": 15, "weight": 700, "line_height": 22},
+    "tip_volume_measure": {"size": 15, "line_height": 20},
     "modal_button_measure": {"size": 16, "weight": 700, "line_height": 0}
   },
   "parts": {
@@ -129,6 +144,14 @@
         {"fill": "alpha($surface, shown)", "x": "left", "y": "top", "w": "card_w", "h": "card_h", "radius": 14},
         {"x": "left", "y": "(H-card_h)/2", "w": "card_w", "h": "card_h", "hit_by": "card", "group": []},
         {"x": "left", "y": "top", "w": "card_w", "h": "card_h", "group": [{"content": true}]}
+      ]
+    },
+    // One that keeps the light Theme's shadow in the dark one.
+    "panel_info": {
+      "args": {"shown": 1},
+      "draw": [
+        {"shadow": "alpha($info_shadow, 0.22*shown)", "radius": 14, "blur": 16, "dy": 4},
+        {"fill": "alpha($surface, shown)", "radius": 14}
       ]
     },
     // .modal-confirm when primary, else .modal-cancel; other sizes for .update-button and a toast's.

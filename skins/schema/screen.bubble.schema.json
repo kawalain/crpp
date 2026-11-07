@@ -1,7 +1,7 @@
 {
   "$schema": "http://json-schema.org/draft-07/schema#",
   "title": "The screen bubble of a Skin Pack",
-  "description": "A screen of a Skin Pack, as {\"draw\": [nodes]}. With no file for a screen, the program draws it itself.\nNumbers: @anchor_right, @anchor_y, @gap.\nTexts: @text.\nHits: none.\nPictures: none.\nFields: none.\nSlots: none.\nReports: none.\nNotes: none.",
+  "description": "A screen of a Skin Pack, as {\"draw\": [nodes]}. With no file for a screen, the program draws it itself.\nNumbers: @anchor_right, @anchor_y, @gap, @up, @again.\nTexts: @text.\nHits: none.\nPictures: none.\nFields: none.\nSlots: none.\nReports: ms.\nNotes: none.",
   "allowComments": true,
   "allowTrailingCommas": true,
   "type": "object",
@@ -48,7 +48,11 @@
         "picture": false,
         "field": false,
         "slot": false,
-        "report": false,
+        "report": {
+          "enum": [
+            "ms"
+          ]
+        },
         "text": {
           "$ref": "#/definitions/text"
         },

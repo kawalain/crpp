@@ -16,11 +16,14 @@ namespace crpp::ui {
 class HoverTip {
  public:
   enum class Place : std::uint8_t { Center, Left, Right };  // which edge of the anchor it lines up with
+  // Which of a pack's labels this is; the numbers of Spec below say the same for the C++ layout.
+  enum class Look : std::uint8_t { Plain, Small, Copied, Link, Volume, Member };
 
   struct Spec {
     std::string text;  // '\n' breaks lines
     Rect anchor;       // window coordinates; the label sits `gap` above it
     Place place = Place::Center;
+    Look look = Look::Plain;
     float size = 16;
     float gap = 8;
     float slide = 4;  // how far below its place it starts
@@ -46,6 +49,7 @@ class HoverTip {
   Spec spec_;
   bool shown_ = false;
   unsigned long long since_ = 0;
+  unsigned fades_in_ = 0;
   const Surface* seen_owner_ = nullptr;
   int seen_id_ = 0;
 };

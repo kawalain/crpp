@@ -1,0 +1,28 @@
+{
+  "$schema": "../../schema/screen.tip.schema.json",
+  "draw": [
+    // @look: 0 .tip, 1 .host-tip, 2 .copy-tip, 3 .link-tip, 4 .volume-tooltip, 5 a member's.
+    {"let": "volume", "value": "@look==4"},
+    {"let": "small", "value": "@look==1 || @look==5"},
+    {"let": "shown", "to": "@on", "again": "@again", "ms": "volume ? 120 : 150", "ms_off": "volume ? 120 : @look==2 ? 350 : 150"},
+    {"report": "shown", "value": "shown"},
+    {"if": "shown>0", "group": [
+      {"let": "pad_x", "value": "volume ? 9 : 15"},
+      {"let": "pad_y", "value": "volume ? 3 : 5"},
+      {"let": "gap", "value": "volume ? 11 : @look==5 ? -2 : @look==3 ? 6 : 8"},
+      {"let": "slide", "value": "volume || @look==3 ? 0 : 4"},
+      {"let": "line_w", "value": "volume ? textw('tip_volume_measure', '@text', 2000) : small ? textw('tip_small_measure', '@text', 2000) : textw('tip_measure', '@text', 2000)"},
+      {"let": "line_h", "value": "volume ? texth('tip_volume_measure', '@text', 2000) : small ? texth('tip_small_measure', '@text', 2000) : texth('tip_measure', '@text', 2000)"},
+      {"let": "box_w", "value": "line_w+2*pad_x+1"},
+      {"let": "box_h", "value": "line_h+2*pad_y"},
+      // Lines up with the middle, the left or the right of what it is about.
+      {"let": "wanted", "value": "@place==2 ? @anchor_x+@anchor_w-box_w : @place==1 ? @anchor_x : @anchor_x+(@anchor_w-box_w)/2"},
+      {"x": "max(4, min(wanted, W-box_w-4))+@dx", "y": "@anchor_y-gap-box_h+slide*(1-shown)", "w": "box_w", "h": "box_h", "group": [
+        {"fill": "alpha(volume ? $volume_tip : $hl, shown)", "radius": "volume ? 13 : 11"},
+        {"if": "volume", "text": "@text", "style": "tip_volume_text", "color": "alpha($white, shown)", "x": "pad_x", "y": "pad_y", "w": "W-2*pad_x", "h": "H-2*pad_y"},
+        {"if": "!volume && small", "text": "@text", "style": "tip_small_text", "color": "alpha($on_accent, shown)", "x": "pad_x", "y": "pad_y", "w": "W-2*pad_x", "h": "H-2*pad_y"},
+        {"if": "!volume && !small", "text": "@text", "style": "tip_text", "color": "alpha($on_accent, shown)", "x": "pad_x", "y": "pad_y", "w": "W-2*pad_x", "h": "H-2*pad_y"}
+      ]}
+    ]}
+  ]
+}

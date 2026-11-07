@@ -232,11 +232,15 @@ void PromptScreen::submit() {
   if (on_submit) on_submit(std::move(text));
 }
 
+void PromptScreen::drag(float x, float) { field_.click_at(ui_.gfx, input_style, x - text_x_ + scroll_x_, true); }
+
 void PromptScreen::click(int id, float x, float, bool shift) {
   take_focus();
   switch (id) {
     case Field:
-      if (lock_until_ == 0) field_.click_at(ui_.gfx, input_style, x - text_x_ + scroll_x_, shift);
+      if (lock_until_ != 0) return;
+      field_.click_at(ui_.gfx, input_style, x - text_x_ + scroll_x_, shift);
+      ui_.capture = this;
       return;
     case Eye:
       field_.password = !field_.password;

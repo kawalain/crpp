@@ -60,6 +60,11 @@ void TextField::insert(std::wstring_view s) {
   caret_ = anchor_ = caret_ + clean.size();
 }
 
+void TextField::set_composition(std::wstring_view s) {
+  if (!s.empty() && has_selection() && (!accept || std::ranges::all_of(s, accept))) erase_selection();
+  composition_ = s;
+}
+
 void TextField::move_to(std::size_t pos, bool extend) {
   caret_ = pos;
   if (!extend) anchor_ = pos;

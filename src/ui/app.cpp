@@ -281,7 +281,8 @@ unsigned long long App::wake_at() {
 }
 
 Cursor App::cursor() const {
-  if (ui_.capture) return Cursor::Hand;
+  // A field keeps its own while dragging; a slider may be dragged far off itself.
+  if (ui_.capture && ui_.capture != ui_.hover_owner) return Cursor::Hand;
   if (!ui_.hover_owner) return Cursor::Arrow;
   return ui_.hover_owner->cursor(ui_.hover_id);
 }

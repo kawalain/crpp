@@ -204,6 +204,8 @@ void HomeScreen::show_error(std::string text) {
   }
 }
 
+void HomeScreen::drag(float x, float) { code_.click_at(ui_.gfx, code_style, ui_.to_stage_x(x) - (469 + 18), true); }
+
 void HomeScreen::click(int id, float x, float, bool shift) {
   switch (id) {
     case Create:
@@ -218,6 +220,7 @@ void HomeScreen::click(int id, float x, float, bool shift) {
     case Code:
       ui_.set_focus(this, &code_);
       code_.click_at(ui_.gfx, code_style, ui_.to_stage_x(x) - (469 + 18), shift);
+      ui_.capture = this;
       break;
     case Find:
       find();

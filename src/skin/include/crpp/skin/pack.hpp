@@ -2,8 +2,8 @@
 // A Skin Pack as it stays in memory: a compact tree of nodes, with the JSON it came from gone.
 // Everything a pack names is checked when it loads, so that drawing has nothing left to refuse.
 //
-// pack.json holds format, constants (names for numbers, anywhere in the pack), palettes (one per
-// Theme id), styles and parts; screens/<name>.json holds a screen as {"draw": [nodes]}. A Palette entry is "#rrggbb", "#rrggbbaa", stops as
+// Its files are JSONC. pack.jsonc holds format, constants (names for numbers, anywhere in the pack), palettes (one per
+// Theme id), styles and parts; screens/<name>.jsonc holds a screen as {"draw": [nodes]}. A Palette entry is "#rrggbb", "#rrggbbaa", stops as
 // [[at, colour], ...], {"mix": ["a", "b", percent]} or {"alpha": ["a", value]} of an entry above it.
 //
 // Each node is one thing to draw, chosen by which of these keys it has:
@@ -24,7 +24,7 @@
 //   group   a list of nodes, inside this box, with an optional clip
 //   column  a list of nodes under each other: each goes at y = flow unless it says otherwise, and
 //           flow then moves below it, by its after as well. Its height is what they took
-//   use     a part from pack.json, with args, a text the part reads as @label, and a draw list
+//   use     a part from pack.jsonc, with args, a text the part reads as @label, and a draw list
 //           that goes where the part has a node {"content": true}
 //   content see use
 //   repeat  a number; its "draw" runs that many times, with i counting
@@ -35,7 +35,7 @@
 // y or bottom, w, h (x and y from the box around it, 0 and that box's size by default), after,
 // hit (a name for clicks, counted up by hit_index, or by i if there is none), live (false: it is not
 // lit), hit_if (false: no hit), note (the box goes to the screen under this name), snap (the box moves
-// to whole pixels), and "//" for a comment. A part knows no screen, so it takes hit_by and note_by: a
+// to whole pixels). A part knows no screen, so it takes hit_by and note_by: a
 // number, which a screen gives it as an argument with hit('name') or note('name'), and less than 0 for none.
 //
 // A part may give w and h for a use that says none, and height: worked out after it has drawn,

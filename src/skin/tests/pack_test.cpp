@@ -73,8 +73,8 @@ std::string fill_list(std::string_view nodes) { return "{\"draw\":[" + std::stri
 
 ReadFile files(std::string pack, std::string home) {
   return [pack = std::move(pack), home = std::move(home)](std::string_view path) -> std::optional<std::string> {
-    if (path == "pack.json") return pack;
-    if (path == "screens/home.json" && !home.empty()) return home;
+    if (path == "pack.jsonc") return pack;
+    if (path == "screens/home.jsonc" && !home.empty()) return home;
     return std::nullopt;
   };
 }
@@ -365,7 +365,7 @@ void a_bad_node_is_refused() {
   CHECK(!load(R"({"repeat":2})"));
   CHECK(!load(R"({"fill":"$face","x":[1]})"));
   CHECK(walk(R"({"fill":"$face","x":true,"alpha":0.5})") == "fill 101,200,300,400 1/0/0/0.5\n");
-  CHECK(load(R"({"fill":"$face","//":"a comment"})").has_value());
+  CHECK(!load(R"({"fill":"$face","//":"a comment is a comment now"})"));
 }
 
 std::expected<Pack, std::string> load_with(std::string_view from, std::string_view to) {
@@ -399,9 +399,20 @@ void a_bad_pack_is_refused() {
 
 void an_error_says_where() {
   const auto pack = load(R"({"fill":"$nobody"})");
-  CHECK(!pack && pack.error().find("screens/home.json") != std::string::npos && pack.error().find("nobody") != std::string::npos);
+  CHECK(!pack && pack.error().find("screens/home.jsonc") != std::string::npos && pack.error().find("nobody") != std::string::npos);
   const auto bad = load_with("#ff0000", "red");
-  CHECK(!bad && bad.error().find("pack.json") != std::string::npos && bad.error().find("face") != std::string::npos);
+  CHECK(!bad && bad.error().find("pack.jsonc") != std::string::npos && bad.error().find("face") != std::string::npos);
+}
+
+void a_file_is_jsonc_and_names_its_schema() {
+  const auto pack = load_pack(files(test_pack, R"J({
+    "$schema": "../schema/screen.home.schema.json",
+    // A comment, and a comma after the last item.
+    "draw": [{"fill": "$face",},],
+  })J"), std::span(&test_schema, 1));
+  CHECK(pack.has_value());
+  const auto broken = load_pack(files(test_pack, "{\n  \"draw\": [\n    {\"fill\" \"$face\"}\n  ]\n}"), std::span(&test_schema, 1));
+  CHECK(!broken && broken.error().find("screens/home.jsonc:3:13") != std::string::npos);
 }
 
 void a_screen_without_a_file_is_left_out() {
@@ -493,6 +504,7 @@ int main() {
   a_bad_node_is_refused();
   a_bad_pack_is_refused();
   an_error_says_where();
+  a_file_is_jsonc_and_names_its_schema();
   a_screen_without_a_file_is_left_out();
   sizes_are_limited();
   a_walk_ends_however_parts_multiply();

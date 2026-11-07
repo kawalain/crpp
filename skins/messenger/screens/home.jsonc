@@ -2,7 +2,8 @@
   "draw": [
     {"fill": "$face"},
 
-    {"//": "Who you are.", "id": "header", "h": 62, "group": [
+    // Who you are.
+    {"id": "header", "h": 62, "group": [
       {"fill": "$header"},
       {"fill": "$edge_dark", "y": "H-1", "h": 1},
       {"x": 8, "y": 7, "w": 48, "h": 48, "group": [
@@ -13,7 +14,8 @@
       {"text": "@greeting", "style": "body", "color": "$ink_soft", "x": 64, "y": 32, "w": "W-x-6", "h": 16}
     ]},
 
-    {"//": "A code to enter.", "id": "find", "x": 8, "y": "header.bottom+16", "w": "W-16", "h": 46, "group": [
+    // A code to enter.
+    {"id": "find", "x": 8, "y": "header.bottom+16", "w": "W-16", "h": 46, "group": [
       {"let": "enter_w", "value": "max(75, ceil(textw('button', '#home_enter'))+24)"},
       {"id": "code", "x": 10, "y": 13, "w": "W-20-enter_w-6", "h": 23, "hit": "code", "group": [
         {"use": "field"},
@@ -23,7 +25,8 @@
       {"use": "group_box", "text": "#home_find"}
     ]},
 
-    {"//": "What can be started.", "id": "tasks", "y": "H-66", "h": 66, "group": [
+    // What can be started.
+    {"id": "tasks", "y": "H-66", "h": 66, "group": [
       {"fill": "$header"},
       {"fill": "$edge_dark", "h": 1},
       {"text": "#home_tasks", "style": "bold", "color": "$ink", "x": 10, "y": 6, "w": "W-20", "h": 16},
@@ -33,7 +36,8 @@
       {"use": "link", "text": "#home_find_public", "hit": "find", "x": 28, "y": 43, "w": "W-38", "h": 18}
     ]},
 
-    {"//": "The Seats to go back to.", "id": "seats_title", "text": "#home_seats", "style": "bold", "color": "$ink", "x": 10, "y": "find.bottom+16", "w": "W-20", "h": 16},
+    // The Seats to go back to.
+    {"id": "seats_title", "text": "#home_seats", "style": "bold", "color": "$ink", "x": 10, "y": "find.bottom+16", "w": "W-20", "h": 16},
     {"x": 8, "y": "seats_title.y+18", "w": "W-16", "h": "max(20, tasks.y-8-y)", "group": [
       {"use": "field"},
       {"if": "@seats==0", "text": "#home_seats_empty", "style": "paragraph", "color": "$ink_soft", "x": 6, "y": 4, "w": "W-12", "h": "H-8"},

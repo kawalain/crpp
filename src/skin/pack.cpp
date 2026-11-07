@@ -45,7 +45,7 @@ constexpr std::string_view kind_keys[] = {"fill", "frame", "stroke", "line", "pa
 
 [[nodiscard]] bool key_allowed(NodeKind kind, std::string_view key) {
   const auto among = [&](std::initializer_list<std::string_view> keys) { return std::ranges::find(keys, key) != keys.end(); };
-  if (among({"if", "id", "x", "right", "y", "bottom", "w", "h", "after", "hit", "hit_index", "hit_by", "live", "hit_if", "note", "note_by", "snap", "alpha", "//"})) return true;
+  if (among({"if", "id", "x", "right", "y", "bottom", "w", "h", "after", "hit", "hit_index", "hit_by", "live", "hit_if", "note", "note_by", "snap", "alpha"})) return true;
   switch (kind) {
     case NodeKind::Fill: return among({"radius", "down_to"});
     case NodeKind::Frame: return false;
@@ -83,9 +83,9 @@ class Loader final : public Names {
     pack_.code.push_back({Op::Var, VarW, 0});
     pack_.code.push_back({Op::Var, VarH, 0});
     pack_.code.push_back({Op::Var, VarFlow, 0});
-    const auto root = parse_file("pack.json", read_("pack.json"));
+    const auto root = parse_file("pack.jsonc", read_("pack.jsonc"));
     if (!root) return false;
-    where_ = "pack.json";
+    where_ = "pack.jsonc";
     const Json* format = root->find("format");
     if (!format || format->as_i64() != pack_format) return fail("this exe reads format " + std::to_string(pack_format));
     const Json* id = root->find("id");
@@ -198,9 +198,11 @@ class Loader final : public Names {
       fail("is larger than " + std::to_string(max_file_bytes) + " bytes");
       return std::nullopt;
     }
-    auto json = Json::parse(*text);
+    store::JsonPosition at;
+    auto json = Json::parse(*text, &at);
     if (!json) {
-      fail("is not JSON");
+      where_ += ":" + std::to_string(at.line) + ":" + std::to_string(at.column);
+      fail("is not JSONC");
       return std::nullopt;
     }
     if (!json->is_object()) {
@@ -313,7 +315,7 @@ class Loader final : public Names {
     // A style can be read by anything, so it knows no local names; its sizes are worked out
     // for each node that uses it, in that node's box.
     for (const Json::Member& m : *all) {
-      where_ = "pack.json: style \"" + m.key + "\"";
+      where_ = "pack.jsonc: style \"" + m.key + "\"";
       Style style;
       if (!m.value.is_object()) return fail("is not an object");
       if (!expr_of(m.value, "size", style.size) || !expr_of(m.value, "line_height", style.line_height)) return false;
@@ -721,7 +723,7 @@ class Loader final : public Names {
     const Json::Object* all = parts ? parts->as_object() : nullptr;
     if (!all) return fail("no parts");
     for (const Json::Member& m : *all) {
-      where_ = "pack.json: part \"" + m.key + "\"";
+      where_ = "pack.jsonc: part \"" + m.key + "\"";
       if (!m.value.is_object()) return fail("is not an object");
       const Json* draw = m.value.find("draw");
       if (!draw) return fail("has no \"draw\"");
@@ -759,7 +761,7 @@ class Loader final : public Names {
   // --- Screens ---
 
   bool load_screen(const ScreenSchema& schema) {
-    const std::string path = "screens/" + std::string(schema.screen) + ".json";
+    const std::string path = "screens/" + std::string(schema.screen) + ".jsonc";
     const auto text = read_(path);
     if (!text) return true;
     const auto root = parse_file(path, text);

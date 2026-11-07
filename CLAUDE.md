@@ -242,7 +242,7 @@ exist (real + test).
 - `store`: settings, Seats and chat cache in the Protected or Shared store; a
   flushed temp file + rename for every write. `Platform` is the seam for DPAPI
   and file replacement.
-- `skin`: Skin Packs (`docs/adr/0007-skins-are-downloaded-data.md`). `load_pack` turns a pack's JSON into
+- `skin`: Skin Packs (`docs/adr/0007-skins-are-downloaded-data.md`). `load_pack` turns a pack's JSONC into
   a compact tree and checks every name in it, under limits on size and depth, so that drawing has
   nothing left to refuse. `draw` walks a screen; `Canvas` is the seam for drawing and `Source` for what
   the screen shows. `pack.hpp` describes the format. Expressions are compiled to a short program, and

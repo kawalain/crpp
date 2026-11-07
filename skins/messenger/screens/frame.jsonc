@@ -2,8 +2,8 @@
   "draw": [
     {"let": "cap", "value": "snap(caption_h)"},
     {"let": "band", "value": "snap(frame_w)"},
-    {"//": "The region keeps every pixel the curve touches. Those it only partly covers are blended with this, since a window cannot blend with what is behind it.",
-     "fill": "@active ? $matte : $matte_idle", "w": "window_radius+1", "h": "window_radius+1"},
+    // The region keeps every pixel the curve touches. Those it only partly covers are blended with this, since a window cannot blend with what is behind it.
+    {"fill": "@active ? $matte : $matte_idle", "w": "window_radius+1", "h": "window_radius+1"},
     {"fill": "@active ? $matte : $matte_idle", "x": "W-window_radius-1", "w": "window_radius+2", "h": "window_radius+1"},
     {"clip": true, "h": "cap", "group": [
       {"fill": "@active ? $caption : $caption_idle", "radius": "window_radius", "h": "cap+2*window_radius", "down_to": "cap"}

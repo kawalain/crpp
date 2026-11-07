@@ -3,7 +3,8 @@
     {"fill": "$face"},
     {"hit": "overlay", "group": []},
 
-    {"//": "The categories on the left.", "x": 8, "y": 8, "w": 112, "h": "H-44", "group": [
+    // The categories on the left.
+    {"x": 8, "y": 8, "w": 112, "h": "H-44", "group": [
       {"use": "field"},
       {"use": "options_tab", "text": "#tab_sound", "hit": "tab", "hit_index": 0, "x": 1, "y": 1, "w": "W-2", "h": 22, "args": {"active": "@page==0"}},
       {"use": "options_tab", "text": "#tab_display", "hit": "tab", "hit_index": 1, "x": 1, "y": 23, "w": "W-2", "h": 22, "args": {"active": "@page==1"}},
@@ -12,7 +13,8 @@
       {"use": "options_tab", "text": "#tab_account", "hit": "tab", "hit_index": 4, "x": 1, "y": 89, "w": "W-2", "h": 22, "args": {"active": "@page==4"}}
     ]},
 
-    {"//": "The tab on the right, which scrolls.", "x": 128, "y": 8, "w": "W-136", "h": "H-44", "group": [
+    // The tab on the right, which scrolls.
+    {"x": 128, "y": 8, "w": "W-136", "h": "H-44", "group": [
       {"slot": "tab", "numbers": ["scrollbar_w+2"]},
       {"if": "@overflow", "use": "scrollbar", "x": "W-scrollbar_w", "w": "scrollbar_w",
        "args": {"view": "@view", "content": "@content", "offset": "@offset", "track": "hit('track')", "thumb": "hit('thumb')", "track_note": "note('track')"}},

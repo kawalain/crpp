@@ -14,7 +14,8 @@
       {"if": "@has_heading", "text": "@heading", "style": "bold_center", "color": "$ink", "h": 20, "after": 6},
       {"if": "@has_label", "text": "@label", "style": "body", "color": "$ink", "h": 16, "after": 2},
 
-      {"//": "The field, with what goes before the text and the eye inside it.", "h": "field_h", "after": 6, "group": [
+      // The field, with what goes before the text and the eye inside it.
+      {"h": "field_h", "after": 6, "group": [
         {"use": "field", "args": {"off": "@locked"}},
         {"hit": "field", "group": []},
         {"if": "@has_prefix", "text": "@prefix", "style": "body", "color": "$ink", "x": 4, "w": 30},
@@ -32,7 +33,8 @@
 
       {"text": "@hint", "style": "paragraph", "color": "@hint_error ? $error_text : $ink_soft", "h": "hint_h", "after": 14},
 
-      {"//": "Submitting comes last on the right, then the step's other choices, as a dialog has them.", "h": "button_h", "group": [
+      // Submitting comes last on the right, then the step's other choices, as a dialog has them.
+      {"h": "button_h", "group": [
         {"use": "button", "id": "ok", "text": "#ok", "hit": "submit", "right": "W", "live": "!@busy", "args": {"primary": 1, "off": "@submit_off"}},
         {"if": "@has_extra2", "use": "button", "id": "two", "text": "@extra2", "hit": "extra2", "right": "ok.x-6", "live": "!@busy"},
         {"if": "@has_extra", "use": "button", "text": "@extra", "hit": "extra", "right": "(@has_extra2 ? two.x : ok.x)-6", "live": "!@busy"},

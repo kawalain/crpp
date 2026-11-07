@@ -73,7 +73,7 @@ if(WIN32)
   target_link_libraries(crpp_skin_schema PRIVATE crpp_ui)
   crpp_target_defaults(crpp_skin_schema)
   add_test(NAME ui.skin_schema COMMAND crpp_skin_schema --check ${PROJECT_SOURCE_DIR}/skins/schema)
-  add_test(NAME ui.skin_pack_messenger COMMAND crpp_skin_schema --pack ${PROJECT_SOURCE_DIR}/skins/messenger)
+  add_test(NAME ui.skin_pack_retro COMMAND crpp_skin_schema --pack ${PROJECT_SOURCE_DIR}/skins/retro)
 
   # Not part of a normal build: see its first lines.
   add_executable(crpp_ui_skin_bench EXCLUDE_FROM_ALL tests/skin_bench.cpp)

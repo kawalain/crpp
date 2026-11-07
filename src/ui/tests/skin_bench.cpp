@@ -42,7 +42,7 @@ int main(int argc, char** argv) {
   }
   test::UiHarness h;
   if (!h.start(300, 560)) return 1;
-  h.app.set_theme("messenger");
+  h.app.set_theme("luna_blue");
   h.app.show_home();
   h.app.home().set_nickname("Me");
   h.app.home().held_seats = [] { return std::vector<std::string>{"ABC234", "XYZ789"}; };

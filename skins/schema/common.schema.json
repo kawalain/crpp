@@ -176,8 +176,8 @@
             "#theme_cloud",
             "#theme_dark_cloud",
             "#theme_pastel",
-            "#theme_messenger",
-            "#theme_messenger_dark",
+            "#theme_luna_blue",
+            "#theme_luna_blue_dark",
             "#display_theme",
             "#display_sync",
             "#display_theme_cursor",
@@ -366,6 +366,10 @@
         "down_to": {
           "$ref": "#/definitions/expression",
           "description": "How far down from its top a gradient ends, instead of its height."
+        },
+        "across": {
+          "type": "boolean",
+          "description": "A gradient runs from left to right over its box, not downward. It takes no radius or down_to."
         },
         "frame": {
           "$ref": "#/definitions/expression",
@@ -569,7 +573,8 @@
               "snap",
               "alpha",
               "radius",
-              "down_to"
+              "down_to",
+              "across"
             ]
           }
         },

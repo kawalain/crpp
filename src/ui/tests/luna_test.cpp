@@ -20,7 +20,7 @@ constexpr unsigned width = 640, height = 500;
 
 void start_luna(UiHarness& h) {
   CHECK(h.start(width, height));
-  h.app.set_theme("messenger");
+  h.app.set_theme("luna_blue");
   h.render();
 }
 
@@ -61,7 +61,7 @@ void test_each_screen_has_its_window_size_and_cloud_has_one() {
   CHECK(h.start(width, height));
   CHECK(!h.app.own_frame());
   CHECK(h.app.screen_size().key.empty());
-  h.app.set_theme("messenger");
+  h.app.set_theme("luna_blue");
   CHECK(h.app.own_frame());
   CHECK(!h.app.ui().animations);
   h.app.show_home();
@@ -513,10 +513,10 @@ void test_themes_are_listed_by_lightness_with_their_skin() {
   const auto id_in = [](const std::vector<const ThemeEntry*>& list, std::string_view id) {
     return std::ranges::any_of(list, [&](const ThemeEntry* entry) { return entry->id == id; });
   };
-  CHECK(id_in(themes_of(false), "messenger") && !id_in(themes_of(true), "messenger"));
-  CHECK(id_in(themes_of(true), "messengerdark") && !id_in(themes_of(false), "messengerdark"));
-  CHECK(theme_named("messengerdark").theme.dark);
-  CHECK(theme_named("messengerdark").theme.skin == SkinId::Luna);
+  CHECK(id_in(themes_of(false), "luna_blue") && !id_in(themes_of(true), "luna_blue"));
+  CHECK(id_in(themes_of(true), "luna_blue_dark") && !id_in(themes_of(false), "luna_blue_dark"));
+  CHECK(theme_named("luna_blue_dark").theme.dark);
+  CHECK(theme_named("luna_blue_dark").theme.skin == SkinId::Luna);
   // Each has a label of its own.
   for (const ThemeEntry& entry : all_themes()) {
     CHECK(tr().*entry.label != nullptr);
@@ -526,9 +526,9 @@ void test_themes_are_listed_by_lightness_with_their_skin() {
   // Following the OS may pair Skins, and the frame changes with the OS.
   MemoryPrefs prefs;
   prefs.set(pref::system_theme, true);
-  prefs.set(pref::light_theme, std::string_view("messenger"));
+  prefs.set(pref::light_theme, std::string_view("luna_blue"));
   prefs.set(pref::dark_theme, std::string_view("darkcloud"));
-  CHECK(effective_theme(prefs, false).id == "messenger");
+  CHECK(effective_theme(prefs, false).id == "luna_blue");
   CHECK(effective_theme(prefs, true).id == "darkcloud");
   UiHarness h;
   CHECK(h.start(width, height));
@@ -539,7 +539,7 @@ void test_themes_are_listed_by_lightness_with_their_skin() {
   h.app.set_theme(effective_theme(prefs, true).id);
   CHECK(!h.app.own_frame());
   CHECK(h.render());
-  h.app.set_theme("messengerdark");
+  h.app.set_theme("luna_blue_dark");
   CHECK(h.app.own_frame());
   CHECK(h.render());
 }

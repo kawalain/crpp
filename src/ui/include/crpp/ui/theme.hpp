@@ -144,7 +144,7 @@ constexpr Theme luna_theme(const LunaColors& l, bool dark) {
   return t;
 }
 
-constexpr LunaColors messenger_colors() {
+constexpr LunaColors luna_blue_colors() {
   LunaColors l{};
   l.caption = {{{0, rgb(0x0997ff)}, {0.08f, rgb(0x0053ee)}, {0.40f, rgb(0x0050ee)}, {0.88f, rgb(0x0066ff)},
                 {0.93f, rgb(0x0066ff)}, {0.95f, rgb(0x005bff)}, {0.96f, rgb(0x003dd7)}, {1, rgb(0x003dd7)}}};
@@ -225,8 +225,8 @@ constexpr LunaColors messenger_colors() {
 
 // The same shapes at night: a darkened caption, deep faces, and the orange of the period kept.
 // There was no such thing then, so these values are ours.
-constexpr LunaColors messenger_dark_colors() {
-  LunaColors l = messenger_colors();
+constexpr LunaColors luna_blue_dark_colors() {
+  LunaColors l = luna_blue_colors();
   l.caption = {{{0, rgb(0x4a6491)}, {0.08f, rgb(0x1d2f52)}, {0.40f, rgb(0x1d2f52)}, {0.88f, rgb(0x253a63)},
                 {0.93f, rgb(0x253a63)}, {0.95f, rgb(0x1d2f52)}, {0.96f, rgb(0x142440)}, {1, rgb(0x142440)}}};
   l.caption_idle = {{{0, rgb(0x3a4252)}, {0.08f, rgb(0x2a303c)}, {0.40f, rgb(0x2a303c)}, {0.88f, rgb(0x303744)},

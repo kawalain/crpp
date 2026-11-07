@@ -117,6 +117,50 @@ void test_masked_password_is_not_copied() {
   CHECK(field.text() == L"secret");
 }
 
+void test_composing_replaces_the_selection() {
+  TextField field;
+  field.set_text(L"구름이");
+  field.select_all();
+  field.set_composition(L"ㅎ");
+  CHECK(field.text().empty());
+  CHECK(field.composing());
+  // Going on with the same syllable changes nothing else.
+  field.set_composition(L"하");
+  field.set_composition(L"");
+  field.insert(L"하");
+  CHECK(field.text() == L"하");
+}
+
+void test_composing_what_the_field_refuses_keeps_the_selection() {
+  TextField field;
+  field.accept = [](wchar_t c) { return c < 0x80; };
+  field.set_text(L"ABC");
+  field.select_all();
+  field.set_composition(L"ㅎ");
+  CHECK(field.text() == L"ABC");
+}
+
+void test_dragging_selects_and_typing_replaces() {
+  UiHarness h;
+  CHECK(h.start());
+  PromptScreen& s = h.app.prompt();
+  Prompt p = three_or_more();
+  p.value = "abcdef";
+  h.app.show_prompt(p);
+  h.render();
+  const Ui::Hit* hit = h.app.ui().find_hit(&s, PromptScreen::Field);
+  CHECK(hit != nullptr);
+  if (!hit) return;
+  const float y = hit->rect.y + hit->rect.h / 2;
+  h.app.mouse_move(hit->rect.x + 2, y);
+  h.app.mouse_down(hit->rect.x + 2, y, false);
+  h.app.mouse_move(hit->rect.right() - 2, y);
+  h.app.mouse_up();
+  h.render();
+  CHECK(h.app.ime_composition(L"", L"x"));
+  CHECK(s.value() == "x");
+}
+
 void test_buttons_and_escape() {
   UiHarness h;
   CHECK(h.start());
@@ -248,6 +292,9 @@ int main() {
   test_input_rules();
   test_password_eye();
   test_masked_password_is_not_copied();
+  test_composing_replaces_the_selection();
+  test_composing_what_the_field_refuses_keeps_the_selection();
+  test_dragging_selects_and_typing_replaces();
   test_buttons_and_escape();
   test_busy_blocks_submit();
   test_lock_counts_down_without_polling();

@@ -32,7 +32,8 @@ struct SvgImage {
 SvgImage parse_svg(const Gfx& gfx, std::string_view svg);
 
 // Draws the image scaled to fit dst, optionally translucent.
-void draw_svg(Painter& p, const SvgImage& image, Rect dst, float opacity = 1.0f);
+// `gray` from 0 to 1 is CSS's grayscale(). A colour font's glyph cannot take it.
+void draw_svg(Painter& p, const SvgImage& image, Rect dst, float opacity = 1.0f, float gray = 0);
 
 // Whether an id can name an emoji file. Ids come from other members through the server,
 // and become part of a path.

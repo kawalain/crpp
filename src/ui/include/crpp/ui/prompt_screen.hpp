@@ -52,6 +52,7 @@ class PromptScreen final : public Surface {
 
   void paint(Painter& p);
   void click(int id, float x, float y, bool shift) override;
+  void drag(float x, float y) override;
   void enter(bool shift) override;
   bool escape() override;
   [[nodiscard]] Cursor cursor(int id) const override;

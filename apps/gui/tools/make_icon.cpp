@@ -1,19 +1,18 @@
-// crpp_make_icon <in.svg> <out.ico>: renders the app's icon at the sizes Windows asks
-// for. Run by hand when the drawing changes; the result is committed, so a build needs
-// no rendering step. Small sizes stay uncompressed, which every loader takes, and the
-// largest is PNG, as Windows expects at that size.
+// crpp_make_icon <in.png> <out.ico>: scales the app's icon to the sizes Windows asks for,
+// among them the 20 and 40 pixels of the tray at 125% and 150%. Run by hand when the
+// picture changes; the result is committed, so a build needs no scaling step. Small sizes
+// stay uncompressed, which every loader takes, and the largest is PNG, as Windows expects
+// at that size.
 #include <wincodec.h>
 
+#include <algorithm>
 #include <cstdint>
 #include <cstdio>
 #include <fstream>
-#include <iterator>
 #include <string>
 #include <vector>
 
 #include "crpp/ui/com.hpp"
-#include "crpp/ui/svg.hpp"
-#include "tray.hpp"
 
 using namespace crpp;
 
@@ -73,34 +72,63 @@ Bytes png(const std::vector<std::uint32_t>& pixels, std::uint32_t size) {
   return out;
 }
 
+// Straight-alpha BGRA, top row first; empty on failure. Scaled premultiplied, so what is
+// under the transparent corners does not bleed into the edge.
+std::vector<std::uint32_t> scaled(IWICImagingFactory* wic, IWICBitmapSource* source, std::uint32_t size) {
+  ui::ComPtr<IWICBitmapScaler> scaler;
+  std::vector<std::uint32_t> pixels(size * size);
+  if (FAILED(wic->CreateBitmapScaler(scaler.put())) ||
+      FAILED(scaler->Initialize(source, size, size, WICBitmapInterpolationModeHighQualityCubic)) ||
+      FAILED(scaler->CopyPixels(nullptr, size * 4, size * size * 4, reinterpret_cast<BYTE*>(pixels.data())))) {
+    return {};
+  }
+  for (std::uint32_t& pixel : pixels) {
+    const std::uint32_t alpha = pixel >> 24;
+    if (alpha == 0 || alpha == 255) continue;
+    const auto straight = [&](int shift) {
+      const std::uint32_t c = (pixel >> shift) & 0xFF;
+      return std::min<std::uint32_t>((c * 255 + alpha / 2) / alpha, 255) << shift;
+    };
+    pixel = (alpha << 24) | straight(16) | straight(8) | straight(0);
+  }
+  return pixels;
+}
+
 }  // namespace
 
 int main(int argc, char** argv) {
   if (argc != 3) {
-    std::fprintf(stderr, "usage: crpp_make_icon <in.svg> <out.ico>\n");
+    std::fprintf(stderr, "usage: crpp_make_icon <in.png> <out.ico>\n");
     return 2;
   }
-  std::ifstream in(argv[1], std::ios::binary);
-  const std::string text{std::istreambuf_iterator<char>(in), std::istreambuf_iterator<char>()};
-  ui::Gfx gfx;
-  if (!gfx.init()) return 1;
-  const ui::SvgImage image = ui::parse_svg(gfx, text);
-  if (image.shapes.empty()) {
-    std::fprintf(stderr, "no shapes in %s\n", argv[1]);
+  const HRESULT com = CoInitializeEx(nullptr, COINIT_APARTMENTTHREADED);
+  ui::ComPtr<IWICImagingFactory> wic;
+  ui::ComPtr<IWICBitmapDecoder> decoder;
+  ui::ComPtr<IWICBitmapFrameDecode> decoded;
+  ui::ComPtr<IWICFormatConverter> source;
+  const std::string name(argv[1]);
+  const std::wstring path(name.begin(), name.end());
+  if (FAILED(CoCreateInstance(CLSID_WICImagingFactory, nullptr, CLSCTX_INPROC_SERVER, IID_IWICImagingFactory,
+                              reinterpret_cast<void**>(wic.put()))) ||
+      FAILED(wic->CreateDecoderFromFilename(path.c_str(), nullptr, GENERIC_READ, WICDecodeMetadataCacheOnDemand, decoder.put())) ||
+      FAILED(decoder->GetFrame(0, decoded.put())) || FAILED(wic->CreateFormatConverter(source.put())) ||
+      FAILED(source->Initialize(decoded.get(), GUID_WICPixelFormat32bppPBGRA, WICBitmapDitherTypeNone, nullptr, 0,
+                                WICBitmapPaletteTypeCustom))) {
+    std::fprintf(stderr, "cannot read %s\n", argv[1]);
     return 1;
   }
-  const HRESULT com = CoInitializeEx(nullptr, COINIT_APARTMENTTHREADED);
   std::vector<Bytes> frames;
   const std::vector<std::uint32_t> sizes{16, 20, 24, 32, 40, 48, 256};
   for (const std::uint32_t size : sizes) {
-    const auto pixels = gui::render_pixels(gfx.d2d(), static_cast<int>(size), [&](ID2D1RenderTarget* rt) {
-      ui::Painter painter(gfx, rt);
-      ui::draw_svg(painter, image, {0, 0, static_cast<float>(size), static_cast<float>(size)});
-    });
+    const auto pixels = scaled(wic.get(), source.get(), size);
     if (pixels.empty()) return 1;
     frames.push_back(size == 256 ? png(pixels, size) : dib(pixels, size));
     if (frames.back().empty()) return 1;
   }
+  source.reset();
+  decoded.reset();
+  decoder.reset();
+  wic.reset();
   if (SUCCEEDED(com)) CoUninitialize();
 
   Bytes file;

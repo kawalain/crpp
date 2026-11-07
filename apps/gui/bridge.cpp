@@ -113,7 +113,7 @@ void Bridge::on_peer_input(std::span<const wire::ServerEvent> events) {
     slots.push_back(e.slot);
     if (e.slot != me) engine_.play_peer(e.slot, e.kind);
   }
-  tasks_.post([this, slots = std::move(slots)] {
+  tasks_.post_quiet([this, slots = std::move(slots)] {
     for (const auto s : slots) app_.room().pulse(s);
   });
 }

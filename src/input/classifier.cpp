@@ -29,6 +29,16 @@ std::optional<Special> special_key(std::uint16_t make) noexcept {
   }
 }
 
+// Which row of the keyboard a key sits on, by where it is rather than what it types, so the
+// layout and the input language do not matter. Keys elsewhere, as on the keypad, have none.
+std::optional<Kind> row_of(std::uint16_t make) noexcept {
+  if (make == 0x29 || (make >= 0x02 && make <= 0x0D)) return Kind::KeyR4;  // ` 1 to =
+  if (make == 0x2B || (make >= 0x10 && make <= 0x1B)) return Kind::KeyR3;  // Q to ] and backslash
+  if (make >= 0x1E && make <= 0x28) return Kind::KeyR2;                    // A to '
+  if (make == 0x56 || (make >= 0x2C && make <= 0x35)) return Kind::KeyR1;  // Z to /, and the ISO key
+  return std::nullopt;
+}
+
 }  // namespace
 
 std::optional<wire::Kind> KeyClassifier::on_key(std::uint16_t make, bool extended, bool up) noexcept {
@@ -45,7 +55,9 @@ std::optional<wire::Kind> KeyClassifier::on_key(std::uint16_t make, bool extende
     return special->release;
   }
   if (was_held) return std::nullopt;  // auto-repeat
-  return special ? special->press : Kind::KeyAny;
+  if (special) return special->press;
+  const auto row = privacy_ == Privacy::Detail && !extended ? row_of(make) : std::nullopt;
+  return row.value_or(Kind::KeyAny);
 }
 
 }  // namespace crpp::input

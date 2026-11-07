@@ -9,6 +9,7 @@
 #include <charconv>
 #include <cmath>
 #include <cstdlib>
+#include <numbers>
 #include <vector>
 
 namespace crpp::ui {
@@ -429,13 +430,29 @@ void Painter::stroke_ellipse(float cx, float cy, float rx, float ry, Color c, fl
   rt_->DrawEllipse(D2D1::Ellipse(D2D1::Point2F(cx, cy), rx, ry), brush_.get(), width);
 }
 
+const std::array<float, shadow_steps>& shadow_layers() {
+  // CSS blur B is a Gaussian of sigma B/2, across a straight edge half of it outside. Each
+  // layer adds what the falloff loses across its band; the widest ends at B, about 2 sigma.
+  static const std::array<float, shadow_steps> layers = [] {
+    const auto outside = [](std::size_t band) {
+      const double sigmas = (static_cast<double>(band) + 0.5) * 2 / shadow_steps;
+      return 0.5 * std::erfc(sigmas / std::numbers::sqrt2);
+    };
+    std::array<float, shadow_steps> weights{};
+    for (std::size_t i = 0; i < shadow_steps; ++i) {
+      weights[i] = static_cast<float>(outside(i) - (i + 1 < shadow_steps ? outside(i + 1) : 0.0));
+    }
+    return weights;
+  }();
+  return layers;
+}
+
 void Painter::shadow_round(Rect r, float radius, float blur, float dy, Color c) {
-  // Layered, progressively larger translucent shapes approximate a Gaussian.
-  constexpr int steps = 12;
-  for (int i = steps; i >= 1; --i) {
-    const float grow = blur * static_cast<float>(i) / steps;
-    const float a = c.a / steps * 1.6f;
-    fill_round({r.x - grow, r.y - grow + dy, r.w + 2 * grow, r.h + 2 * grow}, radius + grow, with_alpha(c, a));
+  // Layered, progressively larger translucent shapes, stacked into CSS's falloff.
+  const auto& layers = shadow_layers();
+  for (std::size_t i = layers.size(); i >= 1; --i) {
+    const float grow = blur * static_cast<float>(i) / static_cast<float>(layers.size());
+    fill_round({r.x - grow, r.y - grow + dy, r.w + 2 * grow, r.h + 2 * grow}, radius + grow, with_alpha(c, c.a * layers[i - 1]));
   }
 }
 

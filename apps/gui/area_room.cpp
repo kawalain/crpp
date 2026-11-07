@@ -102,6 +102,11 @@ bool scene(Shell& s, std::string_view name) {
     demo_session(s.app, true);
     return true;
   }
+  if (name == "room-muted") {
+    s.app.ui().prefs->set(pref::mute_others, true);
+    demo_session(s.app, false);
+    return true;
+  }
   if (name == "room-leave") {
     demo_session(s.app, false);
     s.app.room().click(RoomScreen::Leave, 0, 0, false);

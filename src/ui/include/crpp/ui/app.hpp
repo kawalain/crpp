@@ -9,6 +9,7 @@
 // their own size, and a few controls fixed to the window corners.
 #include <cstdint>
 #include <filesystem>
+#include <optional>
 #include <string>
 #include <string_view>
 
@@ -89,6 +90,10 @@ class App {
   bool blink();  // caret timer tick
   // True while a timed effect (member ring pulse) needs more frames.
   [[nodiscard]] bool animating();
+  // When all that moves is a speaking disc: the only part the next frame has to draw.
+  [[nodiscard]] std::optional<Rect> only_moving_area();
+  // Something outside that part changed, whatever the frame was asked to draw.
+  [[nodiscard]] bool wants_full_frame() const;
   bool tick(unsigned long long now_ms);  // expires effects; true if the view changed
   // When tick is next needed though nothing is animating; 0 = never.
   [[nodiscard]] unsigned long long wake_at();
@@ -124,6 +129,7 @@ class App {
   View left_view_ = View::Home;
   unsigned long long left_at_ = 0;
   bool room_leaving_ = false;
+  bool full_frame_ = false;
 };
 
 }  // namespace crpp::ui

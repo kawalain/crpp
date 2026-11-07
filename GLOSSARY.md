@@ -12,7 +12,7 @@
 
 **Presence mode**: the default, where every key press is the same Input kind, so others learn only that a key was pressed.
 
-**Detail mode**: an opt-in setting where special keys (Space, Enter, modifiers and the like) keep their own Input kinds, trading some privacy for sound variety.
+**Detail mode**: an opt-in setting where letter keys say their row and special keys (Space, Enter, modifiers and the like) keep their own Input kinds, trading privacy for sound variety.
 
 **Sound pack**: a named set of recordings for one device type (keyboard, mouse or pen). Each member picks their own pack per device.
 

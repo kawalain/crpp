@@ -24,7 +24,8 @@ class TextField {
 
   // Typed or pasted text. Control characters are dropped.
   void insert(std::wstring_view s);
-  void set_composition(std::wstring_view s) { composition_ = s; }
+  // Composing replaces a selection at once, if what is composed can go in this field.
+  void set_composition(std::wstring_view s);
   [[nodiscard]] bool composing() const { return !composition_.empty(); }
 
   // Editing keys. Returns true if the key was used.

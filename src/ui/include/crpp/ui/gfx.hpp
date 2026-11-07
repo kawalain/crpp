@@ -3,6 +3,8 @@
 #include <d2d1.h>
 #include <dwrite.h>
 
+#include <array>
+#include <cstddef>
 #include <filesystem>
 #include <functional>
 #include <map>
@@ -78,6 +80,11 @@ class Gfx {
 };
 
 // Draws into one render target. Cheap to create each frame.
+// How much each widening layer of a box shadow adds, from the narrowest, as a share of its
+// colour's alpha.
+inline constexpr std::size_t shadow_steps = 12;
+[[nodiscard]] const std::array<float, shadow_steps>& shadow_layers();
+
 class Painter {
  public:
   Painter(const Gfx& gfx, ID2D1RenderTarget* rt);
@@ -110,6 +117,7 @@ class Painter {
   void stroke_line(float x1, float y1, float x2, float y2, Color c, float width);
   void stroke_ellipse(float cx, float cy, float rx, float ry, Color c, float width);
   // A soft shadow under a rounded rectangle (card and popup shadows).
+  // As CSS box-shadow with this blur and offset.
   void shadow_round(Rect r, float radius, float blur, float dy, Color c);
 
   void draw_layout(IDWriteTextLayout* layout, float x, float y, Color c);

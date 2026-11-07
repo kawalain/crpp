@@ -1,4 +1,5 @@
 // The Room screen through a windowless App.
+#include <cmath>
 #include <filesystem>
 #include <fstream>
 #include <string>
@@ -34,6 +35,20 @@ void hover(UiHarness& h, const Surface& owner, int id) {
   if (!hit) return;
   h.app.mouse_move(hit->rect.x + hit->rect.w / 2, hit->rect.y + hit->rect.h / 2);
   h.render();
+}
+
+void test_shadow_layers_follow_css() {
+  // CSS at the band's middle, for blur 16: 2/3/... px out, sigma 8. The sum from a band
+  // outwards is the shadow's strength there, as a share of its alpha.
+  const auto strength = [](std::size_t band) {
+    float sum = 0;
+    for (std::size_t i = band; i < shadow_steps; ++i) sum += shadow_layers()[i];
+    return sum;
+  };
+  CHECK(std::abs(strength(0) - 0.467f) < 0.002f);   // 0.67 px out
+  CHECK(std::abs(strength(3) - 0.280f) < 0.002f);   // 4.67 px out
+  CHECK(std::abs(strength(11) - 0.0276f) < 0.002f);  // 15.3 px out
+  for (std::size_t i = 0; i < shadow_steps; ++i) CHECK(shadow_layers()[i] > 0);
 }
 
 void test_button_tips_follow_the_hover() {
@@ -1104,6 +1119,7 @@ void test_clearing_the_chat_starts_over() {
 }  // namespace
 
 int main() {
+  test_shadow_layers_follow_css();
   test_two_lines_move_the_send_button_out_of_the_box();
   test_mute_is_a_saved_setting();
   test_links_are_https_with_punctuation_left_out();

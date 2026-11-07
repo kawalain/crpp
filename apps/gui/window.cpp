@@ -165,6 +165,7 @@ LRESULT CALLBACK wnd_proc(HWND hwnd, UINT msg, WPARAM wp, LPARAM lp) {
     }
     case wm_ui_task:
       if (s->tasks.run_all()) InvalidateRect(hwnd, nullptr, FALSE);
+      if (s->app.room().take_new_pulse()) invalidate_frame(*s);
       sync_blink(*s, hwnd);
       sync_frames(*s);
       if (s->store && s->store->has_unsaved() && !s->save_timer_on) {

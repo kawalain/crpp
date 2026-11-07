@@ -92,6 +92,22 @@ void test_a_speaking_disc_fades_in_holds_and_fades_out() {
   CHECK(!room.only_moving_area().has_value());
 }
 
+void test_a_disc_asks_for_a_frame_even_without_motion() {
+  UiHarness h;
+  CHECK(h.start());
+  enter(h);
+  RoomScreen& room = h.app.room();
+  CHECK(!h.app.ui().animations);
+  CHECK(!room.take_new_pulse());
+  room.pulse(1);
+  CHECK(room.take_new_pulse());
+  CHECK(!room.take_new_pulse());
+  room.pulse(1);  // still up
+  CHECK(!room.take_new_pulse());
+  CHECK(!room.animating());
+  CHECK(room.only_moving_area().has_value());
+}
+
 void test_nothing_is_drawn_for_someone_muted() {
   UiHarness h;
   CHECK(h.start());
@@ -1187,6 +1203,7 @@ void test_clearing_the_chat_starts_over() {
 int main() {
   test_shadow_layers_follow_css();
   test_a_speaking_disc_fades_in_holds_and_fades_out();
+  test_a_disc_asks_for_a_frame_even_without_motion();
   test_nothing_is_drawn_for_someone_muted();
   test_another_surface_changing_asks_for_the_whole_window();
   test_two_lines_move_the_send_button_out_of_the_box();

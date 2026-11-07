@@ -71,6 +71,8 @@ class RoomScreen final : public Surface {
   // When only speaking discs move: all that the next frame has to draw.
   [[nodiscard]] std::optional<Rect> only_moving_area() const;
   [[nodiscard]] bool needs_full() const { return needs_full_; }
+  // A disc came up since the last call, which needs a frame even with no motion to run.
+  [[nodiscard]] bool take_new_pulse() { return std::exchange(new_pulse_, false); }
   void pulse_me() { pulse(me_); }
   void set_volume(int percent) { volume_ = percent; }
   // The buttons are not drawn under the settings panel.
@@ -160,7 +162,7 @@ class RoomScreen final : public Surface {
   Rect volume_track_;
   std::vector<Pulse> pulses_;
   Rect ended_area_;  // of pulses gone since the last frame, which still has to clear them
-  bool needs_full_ = false;
+  bool needs_full_ = false, new_pulse_ = false;
   Fade mute_fade_;
   Scroll members_scroll_;
   std::vector<std::pair<std::uint32_t, unsigned long long>> arrivals_;  // slot, when it arrived

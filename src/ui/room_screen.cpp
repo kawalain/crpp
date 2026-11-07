@@ -138,9 +138,11 @@ void RoomScreen::pulse(std::uint32_t slot) {
     // Still up, it stays up with nothing to draw; on its way down, it turns back.
     if (now < p.until) p.until = until;
     else p = {slot, p.level(now, ui_.animations), now, until};
+    if (now >= p.until || p.start == now) new_pulse_ = true;
     return;
   }
   pulses_.push_back({slot, 0, now, until});
+  new_pulse_ = true;
 }
 
 float RoomScreen::speaking_level(std::uint32_t slot) const {

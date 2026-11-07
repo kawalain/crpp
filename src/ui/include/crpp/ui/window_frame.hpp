@@ -5,6 +5,7 @@
 #include <functional>
 #include <string>
 
+#include "crpp/skin/pack.hpp"
 #include "crpp/ui/surface.hpp"
 
 namespace crpp::ui {
@@ -15,6 +16,10 @@ class WindowFrame final : public Surface {
   enum Id : int { Minimize, Close, MenuBase = 10, ItemBase = 100 };
 
   std::function<void()> on_minimize, on_close, on_exit, on_leave_room, on_options, on_changelog;
+
+  // What a Skin Pack can name here: the frame, and the menu that is down.
+  [[nodiscard]] static skin::ScreenSchema schema();
+  [[nodiscard]] static skin::ScreenSchema menu_schema();
 
   // What the system should do with a point.
   enum class Zone : std::uint8_t { Client, Caption, Left, Right, Top, Bottom, TopLeft, TopRight, BottomLeft, BottomRight };
@@ -48,6 +53,8 @@ class WindowFrame final : public Surface {
     std::function<void()>* action;
   };
   [[nodiscard]] std::vector<Item> items_of(int menu);
+  void paint_pack(Painter& p, const skin::Screen& screen);
+  void paint_menu_pack(Painter& p, const skin::Screen& screen);
 
   std::string title_ = "Cloudroom++";
   bool active_ = true, menu_shown_ = true, in_room_ = false;

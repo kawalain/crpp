@@ -62,6 +62,10 @@ std::vector<WindowFrame::Item> WindowFrame::items_of(int menu) {
 void WindowFrame::paint(Painter& p) {
   const Theme& t = ui_.theme;
   p.set_base(D2D1::Matrix3x2F::Identity());
+  if (const skin::Screen* screen = ui_.pack_screen("frame")) {
+    paint_pack(p, *screen);
+    return;
+  }
   luna::window_frame(p, t, ui_.width, ui_.height, active_);
   draw_svg(p, ui_.emoji_image(""), {8, 6, 16, 16});
   const Rect minimize = minimize_rect(ui_.width), close = close_rect(ui_.width);
@@ -106,6 +110,10 @@ void WindowFrame::paint_menu(Painter& p) {
   if (open_ < 0 || !menu_shown_) return;
   const Theme& t = ui_.theme;
   p.set_base(D2D1::Matrix3x2F::Identity());
+  if (const skin::Screen* screen = ui_.pack_screen("frame_menu")) {
+    paint_menu_pack(p, *screen);
+    return;
+  }
   const std::vector<Item> items = items_of(open_);
   float w = 120;
   const TextStyle style = luna::body(p, 22);

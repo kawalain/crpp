@@ -183,6 +183,12 @@ void a_let_is_read_further_on_and_inside() {
   CHECK(!load(R"({"let":"W","value":1})"));
 }
 
+void a_set_changes_a_name_from_further_in() {
+  CHECK(walk(R"J({"let":"widest","value":1},{"repeat":3,"draw":[{"set":"widest","value":"max(widest, i*10)"}]},{"fill":"$face","x":"widest"})J") == "fill 120,200,300,400 1/0/0/1\n");
+  CHECK(walk(R"({"let":"a","value":1},{"if":"0","set":"a","value":5},{"fill":"$face","x":"a"})") == "fill 101,200,300,400 1/0/0/1\n");
+  CHECK(!load(R"({"set":"nothing","value":1})"));
+}
+
 void conditions_skip_what_they_guard() {
   CHECK(walk(R"({"if":"@seats>0","fill":"$face"},{"if":"@seats==0","fill":"$ink"})").starts_with("fill 100,200,300,400 0/0/0/0.5"));
   CHECK(walk(R"({"if":"@seats>0","fill":"$face"},{"if":"@seats==0","fill":"$ink"})", 0, 1).starts_with("fill 100,200,300,400 1/0/0/1"));
@@ -445,6 +451,7 @@ int main() {
   boxes_are_measured_from_the_box_around_them();
   siblings_read_each_others_boxes();
   a_let_is_read_further_on_and_inside();
+  a_set_changes_a_name_from_further_in();
   conditions_skip_what_they_guard();
   palettes_choose_colours_and_gradients();
   texts_come_from_three_places();

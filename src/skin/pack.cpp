@@ -14,7 +14,7 @@ namespace {
 using store::Json;
 
 // In the order of NodeKind.
-constexpr std::string_view kind_keys[] = {"fill", "frame", "stroke", "line", "path", "text", "picture", "field", "slot", "group", "column", "use", "content", "repeat", "let", "report"};
+constexpr std::string_view kind_keys[] = {"fill", "frame", "stroke", "line", "path", "text", "picture", "field", "slot", "group", "column", "use", "content", "repeat", "let", "set", "report"};
 
 [[nodiscard]] std::optional<int> find_name(std::span<const Name> names, std::string_view name) {
   for (const Name& n : names) {
@@ -61,7 +61,8 @@ constexpr std::string_view kind_keys[] = {"fill", "frame", "stroke", "line", "pa
     case NodeKind::Use: return among({"args", "text", "draw"});
     case NodeKind::Content: return false;
     case NodeKind::Repeat: return among({"draw"});
-    case NodeKind::Let: return among({"value"});
+    case NodeKind::Let:
+    case NodeKind::Set: return among({"value"});
     case NodeKind::Report: return among({"value"});
   }
   return false;
@@ -610,6 +611,13 @@ class Loader final : public Names {
       if (!free_name(*name) || !expr_of(json, "value", out.extra) || !take_slots(1, out.slot)) return false;
       scope_->lets.emplace_back(*name, out.slot);
       return true;
+    }
+    if (out.kind == NodeKind::Set) {
+      const auto name = json.find("set")->as_string();
+      const auto at = name ? slot(*name) : std::nullopt;
+      if (!at) return fail("nothing above is called " + std::string(name.value_or("")));
+      out.slot = *at;
+      return expr_of(json, "value", out.extra);
     }
     if (out.kind == NodeKind::Report) {
       return bound_of(json, "report", schema_ ? schema_->reports : std::span<const Name>{}, out.bound) && expr_of(json, "value", out.extra);

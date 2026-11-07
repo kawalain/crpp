@@ -118,11 +118,12 @@ class Walker final : public Env {
     ++visited_;
     drew_ = false;
     if (n.has_if && value(n.when) == 0) {
-      if (n.slot != no_slot) std::fill_n(slots_.begin() + base_ + n.slot, n.kind == NodeKind::Let ? 1 : 4, 0.0f);
+      if (n.slot != no_slot && n.kind != NodeKind::Set) std::fill_n(slots_.begin() + base_ + n.slot, n.kind == NodeKind::Let ? 1 : 4, 0.0f);
       return;
     }
     switch (n.kind) {
-      case NodeKind::Let: slots_[base_ + n.slot] = value(n.extra); return;
+      case NodeKind::Let:
+      case NodeKind::Set: slots_[base_ + n.slot] = value(n.extra); return;
       case NodeKind::Report: source_.report(n.bound, value(n.extra)); return;
       case NodeKind::Content: content(); return;
       default: break;
@@ -193,6 +194,7 @@ class Walker final : public Env {
       }
       case NodeKind::Content:
       case NodeKind::Let:
+      case NodeKind::Set:
       case NodeKind::Report: break;
     }
     if (hit != no_hit && (!n.has_hit_if || value(n.hit_if) != 0)) canvas_.hit(at, hit);

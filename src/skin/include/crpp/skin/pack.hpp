@@ -27,6 +27,7 @@
 //   content see use
 //   repeat  a number; its "draw" runs that many times, with i counting
 //   let     a name for a number, with value
+//   set     a new value for a name above it, as when a repeat looks for the widest
 //   report  a number for the screen, with value
 // and each may have: if, id (siblings can then read id.x, .y, .w, .h, .right, .bottom), x or right,
 // y or bottom, w, h (x and y from the box around it, 0 and that box's size by default), after,
@@ -78,7 +79,7 @@ struct ScreenSchema {
   std::span<const Name> texts, numbers, pictures, fields, hits, slots, reports, notes;
 };
 
-enum class NodeKind : std::uint8_t { Fill, Frame, Stroke, Line, Path, Text, Picture, Field, Slot, Group, Column, Use, Content, Repeat, Let, Report };
+enum class NodeKind : std::uint8_t { Fill, Frame, Stroke, Line, Path, Text, Picture, Field, Slot, Group, Column, Use, Content, Repeat, Let, Set, Report };
 
 inline constexpr std::uint16_t no_slot = std::numeric_limits<std::uint16_t>::max();
 inline constexpr std::uint32_t no_text = std::numeric_limits<std::uint32_t>::max();

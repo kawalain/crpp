@@ -421,6 +421,23 @@
       {"fill": "$edge_dark", "x": "W-2*u", "y": "u", "w": "u", "h": "H-2*u"}
     ]},
     "panel_info": {"draw": [{"fill": "$info"}, {"frame": "$info_line"}]},
+    "frame_ring": {
+      "args": {"at": 0, "thick": 0, "top": 0, "left": 0, "right": 0, "bottom": 0},
+      "draw": [
+        {"fill": "left", "x": "at", "y": "top", "w": "thick", "h": "H-top-at"},
+        {"fill": "right", "x": "W-at-thick", "y": "top", "w": "thick", "h": "H-top-at"},
+        {"fill": "bottom", "x": "at", "y": "H-at-thick", "w": "W-2*at", "h": "thick"}
+      ]
+    },
+    "menu_title": {
+      "w": "ceil(textw('body_center', '@label'))+14",
+      "h": "menu_h-1",
+      "args": {"open": 0},
+      "draw": [
+        {"if": "open || hot", "fill": "$select"},
+        {"text": "@label", "style": "body_center", "color": "open || hot ? $select_ink : $ink"}
+      ]
+    },
     "caption_button": {
       "snap": true,
       "args": {"close": 0},

@@ -1,0 +1,24 @@
+{
+  "$schema": "../../schema/screen.profile.schema.json",
+  "draw": [
+    {"let": "shown", "to": 1, "ms": 160},
+    {"let": "stat", "value": "17*1.9"},
+    {"let": "card_w", "value": "min(380, W-40)"},
+    {"let": "card_h", "value": "24+72+20+(@has_joined ? 3 : 2)*stat+20"},
+    {"report": "width", "value": "card_w"},
+    {"report": "height", "value": "card_h"},
+    {"use": "modal", "args": {"card_w": "card_w", "card_h": "card_h", "shown": "shown", "backdrop": "hit('backdrop')", "card": "hit('card')"}, "draw": [
+      {"hit": "icon", "hit_if": "@mine", "note": "icon", "x": 25, "y": 24, "w": 72, "h": 72, "group": [
+        {"let": "grow", "value": "hot ? 1.05 : 1"},
+        {"fill": "alpha(hot ? $hl_pale2 : $hl_pale, shown)", "ellipse": true, "x": "36-36*grow", "y": "36-36*grow", "w": "72*grow", "h": "72*grow"},
+        {"picture": "icon", "x": "36-46*grow/2", "y": "36-46*grow/2", "w": "46*grow", "h": "46*grow", "opacity": "shown"}
+      ]},
+      {"if": "@has_handle", "text": "@nick", "style": "account_nickname", "color": "alpha($hl_text, shown)", "x": 115, "y": 34, "w": "W-25-115", "h": 30},
+      {"if": "@has_handle", "text": "@handle", "style": "account_handle", "color": "alpha($hl_text_soft, shown)", "x": 115, "y": 66, "w": "W-25-115", "h": 20},
+      {"if": "!@has_handle", "text": "@nick", "style": "account_display", "color": "alpha($hl_text, shown)", "x": 115, "y": 43, "w": "W-25-115", "h": 34},
+      {"if": "@has_joined", "text": "@joined", "style": "profile_stat", "color": "alpha($hl_text, shown)", "x": 25, "y": 116, "w": "W-50", "h": "stat"},
+      {"text": "@stayed", "style": "profile_stat", "color": "alpha($hl_text, shown)", "x": 25, "y": "116+(@has_joined ? stat : 0)", "w": "W-50", "h": "stat"},
+      {"text": "@inputs", "style": "profile_stat", "color": "alpha($hl_text, shown)", "x": 25, "y": "116+(@has_joined ? 2 : 1)*stat", "w": "W-50", "h": "stat"}
+    ]}
+  ]
+}

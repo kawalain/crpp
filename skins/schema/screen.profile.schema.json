@@ -1,7 +1,7 @@
 {
   "$schema": "http://json-schema.org/draft-07/schema#",
   "title": "The screen profile of a Skin Pack",
-  "description": "A screen of a Skin Pack, as {\"draw\": [nodes]}. With no file for a screen, the program draws it itself.\nNumbers: @mine, @has_handle, @has_joined.\nTexts: @nick, @handle, @joined, @stayed, @inputs.\nHits: card, icon.\nPictures: icon.\nFields: none.\nSlots: none.\nReports: width, height.\nNotes: icon.",
+  "description": "A screen of a Skin Pack, as {\"draw\": [nodes]}. With no file for a screen, the program draws it itself.\nNumbers: @mine, @has_handle, @has_joined.\nTexts: @nick, @handle, @joined, @stayed, @inputs.\nHits: backdrop, card, icon.\nPictures: icon.\nFields: none.\nSlots: none.\nReports: width, height.\nNotes: icon.",
   "allowComments": true,
   "allowTrailingCommas": true,
   "type": "object",
@@ -49,6 +49,7 @@
       "properties": {
         "hit": {
           "enum": [
+            "backdrop",
             "card",
             "icon"
           ]

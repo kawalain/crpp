@@ -255,7 +255,13 @@ SvgImage parse_svg(const Gfx& gfx, std::string_view svg) {
   return image;
 }
 
-void draw_svg(Painter& p, const SvgImage& image, Rect dst, float opacity) {
+void draw_svg(Painter& p, const SvgImage& image, Rect dst, float opacity, float gray) {
+  // CSS grayscale(): the sRGB values themselves are weighted.
+  const auto shade = [gray](Color c) {
+    if (gray <= 0) return c;
+    const float luma = 0.2126f * c.r + 0.7152f * c.g + 0.0722f * c.b;
+    return Color{c.r + (luma - c.r) * gray, c.g + (luma - c.g) * gray, c.b + (luma - c.b) * gray, c.a};
+  };
   if (!image.glyph.empty()) p.emoji(image.glyph, dst, opacity);
   if (image.shapes.empty()) return;
   const float s = std::min(dst.w / image.width, dst.h / image.height);
@@ -263,9 +269,9 @@ void draw_svg(Painter& p, const SvgImage& image, Rect dst, float opacity) {
   const float oy = dst.y + (dst.h - image.height * s) / 2;
   for (const auto& shape : image.shapes) {
     p.push(shape.matrix * D2D1::Matrix3x2F::Scale(s, s) * D2D1::Matrix3x2F::Translation(ox, oy));
-    if (shape.fill) p.fill_geometry(shape.geometry.get(), with_alpha(shape.fill_color, shape.fill_color.a * opacity));
+    if (shape.fill) p.fill_geometry(shape.geometry.get(), with_alpha(shade(shape.fill_color), shape.fill_color.a * opacity));
     if (shape.stroke) {
-      p.stroke_geometry(shape.geometry.get(), with_alpha(shape.stroke_color, opacity), shape.stroke_width);
+      p.stroke_geometry(shape.geometry.get(), with_alpha(shade(shape.stroke_color), opacity), shape.stroke_width);
     }
   }
   p.pop();

@@ -333,6 +333,11 @@ void RoomScreen::paint_members(Painter& p, const Layout& l) {
   ui_.push_hit_clip(members_area_);
   member_rects_.clear();
   constexpr float arrive_ms = 300, arrive_rise = 8;  // .member.entering
+  constexpr float mute_ms = 200, muted_scale = 0.8f;  // .emoji-ring, .mute-others .emoji-ring
+  const bool muted_all = ui_.prefs && ui_.prefs->get(pref::mute_others);
+  mute_fade_.set(ui_, muted_all, mute_ms);
+  const float mute_level = mute_fade_.value(ui_);
+  if (mute_fade_.running(ui_)) ui_.more_frames = true;
   std::erase_if(arrivals_, [&](const auto& a) { return static_cast<float>(ui_.now_ms - std::min(ui_.now_ms, a.second)) >= arrive_ms; });
   if (!arrivals_.empty()) ui_.more_frames = true;
   for (int i = 0; i < n; ++i) {
@@ -351,13 +356,14 @@ void RoomScreen::paint_members(Painter& p, const Layout& l) {
     if (ui_.hot(this, id)) p.fill_round(box, 14, with_alpha(t.hl, 0.2f));
     const float cx = x + 6 + 22, cy = y + 1.5f + 22;
     const bool muted_here = m.slot != me_ && member_volume(m.cid) == 0;
-    // .emoji-ring::before fades in and grows from .82.
-    if (const float level = speaking_level(m.slot); level > 0 && !muted_here) {
+    const float size = 36 * (1 + (muted_scale - 1) * mute_level);
+    // .emoji-ring::before fades in and grows from .82; it stays hidden under .mute-others.
+    if (const float level = speaking_level(m.slot); level > 0 && !muted_here && !muted_all) {
       const float radius = 22 * (0.82f + 0.18f * level);
       p.fill_ellipse(cx, cy, radius, radius, with_alpha(t.hl, t.hl.a * level));
     }
-    draw_svg(p, ui_.emoji_image(muted_here ? muted_emoji : m.emoji), {cx - 18, cy - 18, 36, 36},
-             m.offline ? 0.55f : 1.0f);
+    draw_svg(p, ui_.emoji_image(muted_here ? muted_emoji : m.emoji), {cx - size / 2, cy - size / 2, size, size},
+             m.offline ? 0.55f : 1.0f, mute_level);
     Color name = t.hl_text;
     if (m.offline) name = with_alpha(t.hl_text, 0.5f);
     p.text(m.nick.empty() ? "게스트" : m.nick, {x + 58, y + (47 - 26) / 2.0f, col_w - 58 - 12, 26},

@@ -13,6 +13,7 @@
 #include "crpp/ui/member_menu.hpp"
 #include "crpp/ui/prefs.hpp"
 #include "crpp/ui/profile_card.hpp"
+#include "crpp/ui/settings_rows.hpp"
 #include "crpp/ui/surface.hpp"
 #include "crpp/ui/tip.hpp"
 
@@ -160,6 +161,7 @@ class RoomScreen final : public Surface {
   std::vector<Pulse> pulses_;
   Rect ended_area_;  // of pulses gone since the last frame, which still has to clear them
   bool needs_full_ = false;
+  Fade mute_fade_;
   Scroll members_scroll_;
   std::vector<std::pair<std::uint32_t, unsigned long long>> arrivals_;  // slot, when it arrived
   Rect members_area_;  // window coordinates

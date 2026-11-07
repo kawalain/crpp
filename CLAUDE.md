@@ -282,8 +282,13 @@ exist (real + test).
 - Following the OS theme: `WM_SETTINGCHANGE` was only posted in a scripted run.
   Flipping the real Windows setting and seeing the dark title bar are unverified.
 - The tray needs a real desktop: a hidden one has no taskbar, so the icon fails to
-  add and a close exits. Icon, menu, notifications, flash, the Run key and a second
-  start have only been tested as decisions, not seen.
+  add and a close exits. A chat notification was seen on one Windows 10 PC, with a window
+  of a fake Room behind another. Upstream's developer saw none, on a machine not yet looked
+  at; a notification respects Focus Assist. Menu, flash, the Run key and a second start have
+  only been tested as decisions, not seen.
+- Partial frames (a speaking disc over a retained frame) were measured on a hidden desktop,
+  where one person typing went from 16.7% GPU to 0.0% and five at once from 17.5% to 10.7%.
+  A real display adds composition, and Intel and AMD drivers have not run them.
 - Coming back from a hidden window that gave up its graphics has only run on a hidden
   desktop, on one NVIDIA card. See it on a real desktop, and on Intel and AMD drivers. The
   same goes for a chat notification drawn in that state.

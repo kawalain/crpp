@@ -79,11 +79,14 @@ class JsonParser {
  public:
   explicit JsonParser(std::string_view text) noexcept : text_(text) {}
 
-  std::expected<Json, JsonError> run() {
+  std::expected<Json, JsonError> run(JsonPosition* where) {
     Json value = parse_value(0);
     skip_ws();
     if (!failed_ && pos_ != text_.size()) fail(JsonError::Syntax);
-    if (failed_) return std::unexpected(error_);
+    if (failed_) {
+      if (where) *where = position();
+      return std::unexpected(error_);
+    }
     return value;
   }
 
@@ -92,8 +95,38 @@ class JsonParser {
     if (!failed_) error_ = e;
     failed_ = true;
   }
+  [[nodiscard]] JsonPosition position() const noexcept {
+    JsonPosition at;
+    for (const char c : text_.substr(0, pos_)) {
+      if (c == '\n') {
+        ++at.line;
+        at.column = 1;
+      } else {
+        ++at.column;
+      }
+    }
+    return at;
+  }
+  // Space and comments.
   void skip_ws() noexcept {
-    while (pos_ < text_.size() && (text_[pos_] == ' ' || text_[pos_] == '\t' || text_[pos_] == '\n' || text_[pos_] == '\r')) ++pos_;
+    while (pos_ < text_.size()) {
+      const char c = text_[pos_];
+      if (c == ' ' || c == '\t' || c == '\n' || c == '\r') {
+        ++pos_;
+      } else if (c == '/' && pos_ + 1 < text_.size() && text_[pos_ + 1] == '/') {
+        const std::size_t end = text_.find('\n', pos_);
+        pos_ = end == std::string_view::npos ? text_.size() : end;
+      } else if (c == '/' && pos_ + 1 < text_.size() && text_[pos_ + 1] == '*') {
+        const std::size_t end = text_.find("*/", pos_ + 2);
+        if (end == std::string_view::npos) {
+          fail(JsonError::Syntax);
+          return;
+        }
+        pos_ = end + 2;
+      } else {
+        return;
+      }
+    }
   }
   [[nodiscard]] bool consume(char c) noexcept {
     if (pos_ < text_.size() && text_[pos_] == c) {
@@ -155,6 +188,8 @@ class JsonParser {
       skip_ws();
       if (consume('}')) return result;
       if (!consume(',')) fail(JsonError::Syntax);
+      skip_ws();
+      if (!failed_ && consume('}')) return result;
     }
     return {};
   }
@@ -170,6 +205,8 @@ class JsonParser {
       skip_ws();
       if (consume(']')) return Json(std::move(items));
       if (!consume(',')) fail(JsonError::Syntax);
+      skip_ws();
+      if (!failed_ && consume(']')) return Json(std::move(items));
     }
     return {};
   }
@@ -296,7 +333,7 @@ Json::Json(Object value) : value_(std::move(value)) {}
 Json Json::object() { return Json(Object{}); }
 Json Json::array() { return Json(Array{}); }
 
-std::expected<Json, JsonError> Json::parse(std::string_view text) { return JsonParser(text).run(); }
+std::expected<Json, JsonError> Json::parse(std::string_view text, JsonPosition* where) { return JsonParser(text).run(where); }
 
 std::optional<bool> Json::as_bool() const noexcept {
   if (const auto* v = std::get_if<bool>(&value_)) return *v;

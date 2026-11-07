@@ -99,8 +99,17 @@ bool scene(Shell& s, std::string_view name) {
     s.app.toasts().toast(tr().lost_server);
     return true;
   }
+  if (name == "notice") {
+    s.app.notice().set(Notice{tr().notice_shared, tr().notice_move, tr().notice_close});
+    return true;
+  }
   if (name == "dialog") {
     s.app.dialogs().show({tr().system_reset_question, tr().system_reset_confirm, tr().cancel, false, nullptr, nullptr});
+    return true;
+  }
+  if (name == "menu-open") {  // under a Skin with a menu bar
+    s.app.frame().set_in_room(true);
+    s.app.frame().click(WindowFrame::MenuBase, 0, 0, false);
     return true;
   }
   if (name == "home-bubble") {  // the real path of a code that is too short

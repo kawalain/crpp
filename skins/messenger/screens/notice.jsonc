@@ -1,0 +1,18 @@
+{
+  "$schema": "../../schema/screen.notice.schema.json",
+  "draw": [
+    {"let": "pad", "value": 10},
+    {"let": "card_w", "value": "min(380, W+2*frame_w-32)"},
+    {"let": "text_h", "value": "texth('chat_text', '@text', card_w-2*pad)"},
+    {"let": "card_h", "value": "pad+text_h+pad+button_h+pad"},
+    {"x": 8, "y": "H-8-card_h", "w": "card_w", "h": "card_h", "group": [
+      {"use": "panel_info"},
+      {"hit": "card", "group": []},
+      {"text": "@text", "style": "chat_text", "color": "$ink", "x": "pad", "y": "pad", "w": "W-2*pad", "h": "text_h"},
+      {"let": "action_w", "value": "@has_action ? textw('button', '@action')+24 : 0"},
+      {"let": "dismiss_w", "value": "textw('button', '@dismiss')+24"},
+      {"if": "@has_action", "use": "button", "text": "@action", "hit": "action", "x": "W-pad-action_w", "y": "H-pad-button_h", "w": "action_w", "h": "button_h", "args": {"primary": 1}},
+      {"use": "button", "text": "@dismiss", "hit": "dismiss", "x": "W-pad-(@has_action ? action_w+6 : 0)-dismiss_w", "y": "H-pad-button_h", "w": "dismiss_w", "h": "button_h", "args": {"primary": "!@has_action"}}
+    ]}
+  ]
+}

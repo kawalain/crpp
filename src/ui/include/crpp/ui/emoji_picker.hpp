@@ -32,7 +32,8 @@ class EmojiPicker final : public Surface {
   [[nodiscard]] std::size_t parsed() const { return cache_ ? cache_->parsed() : 0; }
 
   // What the picker takes inside a window of its own.
-  [[nodiscard]] static D2D1_SIZE_F content_size();
+  [[nodiscard]] static skin::ScreenSchema schema();
+  [[nodiscard]] D2D1_SIZE_F content_size() const;
   void paint(Painter& p);
   void click(int id, float x, float y, bool shift) override;
   void drag(float x, float y) override;
@@ -47,6 +48,7 @@ class EmojiPicker final : public Surface {
  private:
   void reveal_thumb();
   void paint_shown(Painter& p);
+  void paint_pack(Painter& p, const skin::Screen& screen);
   void release_shown();
 
   bool open_ = false;

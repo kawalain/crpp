@@ -1,0 +1,94 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "The screen chat of a Skin Pack",
+  "description": "A screen of a Skin Pack, as {\"draw\": [nodes]}. With no file for a screen, the program draws it itself.\nNumbers: @zoom, @view, @content, @offset, @send_off, @calm.\nTexts: @input_text, @calm_text.\nHits: input, send, area, bar_up, bar_down, bar_track, bar_thumb.\nPictures: none.\nFields: input.\nSlots: messages.\nReports: none.\nNotes: area, bar_track.",
+  "allowComments": true,
+  "allowTrailingCommas": true,
+  "type": "object",
+  "required": [
+    "draw"
+  ],
+  "additionalProperties": false,
+  "properties": {
+    "$schema": {
+      "type": "string"
+    },
+    "draw": {
+      "$ref": "#/definitions/nodes"
+    }
+  },
+  "definitions": {
+    "text": {
+      "anyOf": [
+        {
+          "enum": [
+            "@input_text",
+            "@calm_text"
+          ]
+        },
+        {
+          "$ref": "common.schema.json#/definitions/plain_text"
+        }
+      ]
+    },
+    "nodes": {
+      "type": "array",
+      "items": {
+        "$ref": "#/definitions/node"
+      }
+    },
+    "node": {
+      "allOf": [
+        {
+          "$ref": "common.schema.json#/definitions/node_shape"
+        }
+      ],
+      "properties": {
+        "hit": {
+          "enum": [
+            "input",
+            "send",
+            "area",
+            "bar_up",
+            "bar_down",
+            "bar_track",
+            "bar_thumb"
+          ]
+        },
+        "note": {
+          "enum": [
+            "area",
+            "bar_track"
+          ]
+        },
+        "picture": false,
+        "field": {
+          "enum": [
+            "input"
+          ]
+        },
+        "slot": {
+          "enum": [
+            "messages"
+          ]
+        },
+        "report": false,
+        "text": {
+          "$ref": "#/definitions/text"
+        },
+        "placeholder": {
+          "$ref": "#/definitions/text"
+        },
+        "group": {
+          "$ref": "#/definitions/nodes"
+        },
+        "column": {
+          "$ref": "#/definitions/nodes"
+        },
+        "draw": {
+          "$ref": "#/definitions/nodes"
+        }
+      }
+    }
+  }
+}

@@ -1,0 +1,566 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "pack.jsonc of a Skin Pack",
+  "description": "A Skin Pack's Palettes, styles and parts. Its screens are files of their own, under screens/.",
+  "allowComments": true,
+  "allowTrailingCommas": true,
+  "type": "object",
+  "required": [
+    "format",
+    "id",
+    "palettes",
+    "styles",
+    "parts"
+  ],
+  "additionalProperties": false,
+  "properties": {
+    "$schema": {
+      "type": "string"
+    },
+    "format": {
+      "const": 1,
+      "description": "What the pack is written for; an exe that reads another number refuses it."
+    },
+    "id": {
+      "type": "string",
+      "description": "The name of the pack, in lower case."
+    },
+    "constants": {
+      "type": "object",
+      "additionalProperties": {
+        "type": "number"
+      },
+      "description": "Names for numbers, anywhere in the pack. The program reads the ones this requires."
+    },
+    "fonts": {
+      "type": "object",
+      "required": [
+        "korean",
+        "other",
+        "caption",
+        "korean_size",
+        "other_size"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "korean": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "minItems": 1,
+          "description": "Installed fonts, the first this system has: for Korean, and for every Hangul letter."
+        },
+        "other": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "minItems": 1,
+          "description": "The same, for the other languages."
+        },
+        "caption": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "minItems": 1,
+          "description": "The same, for a style of role caption."
+        },
+        "korean_size": {
+          "type": "number",
+          "description": "font_size in Korean."
+        },
+        "other_size": {
+          "type": "number",
+          "description": "font_size in the other languages."
+        }
+      },
+      "description": "The fonts of the time, fitted to whole pixels. Without this the program uses its own font."
+    },
+    "cursors": {
+      "type": "object",
+      "properties": {
+        "arrow": {
+          "type": "object",
+          "required": [
+            "part",
+            "hot"
+          ],
+          "additionalProperties": false,
+          "properties": {
+            "part": {
+              "type": "string",
+              "description": "A part that draws it in a box of 32 by 32."
+            },
+            "hot": {
+              "type": "array",
+              "items": {
+                "type": "number"
+              },
+              "minItems": 2,
+              "maxItems": 2,
+              "description": "The point that clicks, in that box."
+            }
+          }
+        },
+        "hand": {
+          "type": "object",
+          "required": [
+            "part",
+            "hot"
+          ],
+          "additionalProperties": false,
+          "properties": {
+            "part": {
+              "type": "string",
+              "description": "A part that draws it in a box of 32 by 32."
+            },
+            "hot": {
+              "type": "array",
+              "items": {
+                "type": "number"
+              },
+              "minItems": 2,
+              "maxItems": 2,
+              "description": "The point that clicks, in that box."
+            }
+          }
+        },
+        "ibeam": {
+          "type": "object",
+          "required": [
+            "part",
+            "hot"
+          ],
+          "additionalProperties": false,
+          "properties": {
+            "part": {
+              "type": "string",
+              "description": "A part that draws it in a box of 32 by 32."
+            },
+            "hot": {
+              "type": "array",
+              "items": {
+                "type": "number"
+              },
+              "minItems": 2,
+              "maxItems": 2,
+              "description": "The point that clicks, in that box."
+            }
+          }
+        },
+        "size_we": {
+          "type": "object",
+          "required": [
+            "part",
+            "hot"
+          ],
+          "additionalProperties": false,
+          "properties": {
+            "part": {
+              "type": "string",
+              "description": "A part that draws it in a box of 32 by 32."
+            },
+            "hot": {
+              "type": "array",
+              "items": {
+                "type": "number"
+              },
+              "minItems": 2,
+              "maxItems": 2,
+              "description": "The point that clicks, in that box."
+            }
+          }
+        },
+        "size_ns": {
+          "type": "object",
+          "required": [
+            "part",
+            "hot"
+          ],
+          "additionalProperties": false,
+          "properties": {
+            "part": {
+              "type": "string",
+              "description": "A part that draws it in a box of 32 by 32."
+            },
+            "hot": {
+              "type": "array",
+              "items": {
+                "type": "number"
+              },
+              "minItems": 2,
+              "maxItems": 2,
+              "description": "The point that clicks, in that box."
+            }
+          }
+        },
+        "size_nwse": {
+          "type": "object",
+          "required": [
+            "part",
+            "hot"
+          ],
+          "additionalProperties": false,
+          "properties": {
+            "part": {
+              "type": "string",
+              "description": "A part that draws it in a box of 32 by 32."
+            },
+            "hot": {
+              "type": "array",
+              "items": {
+                "type": "number"
+              },
+              "minItems": 2,
+              "maxItems": 2,
+              "description": "The point that clicks, in that box."
+            }
+          }
+        },
+        "size_nesw": {
+          "type": "object",
+          "required": [
+            "part",
+            "hot"
+          ],
+          "additionalProperties": false,
+          "properties": {
+            "part": {
+              "type": "string",
+              "description": "A part that draws it in a box of 32 by 32."
+            },
+            "hot": {
+              "type": "array",
+              "items": {
+                "type": "number"
+              },
+              "minItems": 2,
+              "maxItems": 2,
+              "description": "The point that clicks, in that box."
+            }
+          }
+        }
+      },
+      "required": [
+        "arrow",
+        "hand",
+        "ibeam",
+        "size_we",
+        "size_ns",
+        "size_nwse",
+        "size_nesw"
+      ],
+      "additionalProperties": false,
+      "description": "The pointer in this pack's windows, all of it or none. Without this it is the system's."
+    },
+    "palettes": {
+      "type": "object",
+      "additionalProperties": {
+        "$ref": "#/definitions/palette"
+      },
+      "description": "One per Theme id. All have the same entries."
+    },
+    "styles": {
+      "type": "object",
+      "additionalProperties": {
+        "$ref": "#/definitions/style"
+      },
+      "description": "Text styles."
+    },
+    "parts": {
+      "type": "object",
+      "additionalProperties": {
+        "$ref": "#/definitions/part"
+      },
+      "description": "Controls that screens use. A part can only use parts above it, and knows nothing of screens."
+    }
+  },
+  "allOf": [
+    {
+      "properties": {
+        "constants": {
+          "required": [
+            "own_frame",
+            "moves",
+            "list_pad",
+            "list_item_h",
+            "list_gap",
+            "list_max_h",
+            "list_margin"
+          ],
+          "if": {
+            "required": [
+              "own_frame"
+            ],
+            "properties": {
+              "own_frame": {
+                "not": {
+                  "const": 0
+                }
+              }
+            }
+          },
+          "then": {
+            "required": [
+              "caption_h",
+              "frame_w",
+              "menu_h",
+              "window_radius",
+              "frame_edge",
+              "frame_corner",
+              "frame_button",
+              "frame_button_gap",
+              "frame_button_top",
+              "frame_button_right",
+              "window_home_w",
+              "window_home_h",
+              "window_home_min_w",
+              "window_home_min_h",
+              "window_room_w",
+              "window_room_h",
+              "window_room_min_w",
+              "window_room_min_h",
+              "window_prompt_w",
+              "window_prompt_h",
+              "window_prompt_min_w",
+              "window_prompt_min_h",
+              "window_options_w",
+              "window_options_h",
+              "window_options_min_w",
+              "window_options_min_h",
+              "window_changelog_w",
+              "window_changelog_h",
+              "window_changelog_min_w",
+              "window_changelog_min_h"
+            ]
+          }
+        }
+      },
+      "required": [
+        "constants"
+      ]
+    }
+  ],
+  "definitions": {
+    "color": {
+      "type": "string",
+      "pattern": "^#([0-9a-fA-F]{6}|[0-9a-fA-F]{8})$",
+      "description": "#rrggbb or #rrggbbaa."
+    },
+    "palette": {
+      "type": "object",
+      "additionalProperties": {
+        "anyOf": [
+          {
+            "$ref": "#/definitions/color"
+          },
+          {
+            "type": "array",
+            "items": {
+              "type": "array",
+              "items": [
+                {
+                  "type": "number"
+                },
+                {
+                  "$ref": "#/definitions/color"
+                }
+              ],
+              "minItems": 2,
+              "maxItems": 2
+            },
+            "minItems": 2,
+            "maxItems": 16,
+            "description": "A gradient, as [[at, colour], ...]."
+          },
+          {
+            "type": "object",
+            "description": "[a, b, percent of a], of entries above it.",
+            "required": [
+              "mix"
+            ],
+            "additionalProperties": false,
+            "properties": {
+              "mix": {
+                "type": "array",
+                "items": [
+                  {
+                    "type": "string"
+                  },
+                  {
+                    "type": "string"
+                  },
+                  {
+                    "type": "number"
+                  }
+                ],
+                "minItems": 3,
+                "maxItems": 3
+              }
+            }
+          },
+          {
+            "type": "object",
+            "description": "[a, alpha], of an entry above it.",
+            "required": [
+              "alpha"
+            ],
+            "additionalProperties": false,
+            "properties": {
+              "alpha": {
+                "type": "array",
+                "items": [
+                  {
+                    "type": "string"
+                  },
+                  {
+                    "type": "number"
+                  }
+                ],
+                "minItems": 2,
+                "maxItems": 2
+              }
+            }
+          }
+        ]
+      }
+    },
+    "style": {
+      "type": "object",
+      "required": [
+        "size",
+        "line_height"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "size": {
+          "$ref": "common.schema.json#/definitions/expression",
+          "description": "Worked out for each node using it, in that node's box."
+        },
+        "line_height": {
+          "$ref": "common.schema.json#/definitions/expression",
+          "description": "Worked out for each node using it, in that node's box."
+        },
+        "weight": {
+          "type": "integer",
+          "minimum": 100,
+          "maximum": 900
+        },
+        "align": {
+          "enum": [
+            "left",
+            "center",
+            "right"
+          ]
+        },
+        "role": {
+          "enum": [
+            "body",
+            "caption"
+          ],
+          "description": "Which of the Skin's fonts."
+        },
+        "letter_spacing": {
+          "type": "number"
+        },
+        "wrap": {
+          "type": "boolean"
+        },
+        "ellipsis": {
+          "type": "boolean"
+        },
+        "exact": {
+          "type": "boolean",
+          "description": "The size means pixels, not a kind of text."
+        },
+        "keep_words": {
+          "type": "boolean",
+          "description": "A line breaks only between words."
+        }
+      }
+    },
+    "part": {
+      "type": "object",
+      "required": [
+        "draw"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "snap": {
+          "type": "boolean",
+          "description": "Its box moves to whole pixels."
+        },
+        "w": {
+          "$ref": "common.schema.json#/definitions/expression",
+          "description": "Its width where a use says none. It may read @label."
+        },
+        "h": {
+          "$ref": "common.schema.json#/definitions/expression",
+          "description": "Its height where a use says none. It may read @label."
+        },
+        "height": {
+          "$ref": "common.schema.json#/definitions/expression",
+          "description": "Worked out after it has drawn, from its own names: the height it took in a column."
+        },
+        "args": {
+          "type": "object",
+          "additionalProperties": {
+            "$ref": "common.schema.json#/definitions/expression"
+          },
+          "description": "Its arguments, with what they are when a use says nothing."
+        },
+        "draw": {
+          "$ref": "#/definitions/nodes"
+        }
+      }
+    },
+    "text": {
+      "anyOf": [
+        {
+          "const": "@label"
+        },
+        {
+          "$ref": "common.schema.json#/definitions/plain_text"
+        }
+      ]
+    },
+    "nodes": {
+      "type": "array",
+      "items": {
+        "$ref": "#/definitions/node"
+      }
+    },
+    "node": {
+      "allOf": [
+        {
+          "$ref": "common.schema.json#/definitions/node_shape"
+        }
+      ],
+      "properties": {
+        "hit": false,
+        "note": false,
+        "picture": false,
+        "field": false,
+        "slot": false,
+        "report": false,
+        "text": {
+          "$ref": "#/definitions/text"
+        },
+        "placeholder": {
+          "$ref": "#/definitions/text"
+        },
+        "group": {
+          "$ref": "#/definitions/nodes"
+        },
+        "column": {
+          "$ref": "#/definitions/nodes"
+        },
+        "draw": {
+          "$ref": "#/definitions/nodes"
+        }
+      }
+    }
+  }
+}

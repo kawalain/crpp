@@ -40,7 +40,7 @@ void save_screen_size(Shell& s, HWND hwnd) {
 }
 
 void update_region(Shell& s, HWND hwnd) {
-  if (s.own_frame) set_frame_region(hwnd, s.dpi);
+  if (s.own_frame) set_frame_region(hwnd, s.dpi, s.app.frame_metrics().radius);
   else SetWindowRgn(hwnd, nullptr, TRUE);
 }
 
@@ -92,11 +92,11 @@ void ensure_target(Shell& s, HWND hwnd) {
 std::string saved_size_key(std::string_view screen, std::string_view side) { return "window" + std::string(screen) + std::string(side); }
 
 // Rounds the top corners; only a region does that on every Windows.
-void set_frame_region(HWND hwnd, UINT dpi) {
+void set_frame_region(HWND hwnd, UINT dpi, float radius_dips) {
   RECT rc;
   if (IsIconic(hwnd) || !GetWindowRect(hwnd, &rc)) return;
   const int w = rc.right - rc.left, h = rc.bottom - rc.top;
-  const double radius = static_cast<double>(luna::window_radius) * dpi / 96;
+  const double radius = static_cast<double>(radius_dips) * dpi / 96;
   // Every pixel the curve touches, row by row: drawing smooths the ones it only partly covers.
   HRGN shape = CreateRectRgn(0, static_cast<int>(std::ceil(radius)), w, h);
   for (int y = 0; y < static_cast<int>(std::ceil(radius)); ++y) {
@@ -192,6 +192,7 @@ LRESULT CALLBACK wnd_proc(HWND hwnd, UINT msg, WPARAM wp, LPARAM lp) {
       return 0;
     }
     case WM_SETTINGCHANGE:
+      forget_cursors(*s);  // the next one takes the pointer's size as it is then
       area::preferences::system_settings_changed(*s);
       return 0;
     case WM_SETFOCUS:
@@ -231,7 +232,7 @@ LRESULT CALLBACK wnd_proc(HWND hwnd, UINT msg, WPARAM wp, LPARAM lp) {
         ScreenToClient(hwnd, &pt);
         RECT rc;
         GetClientRect(hwnd, &rc);
-        return frame_hit_code(WindowFrame::zone_at(dips(pt.x), dips(pt.y), dips(rc.right), dips(rc.bottom)));
+        return frame_hit_code(WindowFrame::zone_at(dips(pt.x), dips(pt.y), dips(rc.right), dips(rc.bottom), {}, s->app.frame_metrics()));
       }
       break;
     case WM_ACTIVATE:
@@ -357,11 +358,7 @@ LRESULT CALLBACK wnd_proc(HWND hwnd, UINT msg, WPARAM wp, LPARAM lp) {
       repaint(s->app.right_click(dips(GET_X_LPARAM(lp)), dips(GET_Y_LPARAM(lp))));
       return 0;
     case WM_SETCURSOR:
-      if (LOWORD(lp) == HTCLIENT) {
-        const Cursor c = s->app.cursor();
-        SetCursor(LoadCursorW(nullptr, MAKEINTRESOURCEW(c == Cursor::Hand ? 32649 : c == Cursor::IBeam ? 32513 : 32512)));
-        return TRUE;
-      }
+      if (apply_cursor(*s, LOWORD(lp), s->dpi)) return TRUE;
       break;
     case WM_CHAR:
       repaint(s->app.char_input(static_cast<wchar_t>(wp), (GetKeyState(VK_SHIFT) & 0x8000) != 0));

@@ -7,9 +7,12 @@
 // Layout follows the upstream web UI: a fixed 951x692 "stage" scaled to cover
 // the window (the cloud art), content areas that follow the window but keep
 // their own size, and a few controls fixed to the window corners.
+#include <span>
 #include <array>
 #include <cstdint>
+#include <expected>
 #include <filesystem>
+#include <memory>
 #include <optional>
 #include <string>
 #include <string_view>
@@ -64,6 +67,9 @@ struct PaneState {
   bool operator==(const PaneState&) const = default;
 };
 
+// Every screen a Skin Pack can draw, with the names it may use there.
+[[nodiscard]] std::span<const skin::ScreenSchema> screen_schemas();
+
 class App {
  public:
   App();
@@ -94,11 +100,19 @@ class App {
   // Does the app draw the window's frame?
   [[nodiscard]] bool own_frame() const { return !ui_.skin().scales_stage(); }
   [[nodiscard]] ScreenSize screen_size() const;
+  [[nodiscard]] FrameMetrics frame_metrics() const;
+  // Is the pointer in these windows the pack's? Otherwise it is the system's.
+  [[nodiscard]] bool theme_cursors() const;
   // The settings surfaces read and change; in memory until the shell sets its own.
   void set_prefs(Prefs& prefs) { ui_.prefs = &prefs; }
 
   // An id from themes.hpp; an unknown one means the default.
   void set_theme(std::string_view id);
+  // Draws from the Skin Pack in this folder what it has. The error says what is wrong with it.
+  [[nodiscard]] std::expected<void, std::string> load_skin_dir(const std::filesystem::path& dir);
+  void skin_changed();
+  // A window's size from the pack in use, or else this.
+  [[nodiscard]] float window_size(std::string_view name, std::string_view side, float code) const;
   // Whether the system or the caller wants motion; a Skin may have none anyway.
   void set_animations(bool wanted);
   void show_setup(int percent);
@@ -115,6 +129,7 @@ class App {
 
   // For --shot luna-controls: nothing but the page of controls.
   void show_controls_sheet() { controls_sheet_ = true; }
+  void show_cursor_sheet() { cursor_sheet_ = true; }
 
   // --- windows ---
   // Which panels should have a window now, in the order to make them.
@@ -172,9 +187,13 @@ class App {
   void paint_screen(Painter& p, View view);
   void paint_screens(Painter& p);
   void paint_controls_sheet(Painter& p);
+  void paint_cursor_sheet(Painter& p);
   void paint_layers(Painter& p);
 
   Ui ui_;
+  std::optional<skin::Pack> pack_;
+  std::unique_ptr<Skin> pack_skin_;
+  std::string theme_id_;
   MemoryPrefs memory_prefs_;
   SetupScreen setup_{ui_};
   HomeScreen home_{ui_};
@@ -204,7 +223,7 @@ class App {
   bool room_leaving_ = false;
   bool full_frame_ = false;
   bool animations_wanted_ = true;
-  bool controls_sheet_ = false;
+  bool controls_sheet_ = false, cursor_sheet_ = false;
 };
 
 // While this lives, the app is on this window. A window's messages run in one, as what they

@@ -88,6 +88,10 @@ void PromptScreen::paint(Painter& p) {
     if (std::string other = prompt_.hint_for(narrow(seen_)); !other.empty()) hint_shown_ = std::move(other);
   }
   const bool hint_error = is_locked || !prompt_.error.empty();
+  if (const skin::Screen* screen = ui_.pack_screen("prompt")) {
+    paint_pack(p, *screen, is_locked, hint_error);
+    return;
+  }
   if (!ui_.skin().scales_stage()) {
     paint_luna(p, is_locked, hint_error);
     return;
@@ -236,7 +240,10 @@ void PromptScreen::submit() {
   if (on_submit) on_submit(std::move(text));
 }
 
-TextStyle PromptScreen::field_style() const { return ui_.skin().scales_stage() ? input_style : luna_field_style(); }
+TextStyle PromptScreen::field_style() const {
+  if (ui_.pack_screen("prompt")) return pack_field_style_;
+  return ui_.skin().scales_stage() ? input_style : luna_field_style();
+}
 
 void PromptScreen::drag(float x, float) { field_.click_at(ui_.gfx, field_style(), x - text_x_ + scroll_x_, true); }
 

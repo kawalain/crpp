@@ -8,6 +8,8 @@ class SetupScreen final : public Surface {
  public:
   using Surface::Surface;
 
+  [[nodiscard]] static skin::ScreenSchema schema();
+
   void set(int percent) { percent_ = percent; }
   void paint(Painter& p);
 

@@ -17,6 +17,9 @@ struct Notice {
 class NoticeCard final : public Surface {
  public:
   using Surface::Surface;
+  enum Id : int { Card, Action, Dismiss };
+
+  [[nodiscard]] static skin::ScreenSchema schema();
 
   // Runs once, when the action button is pressed; the notice closes.
   std::function<void()> on_action;
@@ -28,7 +31,6 @@ class NoticeCard final : public Surface {
   [[nodiscard]] Cursor cursor(int id) const override;
 
  private:
-  enum Id : int { Card, Action, Dismiss };
   std::optional<Notice> notice_;
 };
 

@@ -3,8 +3,20 @@
 #include <algorithm>
 
 #include "crpp/ui/controls.hpp"
+#include "crpp/ui/skin_canvas.hpp"
 
 namespace crpp::ui {
+
+namespace {
+
+enum TextId : int { Text, Label };
+constexpr skin::Name text_names[] = {{"text", Text}, {"label", Label}};
+constexpr skin::Name number_names[] = {{"has_label", 0}};
+constexpr skin::Name hit_names[] = {{"card", UpdatePopup::Card}, {"button", UpdatePopup::Button}};
+
+}  // namespace
+
+skin::ScreenSchema UpdatePopup::schema() { return {.screen = "update_popup", .texts = text_names, .numbers = number_names, .hits = hit_names}; }
 
 void UpdatePopup::show_available() {
   state_ = State::Available;
@@ -43,6 +55,20 @@ void UpdatePopup::paint(Painter& p) {
       text = tr().update_available;
       label = tr().update_button;
       break;
+  }
+
+  if (const skin::Screen* screen = ui_.pack_screen("update_popup")) {
+    class Shown final : public skin::Source {
+     public:
+      Shown(std::string_view words, std::string_view button) : text_(words), label_(button) {}
+      std::string_view text(int id, int) override { return id == Text ? text_ : label_; }
+      float number(int, int) override { return label_.empty() ? 0.0f : 1.0f; }
+
+     private:
+      std::string_view text_, label_;
+    } shown(text, label);
+    draw_screen(ui_, p, this, *screen, ui_.content, shown);
+    return;
   }
 
   float label_w = 0;

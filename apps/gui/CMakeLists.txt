@@ -1,7 +1,7 @@
 if(WIN32)
   # The Windows subsystem: no console opens with the window.
   add_executable(crpp WIN32
-    main.cpp window.cpp pane_window.cpp startup.cpp bridge.cpp shot.cpp
+    main.cpp window.cpp pane_window.cpp cursors.cpp startup.cpp bridge.cpp shot.cpp
     area_connection.cpp area_home.cpp area_room.cpp area_sound.cpp area_preferences.cpp area_os.cpp area_account.cpp
     area_update.cpp tray.cpp autostart_windows.cpp account_controller.cpp)
   # Releases use MSVC, whose linker embeds this. A GCC build runs unaware of DPI,
@@ -38,7 +38,8 @@ if(WIN32)
   # A development build runs from an assets folder next to the exe. A release is
   # the exe alone, and fetches them into the user's data folder.
   add_custom_command(TARGET crpp POST_BUILD
-    COMMAND ${CMAKE_COMMAND} -E copy_directory ${PROJECT_SOURCE_DIR}/assets $<TARGET_FILE_DIR:crpp>/assets)
+    COMMAND ${CMAKE_COMMAND} -E copy_directory ${PROJECT_SOURCE_DIR}/assets $<TARGET_FILE_DIR:crpp>/assets
+    COMMAND ${CMAKE_COMMAND} -E copy_directory ${PROJECT_SOURCE_DIR}/skins $<TARGET_FILE_DIR:crpp>/skins)
   if(CRPP_FETCH_DEV_ASSETS)
     add_custom_command(TARGET crpp POST_BUILD
       COMMAND ${CMAKE_COMMAND} -E make_directory ${CRPP_ASSET_CACHE}

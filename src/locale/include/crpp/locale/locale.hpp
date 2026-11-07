@@ -8,6 +8,7 @@
 #include <cstddef>
 #include <cstdint>
 #include <initializer_list>
+#include <optional>
 #include <span>
 #include <string>
 #include <string_view>
@@ -199,6 +200,7 @@ struct Strings {
   const char* theme_messenger_dark;
   const char* display_theme;
   const char* display_sync;
+  const char* display_theme_cursor;
   const char* display_light;
   const char* display_dark;
   const char* display_general;
@@ -324,6 +326,12 @@ void set_current(const Locale& locale) noexcept;
 
 // `pattern` with {0}, {1}... replaced by `values`. An unknown placeholder stays as it is.
 [[nodiscard]] std::string fill(std::string_view pattern, std::initializer_list<std::string_view> values);
+
+// A field of Strings by its name, for what refers to wording from outside the code. The index
+// counts the fields in their order.
+[[nodiscard]] std::optional<std::size_t> key_index(std::string_view name) noexcept;
+[[nodiscard]] std::string_view key_name(std::size_t index) noexcept;
+[[nodiscard]] std::string_view key_text(std::size_t index) noexcept;
 
 // Every text of a table, for the tests.
 inline constexpr std::size_t strings_count = sizeof(Strings) / sizeof(const char*);

@@ -4,11 +4,12 @@
 #include <array>
 #include <cstdint>
 
+#include "crpp/skin/color.hpp"
+
 namespace crpp::ui {
 
-struct Color {
-  float r = 0, g = 0, b = 0, a = 1;
-};
+using skin::Color;
+using skin::GradientStop;
 
 constexpr Color rgb(std::uint32_t hex, float a = 1.0f) {
   return {static_cast<float>((hex >> 16) & 0xFF) / 255.0f, static_cast<float>((hex >> 8) & 0xFF) / 255.0f,
@@ -25,11 +26,7 @@ constexpr Color with_alpha(Color c, float a) { return {c.r, c.g, c.b, a}; }
 
 // Who draws: shape and layout. See docs/adr/0005-skins-own-shape-and-layout.md.
 enum class SkinId : std::uint8_t { Cloud, Luna };
-
-struct GradientStop {
-  float at;
-  Color color;
-};
+class Skin;
 
 // What only the Luna Skin draws with. The light values are XP.css's and the system colours of
 // its period; see docs/research/retro-messenger-look.md.
@@ -68,6 +65,7 @@ struct Theme {
   Color cloud_top, cloud_base, cloud_bottom, cloud_mid, cloud_low, cloud_foot, cloud_shadow;
   float cloud_shadow_scale = 1;  // 0 for the dark theme (no glow)
   LunaColors luna{};             // only for a Theme of the Luna Skin
+  const Skin* from_pack = nullptr;  // a Skin Pack draws this Theme's controls
 };
 
 constexpr Theme dark_cloud_palette() {

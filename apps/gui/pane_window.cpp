@@ -85,7 +85,7 @@ LRESULT CALLBACK pane_proc(HWND hwnd, UINT msg, WPARAM wp, LPARAM lp) {
       RECT rc;
       GetClientRect(hwnd, &rc);
       const PaneInfo info = s.app.pane_info(w->pane);
-      return frame_hit_code(WindowFrame::zone_at(dips(pt.x), dips(pt.y), dips(rc.right), dips(rc.bottom), {.resizable = info.resizable, .minimize = false, .close = info.close}));
+      return frame_hit_code(WindowFrame::zone_at(dips(pt.x), dips(pt.y), dips(rc.right), dips(rc.bottom), {.resizable = info.resizable, .minimize = false, .close = info.close}, w->shell->app.frame_metrics()));
     }
     case WM_CLOSE:
       s.app.close_pane(w->pane);
@@ -98,7 +98,7 @@ LRESULT CALLBACK pane_proc(HWND hwnd, UINT msg, WPARAM wp, LPARAM lp) {
     }
     case WM_SIZE:
       if (w->target) w->target->Resize(D2D1::SizeU(LOWORD(lp), HIWORD(lp)));
-      set_frame_region(hwnd, w->dpi);
+      set_frame_region(hwnd, w->dpi, w->shell->app.frame_metrics().radius);
       InvalidateRect(hwnd, nullptr, FALSE);
       return 0;
     case WM_EXITSIZEMOVE:
@@ -162,11 +162,7 @@ LRESULT CALLBACK pane_proc(HWND hwnd, UINT msg, WPARAM wp, LPARAM lp) {
       return 0;
     }
     case WM_SETCURSOR:
-      if (LOWORD(lp) == HTCLIENT) {
-        const Cursor c = s.app.cursor();
-        SetCursor(LoadCursorW(nullptr, MAKEINTRESOURCEW(c == Cursor::Hand ? 32649 : c == Cursor::IBeam ? 32513 : 32512)));
-        return TRUE;
-      }
+      if (apply_cursor(s, LOWORD(lp), w->dpi)) return TRUE;
       break;
     case WM_CHAR:
       changed(s.app.char_input(static_cast<wchar_t>(wp), (GetKeyState(VK_SHIFT) & 0x8000) != 0));
@@ -260,7 +256,7 @@ void create_pane(Shell& s, PaneWindow& w) {
   w.fitted_h = info.h;
   w.dpi = GetDpiForWindow(hwnd);
   SetWindowPos(hwnd, nullptr, 0, 0, 0, 0, SWP_NOMOVE | SWP_NOSIZE | SWP_NOZORDER | SWP_NOACTIVATE | SWP_FRAMECHANGED);
-  set_frame_region(hwnd, w.dpi);
+  set_frame_region(hwnd, w.dpi, w.shell->app.frame_metrics().radius);
   ShowWindow(hwnd, w.pane == Pane::Offline ? SW_SHOWNOACTIVATE : SW_SHOW);
 }
 

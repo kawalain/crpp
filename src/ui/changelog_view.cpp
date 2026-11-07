@@ -7,6 +7,7 @@
 
 #include "crpp/ui/controls.hpp"
 #include "crpp/ui/luna.hpp"
+#include "crpp/ui/skin_canvas.hpp"
 
 namespace crpp::ui {
 
@@ -46,7 +47,20 @@ float layout_height(IDWriteTextLayout* layout) {
   return m.height;
 }
 
+enum TextId : int { Tagline, Date, Version, Hint };
+enum NumberId : int { HasEntries, HasTagline, HasDate, HasVersion, ShownHint, Overflow, View, Content, Offset };
+constexpr skin::Name text_names[] = {{"tagline", Tagline}, {"date", Date}, {"version", Version}, {"hint", Hint}};
+constexpr skin::Name number_names[] = {{"has_entries", HasEntries}, {"has_tagline", HasTagline}, {"has_date", HasDate}, {"has_version", HasVersion}, {"shown_hint", ShownHint},
+                                       {"overflow", Overflow}, {"view", View}, {"content", Content}, {"offset", Offset}};
+constexpr skin::Name hit_names[] = {{"card", ChangelogView::Card}, {"bar_track", ChangelogView::BarTrack}, {"bar_thumb", ChangelogView::BarThumb}};
+constexpr skin::Name slot_names[] = {{"body", 0}};
+constexpr skin::Name note_names[] = {{"bar_track", 0}};
+
 }  // namespace
+
+skin::ScreenSchema ChangelogView::schema() {
+  return {.screen = "changelog", .texts = text_names, .numbers = number_names, .hits = hit_names, .slots = slot_names, .notes = note_names};
+}
 
 ChangelogOverscroll::Result ChangelogOverscroll::step(int direction, unsigned long long now, bool can_go, bool at_edge, float notches) {
   if (direction == 0 || !can_go || !at_edge) {
@@ -150,7 +164,8 @@ void ChangelogView::build(float width) {
   const ChangelogEntry& entry = entries_[index_];
   const Gfx& gfx = ui_.gfx;
   const bool plain = !ui_.skin().moves();
-  const float pad_x = plain ? 12 : 28, head_right = plain ? 12 : 62, first_line = plain ? gfx.classic_size() + 4 : li_line;
+  const float pad_x = plain ? 12 : 28, head_right = plain ? 12 : 62;
+  first_line_ = plain ? gfx.classic_size() + 4 : li_line;
 
   // .cl-head: a column with a gap, each line present only if it has text.
   const float head_w = width - pad_x - head_right;
@@ -164,43 +179,138 @@ void ChangelogView::build(float width) {
   add_head(date_, entry.date, date_style);
   add_head(version_, entry.version, version_style);
   head_h_ = h > 0 ? head_top + h + head_bottom : 0;
+  // The first thing has no margin above it, as .cl-section:first-child h3.
+  lay_out_body({pad_x, li_indent, li_margin, heading_top, heading_bottom, body_bottom, head_h_ > 0 ? 0 : head_top, heading_style, item_style}, width);
+}
 
-  // .cl-body. The first thing has no margin above it, as .cl-section:first-child h3.
-  float y = head_h_ > 0 ? 0 : head_top;
+void ChangelogView::lay_out_body(const BodyLook& look, float width) {
+  built_ = true;
+  built_width_ = width;
+  lines_.clear();
+  body_h_ = 0;
+  if (index_ >= entries_.size()) return;
+  const Gfx& gfx = ui_.gfx;
+  // .cl-body.
+  float y = look.top;
   bool first = true;
-  for (const update::NoteBlock& block : entry.blocks) {
+  for (const update::NoteBlock& block : entries_[index_].blocks) {
     Line line;
     if (block.kind == update::NoteKind::Heading) {
-      y += first ? 0 : heading_top;
-      line.x = pad_x;
+      y += first ? 0 : look.heading_top;
+      line.x = look.pad_x;
       line.y = y;
-      line.layout = runs_layout(gfx, block.runs, heading_style, width - 2 * pad_x);
-      y += layout_height(line.layout.get()) + heading_bottom;
+      line.layout = runs_layout(gfx, block.runs, look.heading, width - 2 * look.pad_x);
+      y += layout_height(line.layout.get()) + look.heading_bottom;
     } else {
-      const float indent = block.kind == update::NoteKind::Bullet ? li_indent * static_cast<float>(block.indent + 1) : 0;
-      y += li_margin;
-      line.x = pad_x + indent;
+      const float indent = block.kind == update::NoteKind::Bullet ? look.indent * static_cast<float>(block.indent + 1) : 0;
+      y += look.margin;
+      line.x = look.pad_x + indent;
       line.y = y;
-      line.layout = runs_layout(gfx, block.runs, item_style, width - 2 * pad_x - indent);
+      line.layout = runs_layout(gfx, block.runs, look.item, width - 2 * look.pad_x - indent);
       if (block.kind == update::NoteKind::Bullet) {
         if (block.marker.empty()) {
           line.bullet_x = line.x - 11;
-          line.bullet_y = y + first_line / 2;
         } else {
           line.marker = widen(block.marker);
-          line.marker_x = line.x - li_indent;
+          line.marker_x = line.x - look.indent;
         }
       }
-      y += layout_height(line.layout.get()) + li_margin;
+      y += layout_height(line.layout.get()) + look.margin;
     }
     lines_.push_back(std::move(line));
     first = false;
   }
-  body_h_ = y + body_bottom;
+  body_h_ = y + look.bottom;
+}
+
+void ChangelogView::scroll_body() {
+  scroll_.content_h = body_h_;
+  scroll_.clamp();
+  if (start_at_bottom_) {
+    scroll_.jump_to(scroll_.max_offset());
+    start_at_bottom_ = false;
+  }
+  scroll_.advance(ui_);
+}
+
+void ChangelogView::paint_body(Painter& p, Rect body, const TextStyle& item, float marker_h, Color ink) {
+  // The body scrolls under the head, which stays (.cl-head is sticky).
+  p.rt()->PushAxisAlignedClip(D2D1::RectF(body.x, body.y, body.right(), body.bottom()), D2D1_ANTIALIAS_MODE_PER_PRIMITIVE);
+  const bool fade = push_edge_fade(ui_, p, body, scroll_.fade_top(), scroll_.fade_bottom());
+  for (const Line& line : lines_) {
+    const float y = body.y + line.y - scroll_.drawn();
+    if (line.bullet_x >= 0) p.fill_ellipse(body.x + line.bullet_x, y + first_line_ / 2, 2.5f, 2.5f, ink);
+    if (!line.marker.empty()) {
+      p.text(line.marker, {body.x + line.marker_x - 4, y, li_indent, marker_h}, item, ink);
+    }
+    if (line.layout) p.draw_layout(line.layout.get(), body.x + line.x, y, ink);
+  }
+  pop_edge_fade(p, fade);
+  p.rt()->PopAxisAlignedClip();
+}
+
+void ChangelogView::paint_pack(Painter& p, const skin::Screen& screen) {
+  class Shown final : public skin::Source {
+   public:
+    Shown(ChangelogView& view, Painter& painter) : v_(view), p_(painter) {
+      if (v_.index_ < v_.entries_.size()) entry_ = &v_.entries_[v_.index_];
+      if (v_.hint_shown_ != 0) {
+        const float progress = transition(v_.ui_, v_.hint_changed_at_, hint_fade_ms);
+        if ((v_.hint_ != 0 ? progress : 1 - progress) > 0) hint_ = v_.hint_shown_;
+      }
+    }
+    std::string_view text(int id, int) override {
+      switch (id) {
+        case Tagline: return entry_ ? std::string_view(entry_->tagline) : std::string_view{};
+        case Date: return entry_ ? std::string_view(entry_->date) : std::string_view{};
+        case Version: return entry_ ? std::string_view(entry_->version) : std::string_view{};
+        default: return hint_ < 0 ? tr().changelog_newer_hint : tr().changelog_older_hint;
+      }
+    }
+    float number(int id, int) override {
+      const auto yes = [](bool b) { return b ? 1.0f : 0.0f; };
+      switch (id) {
+        case HasEntries: return yes(entry_ != nullptr);
+        case HasTagline: return yes(entry_ && !entry_->tagline.empty());
+        case HasDate: return yes(entry_ && !entry_->date.empty());
+        case HasVersion: return yes(entry_ && !entry_->version.empty());
+        case ShownHint: return static_cast<float>(hint_);
+        case Overflow: return yes(v_.scroll_.max_offset() > 0);
+        case View: return v_.scroll_.view_h;
+        case Content: return v_.scroll_.content_h;
+        default: return v_.scroll_.offset;
+      }
+    }
+    void slot(int, int, skin::Box box, const skin::SlotValues& values) override {
+      const auto n = values.numbers;
+      const float width = n[7];
+      const TextStyle item = text_style_of(values.styles[1]);
+      v_.first_line_ = item.line_height;
+      if (!v_.built_ || v_.built_width_ != width) {
+        v_.lay_out_body({n[0], n[1], n[2], n[3], n[4], n[5], n[6], text_style_of(values.styles[0]), item}, width);
+      }
+      v_.scroll_.view_h = box.h;
+      v_.scroll_body();
+      v_.paint_body(p_, rect_of(box), item, item.line_height, values.colors[0]);
+    }
+    void note(int, int, skin::Box box) override { v_.bar_track_ = rect_of(box); }
+
+   private:
+    ChangelogView& v_;
+    Painter& p_;
+    const ChangelogEntry* entry_ = nullptr;
+    int hint_ = 0;
+  } shown(*this, p);
+  draw_screen(ui_, p, this, screen, ui_.content, shown);
 }
 
 void ChangelogView::paint(Painter& p) {
   if (!open_) return;
+  if (const skin::Screen* screen = ui_.pack_screen("changelog")) {
+    p.set_base(D2D1::Matrix3x2F::Identity());
+    paint_pack(p, *screen);
+    return;
+  }
   const Theme& t = ui_.theme;
   // In a window of its own: all of it, with a scrollbar.
   const bool plain = ui_.window != 0;
@@ -219,33 +329,15 @@ void ChangelogView::paint(Painter& p) {
 
   const float view_h = card.h - head_h_;
   scroll_.view_h = view_h;
-  scroll_.content_h = body_h_;
-  scroll_.clamp();
-  if (start_at_bottom_) {
-    scroll_.jump_to(scroll_.max_offset());
-    start_at_bottom_ = false;
-  }
-  scroll_.advance(ui_);
+  scroll_body();
 
   if (entries_.empty()) {
     p.text(tr().changelog_failed, {card.x + pad_x, card.y + (card.h - 27) / 2, card.w - 2 * pad_x, 27},
            {.size = 18, .weight = 700, .line_height = 27, .align = Align::Center}, ink);
   }
 
-  // The body scrolls under the head, which stays (.cl-head is sticky).
   const Rect body{card.x, card.y + head_h_, card.w, view_h};
-  p.rt()->PushAxisAlignedClip(D2D1::RectF(body.x, body.y, body.right(), body.bottom()), D2D1_ANTIALIAS_MODE_PER_PRIMITIVE);
-  const bool fade = push_edge_fade(ui_, p, body, scroll_.fade_top(), scroll_.fade_bottom());
-  for (const Line& line : lines_) {
-    const float y = body.y + line.y - scroll_.drawn();
-    if (line.bullet_x >= 0) p.fill_ellipse(card.x + line.bullet_x, y - line.y + line.bullet_y, 2.5f, 2.5f, ink);
-    if (!line.marker.empty()) {
-      p.text(line.marker, {card.x + line.marker_x - 4, y, li_indent, li_line}, item_style, ink);
-    }
-    if (line.layout) p.draw_layout(line.layout.get(), card.x + line.x, y, ink);
-  }
-  pop_edge_fade(p, fade);
-  p.rt()->PopAxisAlignedClip();
+  paint_body(p, body, item_style, li_line, ink);
 
   float y = card.y + head_top;
   const auto paint_head = [&](const ComPtr<IDWriteTextLayout>& layout, Color color) {

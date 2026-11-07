@@ -125,6 +125,11 @@ void Gfx::set_classic(bool on) {
   }
 }
 
+void Gfx::set_classic_fonts(ClassicFonts fonts) {
+  classic_fonts_ = std::move(fonts);
+  if (classic_) choose_classic_fonts();
+}
+
 Gfx::Metrics Gfx::metrics_of(const std::wstring& family) const {
   Metrics metrics;
   ComPtr<IDWriteFontCollection> system_fonts;
@@ -154,12 +159,19 @@ void Gfx::choose_classic_fonts() {
     return system_fonts && SUCCEEDED(system_fonts->FindFamilyName(family, &index, &exists)) && exists;
   };
   dwrite_->GetSystemFontCollection(system_fonts.put(), FALSE);
+  // The first that is there, or else the last: DirectWrite then falls back by itself.
+  const auto first_installed = [&](const std::vector<std::wstring>& names) {
+    for (const std::wstring& name : names) {
+      if (installed(name.c_str())) return name;
+    }
+    return names.empty() ? std::wstring(L"Segoe UI") : names.back();
+  };
   // Gulim comes with an optional package of Windows; Malgun Gothic is always there.
-  const wchar_t* const hangul = installed(L"Gulim") ? L"Gulim" : L"Malgun Gothic";
+  const std::wstring hangul = first_installed(classic_fonts_.korean);
   const bool korean = language_.starts_with(L"ko");
-  classic_body_ = korean ? hangul : L"Tahoma";
-  classic_size_ = korean ? 12.0f : 11.0f;
-  classic_caption_ = L"Trebuchet MS";
+  classic_body_ = korean ? hangul : first_installed(classic_fonts_.other);
+  classic_size_ = korean ? classic_fonts_.korean_size : classic_fonts_.other_size;
+  classic_caption_ = first_installed(classic_fonts_.caption);
   classic_body_metrics_ = metrics_of(classic_body_);
   classic_caption_metrics_ = metrics_of(classic_caption_);
 
@@ -171,7 +183,7 @@ void Gfx::choose_classic_fonts() {
   if (SUCCEEDED(dwrite_->QueryInterface(__uuidof(IDWriteFactory2), reinterpret_cast<void**>(factory2.put()))) &&
       SUCCEEDED(factory2->CreateFontFallbackBuilder(builder.put())) && SUCCEEDED(factory2->GetSystemFontFallback(system_fallback.put()))) {
     const DWRITE_UNICODE_RANGE ranges[] = {{0x1100, 0x11FF}, {0x3130, 0x318F}, {0xA960, 0xA97F}, {0xAC00, 0xD7FF}};
-    const WCHAR* families[] = {hangul};
+    const WCHAR* families[] = {hangul.c_str()};
     builder->AddMapping(ranges, 4, families, 1);
     builder->AddMappings(system_fallback.get());
     builder->CreateFontFallback(classic_fallback_.put());

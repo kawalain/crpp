@@ -3,6 +3,9 @@
 // their order, numbers keep their exact text, and values this client does not
 // understand stay in place. Meant for small files read and written rarely, so
 // unlike the wire parser it allocates freely.
+//
+// It reads JSONC: // and /* */ comments, and a comma after the last item. It writes plain JSON, so
+// a file this client saves keeps no comments, and whatever else reads it needs no more than JSON.
 #include <concepts>
 #include <cstdint>
 #include <expected>
@@ -17,6 +20,11 @@
 namespace crpp::store {
 
 enum class JsonError : std::uint8_t { Syntax, TooDeep, BadUtf8 };
+
+// Where parsing stopped, both counted from 1. A column counts bytes.
+struct JsonPosition {
+  std::size_t line = 1, column = 1;
+};
 
 class Json {
  public:
@@ -38,7 +46,7 @@ class Json {
   [[nodiscard]] static Json object();
   [[nodiscard]] static Json array();
 
-  [[nodiscard]] static std::expected<Json, JsonError> parse(std::string_view text);
+  [[nodiscard]] static std::expected<Json, JsonError> parse(std::string_view text, JsonPosition* where = nullptr);
   [[nodiscard]] std::string dump(bool pretty = false) const;
 
   [[nodiscard]] bool is_null() const noexcept { return std::holds_alternative<std::monostate>(value_); }

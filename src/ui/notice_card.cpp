@@ -2,12 +2,44 @@
 
 #include <algorithm>
 
+#include "crpp/ui/skin_canvas.hpp"
+
 namespace crpp::ui {
+
+namespace {
+
+enum TextId : int { Text, ActionText, DismissText };
+constexpr skin::Name text_names[] = {{"text", Text}, {"action", ActionText}, {"dismiss", DismissText}};
+constexpr skin::Name number_names[] = {{"has_action", 0}};
+constexpr skin::Name hit_names[] = {{"card", NoticeCard::Card}, {"action", NoticeCard::Action}, {"dismiss", NoticeCard::Dismiss}};
+
+}  // namespace
+
+skin::ScreenSchema NoticeCard::schema() { return {.screen = "notice", .texts = text_names, .numbers = number_names, .hits = hit_names}; }
 
 void NoticeCard::paint(Painter& p) {
   if (!notice_) return;
   const Theme& t = ui_.theme;
   p.set_base(D2D1::Matrix3x2F::Identity());
+  if (const skin::Screen* screen = ui_.pack_screen("notice")) {
+    class Shown final : public skin::Source {
+     public:
+      explicit Shown(const Notice& notice) : n_(notice) {}
+      std::string_view text(int id, int) override {
+        switch (id) {
+          case Text: return n_.text;
+          case ActionText: return n_.action;
+          default: return n_.dismiss;
+        }
+      }
+      float number(int, int) override { return n_.action.empty() ? 0.0f : 1.0f; }
+
+     private:
+      const Notice& n_;
+    } shown(*notice_);
+    draw_screen(ui_, p, this, *screen, ui_.content, shown);
+    return;
+  }
   const bool plain = !ui_.skin().moves();
   const float pad = plain ? 10 : 18, gap = plain ? 10 : 14, button_h = plain ? 23 : 34, button_pad = plain ? 12 : 14;
   const float w = std::min(380.0f, ui_.width - 32);  // leaves the chat input free

@@ -69,6 +69,12 @@ class Gfx {
   // System fonts drawn aliased, with their pixels' own widths, as on old Windows: Gulim or
   // Tahoma, and Trebuchet MS in a caption. The app's font is let go of until this goes off.
   void set_classic(bool on);
+  // Which fonts classic text uses: the first of each list this system has.
+  struct ClassicFonts {
+    std::vector<std::wstring> korean = {L"Gulim", L"Malgun Gothic"}, other = {L"Tahoma"}, caption = {L"Trebuchet MS"};
+    float korean_size = 12, other_size = 11;
+  };
+  void set_classic_fonts(ClassicFonts fonts);
   [[nodiscard]] bool classic() const { return classic_; }
   // The classic body size for this language, in DIPs.
   [[nodiscard]] float classic_size() const { return classic_size_; }
@@ -102,6 +108,7 @@ class Gfx {
   std::filesystem::path font_file_;
   bool classic_ = false;
   float classic_size_ = 12, pixels_per_dip_ = 1;
+  ClassicFonts classic_fonts_;
   std::wstring classic_body_, classic_caption_;
   ComPtr<IDWriteFontFallback> classic_fallback_;
   struct Metrics {

@@ -1,0 +1,77 @@
+{
+  "$schema": "../../schema/screen.room.schema.json",
+  "draw": [
+    {"fill": "$face"},
+    // Who else is here.
+    {"fill": "$header", "h": 22},
+    {"text": "@contacts", "style": "body", "color": "$ink", "x": 8, "w": "W-16", "h": 22},
+
+    // The toolbar.
+    {"fill": "$edge_light", "y": 22, "h": 1},
+    {"fill": "$edge_dark", "y": 51, "h": 1},
+    {"use": "toolbar_button", "id": "mute", "text": "@mute_label", "hit": "mute", "note": "fab_mute", "x": 4, "y": 25, "args": {"lit": "@muted"}},
+    {"path": "M2.6,9 H5.6 L10.3,5.1 C10.9,4.6 11.8,5 11.8,5.8 V18.2 C11.8,19 10.9,19.4 10.3,18.9 L5.6,15 H2.6 C2,15 1.5,14.5 1.5,13.9 V10.1 C1.5,9.5 2,9 2.6,9 Z",
+     "color": "$bar_arrow", "soft": true, "scale": "2/3", "x": "mute.x+5", "y": "mute.y+4"},
+    {"if": "@muted", "path": "M15 9 21 15M21 9 15 15", "color": "$error_text", "soft": true, "width": 2.4, "scale": "2/3", "x": "mute.x+5", "y": "mute.y+4"},
+    {"if": "!@muted", "path": "M14.6,9.2 C15.6,10.9 15.6,13.1 14.6,14.8M17.6,6.6 C19.8,9.9 19.8,14.1 17.6,17.4", "color": "$bar_arrow", "soft": true, "width": 2.1, "scale": "2/3", "x": "mute.x+5", "y": "mute.y+4"},
+    {"use": "toolbar_button", "id": "more", "text": "#room_options", "hit": "more", "note": "fab_more", "x": "mute.right+2", "y": "mute.y", "args": {"lit": "@options_open"}},
+    {"x": "more.x", "y": "more.y", "repeat": 3, "draw": [
+      {"fill": "$bar_arrow", "x": "5+i*5", "y": 11, "w": 3, "h": 3}
+    ]},
+
+    // The status line.
+    {"fill": "$edge_dark", "y": "H-20", "h": 1},
+    {"fill": "$edge_light", "y": "snap(Y+H-20)-Y+u", "h": 1},
+    {"text": "@status", "style": "body", "color": "$ink_soft", "x": 8, "y": "H-18", "w": "W-16", "h": 18},
+
+    {"let": "main_w", "value": "W-12"},
+    {"let": "main_h", "value": "H-20-52-12"},
+    {"let": "cols", "value": "@chat ? 1 : max(1, floor((main_w-scrollbar_w)/112))"},
+    {"x": "@chat ? 6+main_w-112 : 6", "y": 58, "w": "@chat ? 112 : main_w", "h": "main_h", "group": [
+      {"use": "field"},
+      {"note": "members_area", "x": 1, "y": 1, "w": "W-2", "h": "H-2", "group": [
+        {"let": "rows", "value": "ceil(@members/cols)"},
+        {"report": "members_view", "value": "H"},
+        {"report": "members_content", "value": "rows*62"},
+        {"let": "list_w", "value": "W-(@members_overflow ? scrollbar_w : 0)"},
+        {"let": "col_w", "value": "floor(list_w/cols)"},
+        {"clip": true, "w": "list_w", "group": [
+          {"repeat": "@members", "draw": [
+            {"let": "top", "value": "floor(i/cols)*62-@members_scroll"},
+            {"if": "top+62>0 && top<H", "hit": "member", "hit_index": "@member_slot", "note": "member", "x": "(i-floor(i/cols)*cols)*col_w", "y": "top", "w": "col_w", "h": 62, "group": [
+              {"if": "hot", "fill": "$hl_pale"},
+              {"let": "disc_x", "value": "floor(X+(W-36)/2)-X"},
+              // Only this much changes while someone types, so nothing else may depend on what is drawn under it.
+              {"fill": "hot ? $hl_pale : $field", "note": "member_disc", "x": "disc_x-3", "y": 2, "w": 42, "h": 42},
+              {"use": "picture_frame", "x": "disc_x", "y": 5, "w": 36, "h": 36, "args": {"glow": "@member_level"}},
+              {"if": "@member_muted", "picture": "muted", "x": "disc_x+2", "y": 7, "w": 32, "h": 32, "opacity": "@member_offline ? 0.55 : 1", "gray": "@muted_all"},
+              {"if": "!@member_muted", "picture": "member", "x": "disc_x+2", "y": 7, "w": 32, "h": 32, "opacity": "@member_offline ? 0.55 : 1", "gray": "@muted_all"},
+              {"text": "@member_name", "style": "body_center", "color": "@member_offline ? $ink_soft : $ink", "x": 3, "y": 44, "w": "W-6", "h": 16}
+            ]}
+          ]}
+        ]},
+        {"if": "@members_overflow", "use": "scrollbar", "hit": "members_bar", "x": "W-scrollbar_w", "w": "scrollbar_w",
+         "args": {"view": "H", "content": "rows*62", "offset": "@members_offset", "whole": 1, "track_note": "note('members_track')"}}
+      ]}
+    ]},
+    {"if": "@chat", "slot": "chat", "x": 6, "y": 58, "w": "main_w-112-6", "h": "main_h"},
+
+    // Hangs under its toolbar button: the code, then two boxes to tick.
+    {"if": "@controls_shown && @options_open", "x": "min(more.x, W-190-4)", "y": "more.bottom+1", "w": 190, "h": 87, "group": [
+      {"use": "panel_popup"},
+      {"hit": "popup", "group": []},
+      {"text": "#room_code", "style": "body", "color": "$ink", "x": 10, "y": 5, "w": 100, "h": 24},
+      {"use": "link", "text": "@code", "hit": "opt_code", "note": "code", "x": "W-80", "y": 5, "w": 70, "h": 24},
+      {"fill": "$edge_dark", "x": 5, "y": 31, "w": "W-10", "h": 1},
+      {"fill": "$edge_light", "x": 5, "y": "snap(Y+31)-Y+u", "w": "W-10", "h": 1},
+      {"use": "check_row", "text": "#room_public", "hit": "opt_public", "note": "public", "x": 10, "y": 34, "w": "W-20", "h": 24, "args": {"on": "@public", "off": "@public_off", "pinned": "@pin_public"}},
+      {"use": "check_row", "text": "#room_word_chat", "hit": "opt_chat", "note": "chat", "x": 10, "y": 58, "w": "W-20", "h": 24, "args": {"on": "@chat", "off": "@chat_off", "pinned": "@pin_chat"}}
+    ]},
+    {"if": "@controls_shown && @mute_popup_open", "x": "mute.x", "y": "mute.bottom+1", "w": 190, "h": 33, "group": [
+      {"use": "panel_popup"},
+      {"hit": "popup", "group": []},
+      {"text": "@volume_text", "style": "body", "color": "$ink", "x": 8, "w": 34},
+      {"use": "slider", "hit": "volume", "note": "volume", "x": 44, "y": 5, "w": "W-52", "h": "H-10", "args": {"at": "@volume/100"}}
+    ]}
+  ]
+}

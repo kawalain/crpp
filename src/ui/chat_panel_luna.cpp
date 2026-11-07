@@ -23,28 +23,6 @@ TextStyle ChatPanel::luna_input() const {
   return {.size = size, .line_height = size + 4, .wrap = true, .exact = true};
 }
 
-void ChatPanel::append_row_luna(std::size_t index, float list_w) {
-  const ChatEntry& e = log_[index];
-  const bool cont = chat_grouped_with_previous(index);
-  const TextStyle body = luna_body();
-  Row row;
-  row.head = !cont;
-  if (cont) {
-    next_y_ -= row_gap - 2;
-  } else {
-    row.y_head = next_y_;
-    next_y_ += body.line_height + 1;
-  }
-  const std::wstring text = widen(e.text);
-  DWRITE_TEXT_METRICS m{};
-  if (const auto layout = ui_.gfx.layout(text, body, list_w - indent, 100000)) layout->GetMetrics(&m);
-  row.y_text = next_y_;
-  row.h_text = m.height;
-  row.links = find_links(text);
-  next_y_ += m.height + row_gap;
-  rows_.push_back(std::move(row));
-}
-
 void ChatPanel::paint_luna(Painter& p, Rect panel) {
   const Theme& t = ui_.theme;
   const LunaColors& l = t.luna;
@@ -60,103 +38,8 @@ void ChatPanel::paint_luna(Painter& p, Rect panel) {
 
   // --- the messages ---
   const Rect inner{list.x + 1, list.y + 1, list.w - 2, list.h - 2};
-  const float text_w_full = inner.w - 2 * list_pad - luna::scrollbar_w;
-  if (fresh_ && !log_.empty()) {
-    first_ = log_.size() > chat_page ? log_.size() - chat_page : 0;
-    fresh_ = false;
-    dirty_ = true;
-  }
-  const float size_key = text_w_full + zoom_ * 1000;  // another chat size measures again too
-  if (dirty_ || size_key != rows_w_) {
-    rows_.clear();
-    next_y_ = list_pad;
-    rows_w_ = size_key;
-    dirty_ = false;
-    kept_from_ = kept_to_ = 0;
-  }
-  const float content_before = content_h_;
-  const std::size_t shown_before = rows_.size();
-  for (std::size_t i = first_ + rows_.size(); i < log_.size(); ++i) append_row_luna(i, text_w_full);
-  content_h_ = next_y_ - row_gap + list_pad;
-  scroll_.view_h = inner.h;
-  scroll_.content_h = content_h_;
-  const float max_scroll = scroll_.max_offset();
-  if (older_pending_ && !stick_ && rows_.size() > shown_before) {
-    scroll_.offset += content_h_ - content_before;
-    scroll_.target += content_h_ - content_before;
-  }
-  older_pending_ = false;
-  if (stick_) scroll_.jump_to(max_scroll);
-  scroll_.clamp();
-  scroll_.advance(ui_);
-
-  const TextStyle body = luna_body();
-  const TextStyle head{.size = body.size, .line_height = body.line_height, .ellipsis = true, .exact = true};
-  const TextStyle time_style{.size = body.size, .line_height = body.line_height, .align = Align::Right, .exact = true};
-  const float x = inner.x + list_pad, top = inner.y - scroll_.drawn();
-  HoverTip::Spec tip;
-  bool show_tip = false;
-  p.rt()->PushAxisAlignedClip(D2D1::RectF(inner.x, inner.y, inner.right() - luna::scrollbar_w, inner.bottom()), D2D1_ANTIALIAS_MODE_ALIASED);
-  ui_.push_hit_clip({inner.x, inner.y, inner.w - luna::scrollbar_w, inner.h});
-  std::size_t in_view_from = rows_.size(), in_view_to = 0;
-  for (std::size_t r = 0; r < rows_.size(); ++r) {
-    Row& row = rows_[r];
-    const float row_top = top + (row.head ? row.y_head : row.y_text);
-    if (top + row.y_text + row.h_text <= inner.y) continue;
-    if (row_top >= inner.bottom()) break;
-    in_view_from = std::min(in_view_from, r);
-    in_view_to = r + 1;
-    const std::size_t index = first_ + r;
-    const ChatEntry& e = log_[index];
-    if (row.head) {
-      if (!row.time) {
-        row.time = ui_.gfx.layout(widen(chat_clock_text(e.time_ms, use_24h_)), time_style, text_w_full, head.line_height);
-        DWRITE_TEXT_METRICS m{};
-        if (row.time) row.time->GetMetrics(&m);
-        row.time_w = m.widthIncludingTrailingWhitespace;
-      }
-      if (row.time) p.draw_layout(row.time.get(), x, top + row.y_head, l.ink_soft);
-      if (!row.nick) {
-        const std::string name = e.nick.empty() ? std::string(tr().guest) : e.nick;
-        row.nick = ui_.gfx.layout(widen(locale::fill(tr().chat_says, {name})), head, std::max(20.0f, text_w_full - row.time_w - 8), head.line_height);
-      }
-      if (row.nick) p.draw_layout(row.nick.get(), x, top + row.y_head, l.ink_soft);
-    }
-    if (!row.text) row.text = ui_.gfx.layout(widen(e.text), body, text_w_full - indent, 100000);
-    if (!row.text) continue;
-    IDWriteTextLayout* const layout = row.text.get();
-    const float text_x = x + indent, text_y = top + row.y_text;
-    for (std::size_t n = 0; n < row.links.size() && n < links_per_entry; ++n) {
-      const LinkSpan link = row.links[n];
-      const int id = LinkBase + static_cast<int>(dropped_ + index) * links_per_entry + static_cast<int>(n);
-      DWRITE_HIT_TEST_METRICS boxes[8];
-      UINT32 count = 0;
-      if (FAILED(layout->HitTestTextRange(link.start, link.length, 0, 0, boxes, 8, &count))) continue;
-      for (UINT32 b = 0; b < count; ++b) {
-        const Rect box{text_x + boxes[b].left, text_y + boxes[b].top, boxes[b].width, boxes[b].height};
-        ui_.add_hit_window(this, box, id);
-        if (b == 0) tip.anchor = box;
-      }
-      layout->SetUnderline(true, {link.start, link.length});
-      if (ui_.hot(this, id)) {
-        tip.text = tr().chat_link_tip;
-        tip.gap = 2;
-        tip.slide = 0;
-        show_tip = true;
-      }
-    }
-    p.draw_layout(layout, text_x, text_y, l.ink);
-  }
-  for (std::size_t r = kept_from_; r < kept_to_ && r < rows_.size(); ++r) {
-    if (r >= in_view_from && r < in_view_to) continue;
-    rows_[r].text.reset();
-    rows_[r].nick.reset();
-    rows_[r].time.reset();
-  }
-  kept_from_ = in_view_from;
-  kept_to_ = in_view_to;
-  ui_.pop_hit_clip();
-  p.rt()->PopAxisAlignedClip();
+  messages_ = {.indent = indent, .pad = list_pad, .gap = row_gap, .bar_w = luna::scrollbar_w, .body = luna_body(), .ink = l.ink, .soft = l.ink_soft};
+  paint_messages(p, inner);
 
   const Rect bar{inner.right() - luna::scrollbar_w, inner.y, luna::scrollbar_w, inner.h};
   const auto parts = luna::scrollbar_parts(bar, scroll_.view_h, scroll_.content_h, scroll_.offset);
@@ -195,7 +78,7 @@ void ChatPanel::paint_luna(Painter& p, Rect panel) {
     p.text(text, tip_box, style, ink);
   }
 
-  link_tip_.paint(ui_, p, show_tip ? &tip : nullptr);
+  link_tip_.paint(ui_, p, show_link_tip_ ? &link_tip_spec_ : nullptr);
 }
 
 }  // namespace crpp::ui

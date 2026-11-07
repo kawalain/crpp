@@ -1,0 +1,34 @@
+{
+  "$schema": "../../schema/screen.changelog.schema.json",
+  "draw": [
+    {"hit": "card", "group": []},
+    {"let": "pad_x", "value": 12},
+    {"let": "head_top", "value": 22},
+    {"let": "text_w", "value": "W-scrollbar_w"},
+    {"let": "head_w", "value": "text_w-2*pad_x"},
+    {"let": "tagline_h", "value": "@has_tagline ? texth('note_title', '@tagline', head_w) : 0"},
+    {"let": "date_h", "value": "@has_date ? texth('chat_text', '@date', head_w) : 0"},
+    {"let": "version_h", "value": "@has_version ? texth('note_version', '@version', head_w) : 0"},
+    {"let": "date_y", "value": "head_top+(@has_tagline ? tagline_h+2 : 0)"},
+    {"let": "version_y", "value": "date_y+(@has_date ? date_h+2 : 0)"},
+    {"let": "head_end", "value": "version_y+(@has_version ? version_h : (@has_tagline || @has_date ? -2 : 0))"},
+    {"let": "head_h", "value": "@has_tagline || @has_date || @has_version ? head_end+14 : 0"},
+    {"if": "!@has_entries", "text": "#changelog_failed", "style": "body_center", "color": "$ink", "x": "pad_x", "y": "(H-27)/2", "w": "W-2*pad_x", "h": 27},
+    {"slot": "body", "y": "head_h", "h": "H-head_h", "numbers": ["pad_x", 20, 4, 14, 6, 24, "head_h>0 ? 0 : head_top", "text_w"], "styles": ["chat_text", "chat_text"], "colors": ["$ink"]},
+    {"if": "@has_tagline", "text": "@tagline", "style": "note_title", "color": "$ink", "x": "pad_x", "y": "head_top", "w": "head_w", "h": "tagline_h"},
+    {"if": "@has_date", "text": "@date", "style": "chat_text", "color": "$ink", "x": "pad_x", "y": "date_y", "w": "head_w", "h": "date_h"},
+    {"if": "@has_version", "text": "@version", "style": "note_version", "color": "$ink_soft", "x": "pad_x", "y": "version_y", "w": "head_w", "h": "version_h"},
+    {"if": "@overflow", "x": "W-scrollbar_w", "y": "head_h", "w": "scrollbar_w", "h": "H-head_h", "group": [
+      {"hit": "bar_track", "group": []},
+      {"use": "scrollbar", "args": {"view": "@view", "content": "@content", "offset": "@offset", "thumb": "hit('bar_thumb')", "whole": 1, "track_note": "note('bar_track')"}}
+    ]},
+    {"if": "@shown_hint!=0", "x": 0, "group": [
+      {"let": "bubble_w", "value": "textw('paragraph_center', '@hint', W)+30"},
+      {"let": "text_h", "value": "texth('paragraph_center', '@hint', W)"},
+      {"x": "(W-bubble_w)/2", "y": "@shown_hint<0 ? 14 : H-14-text_h-10", "w": "bubble_w", "h": "text_h+10", "group": [
+        {"use": "bubble"},
+        {"text": "@hint", "style": "paragraph_center", "color": "$tooltip_ink", "y": 5, "h": "text_h"}
+      ]}
+    ]}
+  ]
+}

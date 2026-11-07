@@ -73,6 +73,6 @@ class Skin {
 inline constexpr float slider_thumb = 21;
 
 [[nodiscard]] const Skin& skin_of(SkinId id);
-[[nodiscard]] inline const Skin& skin_of(const Theme& t) { return skin_of(t.skin); }
+[[nodiscard]] inline const Skin& skin_of(const Theme& t) { return t.from_pack ? *t.from_pack : skin_of(t.skin); }
 
 }  // namespace crpp::ui

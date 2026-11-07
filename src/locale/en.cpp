@@ -179,6 +179,7 @@ const Strings english{
     .theme_messenger_dark = "Messenger dark",
     .display_theme = "Theme",
     .display_sync = "Follow the system",
+    .display_theme_cursor = "Use the Theme's cursors",
     .display_light = "Light theme",
     .display_dark = "Dark theme",
     .display_general = "Theme",

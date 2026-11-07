@@ -1,0 +1,24 @@
+{
+  "$schema": "../../schema/screen.settings_account.schema.json",
+  "draw": [
+    {"id": "form", "y": 10, "column": [
+      {"use": "form_group", "text": "#account_heading", "draw": [
+        {"h": 64, "after": 10, "group": [
+          {"hit": "emoji", "w": 64, "group": [
+            {"use": "picture_frame", "args": {"glow": "hot"}},
+            {"picture": "me", "x": 6, "y": 6, "w": 52, "h": 52}
+          ]},
+          {"if": "@has_names", "text": "@nickname", "style": "bold", "color": "$ink", "x": 74, "y": 14, "w": "W-74", "h": 18},
+          {"if": "@has_names", "text": "@handle", "style": "body", "color": "$ink_soft", "x": 74, "y": 34, "w": "W-74", "h": 16},
+          {"if": "!@has_names", "text": "@display", "style": "bold", "color": "$ink", "x": 74, "y": 23, "w": "W-74", "h": 18}
+        ]},
+        {"h": "button_h", "after": 8, "group": [
+          {"use": "button", "id": "nick", "text": "#account_change_nickname", "hit": "nickname"},
+          {"if": "@has_account", "use": "button", "text": "#account_change_handle", "hit": "change_handle", "x": "nick.right+6"}
+        ]},
+        {"use": "button", "text": "#account_logout", "hit": "logout", "right": "W", "after": 6}
+      ]}
+    ]},
+    {"report": "height", "value": "form.bottom"}
+  ]
+}

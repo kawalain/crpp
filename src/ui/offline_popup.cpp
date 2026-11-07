@@ -5,11 +5,28 @@
 #include <algorithm>
 
 #include "crpp/ui/controls.hpp"
+#include "crpp/ui/skin_canvas.hpp"
 
 namespace crpp::ui {
 
 namespace {
-}
+
+enum ReportId : int { Width, Height };
+constexpr skin::Name text_names[] = {{"message", 0}};
+constexpr skin::Name hit_names[] = {{"card", OfflinePopup::Card}};
+constexpr skin::Name report_names[] = {{"width", Width}, {"height", Height}};
+
+class Shown final : public skin::Source {
+ public:
+  std::string_view text(int, int) override { return tr().offline_message; }
+  void report(int id, float value) override { (id == Width ? size.width : size.height) = value; }
+
+  D2D1_SIZE_F size{};
+};
+
+}  // namespace
+
+skin::ScreenSchema OfflinePopup::schema() { return {.screen = "offline", .texts = text_names, .hits = hit_names, .reports = report_names}; }
 
 void OfflinePopup::show() {
   if (shown_) return;
@@ -26,6 +43,11 @@ void OfflinePopup::hide() {
 }
 
 D2D1_SIZE_F OfflinePopup::content_size() const {
+  if (const skin::Screen* screen = ui_.pack_screen("offline")) {
+    Shown shown;
+    measure_screen(ui_, *screen, ui_.content, shown);
+    return shown.size;
+  }
   const DialogMetrics m = ui_.skin().dialog_metrics();
   const TextStyle body{.size = m.text_size, .weight = 700, .line_height = m.text_line, .align = m.align, .wrap = true, .keep_words = true};
   DWRITE_TEXT_METRICS size{};
@@ -35,6 +57,12 @@ D2D1_SIZE_F OfflinePopup::content_size() const {
 
 void OfflinePopup::paint(Painter& p) {
   if (!shown_ || covered_) return;
+  if (const skin::Screen* screen = ui_.pack_screen("offline")) {
+    p.set_base(D2D1::Matrix3x2F::Identity());
+    Shown shown;
+    draw_screen(ui_, p, this, *screen, ui_.content, shown);
+    return;
+  }
   const auto [pad_top, pad_x, pad_bottom, gap, button_h, button_w, button_gap, width, wide_width, margin, text_size, text_line, align] = ui_.skin().dialog_metrics();
   const float w = ui_.window != 0 ? width : std::min(width, ui_.width - margin);
   const TextStyle body{.size = text_size, .weight = 700, .line_height = text_line, .align = align, .wrap = true, .keep_words = true};

@@ -1,0 +1,15 @@
+add_library(crpp_skin STATIC expr.cpp pack.cpp draw.cpp schema.cpp)
+target_include_directories(crpp_skin PUBLIC include)
+target_link_libraries(crpp_skin PRIVATE crpp_store crpp_locale)
+crpp_target_defaults(crpp_skin)
+
+function(crpp_skin_test name)
+  add_executable(crpp_skin_${name}_test tests/${name}_test.cpp)
+  target_link_libraries(crpp_skin_${name}_test PRIVATE crpp_skin crpp_locale)
+  target_include_directories(crpp_skin_${name}_test PRIVATE ${PROJECT_SOURCE_DIR}/tests/support)
+  crpp_target_defaults(crpp_skin_${name}_test)
+  add_test(NAME skin.${name} COMMAND crpp_skin_${name}_test)
+endfunction()
+
+crpp_skin_test(expr)
+crpp_skin_test(pack)

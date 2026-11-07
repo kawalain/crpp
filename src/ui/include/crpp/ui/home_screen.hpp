@@ -6,6 +6,7 @@
 #include <string>
 #include <vector>
 
+#include "crpp/skin/pack.hpp"
 #include "crpp/ui/hover.hpp"
 #include "crpp/ui/surface.hpp"
 
@@ -14,6 +15,9 @@ namespace crpp::ui {
 class HomeScreen final : public Surface {
  public:
   explicit HomeScreen(Ui& ui);
+
+  // What a Skin Pack's screen for Home can name.
+  [[nodiscard]] static skin::ScreenSchema schema();
 
   enum Id : int { Create, Join, Code, Find, ReturnBackdrop, ReturnCard, ReturnConfirm, ReturnRandom, SeatBase = 100 };
 
@@ -59,6 +63,7 @@ class HomeScreen final : public Surface {
  private:
   [[nodiscard]] bool is_busy() const { return busy && busy(); }
   void paint_luna(Painter& p);
+  void paint_pack(Painter& p, const skin::Screen& screen);
   [[nodiscard]] TextStyle luna_code_style() const;
   [[nodiscard]] TextStyle field_style() const;
   void join();
@@ -68,6 +73,8 @@ class HomeScreen final : public Surface {
   [[nodiscard]] bool tip_wanted(unsigned long long now) const;
 
   std::string nickname_;
+  // How the pack last drew the code.
+  TextStyle pack_code_style_;
   // Where the Skin's layout last put these; a click and a bubble go by them.
   float code_x_ = 469 + 18;
   Rect join_rect_{469 + 221, 522 + 10, 52, 60}, find_rect_{759, 522, 92, 80};

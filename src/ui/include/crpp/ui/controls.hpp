@@ -70,6 +70,8 @@ class Dropdown {
   bool disabled = false;
   int id_base = 0;
 
+  [[nodiscard]] static skin::ScreenSchema schema();
+
   void paint_button(Ui& ui, Surface* owner, Painter& p, Rect r) const;
   void paint_list(Ui& ui, Surface* owner, Painter& p, Rect r);
   // A click on one of this dropdown's ids. True if `selected` changed.

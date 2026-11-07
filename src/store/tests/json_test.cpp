@@ -79,10 +79,38 @@ void repeated_key_keeps_the_last() {
 
 void malformed_text_is_rejected() {
   for (const std::string_view bad :
-       {"", " ", "{", "}", "[", "[1,]", "{\"a\":1,}", "{\"a\"}", "{a:1}", "tru", "nul", "01", "-", "1.", "1e", "+1", "1 2",
+       {"", " ", "{", "}", "[", "[,]", "{,}", "[1,,]", "{\"a\":1,,}", "/", "// only", "/* only */", "/* open", "[1 /", "[1 /* open", "{\"a\"}", "{a:1}", "tru", "nul", "01", "-", "1.", "1e", "+1", "1 2",
         "\"", "\"\\x\"", "\"\\u12\"", "\"a\nb\"", "[1 2]", "{\"a\":1 \"b\":2}"}) {
     CHECK(error_of(bad) == JsonError::Syntax);
   }
+}
+
+void comments_and_last_commas_are_read() {
+  const auto parsed = Json::parse(R"J(// first
+{
+  /* before a key */ "a": 1, // after a value
+  "b": [1, 2, /* in a list */ 3,],
+  "c": {"d": true,},
+  /* a star * and a slash / inside */
+}
+// last)J");
+  CHECK(parsed.has_value());
+  CHECK(parsed->dump() == R"({"a":1,"b":[1,2,3],"c":{"d":true}})");
+  // What looks like a comment in a string is the string, and writing keeps to plain JSON.
+  CHECK(Json::parse(R"(["// no", "/* no */"])")->dump() == R"(["// no","/* no */"])");
+  CHECK(Json::parse("[1,\r\n// windows lines\r\n2]")->dump() == "[1,2]");
+}
+
+void a_failure_says_where() {
+  crpp::store::JsonPosition at;
+  CHECK(!Json::parse("{\n  \"a\": 1\n  \"b\": 2\n}", &at));
+  CHECK(at.line == 3 && at.column == 3);
+  at = {};
+  CHECK(!Json::parse("[1,\n/* open", &at));
+  CHECK(at.line == 2 && at.column == 1);
+  at = {};
+  CHECK(Json::parse("[1]", &at).has_value());
+  CHECK(at.line == 1 && at.column == 1);
 }
 
 void bad_unicode_is_rejected() {
@@ -107,6 +135,8 @@ int main() {
   object_members_change();
   repeated_key_keeps_the_last();
   malformed_text_is_rejected();
+  comments_and_last_commas_are_read();
+  a_failure_says_where();
   bad_unicode_is_rejected();
   nesting_is_bounded();
   return crpp_test_result();

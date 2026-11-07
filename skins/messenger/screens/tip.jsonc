@@ -1,0 +1,13 @@
+{
+  "$schema": "../../schema/screen.tip.schema.json",
+  "draw": [
+    {"let": "box_w", "value": "textw('tip_line', '@text', 2000)+9"},
+    {"let": "box_h", "value": "texth('tip_line', '@text', 2000)+2"},
+    // Lines up with the middle, the left or the right of what it is about.
+    {"let": "wanted", "value": "@place==2 ? @anchor_x+@anchor_w-box_w : @place==1 ? @anchor_x : @anchor_x+(@anchor_w-box_w)/2"},
+    {"x": "max(4, min(wanted, W-box_w-4))+@dx", "y": "@anchor_y-min(@gap, 3)-box_h", "w": "box_w", "h": "box_h", "group": [
+      {"use": "bubble"},
+      {"text": "@text", "style": "paragraph_center", "color": "$tooltip_ink", "x": 4, "y": 1, "w": "W-8", "h": "H-2"}
+    ]}
+  ]
+}

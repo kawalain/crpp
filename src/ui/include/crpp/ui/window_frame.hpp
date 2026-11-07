@@ -5,9 +5,17 @@
 #include <functional>
 #include <string>
 
+#include "crpp/skin/pack.hpp"
 #include "crpp/ui/surface.hpp"
 
 namespace crpp::ui {
+
+// The sizes of a window frame the app draws itself.
+struct FrameMetrics {
+  float caption_h = 28, frame_w = 3, menu_h = 20, radius = 8;
+  float edge = 4, corner = 12;  // how near an edge or a corner resizes
+  float button = 21, button_gap = 2, button_top = 4, button_right = 5;
+};
 
 class WindowFrame final : public Surface {
  public:
@@ -16,16 +24,20 @@ class WindowFrame final : public Surface {
 
   std::function<void()> on_minimize, on_close, on_exit, on_leave_room, on_options, on_changelog;
 
+  // What a Skin Pack can name here: the frame, and the menu that is down.
+  [[nodiscard]] static skin::ScreenSchema schema();
+  [[nodiscard]] static skin::ScreenSchema menu_schema();
+
   // What the system should do with a point.
   enum class Zone : std::uint8_t { Client, Caption, Left, Right, Top, Bottom, TopLeft, TopRight, BottomLeft, BottomRight };
   struct Parts {
     bool resizable = true, minimize = true, close = true;
   };
-  [[nodiscard]] static Zone zone_at(float x, float y, float width, float height, Parts parts = {});
+  [[nodiscard]] static Zone zone_at(float x, float y, float width, float height, Parts parts = {}, const FrameMetrics& m = {});
   // Inside the frame and under the caption, and the menu bar when there is one.
-  [[nodiscard]] static Rect content(float width, float height, bool with_menu);
+  [[nodiscard]] static Rect content(float width, float height, bool with_menu, const FrameMetrics& m = {});
   // All but the caption, which stays usable under a modal.
-  [[nodiscard]] static Rect below_caption(float width, float height);
+  [[nodiscard]] static Rect below_caption(float width, float height, const FrameMetrics& m = {});
 
   void set_title(std::string title) { title_ = std::move(title); }
   void set_active(bool active) { active_ = active; }
@@ -48,6 +60,8 @@ class WindowFrame final : public Surface {
     std::function<void()>* action;
   };
   [[nodiscard]] std::vector<Item> items_of(int menu);
+  void paint_pack(Painter& p, const skin::Screen& screen);
+  void paint_menu_pack(Painter& p, const skin::Screen& screen);
 
   std::string title_ = "Cloudroom++";
   bool active_ = true, menu_shown_ = true, in_room_ = false;

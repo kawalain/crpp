@@ -5,6 +5,7 @@
 #include <string>
 #include <vector>
 
+#include "crpp/skin/pack.hpp"
 #include "crpp/ui/chat_logic.hpp"
 #include "crpp/ui/controls.hpp"
 #include "crpp/ui/surface.hpp"
@@ -25,6 +26,9 @@ struct ChatEntry {
 class ChatPanel final : public Surface {
  public:
   explicit ChatPanel(Ui& ui);
+
+  // What a Skin Pack can name here.
+  [[nodiscard]] static skin::ScreenSchema schema();
 
   // False if it could not be sent; the text stays in the box.
   std::function<bool(std::string text)> on_send;
@@ -82,8 +86,17 @@ class ChatPanel final : public Surface {
     float time_w = 0;
   };
 
+  // How the plain list of messages looks.
+  struct MessageLook {
+    float indent = 0, pad = 0, gap = 0, bar_w = 0;
+    TextStyle body;
+    Color ink, soft;
+  };
+
+  void paint_pack(Painter& p, const skin::Screen& screen, Rect panel);
+  void paint_messages(Painter& p, Rect inner);
+  void append_message(std::size_t index, float list_w);
   void paint_luna(Painter& p, Rect panel);
-  void append_row_luna(std::size_t index, float list_w);
   [[nodiscard]] TextStyle luna_body() const;
   [[nodiscard]] TextStyle luna_input() const;
   [[nodiscard]] bool chat_grouped_with_previous(std::size_t index) const;
@@ -133,6 +146,10 @@ class ChatPanel final : public Surface {
   unsigned long long calm_since_ = 0;
   std::string calm_text_;
   HoverTip link_tip_;
+  HoverTip::Spec link_tip_spec_;
+  bool show_link_tip_ = false;
+  MessageLook messages_;
+  TextStyle pack_input_style_;
 };
 
 }  // namespace crpp::ui

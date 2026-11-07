@@ -30,8 +30,8 @@ and developer communities, not from memory.
 - Tests use CTest with the tiny `tests/support/check.hpp`; no framework.
   Golden vectors are derived from upstream `server/src/main.rs`.
 - Layout: `src/<module>/` (CMake static library) with `src/<module>/tests/`.
-  Dependency direction: `ui -> session -> wire`; `transport` and `input` are
-  reached from `session` only through interfaces.
+  Dependency direction: `ui -> session -> wire`, and `ui -> skin`; `transport` and `input`
+  are reached from `session` only through interfaces.
 - Audio is raw WASAPI with a hand-written WAV parser (no third party).
 - `client-apk` and the upstream Rust `app` are out of scope.
 - Goal: the same features and screens as upstream, one instance at a time.
@@ -143,6 +143,8 @@ against a real `server/` yet; do that once a local build of it is available.
   areas fade at the edge they cut, by up to 27 px. All of it follows the system's "Show
   animations" setting; there is no toggle of its own.
 - The app is named Cloudroom++, and its data stays in the same folders as upstream's.
+- Every JSON file this client reads may hold comments and a comma after the last item. It writes plain
+  JSON, so upstream reads what it saved, but not a file someone commented by hand. Saving drops comments.
 - English besides Korean, chosen in the system tab; it follows the OS language until then.
   Other words for the same things: 구름 is "Room", 사용자명 is "handle". The system tab has a
   section for it, which moves what is below it down.
@@ -166,6 +168,9 @@ against a real `server/` yet; do that once a local build of it is available.
   - Only links show the hand cursor, and none of the motion listed above runs.
   - Text is Gulim and Tahoma, the fonts of the time on this system, not Pretendard.
   - A message and someone entering sound as bells made in `synth`, not the pack's recordings.
+  - The pointer is drawn here too, and only in the app's windows: seven vector cursors of the Skin Pack, made into
+    system cursors when first needed. "테마 커서 사용" in the display tab, on by default and shown only for a Theme
+    with cursors, gives the system's back (`themeCursor`, a key of this client's own).
 
 ## Build
 
@@ -182,7 +187,16 @@ Options are read from the end of the command line: `crpp --shot <png> <size> <ho
 --data <dir>`. Put first, `--data` is ignored and the real app opens on the user's desktop
 with their data. A shot is in Korean and in the Theme of its scene unless `--locale <id>` or
 `--theme <id>` says otherwise. `auto` for the size renders the window size of the Skin's screen.
-A scene that opens a panel with a window of its own renders that window.
+A scene that opens a panel with a window of its own renders that window. Under `--skin-dir`, the scene `cursors`, which
+is not in `scenes.txt`, is a sheet of the pack's cursors.
+
+`--skin-dir <dir>` draws from the unsigned Skin Pack in that folder what it has, and the C++ layout
+draws the rest until `docs/plans/skin-packs.md` is done. `crpp_ui_skin_bench`, not part of a normal
+build, measures a pack against the C++ layout.
+
+Nothing may wait for a person in a scripted run. On a desktop nobody sees the app shows no dialog: when
+it cannot start, as when it refuses a pack, it exits with 3 and leaves the reason in `<png>.error`, or
+in `start-failure.txt` under `--data`. `render.ps1` stops there and at the first scene that takes 30 s.
 
 A change that must leave the screen as it was can prove it: `tests/shots/render.ps1` renders
 every scene in `scenes.txt` on a hidden desktop, before and after, and `compare.ps1` compares
@@ -208,7 +222,8 @@ exist (real + test).
 
 - `locale`: `tr()` is the table of the current Locale, plain `const char*` fields; `fill` puts
   values into `{0}` and so on. A Locale also decides its line breaks and word lists. To add one,
-  copy `en.cpp` and list it in `locale.cpp`; a test finds what is missing. Pure.
+  copy `en.cpp` and list it in `locale.cpp`; a test finds what is missing. A new field also needs
+  a line in `keys.cpp`, the names a Skin Pack refers to wording by; the build says so. Pure.
 - `wire`: parse/encode server and client messages and input frames. Pure.
   Frames are at most 1024 bytes and at most 32 input events; use fixed buffers.
 - `session`: pure state machine `step(Event) -> Actions` (connect order,
@@ -231,6 +246,15 @@ exist (real + test).
 - `store`: settings, Seats and chat cache in the Protected or Shared store; a
   flushed temp file + rename for every write. `Platform` is the seam for DPAPI
   and file replacement.
+- `skin`: Skin Packs (`docs/adr/0007-skins-are-downloaded-data.md`). `load_pack` turns a pack's JSONC into
+  a compact tree and checks every name in it, under limits on size and depth, so that drawing has
+  nothing left to refuse. `draw` walks a screen; `Canvas` is the seam for drawing and `Source` for what
+  the screen shows. `pack.hpp` describes the format. Expressions are compiled to a short program, and
+  running one allocates nothing. Pure. A screen says what a pack can name in a `ScreenSchema`, keeps
+  its state, hit ids and callbacks, and `SkinCanvas` in `ui` draws on a `Painter`. `skins/` holds the packs, and how to write one in its README.
+  `keys.hpp` lists what a node may have, for the loader and for the JSON Schemas in `skins/schema`, which `crpp_skin_schema` writes and a test compares.
+  A panel with a window of its own reports its size, and `measure_screen` walks the screen without drawing to learn it. What the
+  program itself must know of a look, as a frame's sizes and each window's, is in constants that `required_constants` lists; fonts and cursors have sections of their own.
 - `assets`: fetch and verify files against the manifest CMake builds into the
   exe from `assets/` and `cmake/remote_assets.txt`. This repository's files are pinned
   to the commit that last changed `assets/`, which must be on GitHub before a release
@@ -351,6 +375,10 @@ exist (real + test).
 - Following the OS theme with a Theme of another Skin on the other side has only run in tests: the
   frame and window size should change with it.
 - The Messenger Themes' bells need ears: `crpp_soundtest --chimes`.
+- The pack's cursors have only been drawn into bitmaps, with `DrawIconEx` for the blending. See on a real desktop: their edges,
+  whether a resize keeps them during the drag, and whether the system puts its pointer shadow on them; Microsoft does not say,
+  so they draw none. `CursorBaseSize` for "Pointer size" is undocumented and taken from what Qt does; try other sizes, and whether
+  changing it sends `WM_SETTINGCHANGE`. Microsoft's sample calls a cursor's pixels premultiplied, while `DrawIconEx` blends them as straight.
 - Dead-peer detection (network cut) is untested.
 - Shared store compatibility is tested against upstream's format as read from
   its source, not yet against the upstream client itself.

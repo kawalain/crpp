@@ -16,6 +16,9 @@ class Toasts final : public Surface {
 
   static constexpr unsigned long long default_ms = 5000;
 
+  [[nodiscard]] static skin::ScreenSchema schema();
+  [[nodiscard]] static skin::ScreenSchema bubble_schema();
+
   // A duration of 0 stays until replaced or cleared.
   void toast(std::string text, unsigned long long duration_ms = default_ms);
   void toast(std::string text, std::string action, std::function<void()> on_action,

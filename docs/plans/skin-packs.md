@@ -9,7 +9,7 @@ A smaller exe and less memory are not goals.
 
 ## Decided
 
-- **Data language.** JSON with no scripts: nodes for boxes, text, vector pictures, fields, scroll areas and
+- **Data language.** JSONC with no scripts: nodes for boxes, text, vector pictures, fields, scroll areas and
   repeated lists; names of app state and commands to bind to; arithmetic with `min` and `max` for positions;
   rows and columns; conditions on state; transitions with a duration and a curve. What it cannot express
   becomes a new node in the engine, never a script. Where speed matters, as in the chat list, a row's layout
@@ -35,7 +35,8 @@ A smaller exe and less memory are not goals.
   stop at the app's windows. Seven: arrow, hand, I-beam and four for resizing. Cloud's pack has none and uses the
   system's. Both Messenger Themes share one set, modelled on the white arrow of the time and drawn here, with an
   I-beam that has a white edge to show on any field. They scale with the window's DPI and follow Windows' pointer
-  size and shadow settings. A "테마 커서 사용" check in the display tab, on by default and shown only for a Theme
+  size. The shadow is left to the system, as no source says whether it adds one to such a cursor and drawing one could
+  double it. A "테마 커서 사용" check in the display tab, on by default and shown only for a Theme
   with cursors, turns them off (`themeCursor`, a key of this client's own). OS menus and IME windows stay the
   system's. Whether resizing keeps them during the drag needs a real desktop.
 
@@ -48,6 +49,34 @@ with the numbers:
 - Idle memory grows at most 5%.
 - Scrolling CPU grows at most 20%.
 - From reading a pack to the first screen: at most 100 ms.
+
+## Measured
+
+Step 1, Messenger's Home from data against its C++ layout, MSVC Release on a hidden desktop at 125%:
+
+- 84 renders, both Palettes at 100%, 125% and 150% in both Locales, give the same hash.
+- A pack changed on purpose gives other images, so the comparison is not comparing a thing with itself.
+- Idle: 0.00% of one core, working set 47.4-47.9 MB either way. The pack holds about 12 KB.
+- Reading the pack, then the first screen: 0.6 ms and 0.8 ms.
+- The pointer moving between links, drawing as fast as the display takes: 3.8-6.3% (mean 5.24%) from
+  C++, 4.4-6.1% (mean 5.22%) from data. Offscreen one frame costs 1.1% more. Scrolling is not comparable
+  until Settings is data, in step 2.
+
+Step 2, the options window of Messenger from data against its C++ layout, the same way, with the wheel posted
+about 60 times a second and reversing every 20 notches, five rounds of each:
+
+- Scrolling: 5.39-6.72% (mean 6.17%) from C++, 5.78-6.48% (mean 6.11%) from data.
+- Idle 0.00% and afterwards 0.00%, working set 48.4-48.9 MB and 48.8-49.1 MB, private 62.6-64.7 MB and 63.1-64.5 MB.
+
+Step 2 done, all of Messenger from data, on 26 screens and 595 nodes:
+
+- 74 scenes in Korean at 100% and 150%, English at 125% and the dark Palette give the hash of the C++ layouts, but for the four
+  of the display tab, which has the new cursor check. Those were equal before it, and were looked at since. Cloud is unchanged: 72 scenes, three sets.
+- The same scrolling, five rounds again: 5.08-6.17% (mean 5.58%) from C++, 5.16-6.33% (mean 6.01%) from data, so +7.7%.
+  Idle 0.00%, working set 48.5-49.0 MB and 48.6-49.0 MB.
+- Reading the pack 3.1 ms and the first screen 0.85 ms. It holds about 155 KB, and adds 396 KB of private bytes. A frame offscreen: +3.5%.
+- From the pack on a hidden desktop: the frame's hit tests, window sizes per screen and panel, a question holding the others off, and leaving for Cloud's
+  Theme all behave. The cursors themselves need a real desktop, which is in Verification debt.
 
 ## Steps
 

@@ -5,6 +5,7 @@
 #include <string>
 #include <string_view>
 
+#include "crpp/skin/pack.hpp"
 #include "crpp/ui/surface.hpp"
 
 namespace crpp::ui {
@@ -35,6 +36,9 @@ class PromptScreen final : public Surface {
   std::function<void(std::string value)> on_submit;
   std::function<void()> on_back, on_extra, on_extra2, on_link;
 
+  // What a Skin Pack can name on this screen.
+  [[nodiscard]] static skin::ScreenSchema schema();
+
   void show(Prompt prompt);
   void set_value(std::string_view value);
   void set_error(std::string error);
@@ -62,6 +66,7 @@ class PromptScreen final : public Surface {
 
  private:
   void paint_luna(Painter& p, bool is_locked, bool hint_error);
+  void paint_pack(Painter& p, const skin::Screen& screen, bool is_locked, bool hint_error);
   [[nodiscard]] TextStyle luna_field_style() const;
   [[nodiscard]] TextStyle field_style() const;
   void submit();
@@ -79,6 +84,7 @@ class PromptScreen final : public Surface {
   unsigned long long next_wake_ = 0;
   float scroll_x_ = 0;  // how far the text is scrolled to keep the caret in view
   float text_x_ = 0;    // where the field's text starts, in window coordinates
+  TextStyle pack_field_style_;
 };
 
 }  // namespace crpp::ui

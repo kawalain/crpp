@@ -14,6 +14,8 @@ class OfflinePopup final : public Surface {
   using Surface::Surface;
   enum Id : int { Backdrop, Card };
 
+  [[nodiscard]] static skin::ScreenSchema schema();
+
   // The next check is due; runs inside tick().
   std::function<void()> on_retry;
 

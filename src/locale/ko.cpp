@@ -180,6 +180,7 @@ const Strings korean{
     .theme_messenger_dark = "메신저 다크",
     .display_theme = "테마",
     .display_sync = "시스템 연동",
+    .display_theme_cursor = "테마 커서 사용",
     .display_light = "라이트 테마",
     .display_dark = "다크 테마",
     .display_general = "일반 테마",

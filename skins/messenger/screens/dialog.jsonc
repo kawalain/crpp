@@ -1,0 +1,17 @@
+{
+  "$schema": "../../schema/screen.dialog.schema.json",
+  "draw": [
+    {"let": "card_w", "value": "@wide ? dialog_wide_width : dialog_width"},
+    {"let": "text_w", "value": "card_w-2*dialog_pad_x"},
+    {"let": "text_h", "value": "texth('paragraph', '@text', text_w)"},
+    {"report": "width", "value": "card_w"},
+    {"report": "height", "value": "dialog_pad_top+text_h+dialog_gap+dialog_button_h+dialog_pad_bottom"},
+    {"hit": "card", "group": []},
+    {"text": "@text", "style": "paragraph", "color": "$ink", "x": "dialog_pad_x", "y": "dialog_pad_top", "w": "text_w", "h": "text_h"},
+    {"let": "row_w", "value": "@has_cancel ? 2*dialog_button_w+dialog_button_gap : dialog_button_w"},
+    {"let": "row_x", "value": "(card_w-row_w)/2"},
+    {"let": "row_y", "value": "H-dialog_pad_bottom-dialog_button_h"},
+    {"use": "button", "text": "@confirm", "hit": "confirm", "x": "row_x", "y": "row_y", "w": "dialog_button_w", "h": "dialog_button_h", "args": {"primary": 1}},
+    {"if": "@has_cancel", "use": "button", "text": "@cancel", "hit": "cancel", "x": "row_x+dialog_button_w+dialog_button_gap", "y": "row_y", "w": "dialog_button_w", "h": "dialog_button_h"}
+  ]
+}

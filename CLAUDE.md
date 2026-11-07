@@ -370,7 +370,11 @@ exist (real + test).
   HID digitizer collection. If a Pen tap also arrives as a mouse click on a real
   device, suppress clicks briefly after tip activity; add this only once
   reproduced.
-- Confirm Raw Input still reports while a game or an elevated window has focus.
+- Raw Input reports nothing while an elevated window has focus, as seen with Task Manager, which
+  elevates without a prompt for an administrator (High integrity against the app's Medium). Microsoft
+  lists reading raw input "for all integrity levels" among what only uiAccess grants, and uiAccess
+  needs a code signature and an install under Program Files. Keyboard sound apps and Discord document
+  the same limit and ask to run as administrator. Confirm a game that is not elevated still reports.
 - IME composition and candidate windows at a scale above 100%: they get physical
   client pixels, which Microsoft's DPI pages do not state for the IME calls.
 - Output device changes (plug, unplug, default change) were never exercised on real

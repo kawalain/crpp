@@ -4,8 +4,9 @@ A Skin Pack is how the program looks, as data: no code, nothing to run. Each fol
 not a pack: it holds the JSON Schemas, which are written by a tool and are not edited by hand.
 
 ```
-<pack>/pack.jsonc           Palettes, styles, parts and constants
+<pack>/pack.jsonc           Themes, Palettes, styles, parts and constants
 <pack>/screens/<name>.jsonc one per screen
+<pack>/overlays/<name>/     the same two again, put on top for the Themes that ask for it
 ```
 
 Files are JSONC, so they can hold comments and a comma after the last item. Each names its schema on its first line,
@@ -36,18 +37,30 @@ says the pack draws its window frame and gives every panel a window, which takes
 installed fonts, the first this system has. `cursors` names a part for each of the seven, drawn in a box of 32 by 32, with the point that
 clicks: look at them with the scene `cursors`. Without `cursors`, the pointer is the system's.
 
+## Themes, overlays and extending
+
+`themes` lists what a user picks in this Skin: its names by locale, and its Palette, which is named as the Theme unless it says
+otherwise. `dark` names the Palette of its dark variant. A Palette can say `"extends"` to start from another, and then lists only what differs.
+
+A Theme that needs other shapes as well as other colours names an `overlay`, a folder under `overlays/`. What that holds replaces whatever
+the pack has by the same name, whole: a constant, style, part, Palette, screen, or `fonts` or `cursors`. A pack is read for one
+overlay at a time, and holds only the Palettes of that overlay's Themes, so those need not share entries with the others.
+
+A pack can extend another with `"extends": "<id>"`, in the same way: it gets everything that pack has and replaces by name. It is found in
+a folder beside this one, is another download, and can itself extend one, up to four levels. Nothing inside a part or screen can be patched: copy it and change it.
+
 ## Trying a pack
 
 Check it, which says what is refused and where, then render it. Both stay on this machine. Build first with
 `.github\scripts\msvc-build.cmd build-msvc`.
 
 ```
-build-msvc\src\ui\crpp_skin_schema.exe --pack skins\messenger
-tests\shots\render.ps1 -Exe build-msvc\apps\gui\crpp.exe -Out out -Size auto -Extra '--theme','messenger','--skin-dir','"skins\messenger"'
+build-msvc\src\ui\crpp_skin_schema.exe --pack skins\retro
+tests\shots\render.ps1 -Exe build-msvc\apps\gui\crpp.exe -Out out -Size auto -Extra '--theme','classic','--skin-dir','"skins\retro"'
 ```
 
 Schemas catch wrong keys and names, but not what is inside an expression; `--pack` is the last word, as it runs the
-loader the program uses. A pack that a Theme does not name a Palette for is not drawn under that Theme.
+loader the program uses, once for each overlay. A pack that a Theme does not name a Palette for is not drawn under that Theme.
 
 ## When the program changes
 

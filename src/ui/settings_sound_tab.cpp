@@ -26,9 +26,12 @@ constexpr int balance_min = 55, balance_max = 90;  // BALANCE_MIN, BALANCE_MAX
 constexpr float balance_top = 749 + effects_shift;  // upstream 725, and a line of explanation
 // .balance-control: 385 wide, centered in the 550 column, 60 high, with a person on
 // each side of the slider and gaps of 10.
+constexpr float reverb_top = balance_top + 60 + 16;
 constexpr float person_w = 46, person_h = 62, balance_left = (550 - 385) / 2.0f;
 constexpr float balance_slider_x = balance_left + person_w + 10, balance_slider_w = 385 - 2 * person_w - 20;
 constexpr float balance_slider_h = 39, balance_thumb_w = 29.15f;
+
+constexpr float reverb_dropdown_top = reverb_top + (row_h - dropdown_h) / 2;
 
 constexpr float knob_ms = 160, tip_ms = 120;
 constexpr float off_alpha = 0.42f;  // .balance-control.disabled
@@ -87,6 +90,9 @@ SoundTab::SoundTab(Ui& ui) : SettingsTab(ui) {
   packs_[0].box.id_base = KeyboardList;
   packs_[1].box.id_base = MouseList;
   packs_[2].box.id_base = PenList;
+  reverb_.box.id_base = ReverbList;
+  reverb_.ids = {"off", "office", "large"};
+  reverb_.box.options = {"끔", "사무실", "넓은 공간"};
   refresh_speakers();
 }
 
@@ -137,6 +143,9 @@ void SoundTab::sync_selection() {
   packs_[0].box.selected = std::max(0, index_of(packs_[0], ui_.prefs->get(pref::keyboard_sound)));
   packs_[1].box.selected = std::max(0, index_of(packs_[1], ui_.prefs->get(pref::mouse_sound)));
   packs_[2].box.selected = std::max(0, index_of(packs_[2], ui_.prefs->get(pref::pen_sound)));
+  // A name this version does not know sounds like the default, so it shows as that.
+  const int reverb = index_of(reverb_, ui_.prefs->get(pref::reverb));
+  reverb_.box.selected = reverb >= 0 ? reverb : index_of(reverb_, pref::reverb.fallback);
 }
 
 SoundTab::Picker* SoundTab::picker_of_row(std::size_t row) {
@@ -192,7 +201,7 @@ void SoundTab::paint_person(Painter& p, float x, float y, Color c, bool marked) 
 
 void SoundTab::paint_balance(Painter& p, Rect area) {
   const Theme& t = ui_.theme;
-  // Without the surround every seat is centred, so this would change nothing.
+  // Without the surround every Desk is centred, so this would change nothing.
   const bool on = ui_.prefs->get(pref::spatial_audio) && ui_.prefs->get(pref::channel_balance_enabled);
   const float a = on ? 1 : off_alpha;
   const int value = std::clamp(ui_.prefs->get(pref::channel_balance), balance_min, balance_max);
@@ -263,6 +272,8 @@ void SoundTab::paint(Painter& p, Rect area) {
   }
 
   paint_balance(p, area);
+  p.text("울림", {area.x + row_x, area.y + reverb_top, row_w, row_h}, {.size = 18, .line_height = row_h}, t.hl_text);
+  reverb_.box.paint_button(ui_, this, p, {area.x + dropdown_x, area.y + reverb_dropdown_top, dropdown_w, dropdown_h});
   paint_tip(p, area);
 }
 
@@ -272,12 +283,14 @@ void SoundTab::paint_popups(Painter& p, Rect area) {
     const Rect button{area.x + dropdown_x, area.y + volume_rows[i].dropdown_top, dropdown_w, dropdown_h};
     picker_of_row(i)->box.paint_list(ui_, this, p, button);
   }
+  reverb_.box.paint_list(ui_, this, p, {area.x + dropdown_x, area.y + reverb_dropdown_top, dropdown_w, dropdown_h});
 }
 
-float SoundTab::content_height() const { return balance_top + 60 + 25; }
+float SoundTab::content_height() const { return reverb_top + row_h + 25; }
 
 void SoundTab::close_lists(const Picker* except) {
   speaker_.box.open = speaker_.box.open && &speaker_ == except;
+  reverb_.box.open = reverb_.box.open && &reverb_ == except;
   for (Picker& picker : packs_) picker.box.open = picker.box.open && &picker == except;
 }
 
@@ -288,6 +301,7 @@ void SoundTab::before_click(const Surface* owner, int id) {
   }
   const Picker* keep = nullptr;
   if (speaker_.box.owns(id)) keep = &speaker_;
+  if (reverb_.box.owns(id)) keep = &reverb_;
   for (const Picker& picker : packs_) {
     if (picker.box.owns(id)) keep = &picker;
   }
@@ -312,7 +326,7 @@ void SoundTab::pick(Picker& picker, int id) {
   if (id == picker.box.id_base && !picker.box.open) {
     // Opens upward only when there is more room there (main.js bindDropdowns).
     const auto row = &picker == &speaker_ ? std::size_t{0} : static_cast<std::size_t>(&picker - packs_.data()) + 1;
-    const float top = last_area_.y + volume_rows[row].dropdown_top;
+    const float top = last_area_.y + (&picker == &reverb_ ? reverb_dropdown_top : volume_rows[row].dropdown_top);
     const float list_h = std::min(static_cast<float>(picker.box.options.size()) * 36 + 12, 224.0f);
     const float below = view_bottom - (top + dropdown_h), above = top - view_top;
     picker.box.up = below < list_h + 8 && above > below;
@@ -326,6 +340,8 @@ void SoundTab::pick(Picker& picker, int id) {
     ui_.prefs->set(pref::speaker_device, chosen);
     refresh_speakers();
     if (on_speaker_picked) on_speaker_picked();
+  } else if (&picker == &reverb_) {
+    ui_.prefs->set(pref::reverb, chosen);
   } else if (&picker == &packs_[0]) {
     ui_.prefs->set(pref::keyboard_sound, chosen);
   } else if (&picker == &packs_[1]) {
@@ -353,6 +369,10 @@ void SoundTab::click(int id, float x, float, bool) {
     pick(speaker_, id);
     return;
   }
+  if (reverb_.box.owns(id)) {
+    pick(reverb_, id);
+    return;
+  }
   for (Picker& picker : packs_) {
     if (picker.box.owns(id)) {
       pick(picker, id);
@@ -368,12 +388,12 @@ void SoundTab::drag(float x, float) {
 void SoundTab::release() { held_ = -1; }
 
 bool SoundTab::wheel(float x, float y, float delta) {
-  if (speaker_.box.wheel(ui_, x, y, delta)) return true;
+  if (speaker_.box.wheel(ui_, x, y, delta) || reverb_.box.wheel(ui_, x, y, delta)) return true;
   return std::ranges::any_of(packs_, [&](Picker& picker) { return picker.box.wheel(ui_, x, y, delta); });
 }
 
 bool SoundTab::escape() {
-  const bool any = speaker_.box.open || std::ranges::any_of(packs_, [](const Picker& picker) { return picker.box.open; });
+  const bool any = speaker_.box.open || reverb_.box.open || std::ranges::any_of(packs_, [](const Picker& picker) { return picker.box.open; });
   close_lists(nullptr);
   return any;
 }

@@ -58,7 +58,8 @@ class SoundTab final : public SettingsTab {
     SpeakerList = 100,
     KeyboardList = 200,
     MouseList = 300,
-    PenList = 400
+    PenList = 400,
+    ReverbList = 500
   };
 
   // The tab came on screen: time to fill the lists.
@@ -103,6 +104,7 @@ class SoundTab final : public SettingsTab {
 
   Picker speaker_;
   std::array<Picker, 3> packs_;  // by SoundDevice
+  Picker reverb_;
   std::vector<SoundChoice> speakers_;
   Rect last_area_;
   int held_ = -1;  // the slider being dragged

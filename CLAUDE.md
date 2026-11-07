@@ -143,6 +143,8 @@ against a real `server/` yet; do that once a local build of it is available.
   areas fade at the edge they cut, by up to 27 px. All of it follows the system's "Show
   animations" setting; there is no toggle of its own.
 - The app is named Cloudroom++, and its data stays in the same folders as upstream's.
+- Every JSON file this client reads may hold comments and a comma after the last item. It writes plain
+  JSON, so upstream reads what it saved, but not a file someone commented by hand. Saving drops comments.
 - English besides Korean, chosen in the system tab; it follows the OS language until then.
   Other words for the same things: 구름 is "Room", 사용자명 is "handle". The system tab has a
   section for it, which moves what is below it down.

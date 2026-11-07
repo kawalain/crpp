@@ -9,7 +9,7 @@ A smaller exe and less memory are not goals.
 
 ## Decided
 
-- **Data language.** JSON with no scripts: nodes for boxes, text, vector pictures, fields, scroll areas and
+- **Data language.** JSONC with no scripts: nodes for boxes, text, vector pictures, fields, scroll areas and
   repeated lists; names of app state and commands to bind to; arithmetic with `min` and `max` for positions;
   rows and columns; conditions on state; transitions with a duration and a curve. What it cannot express
   becomes a new node in the engine, never a script. Where speed matters, as in the chat list, a row's layout

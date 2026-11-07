@@ -202,6 +202,7 @@ class Compiler {
     }
     if (const auto var = var_named(word)) return emit(Op::Var, 1, *var);
     if (const auto slot = names_.slot(word)) return emit(Op::Slot, 1, *slot);
+    if (const auto constant = names_.constant(word)) return emit(Op::Const, 1, 0, *constant);
     return fail("no name \"" + std::string(word) + "\"");
   }
 
@@ -238,6 +239,7 @@ class Compiler {
     if (word == "floor") return one(Op::Floor);
     if (word == "ceil") return one(Op::Ceil);
     if (word == "round") return one(Op::Round);
+    if (word == "snap") return one(Op::Snap);
     if (word == "min") return two(Op::Min);
     if (word == "max") return two(Op::Max);
     if (word == "textw") {
@@ -250,6 +252,17 @@ class Compiler {
       const auto text_id = names_.text(*text);
       if (!text_id) return fail("no such text \"" + std::string(*text) + "\"");
       return emit(Op::TextWidth, 1, *style_id, static_cast<float>(*text_id));
+    }
+    if (word == "texth") {
+      const auto style = quoted();
+      if (!style || !eat(",")) return fail("texth takes 'style', 'text', width");
+      const auto text = quoted();
+      if (!text || !eat(",")) return fail("texth takes 'style', 'text', width");
+      const auto style_id = names_.style(*style);
+      if (!style_id) return fail("no style \"" + std::string(*style) + "\"");
+      const auto text_id = names_.text(*text);
+      if (!text_id) return fail("no such text \"" + std::string(*text) + "\"");
+      return ternary() && (eat(")") || fail("a ( has no )")) && emit(Op::TextHeight, 0, *style_id, static_cast<float>(*text_id));
     }
     return fail("no function \"" + std::string(word) + "\"");
   }
@@ -266,7 +279,7 @@ class Compiler {
 }  // namespace
 
 std::optional<Var> var_named(std::string_view name) {
-  static constexpr std::array<std::string_view, VarCount> names{"W", "H", "X", "Y", "x", "y", "w", "h", "u", "font_size", "hot", "pressed", "i"};
+  static constexpr std::array<std::string_view, VarCount> names{"W", "H", "X", "Y", "x", "y", "w", "h", "u", "font_size", "hot", "pressed", "i", "flow"};
   for (std::size_t i = 0; i < names.size(); ++i) {
     if (names[i] == name) return static_cast<Var>(i);
   }
@@ -301,6 +314,8 @@ float eval(std::span<const Instr> code, Expr expr, Env& env) {
       case Op::Var: stack[++top] = env.vars[i->arg]; break;
       case Op::Number: stack[++top] = env.number(i->arg); break;
       case Op::TextWidth: stack[++top] = env.text_width(i->arg, static_cast<std::uint32_t>(i->value)); break;
+      case Op::TextHeight: stack[top] = env.text_height(i->arg, static_cast<std::uint32_t>(i->value), stack[top]); break;
+      case Op::Snap: stack[top] = env.snap(stack[top]); break;
       case Op::Add: --top; stack[top] += stack[top + 1]; break;
       case Op::Sub: --top; stack[top] -= stack[top + 1]; break;
       case Op::Mul: --top; stack[top] *= stack[top + 1]; break;

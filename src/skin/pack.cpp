@@ -13,7 +13,8 @@ namespace {
 
 using store::Json;
 
-constexpr std::string_view kind_keys[] = {"fill", "frame", "stroke", "text", "picture", "field", "group", "use", "repeat", "let"};
+// In the order of NodeKind.
+constexpr std::string_view kind_keys[] = {"fill", "frame", "stroke", "line", "path", "text", "picture", "field", "slot", "group", "column", "use", "content", "repeat", "let", "report"};
 
 [[nodiscard]] std::optional<int> find_name(std::span<const Name> names, std::string_view name) {
   for (const Name& n : names) {
@@ -44,18 +45,24 @@ constexpr std::string_view kind_keys[] = {"fill", "frame", "stroke", "text", "pi
 
 [[nodiscard]] bool key_allowed(NodeKind kind, std::string_view key) {
   const auto among = [&](std::initializer_list<std::string_view> keys) { return std::ranges::find(keys, key) != keys.end(); };
-  if (among({"if", "id", "x", "y", "w", "h", "hit", "snap", "//"})) return true;
+  if (among({"if", "id", "x", "right", "y", "bottom", "w", "h", "after", "hit", "hit_index", "live", "hit_if", "note", "snap", "alpha", "//"})) return true;
   switch (kind) {
-    case NodeKind::Fill: return among({"radius"});
+    case NodeKind::Fill: return among({"radius", "down_to"});
     case NodeKind::Frame: return false;
     case NodeKind::Stroke: return among({"radius", "width"});
+    case NodeKind::Line: return among({"x2", "y2", "width"});
+    case NodeKind::Path: return among({"color", "scale", "width", "caps"});
     case NodeKind::Text: return among({"style", "color"});
-    case NodeKind::Picture: return false;
+    case NodeKind::Picture: return among({"opacity", "gray"});
     case NodeKind::Field: return among({"style", "color", "placeholder", "placeholder_color", "caret", "selection"});
+    case NodeKind::Slot: return among({"numbers", "styles", "colors"});
     case NodeKind::Group: return among({"clip"});
-    case NodeKind::Use: return among({"args", "text"});
+    case NodeKind::Column: return among({"clip"});
+    case NodeKind::Use: return among({"args", "text", "draw"});
+    case NodeKind::Content: return false;
     case NodeKind::Repeat: return among({"draw"});
     case NodeKind::Let: return among({"value"});
+    case NodeKind::Report: return among({"value"});
   }
   return false;
 }
@@ -71,8 +78,10 @@ class Loader final : public Names {
   explicit Loader(const ReadFile& read) : read_(read) {}
 
   bool load(std::span<const ScreenSchema> schemas) {
-    pack_.code.push_back({Op::Var, VarW, 0});  // a box's width and height when none is given
+    // What a node has when it says nothing, shared by all.
+    pack_.code.push_back({Op::Var, VarW, 0});
     pack_.code.push_back({Op::Var, VarH, 0});
+    pack_.code.push_back({Op::Var, VarFlow, 0});
     const auto root = parse_file("pack.json", read_("pack.json"));
     if (!root) return false;
     where_ = "pack.json";
@@ -81,10 +90,12 @@ class Loader final : public Names {
     const Json* id = root->find("id");
     if (!id || !id->as_string()) return fail("no id");
     pack_.id = std::string(*id->as_string());
+    if (const Json* constants = root->find("constants"); constants && !load_constants(*constants)) return false;
     if (!load_palettes(root->find("palettes")) || !load_styles(root->find("styles")) || !load_parts(root->find("parts"))) return false;
     for (const ScreenSchema& schema : schemas) {
       if (!load_screen(schema)) return false;
     }
+    pack_.paint_names_list = paint_names_;
     pack_.nodes.shrink_to_fit();
     pack_.code.shrink_to_fit();
     return true;
@@ -108,6 +119,13 @@ class Loader final : public Names {
     if (!scope_) return std::nullopt;
     for (const auto& [n, at] : scope_->boxes) {
       if (n == name) return at;
+    }
+    return std::nullopt;
+  }
+
+  std::optional<float> constant(std::string_view name) override {
+    for (const auto& [n, value] : pack_.constants) {
+      if (n == name) return value;
     }
     return std::nullopt;
   }
@@ -188,17 +206,56 @@ class Loader final : public Names {
     return std::move(*json);
   }
 
+  bool load_constants(const Json& constants) {
+    const Json::Object* all = constants.as_object();
+    if (!all) return fail("constants is not an object");
+    for (const Json::Member& m : *all) {
+      const auto value = as_float(m.value);
+      if (!value) return fail("the constant \"" + m.key + "\" is not a number");
+      pack_.constants.emplace_back(m.key, *value);
+    }
+    return true;
+  }
+
   // --- Palettes ---
 
-  bool load_paint(std::string_view name, const Json& value, Paint& out) {
+  // `made` holds the entries of this Palette so far, by name.
+  bool load_paint(std::string_view name, const Json& value, std::span<const std::optional<Paint>> made, Paint& out) {
+    const std::string quoted = "the Palette entry \"" + std::string(name) + "\"";
     if (const auto text = value.as_string()) {
       const auto color = parse_color(*text);
-      if (!color) return fail("the Palette entry \"" + std::string(name) + "\" is not a colour");
+      if (!color) return fail(quoted + " is not a colour");
       out.color = *color;
       return true;
     }
+    const auto color_named = [&](const Json& json) -> std::optional<Color> {
+      const auto other = json.as_string();
+      if (!other) return std::nullopt;
+      const auto at = paint(*other);
+      if (!at || !made[*at] || made[*at]->stops != 0) return std::nullopt;
+      return made[*at]->color;
+    };
+    if (const Json* mix = value.find("mix")) {
+      const Json::Array* args = mix->as_array();
+      if (!args || args->size() != 3) return fail(quoted + ": mix takes [a, b, percent]");
+      const auto a = color_named((*args)[0]), b = color_named((*args)[1]);
+      const auto percent = as_float((*args)[2]);
+      if (!a || !b || !percent) return fail(quoted + ": mix takes colours above it and a percent");
+      const float t = *percent / 100.0f;
+      out.color = {a->r * t + b->r * (1 - t), a->g * t + b->g * (1 - t), a->b * t + b->b * (1 - t), a->a * t + b->a * (1 - t)};
+      return true;
+    }
+    if (const Json* alpha = value.find("alpha")) {
+      const Json::Array* args = alpha->as_array();
+      if (!args || args->size() != 2) return fail(quoted + ": alpha takes [a, value]");
+      const auto a = color_named((*args)[0]);
+      const auto v = as_float((*args)[1]);
+      if (!a || !v) return fail(quoted + ": alpha takes a colour above it and a value");
+      out.color = {a->r, a->g, a->b, *v};
+      return true;
+    }
     const Json::Array* stops = value.as_array();
-    if (!stops || stops->size() < 2 || stops->size() > 16) return fail("the Palette entry \"" + std::string(name) + "\" is neither a colour nor stops");
+    if (!stops || stops->size() < 2 || stops->size() > 16) return fail(quoted + " is neither a colour nor stops");
     out.first_stop = static_cast<std::uint32_t>(pack_.stops.size());
     out.stops = static_cast<std::uint32_t>(stops->size());
     for (const Json& stop : *stops) {
@@ -220,28 +277,28 @@ class Loader final : public Names {
     if (!first || first->empty()) return fail("an empty Palette");
     paint_names_.reserve(first->size());
     for (const Json::Member& m : *first) paint_names_.push_back(m.key);
-    pack_.paint_names = static_cast<std::uint32_t>(first->size());
-    pack_.paints.reserve(first->size() * all->size());
-    for (const Json::Member& palette : *all) {
+    const std::size_t names = first->size();
+    pack_.paint_names = static_cast<std::uint32_t>(names);
+    pack_.paints.resize(names * all->size());
+    std::vector<std::optional<Paint>> made(names);
+    for (std::size_t p = 0; p < all->size(); ++p) {
+      const Json::Member& palette = (*all)[p];
       const Json::Object* entries = palette.value.as_object();
       if (!entries) return fail("the Palette \"" + palette.key + "\" is not an object");
-      if (entries->size() != first->size()) return fail("the Palette \"" + palette.key + "\" has other entries than the first");
+      if (entries->size() != names) return fail("the Palette \"" + palette.key + "\" has other entries than the first");
       pack_.palette_ids.push_back(palette.key);
-      for (const std::string& name : paint_names_) {
-        const Json* value = palette.value.find(name);
-        if (!value) return fail("the Palette \"" + palette.key + "\" has no \"" + name + "\"");
-        Paint paint;
-        if (!load_paint(name, *value, paint)) return false;
-        const Paint& model = pack_.paints.empty() || pack_.palette_ids.size() == 1 ? paint : pack_.paints[paint_index(name)];
-        if ((model.stops == 0) != (paint.stops == 0)) return fail("\"" + name + "\" is a colour in one Palette and stops in another");
-        pack_.paints.push_back(paint);
+      std::ranges::fill(made, std::nullopt);
+      for (const Json::Member& entry : *entries) {  // in the order of its own file, for what mixes
+        const auto at = paint(entry.key);
+        if (!at) return fail("the Palette \"" + palette.key + "\" has an entry \"" + entry.key + "\" the first has not");
+        Paint value;
+        if (!load_paint(entry.key, entry.value, made, value)) return false;
+        if (p > 0 && (pack_.paints[*at].stops == 0) != (value.stops == 0)) return fail("\"" + entry.key + "\" is a colour in one Palette and stops in another");
+        made[*at] = value;
+        pack_.paints[p * names + *at] = value;
       }
     }
     return true;
-  }
-
-  [[nodiscard]] std::size_t paint_index(std::string_view name) const {
-    return static_cast<std::size_t>(std::ranges::find(paint_names_, name) - paint_names_.begin());
   }
 
   // --- Styles ---
@@ -268,6 +325,17 @@ class Loader final : public Names {
         else if (value == "right") style.align = 2;
         else return fail("align is not left, center or right");
       }
+      if (const Json* role = m.value.find("role")) {
+        const auto value = role->as_string();
+        if (value == "body") style.role = 0;
+        else if (value == "caption") style.role = 1;
+        else return fail("role is not body or caption");
+      }
+      if (const Json* spacing = m.value.find("letter_spacing")) {
+        const auto value = as_float(*spacing);
+        if (!value) return fail("letter_spacing is not a number");
+        style.letter_spacing = *value;
+      }
       const auto flag = [&](std::string_view key, bool& out) {
         if (const Json* v = m.value.find(key)) out = v->as_bool().value_or(false);
       };
@@ -288,6 +356,10 @@ class Loader final : public Names {
       out = Expr::constant(*number);
       return true;
     }
+    if (const auto flag = value.as_bool()) {
+      out = Expr::constant(*flag ? 1.0f : 0.0f);
+      return true;
+    }
     const auto text = value.as_string();
     if (!text) return fail("a value is neither a number nor an expression");
     auto compiled = compile(*text, *this, pack_.code);
@@ -302,8 +374,9 @@ class Loader final : public Names {
     return value ? compile_expr(*value, out) : fail("no \"" + std::string(key) + "\"");
   }
 
-  bool optional_expr(const Json& node, std::string_view key, Expr& out) {
+  bool optional_expr(const Json& node, std::string_view key, Expr& out, bool* present = nullptr) {
     const Json* value = node.find(key);
+    if (present) *present = value != nullptr;
     return value ? compile_expr(*value, out) : true;
   }
 
@@ -314,6 +387,16 @@ class Loader final : public Names {
     const auto ref = text(*source);
     if (!ref) return fail("no such text \"" + std::string(*source) + "\"");
     out = *ref;
+    return true;
+  }
+
+  // A name the screen offers, or an error saying which it lacks.
+  bool bound_of(const Json& node, std::string_view key, std::span<const Name> names, int& out) {
+    const Json* value = node.find(key);
+    const auto name = value ? value->as_string() : std::nullopt;
+    const auto id = name && schema_ ? find_name(names, *name) : std::nullopt;
+    if (!id) return fail("this screen has no " + std::string(key) + " \"" + std::string(name.value_or("")) + "\"");
+    out = *id;
     return true;
   }
 
@@ -339,7 +422,8 @@ class Loader final : public Names {
 
   // --- Nodes ---
 
-  bool compile_list(const Json& list, std::uint32_t& first, std::uint32_t& count, int depth) {
+  // `then` reads the names of this list, once it has them all.
+  bool compile_list(const Json& list, std::uint32_t& first, std::uint32_t& count, int depth, bool flowing, const Json* then = nullptr, Expr* then_out = nullptr) {
     const Json::Array* items = list.as_array();
     if (!items) return fail("a list of nodes is not a list");
     if (depth > max_node_depth) return fail("nodes are too deep");
@@ -352,23 +436,17 @@ class Loader final : public Names {
     bool ok = true;
     for (std::size_t i = 0; ok && i < items->size(); ++i) {
       Node node;
-      ok = compile_node((*items)[i], node, depth);
+      ok = compile_node((*items)[i], node, depth, flowing);
       if (ok) pack_.nodes[first + i] = node;  // not by reference: children grow the vector
     }
+    if (ok && then) ok = compile_expr(*then, *then_out);
     scope_ = scope.parent;
     return ok;
   }
 
-  bool compile_group(const Json& node, Node& out, std::string_view key, int depth) {
-    return compile_list(*node.find(key), out.first, out.count, depth + 1);
-  }
-
   bool compile_field(const Json& json, Node& out) {
-    const auto name = json.find("field")->as_string();
-    const auto id = name && schema_ ? find_name(schema_->fields, *name) : std::nullopt;
-    if (!id) return fail("this screen has no field \"" + std::string(name.value_or("")) + "\"");
-    out.bound = *id;
     FieldNode field;
+    if (!bound_of(json, "field", schema_ ? schema_->fields : std::span<const Name>{}, out.bound)) return false;
     if (!style_of(json, out) || !expr_of(json, "color", out.paint) || !text_of(json, "placeholder", field.placeholder) ||
         !expr_of(json, "placeholder_color", field.placeholder_color) || !expr_of(json, "caret", field.caret) ||
         !expr_of(json, "selection", field.selection)) {
@@ -376,6 +454,41 @@ class Loader final : public Names {
     }
     out.first = static_cast<std::uint32_t>(pack_.fields.size());
     pack_.fields.push_back(field);
+    return true;
+  }
+
+  bool compile_slot(const Json& json, Node& out) {
+    if (!bound_of(json, "slot", schema_ ? schema_->slots : std::span<const Name>{}, out.bound)) return false;
+    SlotNode slot;
+    const auto values = [&](std::string_view key, std::uint32_t& first, std::uint32_t& count) {
+      first = static_cast<std::uint32_t>(pack_.slot_values.size());
+      const Json* list = json.find(key);
+      if (!list) return true;
+      const Json::Array* items = list->as_array();
+      if (!items || items->size() > max_slot_values) return fail(std::string(key) + " is not a short list");
+      count = static_cast<std::uint32_t>(items->size());
+      for (const Json& item : *items) {
+        Expr e;
+        if (!compile_expr(item, e)) return false;
+        pack_.slot_values.push_back(e);
+      }
+      return true;
+    };
+    if (!values("numbers", slot.first_number, slot.numbers) || !values("colors", slot.first_color, slot.colors)) return false;
+    slot.first_style = static_cast<std::uint32_t>(pack_.slot_styles.size());
+    if (const Json* list = json.find("styles")) {
+      const Json::Array* items = list->as_array();
+      if (!items || items->size() > max_slot_values) return fail("styles is not a short list");
+      slot.styles = static_cast<std::uint32_t>(items->size());
+      for (const Json& item : *items) {
+        const auto name = item.as_string();
+        const auto id = name ? style(*name) : std::nullopt;
+        if (!id) return fail("no such style \"" + std::string(name.value_or("")) + "\"");
+        pack_.slot_styles.push_back(*id);
+      }
+    }
+    out.first = static_cast<std::uint32_t>(pack_.slots.size());
+    pack_.slots.push_back(slot);
     return true;
   }
 
@@ -388,37 +501,45 @@ class Loader final : public Names {
     return true;
   }
 
-  bool compile_use(const Json& json, Node& out) {
+  bool compile_use(const Json& json, Node& out, int depth) {
     const auto name = json.find("use")->as_string();
     std::size_t index = 0;
     for (; index < pack_.parts.size(); ++index) {
       if (name && pack_.parts[index].name == *name) break;
     }
     if (index == pack_.parts.size()) return fail("no part \"" + std::string(name.value_or("")) + "\" before this");
-    const std::vector<PartArgument>& declared = part_arguments_[index];
+    const std::vector<std::string> declared = pack_.parts[index].argument_names;
+    const std::vector<Expr> defaults = pack_.parts[index].argument_defaults;
     Use use;
     use.part = static_cast<std::uint32_t>(index);
-    use.first_argument = static_cast<std::uint32_t>(pack_.arguments.size());
-    use.arguments = static_cast<std::uint32_t>(declared.size());
     const Json* given = json.find("args");
     if (given && !given->is_object()) return fail("args is not an object");
     if (given) {
       for (const Json::Member& m : *given->as_object()) {
-        if (std::ranges::none_of(declared, [&](const PartArgument& a) { return a.name == m.key; })) return fail("the part has no argument \"" + m.key + "\"");
+        if (std::ranges::find(declared, m.key) == declared.end()) return fail("the part has no argument \"" + m.key + "\"");
       }
     }
-    for (const PartArgument& argument : declared) {
-      Argument a{argument.slot, argument.fallback};
+    std::vector<Argument> arguments;
+    for (std::size_t i = 0; i < declared.size(); ++i) {
+      Argument a{static_cast<std::uint16_t>(i), defaults[i]};
       if (given) {
-        if (const Json* value = given->find(argument.name); value && !compile_expr(*value, a.value)) return false;
+        if (const Json* value = given->find(declared[i]); value && !compile_expr(*value, a.value)) return false;
       }
-      pack_.arguments.push_back(a);
+      arguments.push_back(a);
     }
+    use.first_argument = static_cast<std::uint32_t>(pack_.arguments.size());
+    use.arguments = static_cast<std::uint32_t>(arguments.size());
+    pack_.arguments.insert(pack_.arguments.end(), arguments.begin(), arguments.end());
     if (json.find("text") && !text_of(json, "text", use.label)) return false;
-    out.snap = out.snap || pack_.parts[index].snap;
+    if (const Json* draw = json.find("draw")) {
+      if (!compile_list(*draw, use.first, use.count, depth + 1, true)) return false;
+    }
+    const Part& part = pack_.parts[index];
+    out.snap = out.snap || part.snap;
+    if (!json.find("w") && part.has_w) out.w = part.w;
+    if (!json.find("h") && part.has_h) out.h = part.h;
     out.first = static_cast<std::uint32_t>(pack_.uses.size());
     pack_.uses.push_back(use);
-    deepest_callee_ = std::max<int>(deepest_callee_, pack_.parts[index].deepest);
     return true;
   }
 
@@ -429,7 +550,41 @@ class Loader final : public Names {
     return true;
   }
 
-  bool compile_node(const Json& json, Node& out, int depth) {
+  bool compile_box(const Json& json, Node& out, bool flowing) {
+    out.w = Expr::range(0, 1);
+    out.h = Expr::range(1, 1);
+    if (flowing) out.y = Expr::range(2, 1);
+    if (const Json* right = json.find("right")) {
+      if (json.find("x")) return fail("a node has both x and right");
+      out.from_right = true;
+      if (!compile_expr(*right, out.x)) return false;
+    } else if (!optional_expr(json, "x", out.x)) {
+      return false;
+    }
+    if (const Json* bottom = json.find("bottom")) {
+      if (json.find("y")) return fail("a node has both y and bottom");
+      out.from_bottom = true;
+      if (!compile_expr(*bottom, out.y)) return false;
+    } else if (!optional_expr(json, "y", out.y)) {
+      return false;
+    }
+    return optional_expr(json, "w", out.w) && optional_expr(json, "h", out.h);
+  }
+
+  bool compile_common(const Json& json, Node& out) {
+    if (const Json* snap = json.find("snap")) out.snap = snap->as_bool().value_or(false);
+    if (json.find("hit")) {
+      if (!bound_of(json, "hit", schema_ ? schema_->hits : std::span<const Name>{}, out.hit)) return false;
+    }
+    if (json.find("note")) {
+      if (!bound_of(json, "note", schema_ ? schema_->notes : std::span<const Name>{}, out.note)) return false;
+    }
+    return optional_expr(json, "after", out.after, &out.has_after) && optional_expr(json, "hit_index", out.hit_index, &out.has_hit_index) &&
+           optional_expr(json, "live", out.live, &out.has_live) && optional_expr(json, "hit_if", out.hit_if, &out.has_hit_if) &&
+           optional_expr(json, "alpha", out.alpha, &out.has_alpha);
+  }
+
+  bool compile_node(const Json& json, Node& out, int depth, bool flowing) {
     if (!json.is_object()) return fail("a node is not an object");
     std::string_view kind;
     std::size_t kind_index = 0;
@@ -456,52 +611,76 @@ class Loader final : public Names {
       scope_->lets.emplace_back(*name, out.slot);
       return true;
     }
-    out.w = Expr::range(0, 1);
-    out.h = Expr::range(1, 1);
-    if (!optional_expr(json, "x", out.x) || !optional_expr(json, "y", out.y) || !optional_expr(json, "w", out.w) || !optional_expr(json, "h", out.h)) return false;
-    if (const Json* snap = json.find("snap")) out.snap = snap->as_bool().value_or(false);
-    if (const Json* hit = json.find("hit")) {
-      const auto name = hit->as_string();
-      const auto id = name && schema_ ? find_name(schema_->hits, *name) : std::nullopt;
-      if (!id) return fail("this screen has no hit \"" + std::string(name.value_or("")) + "\"");
-      out.hit = *id;
+    if (out.kind == NodeKind::Report) {
+      return bound_of(json, "report", schema_ ? schema_->reports : std::span<const Name>{}, out.bound) && expr_of(json, "value", out.extra);
     }
+    if (out.kind == NodeKind::Content) return true;
+
+    if (!compile_box(json, out, flowing) || !compile_common(json, out)) return false;
     switch (out.kind) {
-      case NodeKind::Fill:
+      case NodeKind::Fill: {
         if (!expr_of(json, "fill", out.paint) || !optional_expr(json, "radius", out.extra)) return false;
+        if (!optional_expr(json, "down_to", out.width, &out.has_down_to)) return false;
         break;
+      }
       case NodeKind::Frame:
         if (!expr_of(json, "frame", out.paint)) return false;
         break;
       case NodeKind::Stroke:
         if (!expr_of(json, "stroke", out.paint) || !expr_of(json, "radius", out.extra) || !expr_of(json, "width", out.width)) return false;
         break;
+      case NodeKind::Line:
+        if (!expr_of(json, "line", out.paint) || !expr_of(json, "x2", out.extra) || !expr_of(json, "y2", out.extra2) || !expr_of(json, "width", out.width)) return false;
+        break;
+      case NodeKind::Path: {
+        const auto data = json.find("path")->as_string();
+        if (!data) return fail("a path is not text");
+        out.text = static_cast<std::uint32_t>(pack_.literals.size());
+        out.count = static_cast<std::uint32_t>(data->size());
+        pack_.literals += *data;
+        out.extra = Expr::constant(1);
+        if (!expr_of(json, "color", out.paint) || !optional_expr(json, "scale", out.extra) || !optional_expr(json, "width", out.width)) return false;
+        if (const Json* caps = json.find("caps")) {
+          const auto value = caps->as_string();
+          if (value != "round" && value != "flat") return fail("caps is not round or flat");
+          out.round_caps = value == "round";
+        }
+        break;
+      }
       case NodeKind::Text:
         if (!text_of(json, "text", out.text) || !style_of(json, out) || !expr_of(json, "color", out.paint)) return false;
         break;
-      case NodeKind::Picture: {
-        const auto name = json.find("picture")->as_string();
-        const auto id = name && schema_ ? find_name(schema_->pictures, *name) : std::nullopt;
-        if (!id) return fail("this screen has no picture \"" + std::string(name.value_or("")) + "\"");
-        out.bound = *id;
+      case NodeKind::Picture:
+        if (!bound_of(json, "picture", schema_ ? schema_->pictures : std::span<const Name>{}, out.bound)) return false;
+        out.extra = Expr::constant(1);
+        if (!optional_expr(json, "opacity", out.extra) || !optional_expr(json, "gray", out.width)) return false;
         break;
-      }
       case NodeKind::Field:
         if (!compile_field(json, out)) return false;
         break;
+      case NodeKind::Slot:
+        if (!compile_slot(json, out)) return false;
+        break;
       case NodeKind::Group:
         if (const Json* clip = json.find("clip")) out.clip = clip->as_bool().value_or(false);
-        if (!compile_group(json, out, "group", depth)) return false;
+        if (!compile_list(*json.find("group"), out.first, out.count, depth + 1, false)) return false;
+        break;
+      case NodeKind::Column:
+        if (const Json* clip = json.find("clip")) out.clip = clip->as_bool().value_or(false);
+        out.auto_h = json.find("h") == nullptr;
+        if (!compile_list(*json.find("column"), out.first, out.count, depth + 1, true)) return false;
         break;
       case NodeKind::Use:
-        if (!compile_use(json, out)) return false;
+        if (!compile_use(json, out, depth)) return false;
         break;
       case NodeKind::Repeat:
         if (!expr_of(json, "repeat", out.extra)) return false;
         if (!json.find("draw")) return fail("a repeat has no \"draw\"");
-        if (!compile_group(json, out, "draw", depth)) return false;
+        if (!compile_list(*json.find("draw"), out.first, out.count, depth + 1, false)) return false;
         break;
+      case NodeKind::Content:
       case NodeKind::Let:
+      case NodeKind::Report:
         break;
     }
     if (const Json* id = json.find("id")) {
@@ -527,29 +706,29 @@ class Loader final : public Names {
       part.name = m.key;
       if (const Json* snap = m.value.find("snap")) part.snap = snap->as_bool().value_or(false);
       frame_ = 0;
-      deepest_callee_ = 0;
       schema_ = nullptr;
       Scope root;
       scope_ = &root;
-      std::vector<PartArgument> arguments;
+      // Its size is worked out where it is used, before it has any names of its own.
+      if (!optional_expr(m.value, "w", part.w, &part.has_w) || !optional_expr(m.value, "h", part.h, &part.has_h)) return false;
       if (const Json* args = m.value.find("args")) {
         if (!args->is_object()) return fail("args is not an object");
         for (const Json::Member& a : *args->as_object()) {
-          PartArgument argument;
-          argument.name = a.key;
-          if (!free_name(a.key) || !take_slots(1, argument.slot) || !compile_expr(a.value, argument.fallback)) return false;
-          root.lets.emplace_back(a.key, argument.slot);
-          arguments.push_back(std::move(argument));
+          std::uint16_t slot_at = 0;
+          Expr fallback;
+          if (!free_name(a.key) || !take_slots(1, slot_at) || !compile_expr(a.value, fallback)) return false;
+          root.lets.emplace_back(a.key, slot_at);
+          part.argument_names.push_back(a.key);
+          part.argument_defaults.push_back(fallback);
         }
       }
-      const bool ok = compile_list(*draw, part.first, part.count, 1);
+      const Json* height = m.value.find("height");
+      part.has_height = height != nullptr;
+      const bool ok = compile_list(*draw, part.first, part.count, 1, false, height, &part.height);
       scope_ = nullptr;
       if (!ok) return false;
       part.frame = static_cast<std::uint16_t>(frame_);
-      part.deepest = static_cast<std::uint16_t>(frame_ + deepest_callee_);
-      if (part.deepest > max_frame_slots) return fail("needs too many names");
       pack_.parts.push_back(std::move(part));
-      part_arguments_.push_back(std::move(arguments));
     }
     return true;
   }
@@ -567,33 +746,23 @@ class Loader final : public Names {
     Screen screen;
     screen.name = std::string(schema.screen);
     frame_ = 0;
-    deepest_callee_ = 0;
     schema_ = &schema;
     scope_ = nullptr;
-    const bool ok = compile_list(*draw, screen.first, screen.count, 1);
+    const bool ok = compile_list(*draw, screen.first, screen.count, 1, false);
     schema_ = nullptr;
     if (!ok) return false;
     screen.frame = static_cast<std::uint16_t>(frame_);
-    screen.deepest = static_cast<std::uint16_t>(frame_ + deepest_callee_);
-    if (screen.deepest > max_frame_slots) return fail("needs too many names");
     pack_.screens.push_back(std::move(screen));
     return true;
   }
-
-  struct PartArgument {
-    std::string name;
-    std::uint16_t slot = 0;
-    Expr fallback;
-  };
 
   const ReadFile& read_;
   Pack pack_;
   std::string error_, where_;
   std::vector<std::string> paint_names_, style_names_;
-  std::vector<std::vector<PartArgument>> part_arguments_;
   Scope* scope_ = nullptr;
   const ScreenSchema* schema_ = nullptr;
-  int frame_ = 0, deepest_callee_ = 0;
+  int frame_ = 0;
 };
 
 }  // namespace
@@ -612,10 +781,30 @@ const Screen* Pack::screen(std::string_view name) const {
   return nullptr;
 }
 
+const Part* Pack::part(std::string_view name) const {
+  for (const Part& p : parts) {
+    if (p.name == name) return &p;
+  }
+  return nullptr;
+}
+
 const Paint* Pack::paint(int palette, float value) const {
   const auto entry = static_cast<std::uint32_t>(value);
   if (value < 0 || entry >= paint_names) return nullptr;
   return &paints[static_cast<std::size_t>(palette) * paint_names + entry];
+}
+
+float Pack::constant(std::string_view name) const {
+  for (const auto& [n, value] : constants) {
+    if (n == name) return value;
+  }
+  return 0;
+}
+
+const Paint* Pack::paint_named(int palette, std::string_view name) const {
+  const auto found = std::ranges::find(paint_names_list, name);
+  if (found == paint_names_list.end()) return nullptr;
+  return paint(palette, static_cast<float>(found - paint_names_list.begin()));
 }
 
 std::expected<Pack, std::string> load_pack(const ReadFile& read, std::span<const ScreenSchema> schemas) {

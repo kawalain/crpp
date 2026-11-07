@@ -1,6 +1,6 @@
 #pragma once
 // The arithmetic in a Skin Pack: numbers, names, + - * /, comparisons, && || !, a ? b : c, and
-// min, max, floor, ceil, round, textw. It is compiled once, when the pack loads, into a short
+// min, max, floor, ceil, round, snap, textw, texth. It is compiled once, when the pack loads, into a short
 // program in one array that all of a pack's expressions share; running one allocates nothing.
 // There are no assignments, loops or calls of anything else: a pack holds no code.
 #include <array>
@@ -20,7 +20,7 @@ enum class Op : std::uint8_t {
   Add, Sub, Mul, Div,
   Less, LessEq, Greater, GreaterEq, Equal, NotEqual,
   And, Or, Not, Neg, Select,
-  Min, Max, Floor, Ceil, Round, TextWidth,
+  Min, Max, Floor, Ceil, Round, Snap, TextWidth, TextHeight,
 };
 
 struct Instr {
@@ -61,7 +61,8 @@ class Expr {
 //   font_size  the body text's size in this language
 //   hot pressed  the pointer is over, or the button went down on, the nearest hit around this
 //   i      which round of the nearest repeat this is
-enum Var : std::uint8_t { VarW, VarH, VarX, VarY, Varx, Vary, Varw, Varh, VarU, VarFontSize, VarHot, VarPressed, VarI, VarCount };
+//   flow   how far down the nearest column has come, and 0 outside one
+enum Var : std::uint8_t { VarW, VarH, VarX, VarY, Varx, Vary, Varw, Varh, VarU, VarFontSize, VarHot, VarPressed, VarI, VarFlow, VarCount };
 
 [[nodiscard]] std::optional<Var> var_named(std::string_view name);
 
@@ -73,6 +74,8 @@ class Names {
   [[nodiscard]] virtual std::optional<std::uint16_t> slot(std::string_view name) = 0;
   // A sibling with an id: the slot of its x, followed by y, w and h.
   [[nodiscard]] virtual std::optional<std::uint16_t> box(std::string_view name) = 0;
+  // A number the pack gave a name.
+  [[nodiscard]] virtual std::optional<float> constant(std::string_view name) = 0;
   // @name, a number the screen supplies.
   [[nodiscard]] virtual std::optional<std::uint16_t> number(std::string_view name) = 0;
   // $name, a Palette entry.
@@ -96,6 +99,9 @@ class Env {
   const float* frame = nullptr;  // the slots of the screen or part being walked
   [[nodiscard]] virtual float number(std::uint16_t /*id*/) { return 0; }
   [[nodiscard]] virtual float text_width(std::uint16_t /*style*/, std::uint32_t /*text*/) { return 0; }
+  [[nodiscard]] virtual float text_height(std::uint16_t /*style*/, std::uint32_t /*text*/, float /*width*/) { return 0; }
+  // To whole pixels of what is being drawn on.
+  [[nodiscard]] virtual float snap(float value) { return value; }
 };
 
 [[nodiscard]] float eval(std::span<const Instr> code, Expr expr, Env& env);

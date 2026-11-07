@@ -20,6 +20,10 @@ class TestNames final : public Names {
     if (name == "field") return 1;
     return std::nullopt;
   }
+  std::optional<float> constant(std::string_view name) override {
+    if (name == "ten") return 10.0f;
+    return std::nullopt;
+  }
   std::optional<std::uint16_t> number(std::string_view name) override {
     if (name == "seats") return 7;
     return std::nullopt;
@@ -43,6 +47,8 @@ class TestEnv final : public Env {
  public:
   float number(std::uint16_t id) override { return id == 7 ? 5.0f : -1.0f; }
   float text_width(std::uint16_t style, std::uint32_t text) override { return static_cast<float>(style) * 100 + static_cast<float>(text); }
+  float text_height(std::uint16_t style, std::uint32_t text, float width) override { return static_cast<float>(style) * 100 + static_cast<float>(text) + width; }
+  float snap(float value) override { return std::round(value * 2) / 2; }
 };
 
 float run(std::string_view source) {
@@ -112,6 +118,9 @@ void functions() {
   CHECK(run("round(1.5)") == 2);
   CHECK(run("max(75,ceil(20.2)+24)") == 75);
   CHECK(run("textw('body','#ok')") == 209);
+  CHECK(run("texth('body','#ok',W)") == 409);
+  CHECK(run("1+texth('body','#ok',1+1)") == 212);
+  CHECK(run("snap(1.3)") == 1.5f);
 }
 
 void names_read_what_they_mean() {
@@ -120,6 +129,7 @@ void names_read_what_they_mean() {
   CHECK(run("hot ? 1 : 2") == 1);
   CHECK(run("pressed ? 1 : 2") == 2);
   CHECK(run("gap") == 6);
+  CHECK(run("ten+1") == 11);
   CHECK(run("field.x") == 10);
   CHECK(run("field.y") == 20);
   CHECK(run("field.w") == 30);
@@ -145,7 +155,7 @@ void a_lone_number_needs_no_program() {
 
 void bad_expressions_are_refused() {
   for (const std::string_view source : {"", "1+", "(1", "1)", "1 2", "nobody", "$nobody", "@nobody", "nobody.x", "field.nothing", "nothing(1)", "min(1)", "min(1,2", "1?2", "textw('nobody','#ok')",
-                                        "textw('body','#nothing')", "textw('body')", "#", "1=2", "'text'"}) {
+                                        "textw('body','#nothing')", "textw('body')", "texth('body','#ok')", "texth('nobody','#ok',1)", "snap()", "#", "1=2", "'text'"}) {
     CHECK(refused(source));
   }
 }

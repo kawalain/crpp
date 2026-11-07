@@ -2,23 +2,40 @@
 // A Skin Pack as it stays in memory: a compact tree of nodes, with the JSON it came from gone.
 // Everything a pack names is checked when it loads, so that drawing has nothing left to refuse.
 //
-// pack.json holds format, palettes (one per Theme id), styles and parts; screens/<name>.json
-// holds a screen as {"draw": [nodes]}. Each node is one thing to draw, chosen by which of these
-// keys it has:
-//   fill    a Palette entry, plain or a gradient, with an optional radius
+// pack.json holds format, constants (names for numbers, anywhere in the pack), palettes (one per
+// Theme id), styles and parts; screens/<name>.json holds a screen as {"draw": [nodes]}. A Palette entry is "#rrggbb", "#rrggbbaa", stops as
+// [[at, colour], ...], {"mix": ["a", "b", percent]} or {"alpha": ["a", value]} of an entry above it.
+//
+// Each node is one thing to draw, chosen by which of these keys it has:
+//   fill    a Palette entry, plain or a gradient, with an optional radius; a gradient runs over the
+//           box unless down_to says how far down it ends. Fill, frame, stroke and text take alpha
 //   frame   a line inside the box's edge
 //   stroke  a rounded line, with radius and width
+//   line    a colour, from x, y to x2, y2 with width
+//   path    SVG path data, drawn from x, y, with color, scale, and a width to stroke it instead of
+//           filling, with caps "round" (the default) or "flat"
 //   text    a text: #locale_key, @bound, or the words themselves, in a style and a color
-//   picture a picture the screen supplies
+//   picture a picture the screen supplies, with opacity and gray
 //   field   a text field the screen owns, with style, color, placeholder, placeholder_color,
 //           caret and selection
+//   slot    what only the screen can draw, given numbers, styles and colors
 //   group   a list of nodes, inside this box, with an optional clip
-//   use     a part from pack.json, with args and an optional text, which the part reads as @label
+//   column  a list of nodes under each other: each goes at y = flow unless it says otherwise, and
+//           flow then moves below it, by its after as well. Its height is what they took
+//   use     a part from pack.json, with args, a text the part reads as @label, and a draw list
+//           that goes where the part has a node {"content": true}
+//   content see use
 //   repeat  a number; its "draw" runs that many times, with i counting
 //   let     a name for a number, with value
-// and each may have: if, id (siblings can then read id.x, .y, .w, .h, .right, .bottom), x, y,
-// w, h (x and y from the box around it, 0 and that box's size by default), hit (a name for
-// clicks, counted up by i), snap (the box moves to whole pixels), and "//" for a comment.
+//   report  a number for the screen, with value
+// and each may have: if, id (siblings can then read id.x, .y, .w, .h, .right, .bottom), x or right,
+// y or bottom, w, h (x and y from the box around it, 0 and that box's size by default), after,
+// hit (a name for clicks, counted up by hit_index, or by i if there is none), live (false: it is not
+// lit), hit_if (false: no hit), note (the box goes to the screen under this name), snap (the box moves
+// to whole pixels), and "//" for a comment.
+//
+// A part may give w and h for a use that says none, and height: worked out after it has drawn,
+// from its own names, it is the height it took in a column.
 #include <cstdint>
 #include <expected>
 #include <functional>
@@ -27,6 +44,7 @@
 #include <span>
 #include <string>
 #include <string_view>
+#include <utility>
 #include <vector>
 
 #include "crpp/skin/color.hpp"
@@ -47,6 +65,7 @@ inline constexpr int max_repeat = 4096;
 // However parts and repeats multiply: what one walk of a screen goes through at most.
 inline constexpr int max_walk = 200000;
 inline constexpr int max_walk_depth = 64;
+inline constexpr std::size_t max_slot_values = 8;
 
 // What a screen offers a pack, under the names it may use. The ids are the screen's own.
 struct Name {
@@ -56,10 +75,10 @@ struct Name {
 
 struct ScreenSchema {
   std::string_view screen;
-  std::span<const Name> texts, numbers, pictures, fields, hits;
+  std::span<const Name> texts, numbers, pictures, fields, hits, slots, reports, notes;
 };
 
-enum class NodeKind : std::uint8_t { Fill, Frame, Stroke, Text, Picture, Field, Group, Use, Repeat, Let };
+enum class NodeKind : std::uint8_t { Fill, Frame, Stroke, Line, Path, Text, Picture, Field, Slot, Group, Column, Use, Content, Repeat, Let, Report };
 
 inline constexpr std::uint16_t no_slot = std::numeric_limits<std::uint16_t>::max();
 inline constexpr std::uint32_t no_text = std::numeric_limits<std::uint32_t>::max();
@@ -67,23 +86,33 @@ inline constexpr int no_hit = -1;
 
 struct Node {
   NodeKind kind = NodeKind::Group;
-  bool snap = false, clip = false, has_if = false;
+  bool snap = false, clip = false, has_if = false, from_right = false, from_bottom = false;
+  bool auto_h = false;      // Column: h is what its nodes took
+  bool has_hit_index = false, has_live = false, has_hit_if = false, has_after = false;
+  bool round_caps = true;   // Path
+  bool has_alpha = false;
+  bool has_down_to = false;  // Fill
   std::uint16_t slot = no_slot;  // where id's box goes, or a let's value
   std::uint16_t style = 0;
   int hit = no_hit;
-  int bound = 0;                 // Picture, Field: the screen's id
-  std::uint32_t text = no_text;  // Text
-  std::uint32_t first = 0, count = 0;  // Group, Repeat: children. Use: index into `uses`. Field: index into `fields`
+  int bound = 0;                 // Picture, Field, Slot, Report: the screen's id
+  int note = no_hit;             // the screen's id for the box
+  std::uint32_t text = no_text;  // Text. Path: offset of its data in literals
+  std::uint32_t first = 0, count = 0;  // Group, Column, Repeat: children. Use: index into uses. Field: fields. Slot: slots. Path: size of its data
   Expr when, x, y, w, h;
-  Expr paint;  // Fill, Frame, Stroke, Text
-  Expr extra;  // Fill, Stroke: radius. Repeat: how many. Let: value
-  Expr width;  // Stroke
+  Expr paint;  // Fill, Frame, Stroke, Line, Path, Text
+  Expr extra;  // Fill, Stroke: radius. Line: x2. Path: scale. Picture: opacity. Repeat: how many. Let, Report: value
+  Expr width;  // Stroke, Line, Path. Fill: down_to. Picture: gray
+  Expr extra2;  // Line: y2
+  Expr after, hit_index, live, hit_if, alpha;
 };
 
 struct Style {
   Expr size, line_height;
+  float letter_spacing = 0;
   int weight = 400;
   std::uint8_t align = 0;  // 0 left, 1 center, 2 right
+  std::uint8_t role = 0;   // 0 body, 1 caption
   bool wrap = false, ellipsis = false, exact = false, keep_words = false;
 };
 
@@ -100,14 +129,18 @@ struct Argument {
 
 struct Part {
   std::string name;
+  std::vector<std::string> argument_names;  // their slots count up from 0
+  std::vector<Expr> argument_defaults;
   std::uint32_t first = 0, count = 0;
-  std::uint16_t frame = 0, deepest = 0;  // slots of its own; with the parts it uses
-  bool snap = false;
+  std::uint16_t frame = 0;  // slots of its own
+  bool snap = false, has_w = false, has_h = false, has_height = false;
+  Expr w, h, height;
 };
 
 struct Use {
   std::uint32_t part = 0, first_argument = 0, arguments = 0;
   std::uint32_t label = no_text;
+  std::uint32_t first = 0, count = 0;  // what goes where the part says {"content": true}
 };
 
 struct FieldNode {
@@ -115,10 +148,14 @@ struct FieldNode {
   std::uint32_t placeholder = no_text;
 };
 
+struct SlotNode {
+  std::uint32_t first_number = 0, numbers = 0, first_style = 0, styles = 0, first_color = 0, colors = 0;
+};
+
 struct Screen {
   std::string name;
   std::uint32_t first = 0, count = 0;
-  std::uint16_t frame = 0, deepest = 0;
+  std::uint16_t frame = 0;
 };
 
 // One Palette's entry: a colour, or stops when there are any.
@@ -138,15 +175,23 @@ struct Pack {
   std::vector<Use> uses;
   std::vector<Argument> arguments;
   std::vector<FieldNode> fields;
+  std::vector<SlotNode> slots;
+  std::vector<Expr> slot_values;
+  std::vector<std::uint16_t> slot_styles;
   std::vector<Screen> screens;
-  std::vector<std::string> palette_ids;
+  std::vector<std::string> palette_ids, paint_names_list;
+  std::vector<std::pair<std::string, float>> constants;
   std::vector<Paint> paints;  // palette after palette, each with paint_names entries
   std::vector<GradientStop> stops;
   std::uint32_t paint_names = 0;
 
   [[nodiscard]] std::optional<int> palette_of(std::string_view theme_id) const;
   [[nodiscard]] const Screen* screen(std::string_view name) const;
+  [[nodiscard]] const Part* part(std::string_view name) const;
   [[nodiscard]] const Paint* paint(int palette, float value) const;
+  // By name, for what a screen's code asks of the pack. Zero and null when it has none.
+  [[nodiscard]] float constant(std::string_view name) const;
+  [[nodiscard]] const Paint* paint_named(int palette, std::string_view name) const;
 };
 
 // Reads a file of the pack by its path inside it. Empty when there is none.

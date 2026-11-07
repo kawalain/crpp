@@ -4,6 +4,7 @@
 #include <functional>
 #include <optional>
 #include <string>
+#include <vector>
 
 #include "crpp/ui/hover.hpp"
 #include "crpp/ui/surface.hpp"
@@ -14,7 +15,7 @@ class HomeScreen final : public Surface {
  public:
   explicit HomeScreen(Ui& ui);
 
-  enum Id : int { Create, Join, Code, Find, ReturnBackdrop, ReturnCard, ReturnConfirm, ReturnRandom };
+  enum Id : int { Create, Join, Code, Find, ReturnBackdrop, ReturnCard, ReturnConfirm, ReturnRandom, SeatBase = 100 };
 
   std::function<void()> on_create;
   std::function<void(std::string code)> on_join;
@@ -26,6 +27,10 @@ class HomeScreen final : public Surface {
   // How many ms the latest held Seat still lasts, if there is one. Read on every
   // paint, so nobody has to report a Seat coming or going.
   std::function<std::optional<std::uint64_t>()> held_seat_ms;
+  // The Rooms with a Seat to go back to, and the user's own picture: read on every paint, by
+  // a Skin that shows them.
+  std::function<std::vector<std::string>()> held_seats;
+  std::function<std::string()> my_emoji;
 
   void set_nickname(std::string nickname) { nickname_ = std::move(nickname); }
   void set_hour(int hour) { hour_ = hour; }  // 0-23, for the greeting
@@ -46,12 +51,16 @@ class HomeScreen final : public Surface {
   void enter(bool shift) override;
   bool escape() override;
   [[nodiscard]] Cursor cursor(int id) const override;
+  [[nodiscard]] bool is_link(int id) const override { return id == Create || id == Find || id >= SeatBase; }
   [[nodiscard]] bool animating() const override;
   bool tick(unsigned long long now_ms) override;
   [[nodiscard]] unsigned long long wake_at() const override;
 
  private:
   [[nodiscard]] bool is_busy() const { return busy && busy(); }
+  void paint_luna(Painter& p);
+  [[nodiscard]] TextStyle luna_code_style() const;
+  [[nodiscard]] TextStyle field_style() const;
   void join();
   void find();
   void refresh_seat(unsigned long long now);
@@ -59,6 +68,9 @@ class HomeScreen final : public Surface {
   [[nodiscard]] bool tip_wanted(unsigned long long now) const;
 
   std::string nickname_;
+  // Where the Skin's layout last put these; a click and a bubble go by them.
+  float code_x_ = 469 + 18;
+  Rect join_rect_{469 + 221, 522 + 10, 52, 60}, find_rect_{759, 522, 92, 80};
   int hour_ = 12;
   TextField code_;
   Id last_action_ = Create;

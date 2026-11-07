@@ -66,6 +66,7 @@ struct Settings {
   bool others_use_my_sounds = false;
   bool muted = false;  // the sound of other members only
   bool mute_notifications = false;  // while muted, notification sounds too
+  bool chimes = false;  // a message and someone entering sound like the Skin, not their recordings
   bool idle_muted = false;  // away, and wanting quiet: everything but system sounds
   bool spatial = true;
   int balance = 60;
@@ -148,6 +149,7 @@ class Engine final : private Renderer {
   [[nodiscard]] std::span<const float> recording(const std::filesystem::path& path);
   [[nodiscard]] std::span<const float> generated(wire::Kind kind, std::string_view pack);
   [[nodiscard]] std::span<const float> generated_cue(const std::string& name);
+  [[nodiscard]] std::span<const float> generated_chime(const std::string& name);
   [[nodiscard]] std::string_view pack_for(const Event& event, Device device) const;
   [[nodiscard]] std::size_t desk_of(std::uint32_t slot) const;
 

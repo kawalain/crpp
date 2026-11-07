@@ -20,10 +20,6 @@ struct ProfileView {
   std::uint64_t events = 0;
 };
 
-// "1시간 5분"; "1분 미만" under a minute.
-[[nodiscard]] std::string format_stay(std::int64_t seconds);
-// "12,345회".
-[[nodiscard]] std::string format_count(std::uint64_t count);
 
 class ProfileCard final : public Surface {
  public:
@@ -47,6 +43,8 @@ class ProfileCard final : public Surface {
   [[nodiscard]] const ProfileView& profile() const { return profile_; }
   [[nodiscard]] bool mine() const { return mine_; }
 
+  // What the card takes inside a window of its own.
+  [[nodiscard]] D2D1_SIZE_F content_size() const;
   void paint(Painter& p);
   void click(int id, float x, float y, bool shift) override;
   bool escape() override;

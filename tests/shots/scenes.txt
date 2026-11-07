@@ -1,0 +1,73 @@
+# Every --shot scene, one per line. A line "<motion> --at <ms>" is a moment of a motion.
+setup
+offline
+offline-dark
+reconnecting
+reconnecting-dark
+home
+home-dark
+home-pastel
+home-hover
+home-hover-enter
+home-hover-droplet
+home-returning
+home-return
+home-droplet-tip
+home-bubble
+home-bubble-find
+toast
+dialog
+session
+chat
+room-dark
+room-pastel
+room-big
+room-muted
+room-leave
+room-profile
+room-profile-handle
+room-menu
+room-calm
+room-emoji
+room-options
+settings-sound
+settings-sound-dark
+settings-sound-effects
+settings-sound-effects-dark
+settings-sound-effects-flat
+settings-sound-open
+settings-display
+settings-display-dark
+settings-display-pastel
+settings-display-on
+settings-display-tip
+settings-display-big
+settings-notify
+settings-notify-dark
+settings-notify-tip
+settings-system
+settings-system-dark
+settings-system-on
+settings-system-end
+settings-system-tip
+settings-account
+settings-account-guest
+prompt-id
+prompt-password
+prompt-nickname
+prompt-error
+prompt-locked
+prompt-handle
+update-popup
+update-progress
+update-failed
+changelog
+motion-enter-room --at 90
+motion-leave-room --at 90
+motion-settings-open --at 80
+motion-tab --at 70
+motion-message --at 150
+motion-member --at 150
+motion-scroll --at 80
+motion-stretch --at 120
+luna-controls

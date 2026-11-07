@@ -2,6 +2,8 @@
 
 #include <algorithm>
 
+#include "crpp/locale/locale.hpp"
+
 namespace crpp::ui {
 
 namespace {
@@ -70,7 +72,7 @@ bool ChatLimiter::expire(Ms now) {
 }
 
 std::string ChatLimiter::calm_text() const {
-  std::string text = "진정하세요";
+  std::string text = locale::tr().chat_calm;
   for (int i = 0; i < marks_; ++i) text += " !";
   return text;
 }

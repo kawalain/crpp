@@ -9,6 +9,8 @@ and developer communities, not from memory.
 
 - UI is native Win32 + Direct2D/DirectWrite. No WebView2.
 - Protocol: `cloudroom-v2` only. The v1 subprotocol is not implemented.
+- Wording lives in `src/locale`, one table per Locale, compiled in; see
+  `docs/adr/0006-locales-compiled-into-the-exe.md`. Korean and English ship.
 - Language baseline is C++23. Do not depend on C++26 (the DIS ballot was
   reported as failed; contracts, reflection and `std::execution` are not
   portable yet). Errors use `std::expected`, not exceptions.
@@ -141,10 +143,29 @@ against a real `server/` yet; do that once a local build of it is available.
   areas fade at the edge they cut, by up to 27 px. All of it follows the system's "Show
   animations" setting; there is no toggle of its own.
 - The app is named Cloudroom++, and its data stays in the same folders as upstream's.
+- English besides Korean, chosen in the system tab; it follows the OS language until then.
+  Other words for the same things: 구름 is "Room", 사용자명 is "handle". The system tab has a
+  section for it, which moves what is below it down.
 - The changelog comes from GitHub release notes, so an empty one says it could not be
   loaded, and a first run ever does not open it. A new version's notes open when the app
   first notices it, not after the update, and not again once it is installed. They are
   the release's most important changes, then its commits by kind.
+- Two Themes upstream does not have, 메신저 and 메신저 다크, in the look of a messenger of the early
+  2000s (`docs/research/retro-messenger-look.md`). Values and shapes are re-created as vectors, and
+  nothing is taken from Windows or the old programs; no logo, person icon, sound or font of theirs,
+  and their names are never shown. 구름 stays the default. Under these Themes:
+  - The app draws its window frame, with minimize and close only. Those two are ordinary hits in
+    the client area, not caption buttons.
+  - The window has a size per screen, remembered per screen under `window<Screen>Width` and
+    `Height`, so it shrinks to Home and grows to a Room. Cloud's saved size is left alone.
+  - Options, What's new, a profile, the emoji picker, the offline message and every question are
+    real windows, owned by the main one and without a taskbar button. A question holds the others
+    off until it is answered. Only messages inside the main window, menus and popups stay in it.
+  - Home lists the Seats to return to, where Cloud asks once in a dialog.
+  - A menu bar holds only commands that work, by mouse and Escape; there are no Alt keys yet.
+  - Only links show the hand cursor, and none of the motion listed above runs.
+  - Text is Gulim and Tahoma, the fonts of the time on this system, not Pretendard.
+  - A message and someone entering sound as bells made in `synth`, not the pack's recordings.
 
 ## Build
 
@@ -157,13 +178,21 @@ The script sets up the developer environment (vcvars); `cl` is not on PATH by de
 The app is a Windows-subsystem program with no console: PowerShell does not wait for it,
 so wait with `Start-Process -Wait`, and read `--smoke`'s result from the exit code.
 
-Options are read from the end of the command line: `crpp --shot <png> <size> <ms> <scene>
+Options are read from the end of the command line: `crpp --shot <png> <size> <hour> <scene>
 --data <dir>`. Put first, `--data` is ignored and the real app opens on the user's desktop
-with their data.
+with their data. A shot is in Korean and in the Theme of its scene unless `--locale <id>` or
+`--theme <id>` says otherwise. `auto` for the size renders the window size of the Skin's screen.
+A scene that opens a panel with a window of its own renders that window.
+
+A change that must leave the screen as it was can prove it: `tests/shots/render.ps1` renders
+every scene in `scenes.txt` on a hidden desktop, before and after, and `compare.ps1` compares
+the folders by hash. A shot holds the clock, so the same scene always gives the same file.
 
 `crpp --data <dir>` keeps a run's data out of the user's folders, and with no
 `serverUrl` in it skips the startup `/health`, so scripted runs stay off the default
-server; seed `serverUrl` in its `crpp/settings.json` to test the offline popup. An exe with an
+server; seed `serverUrl` in its `crpp/settings.json` to test the offline popup. That covers only
+`/health`: a click on creating or joining a Room still goes to the default server, which is production,
+so a run that clicks needs a `serverUrl` on localhost. An exe with an
 `assets/` folder beside it, as every build has, runs from that folder; copy the
 exe elsewhere to test fetching, with `--asset-url` for a local server.
 
@@ -177,6 +206,9 @@ desktop: drive a Room with a windowless second member instead of injected keys.
 Logic modules are pure and I/O-free; a seam exists only where two adapters
 exist (real + test).
 
+- `locale`: `tr()` is the table of the current Locale, plain `const char*` fields; `fill` puts
+  values into `{0}` and so on. A Locale also decides its line breaks and word lists. To add one,
+  copy `en.cpp` and list it in `locale.cpp`; a test finds what is missing. Pure.
 - `wire`: parse/encode server and client messages and input frames. Pure.
   Frames are at most 1024 bytes and at most 32 input events; use fixed buffers.
 - `session`: pure state machine `step(Event) -> Actions` (connect order,
@@ -234,6 +266,18 @@ exist (real + test).
   every scroll area's wheel, stretch and edge fade. A motion's first frame has made no
   progress yet, so it must ask for the next frame from its start. `--shot ...
   motion-<name> --at <ms>` renders a moment of a motion; `apps/gui/shot.cpp` names them.
+  A Theme is one row of `themes.cpp`: a Skin and a Palette, which is all a new Palette takes. `Skin` draws
+  the controls and decides the window frame and motion (`docs/adr/0005-skins-own-shape-and-layout.md`).
+  Home, Room with its chat, the prompt and settings have a layout per Skin in `*_luna.cpp`, on the same
+  state, hit ids and callbacks; `luna.hpp` holds the Luna controls. `window_frame.cpp` says what each
+  point of an own-drawn frame is, and the shell answers `WM_NCHITTEST` from it. `App::screen_size` names
+  the size of the current screen, and the shell fits the window to it when a frame starts.
+  With an own frame `App::open_panes` says which panels should have a window, and `pane_window.cpp`
+  makes that true on a posted message, so a window is never destroyed under its own click. There is one
+  `Ui`: what differs per window is `WindowState`, swapped by `App::use_pane`, and a window's messages run
+  inside a `PaneScope`. Tests go there with `UiHarness::on_pane`. Luna draws boxes and lines on whole
+  pixels through `Painter`, so equal sizes stay equal at any scale; a part of several lines counts from
+  `Painter::snap` in `Painter::line`.
 
 ## Performance rules
 
@@ -250,6 +294,11 @@ exist (real + test).
   desktop, settings open: idle 0.0% of one core and about 47 MB working set; wheel
   scrolling without pause 0.6-1.9% at about 73 frames/s (a counter confirmed the frames),
   back to 0.0% afterwards. A real desktop adds composition, which this does not show.
+- The Messenger Themes, the same way with the wheel posted about 60 times a second, reversing every
+  20 notches, on the options window: idle 0.0%, about 43 MB working set and 59 MB private; scrolling
+  1.3-3.4%; 0.0% afterwards. With the options window open the second render target costs about 8 MB of
+  working set (about 52 MB), until it closes. Cloud under the same harder wheel: idle 0.0% and about 45 MB; scrolling
+  5.9-12.5%, where a build from before Skins gave 8.4-10.6%, so that is the stimulus, not a regression.
 
 ## Transport facts (verified on Windows 10 19044)
 
@@ -292,6 +341,16 @@ exist (real + test).
 - Coming back from a hidden window that gave up its graphics has only run on a hidden
   desktop, on one NVIDIA card. See it on a real desktop, and on Intel and AMD drivers. The
   same goes for a chat notification drawn in that state.
+- The own-drawn window frame and the panels' windows have only run on a hidden desktop, where hit
+  tests, the region, sizes, ownership and a question holding the others off were checked. A window
+  corner is cut by a region, which has no partial pixels: those it only partly covers are blended
+  with a grey, not with what is behind. See on a real desktop: focus and z-order between the windows, Snap, resizing by each edge, minimize and
+  restore, Alt+Space, a right-click on the caption, moving between monitors of different DPI, the
+  taskbar title, and what the region does to the shadow. Windows 11 has not run it at all, nor have
+  Intel and AMD drivers, and a Room with real members has not been seen under these Themes.
+- Following the OS theme with a Theme of another Skin on the other side has only run in tests: the
+  frame and window size should change with it.
+- The Messenger Themes' bells need ears: `crpp_soundtest --chimes`.
 - Dead-peer detection (network cut) is untested.
 - Shared store compatibility is tested against upstream's format as read from
   its source, not yet against the upstream client itself.

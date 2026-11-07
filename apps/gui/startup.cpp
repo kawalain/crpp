@@ -16,32 +16,28 @@ namespace {
 // --- moving away from the Shared store ---
 
 void show_cleanup_offer(Shell& s) {
-  s.app.notice().set(Notice{"안전한 저장소로 옮겼어요. 기존 Cloudroom 파일에 남은 로그인 정보와 채팅 기록도 지울까요? "
-                            "지우면 기존 Cloudroom 클라이언트에서 다시 로그인해야 해요.",
-                            "지우기", "남겨 두기"});
+  s.app.notice().set(Notice{tr().notice_moved, tr().notice_erase, tr().notice_keep});
   s.app.notice().on_action = [&s] {
-    s.app.notice().set(Notice{s.store->erase_shared_secrets() ? "기존 파일의 로그인 정보와 채팅 기록을 지웠어요."
-                                                              : "기존 파일을 고치지 못했어요. 파일이 그대로 남아 있어요.",
-                              "", "닫기"});
+    s.app.notice().set(Notice{s.store->erase_shared_secrets() ? tr().notice_erased
+                                                              : tr().notice_erase_failed,
+                              "", tr().notice_close});
   };
 }
 
 void show_store_notice(Shell& s) {
   if (s.store->mode() == store::Mode::Shared) {
-    s.app.notice().set(Notice{"기존 Cloudroom의 설정 파일을 함께 쓰고 있어요. 이 파일에는 로그인 정보가 암호화되지 않은 채 "
-                              "저장돼요.",
-                              "안전한 저장소로 옮기기", "닫기"});
+    s.app.notice().set(Notice{tr().notice_shared, tr().notice_move, tr().notice_close});
     s.app.notice().on_action = [&s] {
       if (s.store->convert_to_protected()) {
         show_cleanup_offer(s);
       } else {
-        s.app.notice().set(Notice{"옮기지 못했어요. 지금까지처럼 기존 파일을 계속 써요.", "", "닫기"});
+        s.app.notice().set(Notice{tr().notice_move_failed, "", tr().notice_close});
       }
     };
   } else if (s.store->secrets_lost()) {
-    s.app.notice().set(Notice{"저장된 로그인 정보와 채팅 기록을 이 PC에서 읽지 못해 새로 시작해요.", "", "닫기"});
+    s.app.notice().set(Notice{tr().notice_unreadable, "", tr().notice_close});
   } else if (s.store->data_corrupt()) {
-    s.app.notice().set(Notice{"설정 파일이 손상되어 기본값으로 시작해요. 손상된 파일은 .bad 이름으로 남겨 두었어요.", "", "닫기"});
+    s.app.notice().set(Notice{tr().notice_corrupt, "", tr().notice_close});
   }
 }
 
@@ -81,7 +77,7 @@ std::string random_nickname(const std::filesystem::path& words) {
     return list;
   };
   const auto adjectives = load("adjectives.txt"), animals = load("animals.txt");
-  if (adjectives.empty() || animals.empty()) return "게스트";
+  if (adjectives.empty() || animals.empty()) return tr().guest;
   std::random_device rd;
   return adjectives[rd() % adjectives.size()] + " " + animals[rd() % animals.size()];
 }
@@ -111,7 +107,7 @@ void enter_app(Shell& s) {
   if (const std::string handle = data.string_or("handle", ""); nickname.empty() && !handle.empty()) {
     nickname = "@" + handle;  // an account can go by its handle alone
   } else if (nickname.empty()) {
-    nickname = random_nickname(s.assets_dir / "words");
+    nickname = random_nickname(s.assets_dir / locale::current().words_folder);
     if (!first_run) data.set("nickname", store::Json(nickname));
   }
   s.app.home().set_nickname(nickname);
@@ -157,7 +153,7 @@ void report_assets(Shell& s, const std::expected<void, assets::Error>& result) {
   }
   s.log.note(diag_of(result.error()));
   if (!s.store->bool_or(key, false)) {
-    s.app.ui().toasts->toast("일부 파일을 받지 못해 시스템 글꼴과 이모지를 쓰고 있어요. 다음에 실행할 때 다시 받아요.");
+    s.app.ui().toasts->toast(tr().notice_fetch_failed);
     s.store->set(key, store::Json(true));
   }
 }

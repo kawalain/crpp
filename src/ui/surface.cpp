@@ -1,6 +1,7 @@
 #include "crpp/ui/surface.hpp"
 
 #include <algorithm>
+#include <ctime>
 
 namespace crpp::ui {
 
@@ -12,9 +13,15 @@ void Ui::begin_frame(float window_w, float window_h, unsigned long long now) {
   width = window_w;
   height = window_h;
   now_ms = now;
-  scale = std::max(window_w / stage_w, window_h / stage_h);
-  ox = (window_w - stage_w * scale) / 2;
-  oy = (window_h - stage_h * scale) / 2;
+  if (skin().scales_stage()) {
+    scale = std::max(window_w / stage_w, window_h / stage_h);
+    ox = (window_w - stage_w * scale) / 2;
+    oy = (window_h - stage_h * scale) / 2;
+  } else {
+    scale = 1;
+    ox = oy = 0;
+  }
+  content = modal_area = {0, 0, window_w, window_h};
   hits_.clear();
   hit_clips_.clear();
 }
@@ -62,6 +69,16 @@ unsigned long long clock_ms() noexcept {
 
 void hold_clock_at(unsigned long long ms) noexcept { held_clock = ms; }
 
+namespace {
+long long held_wall_clock = 0;
+}  // namespace
+
+long long wall_clock_seconds() noexcept {
+  return held_wall_clock != 0 ? held_wall_clock : static_cast<long long>(std::time(nullptr));
+}
+
+void hold_wall_clock(long long seconds) noexcept { held_wall_clock = seconds; }
+
 const Ui::Hit* Ui::find_hit(const Surface* owner, int id) const {
   for (auto it = hits_.rbegin(); it != hits_.rend(); ++it) {
     if (it->owner == owner && it->id == id) return &*it;
@@ -98,6 +115,7 @@ ID2D1LinearGradientBrush* Ui::edge_fade_mask(Painter& p, Rect area, float top, f
 }
 
 void Ui::forget_render_target() {
+  gfx.forget_render_target();
   fade_masks_.clear();
   masks_target_ = nullptr;
 }

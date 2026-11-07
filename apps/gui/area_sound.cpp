@@ -35,6 +35,7 @@ void apply(Shell& s) {
   read_sound_settings(*s.prefs, s.audio);
   s.audio.muted = s.prefs->get(pref::mute_others);
   s.audio.idle_muted = s.sound_state->idle.idle() && s.prefs->get(pref::mute_on_idle);
+  s.audio.chimes = s.app.ui().theme.skin == SkinId::Luna;
   s.engine->set_settings(s.audio);
 }
 
@@ -96,7 +97,7 @@ void sync_idle(Shell& s) {
 // False if there were none, as before the assets are in place.
 bool list_packs(Shell& s) {
   using crpp::sound::Device;
-  const auto catalog = crpp::sound::Catalog::scan(s.assets_dir / "sounds", s.expected_sounds);
+  const auto catalog = crpp::sound::Catalog::scan(s.assets_dir / "sounds", s.expected_sounds, locale::current().id);
   SoundTab& tab = s.app.settings().sound();
   const auto set = [&](SoundDevice to, Device from) {
     std::vector<SoundChoice> choices;
@@ -138,6 +139,8 @@ void tab_shown(Shell& s) {
 
 }  // namespace
 
+void language_changed(Shell& s) { s.sound_state->packs_listed = false; }
+
 void wire(Shell& s) {
   Shell* sp = &s;
   s.sound_state = std::make_shared<State>();
@@ -158,7 +161,7 @@ void wire(Shell& s) {
   tab.on_shown = [sp] { tab_shown(*sp); };
   tab.on_speaker_picked = [sp] { sp->engine->check_device(); };
   s.engine->set_on_open_failed([sp] {
-    sp->tasks.post([sp] { sp->app.toasts().toast("선택한 출력 장치로 소리를 내보내지 못했습니다."); });
+    sp->tasks.post([sp] { sp->app.toasts().toast(tr().sound_output_failed); });
   });
 
   s.bridge->on_member_ids = [sp](const std::vector<MemberIds>& members) {
@@ -191,7 +194,7 @@ bool scene(Shell& s, std::string_view name) {
   SoundTab& tab = s.app.settings().sound();
   tab.set_speakers({{"a", "스피커 (Realtek High Definition Audio)"}, {"b", "헤드셋 (USB Audio Device)"}});
   s.app.settings().open(SettingsPage::Sound);
-  if (name == "settings-sound-dark" || name == "settings-sound-effects-dark") s.app.set_theme(ThemeId::DarkCloud);
+  if (name == "settings-sound-dark" || name == "settings-sound-effects-dark") s.app.set_theme("darkcloud");
   if (name == "settings-sound-effects-flat") s.app.ui().prefs->set(pref::spatial_audio, false);
   if (name == "settings-sound-effects" || name == "settings-sound-effects-dark" || name == "settings-sound-effects-flat") {
     s.app.settings().scroll_to(10000);
@@ -245,6 +248,10 @@ void set_member_muted(Shell& s, std::string_view cid, bool muted) {
 int member_volume(Shell& s, std::string_view cid) { return s.sound_state ? s.sound_state->volumes.get(cid) : 100; }
 
 bool member_muted(Shell& s, std::string_view cid) { return member_volume(s, cid) == 0; }
+
+void theme_changed(Shell& s) {
+  if (s.engine && s.sound_state) apply(s);
+}
 
 void play_notification(Shell& s, std::string_view name) {
   if (s.engine) s.engine->play_notification(name);

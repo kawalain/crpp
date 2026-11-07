@@ -31,6 +31,8 @@ class EmojiPicker final : public Surface {
   // How many emoji are parsed in memory now, for tests.
   [[nodiscard]] std::size_t parsed() const { return cache_ ? cache_->parsed() : 0; }
 
+  // What the picker takes inside a window of its own.
+  [[nodiscard]] static D2D1_SIZE_F content_size();
   void paint(Painter& p);
   void click(int id, float x, float y, bool shift) override;
   void drag(float x, float y) override;

@@ -1,22 +1,26 @@
 #pragma once
 // Direct2D / DirectWrite drawing helpers shared by every screen (Windows only).
 #include <d2d1.h>
-#include <dwrite.h>
+#include <dwrite_2.h>
 
 #include <array>
 #include <cstddef>
 #include <filesystem>
 #include <functional>
 #include <map>
+#include <span>
 #include <string>
 #include <string_view>
 #include <utility>
 #include <vector>
 
+#include "crpp/locale/locale.hpp"
 #include "crpp/ui/com.hpp"
 #include "crpp/ui/theme.hpp"
 
 namespace crpp::ui {
+
+using locale::tr;
 
 struct Rect {
   float x = 0, y = 0, w = 0, h = 0;
@@ -26,6 +30,7 @@ struct Rect {
 };
 
 enum class Align : std::uint8_t { Left, Center, Right };
+enum class FontRole : std::uint8_t { Body, Caption };
 
 struct TextStyle {
   float size = 16;
@@ -35,6 +40,12 @@ struct TextStyle {
   bool wrap = false;
   bool ellipsis = false;
   float letter_spacing = 0;  // px added after each character
+  // With classic fonts a size means a kind of text and not its pixels, unless this says so.
+  bool exact = false;
+  FontRole role = FontRole::Body;
+  // With classic fonts: a line of Hangul breaks only between words. Character positions in the
+  // layout then differ from the text's, so it is not for text with ranges or a caret.
+  bool keep_words = false;
 };
 
 std::wstring widen(std::string_view utf8);
@@ -53,6 +64,20 @@ class Gfx {
 
   // SVG path data (M L H V C S A Z, absolute and relative) as a geometry.
   [[nodiscard]] ComPtr<ID2D1PathGeometry> parse_path(std::string_view d) const;
+  // Picks glyph variants, as a page's language does: "ko-kr".
+  void set_language(std::wstring tag);
+  // System fonts drawn aliased, with their pixels' own widths, as on old Windows: Gulim or
+  // Tahoma, and Trebuchet MS in a caption. The app's font is let go of until this goes off.
+  void set_classic(bool on);
+  [[nodiscard]] bool classic() const { return classic_; }
+  // The classic body size for this language, in DIPs.
+  [[nodiscard]] float classic_size() const { return classic_size_; }
+  // Pixels per DIP of what is being drawn on; classic widths depend on it.
+  void set_pixels_per_dip(float scale) { pixels_per_dip_ = scale; }
+  // A lasting brush for these stops, which must stay where they are. Set its points to use it.
+  [[nodiscard]] ID2D1LinearGradientBrush* gradient(ID2D1RenderTarget* rt, std::span<const GradientStop> stops) const;
+  void forget_render_target() const;
+
   // The same, kept here until release_factory. Geometry that lasts beyond a frame lives
   // here, so that nothing else can hold the factory alive.
   [[nodiscard]] ID2D1PathGeometry* path(std::string_view d) const;
@@ -74,7 +99,24 @@ class Gfx {
   mutable std::map<std::string, ComPtr<ID2D1PathGeometry>, std::less<>> paths_;
   ComPtr<IDWriteFactory> dwrite_;
   ComPtr<IDWriteFontCollection> fonts_;  // null = the system collection
+  std::filesystem::path font_file_;
+  bool classic_ = false;
+  float classic_size_ = 12, pixels_per_dip_ = 1;
+  std::wstring classic_body_, classic_caption_;
+  ComPtr<IDWriteFontFallback> classic_fallback_;
+  struct Metrics {
+    float ascent = 0.8f, descent = 0.2f;
+  };
+  Metrics classic_body_metrics_, classic_caption_metrics_;
+  void choose_classic_fonts();
+  [[nodiscard]] Metrics metrics_of(const std::wstring& family) const;
+  void apply_style(IDWriteTextFormat* format, const TextStyle& style, Metrics metrics) const;
+  void finish_layout(IDWriteTextLayout* layout, IDWriteTextFormat* format, std::wstring_view text, const TextStyle& style) const;
+  [[nodiscard]] ComPtr<IDWriteTextLayout> classic_layout(std::wstring_view text, TextStyle style, float max_w, float max_h) const;
+  mutable std::map<const void*, ComPtr<ID2D1LinearGradientBrush>> gradients_;
+  mutable ID2D1RenderTarget* gradients_target_ = nullptr;
   std::wstring family_;
+  std::wstring language_ = L"ko-kr";
   float ascent_ = 0.8f;   // of the em, for the UI font
   float descent_ = 0.2f;
 };
@@ -91,6 +133,13 @@ class Painter {
 
   [[nodiscard]] const Gfx& gfx() const { return gfx_; }
   [[nodiscard]] ID2D1RenderTarget* rt() const { return rt_; }
+
+  // With classic fonts every box and line sits on whole pixels at any scale, so that equal
+  // sizes come out equal wherever they land and lines stay sharp. Curves are still smoothed.
+  // Where r is drawn: it keeps its size in pixels, and fill_rect and frame already do this.
+  [[nodiscard]] Rect snap(Rect r) const;
+  // One line's thickness in DIPs: a whole number of pixels.
+  [[nodiscard]] float line() const { return line_; }
 
   void set_base(const D2D1_MATRIX_3X2_F& m) {
     base_ = m * moved_;
@@ -110,7 +159,21 @@ class Painter {
 
   void clear(Color c);
   void fill_rect(Rect r, Color c);
+  // A gradient across r, from the given corner to the other way the line runs. The stops
+  // must stay where they are: the brush is kept for them.
+  void fill_gradient(Rect r, D2D1_POINT_2F from, D2D1_POINT_2F to, std::span<const GradientStop> stops);
+  void fill_down(Rect r, std::span<const GradientStop> stops) {
+    fill_gradient(r, {r.x, r.y}, {r.x, r.bottom()}, stops);
+  }
+  // A line inside r's edge.
+  void frame(Rect r, Color c, float width = 1);
   void fill_round(Rect r, float radius, Color c);
+  void fill_round_gradient(Rect r, float radius, D2D1_POINT_2F from, D2D1_POINT_2F to, std::span<const GradientStop> stops);
+  void fill_round_down(Rect r, float radius, std::span<const GradientStop> stops) {
+    fill_round_gradient(r, radius, {r.x, r.y}, {r.x, r.bottom()}, stops);
+  }
+  // A line of this thickness inside the edge of a rounded box.
+  void stroke_round(Rect r, float radius, Color c, float width);
   void fill_ellipse(float cx, float cy, float rx, float ry, Color c);
   void fill_geometry(ID2D1Geometry* g, Color c);
   void stroke_geometry(ID2D1Geometry* g, Color c, float width, bool round_caps = true);
@@ -142,6 +205,8 @@ class Painter {
   const Gfx& gfx_;
   ID2D1RenderTarget* rt_;
   ComPtr<ID2D1SolidColorBrush> brush_;
+  bool classic_ = false;
+  float pixels_ = 1, line_ = 1;
   D2D1_MATRIX_3X2_F base_ = D2D1::Matrix3x2F::Identity();
   D2D1_MATRIX_3X2_F moved_ = D2D1::Matrix3x2F::Identity();
 };

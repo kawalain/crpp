@@ -6,14 +6,14 @@
 #include <cmath>
 
 #include "crpp/ui/controls.hpp"
+#include "crpp/ui/luna.hpp"
 
 namespace crpp::ui {
 
 namespace {
 
-constexpr const char* close_path = "M12 12 24 24M24 12 12 24";
 constexpr float card_w = 520, card_h = 480;   // .modal-card.changelog, .cl-scroll
-constexpr float pad_x = 28, head_top = 22, head_bottom = 14, head_right = 62, head_gap = 2, body_bottom = 24;
+constexpr float head_top = 22, head_bottom = 14, head_gap = 2, body_bottom = 24;
 constexpr float li_indent = 20, li_margin = 4, li_line = 24.8f, heading_top = 14, heading_bottom = 6;
 constexpr float hint_fade_ms = 180;                   // .cl-hint transition
 constexpr unsigned long long idle_reset_ms = 1800;    // IDLE_RESET
@@ -149,6 +149,8 @@ void ChangelogView::build(float width) {
   if (index_ >= entries_.size()) return;
   const ChangelogEntry& entry = entries_[index_];
   const Gfx& gfx = ui_.gfx;
+  const bool plain = !ui_.skin().moves();
+  const float pad_x = plain ? 12 : 28, head_right = plain ? 12 : 62, first_line = plain ? gfx.classic_size() + 4 : li_line;
 
   // .cl-head: a column with a gap, each line present only if it has text.
   const float head_w = width - pad_x - head_right;
@@ -183,7 +185,7 @@ void ChangelogView::build(float width) {
       if (block.kind == update::NoteKind::Bullet) {
         if (block.marker.empty()) {
           line.bullet_x = line.x - 11;
-          line.bullet_y = y + li_line / 2;
+          line.bullet_y = y + first_line / 2;
         } else {
           line.marker = widen(block.marker);
           line.marker_x = line.x - li_indent;
@@ -200,15 +202,19 @@ void ChangelogView::build(float width) {
 void ChangelogView::paint(Painter& p) {
   if (!open_) return;
   const Theme& t = ui_.theme;
-  const float w = std::min(card_w, ui_.width - 40);
-  const float h = std::min(card_h, ui_.height - 60);
-  if (!built_ || built_width_ != w) build(w);
+  // In a window of its own: all of it, with a scrollbar.
+  const bool plain = ui_.window != 0;
+  const float w = plain ? ui_.content.w : std::min(card_w, ui_.width - 40);
+  const float h = plain ? ui_.content.h : std::min(card_h, ui_.height - 60);
+  const float pad_x = plain ? 12 : 28;
+  const float text_w = plain ? w - luna::scrollbar_w : w;
+  if (!built_ || built_width_ != text_w) build(text_w);
 
   const float shown = transition(ui_, opened_at_, modal_pop_ms);
   const Rect card = paint_modal(ui_, this, p, w, h, shown, Backdrop, Card);
   // --cl-bg: color-mix(in srgb, var(--hl) 3%, var(--surface))
   const Color background = mix(t.hl, t.surface, 3);
-  p.fill_round(card, 14, with_alpha(background, shown));
+  if (ui_.skin().moves()) p.fill_round(card, 14, with_alpha(background, shown));
   const Color ink = with_alpha(t.hl_text, shown);
 
   const float view_h = card.h - head_h_;
@@ -222,7 +228,7 @@ void ChangelogView::paint(Painter& p) {
   scroll_.advance(ui_);
 
   if (entries_.empty()) {
-    p.text("변경사항을 불러오지 못했어요.", {card.x + pad_x, card.y + (card.h - 27) / 2, card.w - 2 * pad_x, 27},
+    p.text(tr().changelog_failed, {card.x + pad_x, card.y + (card.h - 27) / 2, card.w - 2 * pad_x, 27},
            {.size = 18, .weight = 700, .line_height = 27, .align = Align::Center}, ink);
   }
 
@@ -251,34 +257,55 @@ void ChangelogView::paint(Painter& p) {
   paint_head(date_, ink);
   paint_head(version_, with_alpha(t.hl_text_soft, shown));
 
-  // .cl-close: 36 across, 15 from the top and 16 from the right.
-  const Rect close{card.right() - 16 - 36, card.y + 15, 36, 36};
-  if (ui_.hot(this, Close)) p.fill_ellipse(close.x + 18, close.y + 18, 18, 18, with_alpha(t.hl_pale2, shown));
-  p.push(D2D1::Matrix3x2F::Translation(close.x, close.y));
-  p.stroke_geometry(ui_.gfx.path(close_path), with_alpha(t.hl, shown), 4.4f, false);
-  p.pop();
-  ui_.add_hit_window(this, close, Close);
+  if (plain && scroll_.max_offset() > 0) {
+    const Rect bar{card.right() - luna::scrollbar_w, body.y, luna::scrollbar_w, body.h};
+    const auto parts = luna::scrollbar_parts(bar, scroll_.view_h, scroll_.content_h, scroll_.offset);
+    bar_track_ = parts.track;
+    luna::scrollbar(p, t, parts, ui_.hot(this, BarThumb), false, false);
+    ui_.add_hit_window(this, bar, BarTrack);
+    ui_.add_hit_window(this, parts.thumb, BarThumb);
+  }
+
+  // .cl-close: 36 across, 15 from the top and 16 from the right. A window has its own.
+  if (!plain) {
+    const Rect close{card.right() - 16 - 36, card.y + 15, 36, 36};
+    ui_.skin().close_button(p, t, close, ui_.hot(this, Close), shown);
+    ui_.add_hit_window(this, close, Close);
+  }
 
   if (hint_shown_ != 0) {
     const float progress = transition(ui_, hint_changed_at_, hint_fade_ms);
     const float a = hint_ != 0 ? progress : 1 - progress;
     if (a > 0) {
-      const std::string_view text = hint_shown_ < 0 ? "위로 더 올리면\n최신 변경사항을 표시합니다."
-                                                    : "아래로 더 내리면\n이전 변경사항을 표시합니다.";
+      const std::string_view text = hint_shown_ < 0 ? tr().changelog_newer_hint
+                                                    : tr().changelog_older_hint;
       const TextStyle style{.size = 15, .weight = 700, .line_height = 22, .align = Align::Center, .wrap = true};
       DWRITE_TEXT_METRICS m{};
       if (const auto layout = ui_.gfx.layout(widen(text), style, card.w)) layout->GetMetrics(&m);
       const float bubble_w = m.widthIncludingTrailingWhitespace + 30, bubble_h = m.height + 10;
       const float settled = hint_shown_ < 0 ? card.y + 14 : card.bottom() - 14 - bubble_h;
       const Rect bubble{card.x + (card.w - bubble_w) / 2, settled + 4 * (1 - a), bubble_w, bubble_h};
-      p.fill_round(bubble, 11, with_alpha(t.hl, a));
-      p.text(text, {bubble.x, bubble.y + 5, bubble.w, m.height}, style, with_alpha(t.on_accent, a));
+      const Color written = ui_.skin().bubble(p, t, bubble, 11, t.hl, t.on_accent, a);
+      p.text(text, {bubble.x, bubble.y + 5, bubble.w, m.height}, style, written);
     }
   }
 }
 
-void ChangelogView::click(int id, float, float, bool) {
-  if (id == Close || id == Backdrop) close();
+void ChangelogView::click(int id, float, float y, bool) {
+  if (id == Close || id == Backdrop) {
+    close();
+  } else if (id == BarTrack) {
+    scroll_.step_towards(bar_track_, y);
+  } else if (id == BarThumb) {
+    ui_.capture = this;
+    grab_y_ = y;
+    grab_offset_ = scroll_.offset;
+  }
+}
+
+void ChangelogView::drag(float, float y) {
+  const float travel = std::max(1.0f, bar_track_.h - scroll_.thumb(bar_track_).h);
+  scroll_.jump_to(grab_offset_ + (y - grab_y_) * scroll_.max_offset() / travel);
 }
 
 bool ChangelogView::wheel(float, float, float delta) {

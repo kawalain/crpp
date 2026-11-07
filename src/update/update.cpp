@@ -179,21 +179,6 @@ std::string dump_releases(std::span<const Release> releases) {
   return store::Json(std::move(list)).dump();
 }
 
-std::string korean_date(std::string_view published_at) {
-  // YYYY-MM-DD at the start; the time of day is not shown.
-  if (published_at.size() < 10 || published_at[4] != '-' || published_at[7] != '-') return {};
-  for (const std::size_t i : {0u, 1u, 2u, 3u, 5u, 6u, 8u, 9u}) {
-    if (published_at[i] < '0' || published_at[i] > '9') return {};
-  }
-  std::string text(published_at.substr(0, 4));
-  text += "년 ";
-  text += published_at.substr(5, 2);
-  text += "월 ";
-  text += published_at.substr(8, 2);
-  text += "일";
-  return text;
-}
-
 Source published_source() {
   return {"https://api.github.com/repos/kawalain/crpp/releases?per_page=30",
           "https://github.com/kawalain/crpp/releases/download/"};

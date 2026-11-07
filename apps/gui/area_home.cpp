@@ -45,6 +45,8 @@ void wire(Shell& s) {
     const auto seat = sp->store->latest_seat(unix_ms());
     enter_room(*sp, ui::home::entry_for_return(seat ? std::optional(ui::home::HeldSeat{seat->code, seat->key}) : std::nullopt));
   };
+  home.held_seats = [sp] { return sp->store->seat_codes(unix_ms()); };
+  home.my_emoji = [sp] { return sp->store->string_or("emoji", ""); };
   home.held_seat_ms = [sp]() -> std::optional<std::uint64_t> {
     const auto now = unix_ms();
     const auto seat = sp->store->latest_seat(now);
@@ -58,6 +60,7 @@ namespace {
 // A Seat that lasts past any screenshot.
 void hold_a_seat(Shell& s) {
   s.app.home().held_seat_ms = []() -> std::optional<std::uint64_t> { return 60000; };
+  s.app.home().held_seats = [] { return std::vector<std::string>{"ABC234", "XYZ789"}; };
 }
 
 }  // namespace
@@ -65,7 +68,7 @@ void hold_a_seat(Shell& s) {
 bool scene(Shell& s, std::string_view name) {
   // "home-return@dark": any of this area's scenes in another theme.
   if (const auto at = name.find('@'); at != std::string_view::npos && name.starts_with("home")) {
-    s.app.set_theme(name.substr(at + 1) == "dark" ? ThemeId::DarkCloud : ThemeId::Pastel);
+    s.app.set_theme(name.substr(at + 1) == "dark" ? "darkcloud" : "pastel");
     name = name.substr(0, at);
   }
   if (name == "home-hover") {
@@ -93,11 +96,11 @@ bool scene(Shell& s, std::string_view name) {
     return true;
   }
   if (name == "toast") {
-    s.app.toasts().toast("서버 연결이 종료되었습니다.");
+    s.app.toasts().toast(tr().lost_server);
     return true;
   }
   if (name == "dialog") {
-    s.app.dialogs().show({"설정에서 변경한 모든 값을\n초기화 할까요?", "초기화", "취소", false, nullptr, nullptr});
+    s.app.dialogs().show({tr().system_reset_question, tr().system_reset_confirm, tr().cancel, false, nullptr, nullptr});
     return true;
   }
   if (name == "home-bubble") {  // the real path of a code that is too short
@@ -106,7 +109,7 @@ bool scene(Shell& s, std::string_view name) {
   }
   if (name == "home-bubble-find") {
     s.app.home().click(HomeScreen::Find, 0, 0, false);
-    s.app.home().show_error("공개된 구름을 찾을 수 없어요.");
+    s.app.home().show_error(tr().join_no_public);
     return true;
   }
   return name == "home";

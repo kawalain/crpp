@@ -9,12 +9,12 @@ namespace crpp::ui {
 namespace {
 
 std::string_view server_error_text(std::string_view code) {
-  if (code == "not_found") return "구름을 찾지 못했습니다.";
-  if (code == "room_full") return "구름이 가득 찼습니다.";
-  if (code == "already_in_room") return "이미 구름에 참가 중입니다.";
-  if (code == "server_full") return "서버가 가득 찼습니다.";
-  if (code == "no_public_rooms") return "공개된 구름을 찾을 수 없어요.";
-  return "참가하지 못했습니다.";
+  if (code == "not_found") return tr().join_not_found;
+  if (code == "room_full") return tr().join_room_full;
+  if (code == "already_in_room") return tr().join_already_in_room;
+  if (code == "server_full") return tr().join_server_full;
+  if (code == "no_public_rooms") return tr().join_no_public;
+  return tr().join_failed;
 }
 
 }  // namespace
@@ -23,12 +23,12 @@ std::string_view failure_text(session::Failure reason, std::string_view detail, 
   using session::Failure;
   switch (reason) {
     case Failure::Unauthorized:
-      return in_room ? "로그인 인증이 만료되어 구름에 다시 연결할 수 없습니다."
-                     : "로그인 인증이 만료되어 구름에 연결할 수 없습니다.";
+      return in_room ? tr().lost_token_in_room
+                     : tr().lost_token;
     case Failure::ConnectFailed:
-      if (detail == session::detail_closed) return "구름 서버 연결 실패: 연결이 종료되었습니다.";
-      if (detail == session::detail_no_reply) return "서버가 구름 생성 응답을 보내지 않았습니다.";
-      return "서버에 연결하지 못했습니다.";
+      if (detail == session::detail_closed) return tr().connect_closed;
+      if (detail == session::detail_no_reply) return tr().connect_no_reply;
+      return tr().connect_failed;
     case Failure::RoomGone:
       return server_error_text("not_found");
     case Failure::ServerError:
@@ -36,9 +36,9 @@ std::string_view failure_text(session::Failure reason, std::string_view detail, 
     case Failure::InvalidArgument:
       return server_error_text(detail == "code" ? "not_found" : "");
     case Failure::RoomClosed:
-      return "구름이 닫혀 다시 연결하지 못했어요.";
+      return tr().lost_room_closed;
     case Failure::GraceExpired:
-      return "서버 연결이 종료되었습니다.";
+      return tr().lost_server;
   }
   return server_error_text("");
 }

@@ -45,7 +45,7 @@ void change_emoji(Shell& s, const std::string& id) {
 void demo_session(App& app, bool chat) {
   app.show_session("ABC234");
   if (chat) {
-    const long long now = static_cast<long long>(std::time(nullptr)) * 1000;
+    const long long now = wall_clock_seconds() * 1000;
     app.room().chat().add({0, "c0", "크롬이", "1f600", "안녕하세요! 처음 뵙겠습니다.", now - 400000});
     app.room().chat().add({0, "c0", "크롬이", "1f600", "같은 사람이 5분 안에 보낸 메시지는 묶여요.", now - 390000});
     app.room().chat().add({1, "c1", "하늘", "1f431", "반가워요 :)\n두 줄짜리 메시지도 잘 보이나요?", now - 120000});
@@ -91,7 +91,7 @@ void wire(Shell& s) {
 bool scene(Shell& s, std::string_view name) {
   // Any of these in the dark theme: "room-menu-dark".
   if (name.starts_with("room-") && name.ends_with("-dark")) {
-    s.app.set_theme(ThemeId::DarkCloud);
+    s.app.set_theme("darkcloud");
     name.remove_suffix(5);
   }
   if (name == "session") {
@@ -129,7 +129,7 @@ bool scene(Shell& s, std::string_view name) {
   if (name == "room-calm") {
     demo_session(s.app, true);
     ChatPanel& chat = s.app.room().chat();
-    chat.add({1, "c1", "하늘", "1f431", "자료는 https://example.com/docs?page=1 에 있어요.", static_cast<long long>(std::time(nullptr)) * 1000});
+    chat.add({1, "c1", "하늘", "1f431", "자료는 https://example.com/docs?page=1 에 있어요.", wall_clock_seconds() * 1000});
     chat.blocked(5000);
     return true;
   }

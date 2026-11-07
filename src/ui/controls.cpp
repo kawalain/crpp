@@ -36,47 +36,21 @@ void paint_switch(Painter& p, const Theme& t, Rect r, bool on, bool disabled, bo
 }
 
 void paint_switch_at(Painter& p, const Theme& t, Rect r, bool on, float at, bool disabled, bool hot) {
-  const float a = disabled ? 0.5f : 1.0f;
-  Color track = on ? t.hl : (t.dark ? t.hl_pale2 : rgb(0xcfe3ef));
-  if (hot && !disabled) track = mix(rgb(0x000000), track, 5);
-  p.fill_round(r, 14, with_alpha(track, a));
-  const float knob = r.h - 6;
-  const float tx = r.x + 3 + (r.w - r.h) * at;
-  p.fill_ellipse(tx + knob / 2, r.y + r.h / 2, knob / 2, knob / 2,
-                 with_alpha(t.dark ? (on ? t.on_accent : t.hl_text_soft) : t.surface, a));
+  skin_of(t).switch_at(p, t, r, on, at, disabled, hot);
 }
 
 void paint_slider(Painter& p, const Theme& t, Rect r, int value, int min, int max) {
-  constexpr float thumb = 21;
-  const float cy = r.y + r.h / 2;
-  const float at = static_cast<float>(value - min) / static_cast<float>(max - min);
-  const float pos = r.x + thumb / 2 + (r.w - thumb) * at;
-  p.fill_round({r.x, cy - 3, r.w, 6}, 3, t.hl_pale2);
-  p.fill_round({r.x, cy - 3, pos - r.x, 6}, 3, t.hl);
-  p.fill_ellipse(pos, cy, thumb / 2, thumb / 2, t.hl);
-  p.fill_ellipse(pos, cy, thumb / 2 - 2, thumb / 2 - 2, t.dark ? t.hl_text_dark : t.surface);
+  skin_of(t).slider(p, t, r, static_cast<float>(value - min) / static_cast<float>(max - min));
 }
 
 int slider_value(Rect r, float x, int min, int max) {
-  constexpr float thumb = 21;
-  const float at = std::clamp((x - r.x - thumb / 2) / (r.w - thumb), 0.0f, 1.0f);
+  const float at = std::clamp((x - r.x - slider_thumb / 2) / (r.w - slider_thumb), 0.0f, 1.0f);
   return min + static_cast<int>(std::lround(at * static_cast<float>(max - min)));
 }
 
 void Dropdown::paint_button(Ui& ui, Surface* owner, Painter& p, Rect r) const {
-  const Theme& t = ui.theme;
-  const float a = disabled ? 0.5f : 1.0f;
-  const bool hot = !disabled && ui.hot(owner, id_base);
-  const Color fill = open ? t.hl_soft : hot ? t.hl_dark : t.hl;
-  p.fill_round(r, 10, with_alpha(fill, a));
-  if (selected >= 0 && selected < static_cast<int>(options.size())) {
-    p.text(options[static_cast<std::size_t>(selected)], {r.x + 12, r.y, r.w - 48, r.h},
-           {.size = 17, .weight = 700, .line_height = r.h, .ellipsis = true}, with_alpha(t.on_accent, a));
-  }
-  const float cx = r.right() - 13 - 7, cy = r.y + r.h / 2;
-  const Color chevron = rgb(0xFFFFFF, a);
-  p.stroke_line(cx - 6, cy - 3, cx, cy + 3, chevron, 2);
-  p.stroke_line(cx, cy + 3, cx + 6, cy - 3, chevron, 2);
+  const std::string_view text = selected >= 0 && selected < static_cast<int>(options.size()) ? std::string_view(options[static_cast<std::size_t>(selected)]) : std::string_view{};
+  ui.skin().dropdown_button(p, ui.theme, r, text, open, !disabled && ui.hot(owner, id_base), disabled);
   ui.add_hit(owner, r, id_base);
 }
 
@@ -86,10 +60,10 @@ void Dropdown::paint_list(Ui& ui, Surface* owner, Painter& p, Rect r) {
     return;
   }
   const Theme& t = ui.theme;
-  constexpr float pad = 6, item_h = 38, gap = 4, max_h = 224;  // li: padding 9 12, 20 tall, 4 apart
+  const auto [pad, item_h, gap, max_h, margin] = ui.skin().list_metrics();
   const float content = static_cast<float>(options.size()) * (item_h + gap) - gap + 2 * pad;
   const float h = std::min(content, max_h);
-  list_ = {r.x, up ? r.y - 6 - h : r.bottom() + 6, r.w, h};
+  list_ = {r.x, up ? r.y - margin - h : r.bottom() + margin, r.w, h};
   scroll_.view_h = h;
   scroll_.content_h = content;
   scroll_.clamp();
@@ -104,8 +78,7 @@ void Dropdown::paint_list(Ui& ui, Surface* owner, Painter& p, Rect r) {
     ui.more_frames = true;
     p.push_opacity(shown, {list_.x - blur, list_.y - blur, list_.w + 2 * blur, list_.h + 2 * blur + drop});
   }
-  p.shadow_round(list_, 14, blur, drop, t.dark ? rgb(0x000000, 0.33f) : rgb(0x2e78aa, 0.22f));
-  p.fill_round(list_, 14, t.surface);
+  ui.skin().panel(p, t, list_, PanelKind::List);
   ui.push_hit_clip(ui.to_window(list_));
   p.rt()->PushAxisAlignedClip(D2D1::RectF(list_.x, list_.y, list_.right(), list_.bottom()),
                               D2D1_ANTIALIAS_MODE_PER_PRIMITIVE);
@@ -114,13 +87,7 @@ void Dropdown::paint_list(Ui& ui, Surface* owner, Painter& p, Rect r) {
   for (std::size_t i = 0; i < options.size(); ++i, y += item_h + gap) {
     const int id = id_base + 1 + static_cast<int>(i);
     const Rect item{list_.x + pad, y, list_.w - 2 * pad, item_h};
-    const bool is_selected = static_cast<int>(i) == selected;
-    const bool hot = ui.hot(owner, id);
-    if (is_selected) p.fill_round(item, 9, t.hl);
-    else if (hot) p.fill_round(item, 9, t.hl_soft);
-    p.text(options[i], {item.x + 12, item.y + 9, item.w - 24, 20},
-           {.size = 16, .weight = is_selected ? 700 : 400, .line_height = 20, .ellipsis = true},
-           is_selected || hot ? t.on_accent : t.hl_text);
+    ui.skin().list_item(p, t, item, options[i], static_cast<int>(i) == selected, ui.hot(owner, id));
     ui.add_hit(owner, item, id);
   }
   pop_edge_fade(p, fade);
@@ -213,6 +180,12 @@ Rect Scroll::thumb(Rect track) const {
   return {track.x, y, track.w, h};
 }
 
+void Scroll::step_towards(Rect track, float y, float line) {
+  if (y < track.y) jump_to(offset - line);
+  else if (y >= track.bottom()) jump_to(offset + line);
+  else jump_to(y < thumb(track).y ? offset - view_h : offset + view_h);
+}
+
 void Scroll::drag_thumb(Rect track, float y) {
   const Rect t = thumb(track);
   const float room = track.h - t.h;
@@ -222,26 +195,27 @@ void Scroll::drag_thumb(Rect track, float y) {
 
 void paint_scrollbar(Painter& p, const Theme& t, const Scroll& scroll, Rect track, bool hot) {
   if (scroll.max_offset() <= 0) return;
-  p.fill_round(scroll.thumb(track), 5, hot ? t.hl_soft : t.hl_pale2);
+  skin_of(t).scrollbar(p, t, scroll.thumb(track), hot ? 1.0f : 0.0f, 1);
 }
 
 Rect paint_modal(Ui& ui, Surface* owner, Painter& p, float w, float h, float shown, int backdrop_id, int card_id) {
   p.set_base(D2D1::Matrix3x2F::Identity());
+  if (ui.window != 0) {  // it has the window to itself, frame and all
+    ui.add_hit_window(owner, ui.content, card_id);
+    return ui.content;
+  }
   const Rect window{0, 0, ui.width, ui.height};
-  // .modal-backdrop's fade is a little shorter than the card's rise.
-  p.fill_rect(window, rgb(0x365669, 0.34f * std::min(1.0f, shown * modal_pop_ms / modal_fade_ms)));
-  ui.add_hit_window(owner, window, backdrop_id);
-  const Rect settled{(ui.width - w) / 2, (ui.height - h) / 2, w, h};
+  ui.skin().backdrop(p, ui.theme, window, shown);
+  ui.add_hit_window(owner, ui.modal_area, backdrop_id);
+  const Rect settled{ui.content.x + (ui.content.w - w) / 2, ui.content.y + (ui.content.h - h) / 2, w, h};
   const Rect card{settled.x, settled.y + 6 * (1 - shown), w, h};
-  p.shadow_round(card, 14, ui.theme.dark ? 38.0f : 16.0f, ui.theme.dark ? 12.0f : 4.0f,
-                 ui.theme.dark ? rgb(0x000000, 0.33f * shown) : rgb(0x2e78aa, 0.22f * shown));
-  p.fill_round(card, 14, with_alpha(ui.theme.surface, shown));
+  ui.skin().panel(p, ui.theme, card, PanelKind::Modal, shown);
   ui.add_hit_window(owner, settled, card_id);
   return card;
 }
 
 bool push_edge_fade(Ui& ui, Painter& p, Rect area, float top, float bottom) {
-  if (top <= 0 && bottom <= 0) return false;
+  if ((top <= 0 && bottom <= 0) || !ui.skin().moves()) return false;
   ID2D1LinearGradientBrush* mask = ui.edge_fade_mask(p, area, top, bottom);
   if (!mask) return false;
   mask->SetStartPoint(D2D1::Point2F(0, area.y));
@@ -253,14 +227,7 @@ bool push_edge_fade(Ui& ui, Painter& p, Rect area, float top, float bottom) {
 }
 
 void paint_modal_button(Ui& ui, Surface* owner, Painter& p, Rect r, std::string_view label, bool primary, float shown, int id) {
-  const Theme& t = ui.theme;
-  const bool hot = ui.hot(owner, id);
-  if (hot) p.push(scale_about(r.x + r.w / 2, r.y + r.h / 2, 1.04f));
-  const Color fill = primary ? (hot ? t.hl_dark : t.hl) : (hot ? t.hl_soft : t.hl_pale2);
-  const Color ink = primary || hot ? t.on_accent : t.hl_text;
-  p.fill_round(r, 10, with_alpha(fill, shown));
-  p.text(label, r, {.size = 16, .weight = 700, .line_height = r.h, .align = Align::Center}, with_alpha(ink, shown));
-  if (hot) p.pop();
+  ui.skin().button(p, ui.theme, r, label, {.kind = ButtonKind::Modal, .primary = primary, .hot = ui.hot(owner, id), .shown = shown});
   ui.add_hit_window(owner, r, id);
 }
 

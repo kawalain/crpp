@@ -12,23 +12,27 @@ constexpr Rect logout_rect{550 - 16 - 154, 440, 154, 38};
 }  // namespace
 
 void AccountTab::paint(Painter& p, Rect area) {
+  if (!ui_.skin().scales_stage()) {
+    paint_luna(p, area);
+    return;
+  }
   const Theme& t = ui_.theme;
-  p.text("계정", {area.x + 9, area.y + 25, 400, 32}, {.size = 26, .weight = 700, .line_height = 32}, t.hl_text);
+  p.text(tr().account_heading, {area.x + 9, area.y + 25, 400, 32}, {.size = 26, .weight = 700, .line_height = 32}, t.hl_text);
 
   // .profile: the icon and the names beside it.
   const Rect icon{area.x + 16, area.y + 76, 72, 72};
   const bool icon_hot = ui_.hot(this, Emoji);
   const float cx = icon.x + 36, cy = icon.y + 36;
   if (icon_hot) p.push(scale_about(cx, cy, 1.05f));
-  p.fill_ellipse(cx, cy, 36, 36, icon_hot ? t.hl_pale2 : t.hl_pale);
+  ui_.skin().avatar(p, t, icon, 1, icon_hot, 1);
   draw_svg(p, ui_.emoji_image(profile_.emoji), {cx - 23, cy - 23, 46, 46});
   if (icon_hot) p.pop();
   ui_.add_hit(this, icon, Emoji);
   if (icon_hot) {  // .tip
     constexpr float tip_w = 112, tip_h = 32;
     const Rect r{cx - tip_w / 2, icon.y - 8 - tip_h, tip_w, tip_h};
-    p.fill_round(r, 11, t.hl);
-    p.text("아이콘 변경", {r.x, r.y + 5, r.w, 22}, {.size = 16, .weight = 700, .line_height = 22, .align = Align::Center}, t.on_accent);
+    const Color written = ui_.skin().bubble(p, t, r, 11, t.hl, t.on_accent, 1);
+    p.text(tr().profile_change_icon, {r.x, r.y + 5, r.w, 22}, {.size = 16, .weight = 700, .line_height = 22, .align = Align::Center}, written);
   }
 
   const float names_x = icon.right() + 18;
@@ -42,20 +46,16 @@ void AccountTab::paint(Painter& p, Rect area) {
   }
 
   const auto button = [&](Rect r, std::string_view label, int id) {
-    const bool hot = ui_.hot(this, id);
-    if (hot) p.push(scale_about(r.x + r.w / 2, r.y + r.h / 2, 1.03f));
-    p.fill_round(r, 8, hot ? t.hl_dark : t.hl);
-    p.text(label, r, {.size = 17, .line_height = r.h, .align = Align::Center}, t.on_accent);
-    if (hot) p.pop();
+    ui_.skin().button(p, t, r, label, {.kind = ButtonKind::Account, .hot = ui_.hot(this, id)});
     ui_.add_hit(this, r, id);
   };
   // .account-buttons
-  button({area.x + 16, area.y + 165, 154, 38}, "별명 변경", Nickname);
-  if (profile_.has_account) button({area.x + 16 + 154 + 12, area.y + 165, 154, 38}, "사용자명 변경", Handle);
-  button({area.x + logout_rect.x, area.y + logout_rect.y, logout_rect.w, logout_rect.h}, "로그아웃", Logout);
+  button({area.x + 16, area.y + 165, 154, 38}, tr().account_change_nickname, Nickname);
+  if (profile_.has_account) button({area.x + 16 + 154 + 12, area.y + 165, 154, 38}, tr().account_change_handle, Handle);
+  button({area.x + logout_rect.x, area.y + logout_rect.y, logout_rect.w, logout_rect.h}, tr().account_logout, Logout);
 }
 
-float AccountTab::content_height() const { return logout_rect.bottom() + bottom_pad; }
+float AccountTab::content_height() const { return ui_.skin().scales_stage() ? logout_rect.bottom() + bottom_pad : flow_height_; }
 
 void AccountTab::click(int id, float, float, bool) {
   switch (id) {

@@ -26,7 +26,13 @@ HomeScreen::HomeScreen(Ui& ui) : Surface(ui) {
   code_.uppercase = true;
 }
 
+TextStyle HomeScreen::field_style() const { return ui_.skin().scales_stage() ? code_style : luna_code_style(); }
+
 void HomeScreen::paint(Painter& p) {
+  if (!ui_.skin().scales_stage()) {
+    paint_luna(p);
+    return;
+  }
   refresh_seat(ui_.now_ms);
   const Theme& t = ui_.theme;
   // Sky: the large cloud at lower right, then the create cloud at upper left.
@@ -36,21 +42,21 @@ void HomeScreen::paint(Painter& p) {
   create_hover_.aim(ui_.hot(this, Create), now, animate);
   p.push(scale_about(182, 260, 1 + 0.03f * create_hover_.value(now)));
   p.cloud(ui_.cloud(), cloud_x, cloud_y, 1, 0.06f, 3.742f, t);
-  p.text("구름 띄우기", {0, 318, 458, 110}, {.size = 44, .line_height = 110, .align = Align::Center}, t.hl_text);
+  p.text(tr().home_create, {0, 318, 458, 110}, {.size = 44, .line_height = 110, .align = Align::Center}, t.hl_text);
   p.pop();
   ui_.add_hit(this, {-66, 100, 500, 330}, Create);
 
   // Greeting.
-  const char* hello = hour_ >= 5 && hour_ < 12    ? "좋은 아침이에요"
-                      : hour_ >= 12 && hour_ < 18 ? "좋은 오후예요"
-                      : hour_ >= 18 && hour_ < 22 ? "좋은 저녁이에요"
-                                                  : "좋은 밤이에요";
+  const char* hello = hour_ >= 5 && hour_ < 12    ? tr().home_morning
+                      : hour_ >= 12 && hour_ < 18 ? tr().home_afternoon
+                      : hour_ >= 18 && hour_ < 22 ? tr().home_evening
+                                                  : tr().home_night;
   const TextStyle greeting{.size = 44, .line_height = 44, .align = Align::Center};
   p.text(hello, {440, 108, 420, 44}, greeting, t.dark ? t.hl_text_dark : rgb(0xFFFFFF));
-  p.text(nickname_ + " 님!", {440, 108 + 44 + 13, 420, 44}, greeting, t.dark ? t.hl_text_dark : rgb(0xFFFFFF));
+  p.text(locale::fill(tr().home_hello, {nickname_}), {440, 108 + 44 + 13, 420, 44}, greeting, t.dark ? t.hl_text_dark : rgb(0xFFFFFF));
 
   // Find a cloud.
-  p.text("구름 찾기", {470, 452, 400, 60}, {.size = 40, .line_height = 60}, t.hl_text);
+  p.text(tr().home_find, {470, 452, 400, 60}, {.size = 40, .line_height = 60}, t.hl_text);
 
   const Rect entry{469, 522, 279, 80};
   const bool focused = ui_.focus == &code_;
@@ -61,7 +67,7 @@ void HomeScreen::paint(Painter& p) {
   const Color faint = with_alpha(t.dark ? t.hl_text_soft : rgb(0xFFFFFF), t.dark ? 1.0f : 0.85f);
   const Color input_text = t.dark ? t.hl_text : t.on_accent;
   const Rect field{entry.x + 18, entry.y + 10, 205, 60};
-  ui_.caret = ui_.to_window(code_.paint(p, field, code_style, input_text, L"코드 입력", {.size = 26, .line_height = 60},
+  ui_.caret = ui_.to_window(code_.paint(p, field, code_style, input_text, widen(tr().home_code_placeholder), {.size = 26, .line_height = 60},
                                         faint, input_text, with_alpha(t.hl, 0.4f), focused, ui_.caret_on));
 
   // Enter arrow.
@@ -107,10 +113,10 @@ void HomeScreen::paint(Painter& p) {
   }
   if (const float shown = search_tip_.value(now); shown > 0) {
     // The label is the button's child, so it scales with it.
-    constexpr const char* label = "공개된 구름 찾기";
+    const char* label = tr().home_find_public;
     const float w = tip_width(ui_, label), h = tip_height();
     p.push(button_scale);
-    paint_tip(p, {search.x + (search.w - w) / 2, search.y - 8 - h + 4 * (1 - shown), w, h}, label, t.hl, t.on_accent, shown);
+    paint_tip(p, t, {search.x + (search.w - w) / 2, search.y - 8 - h + 4 * (1 - shown), w, h}, label, t.hl, t.on_accent, shown);
     p.pop();
   }
   ui_.add_hit(this, search, Find);
@@ -120,9 +126,9 @@ bool HomeScreen::tip_wanted(unsigned long long now) const { return ui_.hot(this,
 
 void HomeScreen::paint_return(Painter& p) {
   if (!return_open_) return;
-  constexpr const char* question = "이전에 참가했던 구름으로\n돌아갈까요?";
-  constexpr const char* confirm = "돌아가기";
-  constexpr const char* random = "무작위 참가";
+  const char* question = tr().home_return_question;
+  const char* confirm = tr().home_return;
+  const char* random = tr().home_random;
   // .modal-card p, .modal-card button: a button grows past its minimum with its label.
   constexpr float pad_top = 24, pad_x = 25, pad_bottom = 20, gap = 20, button_h = 38, button_gap = 10;
   const TextStyle body{.size = 18, .weight = 700, .line_height = 27, .align = Align::Center, .wrap = true};
@@ -154,7 +160,7 @@ void HomeScreen::refresh_seat(unsigned long long now) {
 }
 
 bool HomeScreen::accepts(int id, float x, float y) const {
-  if (id != Create) return true;
+  if (id != Create || !ui_.skin().scales_stage()) return true;
   // The click area is the cloud's shape, not a rectangle.
   BOOL inside = FALSE;
   if (ID2D1PathGeometry* const shape = ui_.cloud()) {
@@ -169,7 +175,7 @@ void HomeScreen::join() {
   last_action_ = Join;
   const auto code = home::normalize_code(code_.text());
   if (!code) {
-    show_error(home::code_length_error);
+    show_error(tr().home_code_length);
     return;
   }
   if (on_join) on_join(narrow(*code));
@@ -178,7 +184,8 @@ void HomeScreen::join() {
 void HomeScreen::find() {
   if (is_busy()) return;
   refresh_seat(clock_ms());
-  if (home::find_step(returning()) == home::FindStep::AskReturn) {
+  // A Skin that lists the Seats has no need to ask.
+  if (ui_.skin().scales_stage() && home::find_step(returning()) == home::FindStep::AskReturn) {
     return_open_ = true;
     return_opened_at_ = clock_ms();
     was_moving_ = true;
@@ -195,16 +202,16 @@ void HomeScreen::left_home() {
 
 void HomeScreen::show_error(std::string text) {
   if (last_action_ == Join) {
-    ui_.toasts->bubble(ui_.to_window({469 + 221, 522 + 10, 52, 60}), std::move(text), 18);
+    ui_.toasts->bubble(ui_.to_window(join_rect_), std::move(text), 18);
   } else if (last_action_ == Find) {
-    ui_.toasts->bubble(ui_.to_window({759, 522, 92, 80}), std::move(text));
+    ui_.toasts->bubble(ui_.to_window(find_rect_), std::move(text));
     tip_muted_until_ = clock_ms() + Toasts::default_ms + 200;  // .notifying > .tip
   } else {
     ui_.toasts->toast(std::move(text));
   }
 }
 
-void HomeScreen::drag(float x, float) { code_.click_at(ui_.gfx, code_style, ui_.to_stage_x(x) - (469 + 18), true); }
+void HomeScreen::drag(float x, float) { code_.click_at(ui_.gfx, field_style(), ui_.to_stage_x(x) - code_x_, true); }
 
 void HomeScreen::click(int id, float x, float, bool shift) {
   switch (id) {
@@ -219,7 +226,7 @@ void HomeScreen::click(int id, float x, float, bool shift) {
       break;
     case Code:
       ui_.set_focus(this, &code_);
-      code_.click_at(ui_.gfx, code_style, ui_.to_stage_x(x) - (469 + 18), shift);
+      code_.click_at(ui_.gfx, field_style(), ui_.to_stage_x(x) - code_x_, shift);
       ui_.capture = this;
       break;
     case Find:
@@ -241,6 +248,14 @@ void HomeScreen::click(int id, float x, float, bool shift) {
       if (on_find_public) on_find_public();
       break;
     default:
+      if (id >= SeatBase && !is_busy() && held_seats && on_join) {
+        const std::vector<std::string> seats = held_seats();
+        const auto index = static_cast<std::size_t>(id - SeatBase);
+        if (index < seats.size()) {
+          last_action_ = Create;  // the list is what tried, so a failure goes to the top
+          on_join(seats[index]);
+        }
+      }
       break;
   }
 }

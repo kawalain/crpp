@@ -34,6 +34,12 @@ void HoverTip::paint(Ui& ui, Painter& p, const Spec* want) {
   const float alpha = shown_ ? moved : 1 - moved;
   if (alpha <= 0) return;
 
+  if (!ui.skin().moves()) {  // a small box against what it is about
+    spec_.pad_x = 4;
+    spec_.pad_y = 1;
+    spec_.line_height = 16;
+    spec_.gap = std::min(spec_.gap, 3.0f);
+  }
   const TextStyle style{.size = spec_.size,
                         .weight = spec_.weight,
                         .line_height = spec_.line_height,
@@ -56,8 +62,8 @@ void HoverTip::paint(Ui& ui, Painter& p, const Spec* want) {
   const Theme& t = ui.theme;
   const Color fill = spec_.fill.value_or(t.hl);
   const Color ink = spec_.ink.value_or(t.on_accent);
-  p.fill_round({x, y, w, h}, spec_.radius, with_alpha(fill, fill.a * alpha));
-  p.text(spec_.text, {x + spec_.pad_x, y + spec_.pad_y, w - 2 * spec_.pad_x, h - 2 * spec_.pad_y}, style, with_alpha(ink, alpha));
+  const Color written = ui.skin().bubble(p, t, {x, y, w, h}, spec_.radius, fill, ink, alpha);
+  p.text(spec_.text, {x + spec_.pad_x, y + spec_.pad_y, w - 2 * spec_.pad_x, h - 2 * spec_.pad_y}, style, written);
 }
 
 bool HoverTip::animating(const Ui& ui) const {

@@ -88,6 +88,10 @@ void PromptScreen::paint(Painter& p) {
     if (std::string other = prompt_.hint_for(narrow(seen_)); !other.empty()) hint_shown_ = std::move(other);
   }
   const bool hint_error = is_locked || !prompt_.error.empty();
+  if (!ui_.skin().scales_stage()) {
+    paint_luna(p, is_locked, hint_error);
+    return;
+  }
   const TextStyle hint_style{.size = 14, .line_height = 21, .wrap = true};
   float hint_h = 24;
   if (const auto layout = ui_.gfx.layout(widen(hint_shown_), hint_style, inner - 8)) {
@@ -206,7 +210,7 @@ void PromptScreen::paint(Painter& p) {
   };
   if (has_actions) {
     y += 14;
-    if (prompt_.cancelable) button("← 돌아가기", left, y, Back);
+    if (prompt_.cancelable) button(tr().prompt_back, left, y, Back);
     if (!prompt_.extra.empty()) {
       float x = left + inner;
       if (!prompt_.extra2.empty()) {
@@ -232,14 +236,16 @@ void PromptScreen::submit() {
   if (on_submit) on_submit(std::move(text));
 }
 
-void PromptScreen::drag(float x, float) { field_.click_at(ui_.gfx, input_style, x - text_x_ + scroll_x_, true); }
+TextStyle PromptScreen::field_style() const { return ui_.skin().scales_stage() ? input_style : luna_field_style(); }
+
+void PromptScreen::drag(float x, float) { field_.click_at(ui_.gfx, field_style(), x - text_x_ + scroll_x_, true); }
 
 void PromptScreen::click(int id, float x, float, bool shift) {
   take_focus();
   switch (id) {
     case Field:
       if (lock_until_ != 0) return;
-      field_.click_at(ui_.gfx, input_style, x - text_x_ + scroll_x_, shift);
+      field_.click_at(ui_.gfx, field_style(), x - text_x_ + scroll_x_, shift);
       ui_.capture = this;
       return;
     case Eye:

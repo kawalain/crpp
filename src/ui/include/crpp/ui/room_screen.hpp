@@ -49,10 +49,11 @@ class RoomScreen final : public Surface {
   std::function<void(const std::string& id)> on_pick_emoji;
 
   // Hit ids tests click by.
-  enum Id : int { Leave, Mute, More, OptCode, OptPublic, OptChat, VolumeSlider, Popup, MemberBase = 1000 };
+  enum Id : int { Leave, Mute, More, OptCode, OptPublic, OptChat, VolumeSlider, Popup, MembersBar, MemberBase = 1000 };
 
   [[nodiscard]] ChatPanel& chat() { return chat_panel_; }
   [[nodiscard]] ProfileCard& profile_card() { return profile_; }
+  [[nodiscard]] const ProfileCard& profile_card() const { return profile_; }
   [[nodiscard]] MemberMenu& member_menu() { return menu_; }
   // The profile card and the member menu, which speak about the Room as it was.
   void close_member_popups();
@@ -86,6 +87,7 @@ class RoomScreen final : public Surface {
   void click(int id, float x, float y, bool shift) override;
   bool right_click(int id, float x, float y) override;
   void drag(float x, float y) override;
+  void release() override { members_held_ = false; }
   bool wheel(float x, float y, float delta) override;
   bool escape() override;
   [[nodiscard]] Cursor cursor(int id) const override;
@@ -106,6 +108,11 @@ class RoomScreen final : public Surface {
   };
 
   [[nodiscard]] Layout layout() const;
+  void paint_luna(Painter& p);
+  void paint_members_luna(Painter& p, Rect area, int cols);
+  void paint_options_luna(Painter& p);
+  void paint_mute_luna(Painter& p);
+  [[nodiscard]] static Rect luna_picture_of(Rect box);
   void paint_controls(Painter& p);
   void paint_options_popup(Painter& p);
   void paint_mute_popup(Painter& p);
@@ -167,6 +174,9 @@ class RoomScreen final : public Surface {
   Scroll members_scroll_;
   std::vector<std::pair<std::uint32_t, unsigned long long>> arrivals_;  // slot, when it arrived
   Rect members_area_;  // window coordinates
+  Rect members_track_;
+  bool members_held_ = false;
+  float members_grab_y_ = 0, members_grab_offset_ = 0;
   // Where the labelled things were last drawn, window coordinates.
   Rect fab_rects_[3], code_rect_, public_rect_, chat_rect_;
   std::vector<std::pair<std::uint32_t, Rect>> member_rects_;

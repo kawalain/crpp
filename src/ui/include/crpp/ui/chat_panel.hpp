@@ -33,11 +33,13 @@ class ChatPanel final : public Surface {
 
   // Fixed values plus LinkBase + message number * links_per_entry + link index. A message's
   // number stays when older ones leave the log, so a drawn id never means another message.
-  enum Id : int { Input, Send, Area, LinkBase = 1000 };
+  enum Id : int { Input, Send, Area, BarUp, BarDown, BarTrack, BarThumb, LinkBase = 1000 };
   static constexpr int links_per_entry = 64;
 
   // chatScale, percent: the whole list zooms, the compose box does not (.chat-list).
   void set_scale(int percent) { zoom_ = static_cast<float>(percent) / 100; }
+  // The rows hold their times and names, laid out.
+  void locale_changed() { dirty_ = true; }
   void set_use_24h(bool on) {
     if (on != use_24h_) dirty_ = true;  // the rows hold their times, laid out
     use_24h_ = on;
@@ -57,10 +59,12 @@ class ChatPanel final : public Surface {
 
   void paint(Painter& p, Rect panel);  // window coordinates
   void click(int id, float x, float y, bool shift) override;
+  void drag(float x, float y) override;
   bool wheel(float x, float y, float delta) override;
   void enter(bool shift) override;
   bool key(unsigned vk, bool ctrl, bool shift) override;
   [[nodiscard]] Cursor cursor(int id) const override;
+  [[nodiscard]] bool is_link(int id) const override { return id >= LinkBase; }
   [[nodiscard]] bool animating() const override;
   bool tick(unsigned long long now_ms) override;
   [[nodiscard]] unsigned long long wake_at() const override { return limiter_.wake_at(); }
@@ -78,6 +82,14 @@ class ChatPanel final : public Surface {
     float time_w = 0;
   };
 
+  void paint_luna(Painter& p, Rect panel);
+  void append_row_luna(std::size_t index, float list_w);
+  [[nodiscard]] TextStyle luna_body() const;
+  [[nodiscard]] TextStyle luna_input() const;
+  [[nodiscard]] bool chat_grouped_with_previous(std::size_t index) const;
+  // The view moved by hand: it follows new messages again only at the end, and close to
+  // the top the next page is laid out.
+  void scrolled();
   void send();
   void sync_rows(float list_w);
   void append_row(std::size_t index, float list_w, bool arriving);
@@ -107,6 +119,9 @@ class ChatPanel final : public Surface {
   float zoom_ = 1;
   bool use_24h_ = false;
   Rect area_;
+  Rect bar_track_;
+  float input_text_w_ = 0;
+  float grab_y_ = 0, grab_offset_ = 0;
   bool multi_ = false;  // the text takes two lines or more
   unsigned long long multi_since_ = 0;
   bool older_pending_ = false;  // a page was added above since the last paint

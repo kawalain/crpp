@@ -73,6 +73,22 @@ void cues_differ_and_fit_any_rate() {
   CHECK(synthesize(Kind::KeyAny, "plastic", 0, 0).empty());
 }
 
+void chimes_are_short_bright_and_only_for_two_names() {
+  for (const std::string_view name : {"cloud_chat", "01_cloud_chat", "cloud_enter"}) {
+    const auto s = synthesize_chime(name, rate);
+    CHECK(!s.empty());
+    CHECK(static_cast<float>(s.size()) <= chime_longest_ms / 1000 * rate);
+    CHECK(peak_of(s) > 0.3f && peak_of(s) <= 1.0f);
+    CHECK(std::ranges::all_of(s, [](float v) { return std::isfinite(v); }));
+    CHECK(std::abs(s.front()) < 0.01f && std::abs(s.back()) < 0.01f);  // without a click at either end
+    CHECK(brightness(s) > brightness(synthesize_cue(name, rate)));
+  }
+  CHECK(synthesize_chime("cloud_chat", rate) != synthesize_chime("cloud_enter", rate));
+  CHECK(synthesize_chime("cloud_chat", 96000).size() == 2 * synthesize_chime("cloud_chat", rate).size());
+  CHECK(synthesize_chime("mute", rate).empty() && !can_chime("mute"));
+  CHECK(synthesize_chime("cloud_chat", 0).empty());
+}
+
 }  // namespace
 
 int main() {
@@ -81,5 +97,6 @@ int main() {
   packs_keep_their_character();
   a_release_is_lighter_than_a_press();
   cues_differ_and_fit_any_rate();
+  chimes_are_short_bright_and_only_for_two_names();
   return crpp_test_result();
 }

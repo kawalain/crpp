@@ -1,0 +1,122 @@
+#include <algorithm>
+#include <cstdio>
+#include <set>
+#include <string>
+
+#include "check.hpp"
+#include "crpp/locale/locale.hpp"
+
+using namespace crpp::locale;
+
+namespace {
+
+std::set<char> placeholders(std::string_view text) {
+  std::set<char> found;
+  for (std::size_t i = 0; i + 2 < text.size(); ++i) {
+    if (text[i] == '{' && text[i + 2] == '}') found.insert(text[i + 1]);
+  }
+  return found;
+}
+
+void test_every_locale_has_every_text() {
+  for (const Locale& locale : all_locales()) {
+    const auto texts = strings_as_array(*locale.strings);
+    for (std::size_t i = 0; i < texts.size(); ++i) {
+      if (texts[i] == nullptr || *texts[i] == '\0') {
+        std::fprintf(stderr, "%s lacks text %zu\n", std::string(locale.id).c_str(), i);
+        CHECK(false);
+      }
+    }
+  }
+}
+
+void test_a_text_has_the_same_placeholders_in_every_locale() {
+  const auto reference = strings_as_array(*all_locales()[0].strings);
+  for (const Locale& locale : all_locales()) {
+    const auto texts = strings_as_array(*locale.strings);
+    for (std::size_t i = 0; i < texts.size(); ++i) {
+      if (placeholders(texts[i]) != placeholders(reference[i])) {
+        std::fprintf(stderr, "%s differs at text %zu: %s\n", std::string(locale.id).c_str(), i, texts[i]);
+        CHECK(false);
+      }
+    }
+  }
+}
+
+void test_locales_have_what_the_list_needs() {
+  std::set<std::string_view> ids;
+  for (const Locale& locale : all_locales()) {
+    CHECK(!locale.id.empty() && !locale.name.empty() && !locale.tag.empty() && !locale.words_folder.empty());
+    CHECK(ids.insert(locale.id).second);
+  }
+  CHECK(find_locale("ko") != nullptr);
+  CHECK(find_locale("en") != nullptr);
+  CHECK(find_locale("xx") == nullptr);
+  CHECK(find_locale("") == nullptr);
+}
+
+void test_the_saved_choice_wins_then_the_os_language_then_english() {
+  CHECK(choose_locale("en", "ko-KR").id == "en");
+  CHECK(choose_locale("", "ko-KR").id == "ko");
+  CHECK(choose_locale("", "KO").id == "ko");
+  CHECK(choose_locale("", "en-GB").id == "en");
+  CHECK(choose_locale("", "fr-FR").id == "en");
+  CHECK(choose_locale("xx", "ko_KR").id == "ko");
+  CHECK(choose_locale("", "kok-IN").id == "en");  // Konkani is not Korean
+  CHECK(choose_locale("", "").id == "en");
+}
+
+void test_fill_replaces_what_it_can() {
+  CHECK(fill("{0} {1}:{2}", {"오후", "3", "07"}) == "오후 3:07");
+  CHECK(fill("{1}:{2} {0}", {"PM", "3", "07"}) == "3:07 PM");
+  CHECK(fill("no placeholders", {"x"}) == "no placeholders");
+  CHECK(fill("{0}{0}", {"a"}) == "aa");
+  CHECK(fill("{3}", {"a"}) == "{3}");
+  CHECK(fill("{", {"a"}) == "{");
+  CHECK(fill("", {}) == "");
+}
+
+void test_korean_formats() {
+  set_current(*find_locale("ko"));
+  CHECK(format_clock(0, 5, false) == "오전 12:05");
+  CHECK(format_clock(15, 7, false) == "오후 3:07");
+  CHECK(format_clock(12, 0, false) == "오후 12:00");
+  CHECK(format_clock(15, 7, true) == "15:07");
+  CHECK(format_stay(59) == "1분 미만");
+  CHECK(format_stay(3900) == "1시간 5분");
+  CHECK(format_times(1) == "1회");
+  CHECK(format_times(1234567) == "1,234,567회");
+  CHECK(format_release_date("2026-11-04T01:02:03Z") == "2026년 11월 04일");
+  CHECK(format_release_date("2026-1-04").empty());
+  CHECK(format_release_date("").empty());
+  CHECK(format_release_date("soon").empty());
+  CHECK(format_release_date("20261104T090000").empty());
+}
+
+void test_english_formats() {
+  set_current(*find_locale("en"));
+  CHECK(format_clock(0, 5, false) == "12:05 AM");
+  CHECK(format_clock(15, 7, false) == "3:07 PM");
+  CHECK(format_clock(15, 7, true) == "15:07");
+  CHECK(format_stay(59) == "Under a minute");
+  CHECK(format_stay(60) == "1 minute");
+  CHECK(format_stay(3900) == "1 hour 5 minutes");
+  CHECK(format_stay((525600 + 2 * 43200) * 60LL) == "1 year 2 months");
+  CHECK(format_times(1) == "1 time");
+  CHECK(format_times(1000) == "1,000 times");
+  CHECK(format_release_date("2026-11-04") == "2026-11-04");
+  set_current(*find_locale("ko"));
+}
+
+}  // namespace
+
+int main() {
+  test_every_locale_has_every_text();
+  test_a_text_has_the_same_placeholders_in_every_locale();
+  test_locales_have_what_the_list_needs();
+  test_the_saved_choice_wins_then_the_os_language_then_english();
+  test_fill_replaces_what_it_can();
+  test_korean_formats();
+  test_english_formats();
+  return crpp_test_result();
+}

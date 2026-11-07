@@ -48,7 +48,8 @@ class Catalog {
   // Reads the folder structure under `root` (the "sounds" folder). `expected` lists files
   // relative to it that belong there, on disk or not, like "keyboard/plastic/left.wav":
   // a pack still downloading can be chosen, and a sound it deliberately lacks stays silent.
-  [[nodiscard]] static Catalog scan(const std::filesystem::path& root, std::span<const std::string> expected = {});
+  [[nodiscard]] static Catalog scan(const std::filesystem::path& root, std::span<const std::string> expected = {},
+                                     std::string_view language = "ko");
 
   [[nodiscard]] bool empty() const noexcept { return packs_.empty(); }
   // The pack ids of a device, in display order. The first is its default.

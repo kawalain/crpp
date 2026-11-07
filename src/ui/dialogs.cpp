@@ -10,16 +10,34 @@ namespace crpp::ui {
 
 void Dialogs::show(Dialog dialog) {
   dialog_ = std::move(dialog);
+  ++revision_;
   opened_at_ = clock_ms();
   was_animating_ = true;
   ui_.set_focus(nullptr, nullptr);
 }
 
+float Dialogs::width_here() const {
+  const DialogMetrics m = ui_.skin().dialog_metrics();
+  const float wanted = dialog_->wide ? m.wide_width : m.width;
+  return ui_.window != 0 || !ui_.skin().scales_stage() ? wanted : std::min(wanted, ui_.width - m.margin);
+}
+
+D2D1_SIZE_F Dialogs::content_size() const {
+  if (!dialog_) return {0, 0};
+  const DialogMetrics m = ui_.skin().dialog_metrics();
+  const float w = width_here();
+  const TextStyle body{.size = m.text_size, .weight = 700, .line_height = m.text_line, .align = m.align, .wrap = true, .keep_words = true};
+  DWRITE_TEXT_METRICS size{};
+  if (const auto layout = ui_.gfx.layout(widen(dialog_->text), body, w - 2 * m.pad_x)) layout->GetMetrics(&size);
+  return {w, m.pad_top + size.height + m.gap + m.button_h + m.pad_bottom};
+}
+
 void Dialogs::paint(Painter& p) {
   if (!dialog_) return;
-  constexpr float pad_top = 24, pad_x = 25, pad_bottom = 20, gap = 20, button_h = 38, button_w = 96;
-  const float w = std::min(dialog_->wide ? 380.0f : 320.0f, ui_.width - 40);
-  const TextStyle body{.size = 18, .weight = 700, .line_height = 27, .align = Align::Center, .wrap = true};
+  const DialogMetrics m = ui_.skin().dialog_metrics();
+  const auto [pad_top, pad_x, pad_bottom, gap, button_h, button_w, button_gap, width, wide_width, margin, text_size, text_line, align] = m;
+  const float w = width_here();
+  const TextStyle body{.size = text_size, .weight = 700, .line_height = text_line, .align = align, .wrap = true, .keep_words = true};
   const float text_w = w - 2 * pad_x;
   DWRITE_TEXT_METRICS size{};
   if (const auto layout = ui_.gfx.layout(widen(dialog_->text), body, text_w)) layout->GetMetrics(&size);
@@ -30,11 +48,11 @@ void Dialogs::paint(Painter& p) {
   p.text(dialog_->text, {card.x + pad_x, card.y + pad_top, text_w, size.height}, body, with_alpha(ui_.theme.hl_text, shown));
 
   const bool two = !dialog_->cancel.empty();
-  const float row = two ? 2 * button_w + 10 : button_w;
+  const float row = two ? 2 * button_w + button_gap : button_w;
   const float x = card.x + (w - row) / 2;
   const float y = card.bottom() - pad_bottom - button_h;
   paint_modal_button(ui_, this, p, {x, y, button_w, button_h}, dialog_->confirm, true, shown, Confirm);
-  if (two) paint_modal_button(ui_, this, p, {x + button_w + 10, y, button_w, button_h}, dialog_->cancel, false, shown, Cancel);
+  if (two) paint_modal_button(ui_, this, p, {x + button_w + button_gap, y, button_w, button_h}, dialog_->cancel, false, shown, Cancel);
 }
 
 void Dialogs::click(int id, float, float, bool) {

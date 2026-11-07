@@ -35,6 +35,10 @@ void wire(Shell& s);
 }  // namespace room
 
 namespace sound {  // the sound tab and everything it changes in the engine
+// Its packs are named in the language they were listed in.
+void language_changed(Shell& s);
+// A Skin may have notification sounds of its own.
+void theme_changed(Shell& s);
 struct State;
 void wire(Shell& s);
 [[nodiscard]] bool scene(Shell& s, std::string_view name);
@@ -58,6 +62,8 @@ void own_input(Shell& s);
 }  // namespace sound
 
 namespace preferences {  // display, notification and system tabs
+// Makes the saved language, or the OS's, what the program speaks.
+void apply_language(Shell& s);
 void wire(Shell& s);
 [[nodiscard]] bool scene(Shell& s, std::string_view name);
 void pref_changed(Shell& s, std::string_view key);

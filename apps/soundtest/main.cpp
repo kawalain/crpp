@@ -1,4 +1,5 @@
 // crpp_soundtest: hear the spatial mix, to tune it by ear.
+//   crpp_soundtest --chimes [--volume 30] [--repeat 3]
 //   crpp_soundtest (<sounds folder> | --synth) [--pack plastic] [--balance 60] [--flat]
 //                  [--reverb off|office|large] [--volume 30] [--repeat 3]
 // Walks through every desk of the virtual office, playing a few key presses from
@@ -40,7 +41,7 @@ class MixerRenderer final : public sound::Renderer {
 int main(int argc, char** argv) {
   std::filesystem::path sounds;
   std::string pack;
-  bool synth = false;
+  bool synth = false, chimes = false;
   sound::SpatialConfig config;
   int volume = 30, repeat = 3;
   for (int i = 1; i < argc; ++i) {
@@ -48,6 +49,7 @@ int main(int argc, char** argv) {
     const bool has_value = i + 1 < argc;
     if (arg == "--flat") config.spatial = false;
     else if (arg == "--synth") synth = true;
+    else if (arg == "--chimes") chimes = true;
     else if (arg == "--pack" && has_value) pack = argv[++i];
     else if (arg == "--balance" && has_value) config.balance = std::atoi(argv[++i]);
     else if (arg == "--reverb" && has_value) {
@@ -58,14 +60,14 @@ int main(int argc, char** argv) {
     else if (arg == "--repeat" && has_value) repeat = std::atoi(argv[++i]);
     else if (!arg.starts_with("--")) sounds = arg;
   }
-  if (sounds.empty() && !synth) {
-    std::fprintf(stderr, "usage: crpp_soundtest (<sounds folder> | --synth) [--pack id] [--balance n] [--flat] [--reverb off|office|large] [--volume n] [--repeat n]\n");
+  if (sounds.empty() && !synth && !chimes) {
+    std::fprintf(stderr, "usage: crpp_soundtest --chimes | (<sounds folder> | --synth) [--pack id] [--balance n] [--flat] [--reverb off|office|large] [--volume n] [--repeat n]\n");
     return 2;
   }
 
   // Generated sounds need no files.
-  const auto catalog = synth ? sound::Catalog{} : sound::Catalog::scan(sounds);
-  if (!synth && catalog.empty()) {
+  const auto catalog = synth || chimes ? sound::Catalog{} : sound::Catalog::scan(sounds);
+  if (!synth && !chimes && catalog.empty()) {
     std::fprintf(stderr, "no sound packs in %s\n", sounds.string().c_str());
     return 1;
   }
@@ -103,6 +105,20 @@ int main(int argc, char** argv) {
     }
     (void)mixer->trigger(kept.back(), mix, 1.0f);
   };
+
+  if (chimes) {
+    for (const char* name : {"cloud_chat", "cloud_enter"}) {
+      std::printf("%s\n", name);
+      std::fflush(stdout);
+      kept.push_back(sound::synthesize_chime(name, *rate));
+      for (int i = 0; i < repeat; ++i) {
+        (void)mixer->trigger(kept.back(), sound::own_mix(), 1.0f);
+        std::this_thread::sleep_for(1500ms);
+      }
+    }
+    device.close();
+    return 0;
+  }
 
   std::printf("your own sound, in the middle of your head\n");
   for (int i = 0; i < repeat; ++i) {

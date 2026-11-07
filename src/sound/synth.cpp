@@ -3,6 +3,7 @@
 #include <algorithm>
 #include <cmath>
 #include <numbers>
+#include <span>
 
 #include "crpp/sound/catalog.hpp"
 
@@ -166,6 +167,43 @@ std::vector<float> synthesize_cue(std::string_view name, std::uint32_t rate) {
       const float attack = std::min(1.0f, t * 20);
       out.push_back(0.4f * std::sin(step * static_cast<float>(i)) * attack * (1 - t) * (1 - t));
     }
+  }
+  return out;
+}
+
+bool can_chime(std::string_view name) noexcept { return name.ends_with("cloud_chat") || name.ends_with("cloud_enter"); }
+
+std::vector<float> synthesize_chime(std::string_view name, std::uint32_t rate) {
+  if (rate == 0 || !can_chime(name)) return {};
+  struct Note {
+    float at_ms, hz;
+  };
+  // Two notes for a message, three quicker ones for someone entering.
+  constexpr Note message[] = {{0, 1319}, {105, 1760}};
+  constexpr Note enter[] = {{0, 1047}, {75, 1319}, {150, 1568}};
+  const std::span<const Note> notes = name.ends_with("cloud_chat") ? std::span<const Note>(message) : std::span<const Note>(enter);
+
+  const float sample_rate = static_cast<float>(rate);
+  const auto count = static_cast<std::size_t>(sample_rate * chime_longest_ms / 1000);
+  std::vector<float> out(count);
+  constexpr float two_pi = 2 * std::numbers::pi_v<float>;
+  for (const Note& note : notes) {
+    const auto start = static_cast<std::size_t>(sample_rate * note.at_ms / 1000);
+    const float tau = 0.075f * sample_rate;
+    // A bell's overtone is not a whole multiple of its note, and it dies sooner.
+    const float step = two_pi * note.hz / sample_rate, overtone = step * 2.76f;
+    for (std::size_t i = start; i < count; ++i) {
+      const auto n = static_cast<float>(i - start);
+      const float attack = std::min(1.0f, n / (0.002f * sample_rate));
+      out[i] += attack * (std::sin(step * n) * std::exp(-n / tau) + 0.3f * std::sin(overtone * n) * std::exp(-n / (tau * 0.35f)));
+    }
+  }
+  float peak = 0;
+  for (const float v : out) peak = std::max(peak, std::abs(v));
+  const float gain = peak > 0 ? 0.45f / peak : 0;
+  for (std::size_t i = 0; i < count; ++i) {
+    const float left = static_cast<float>(count - i) / static_cast<float>(count);
+    out[i] *= gain * std::min(1.0f, left * 6);
   }
   return out;
 }

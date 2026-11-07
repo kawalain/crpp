@@ -7,6 +7,7 @@
 // Layout follows the upstream web UI: a fixed 951x692 "stage" scaled to cover
 // the window (the cloud art), content areas that follow the window but keep
 // their own size, and a few controls fixed to the window corners.
+#include <array>
 #include <cstdint>
 #include <filesystem>
 #include <optional>
@@ -27,10 +28,41 @@
 #include "crpp/ui/surface.hpp"
 #include "crpp/ui/toasts.hpp"
 #include "crpp/ui/update_popup.hpp"
+#include "crpp/ui/window_frame.hpp"
 
 namespace crpp::ui {
 
 enum class View : std::uint8_t { Setup, Home, Session, Prompt };
+
+// How large the window wants to be for what is on screen, in DIPs. For a Skin whose controls
+// keep their size, each screen has a window size of its own; `key` is what it is saved under.
+// An empty key means this Skin has one window size for all.
+struct ScreenSize {
+  std::string_view key;
+  float w = 0, h = 0, min_w = 0, min_h = 0;
+};
+
+// The windows of the app. A Skin that draws its own frame shows each panel on a window of its
+// own; under Cloud only Main exists and the panels are layers in it. The order is the order
+// they are made in, so a later one comes up on top.
+enum class Pane : std::uint8_t { Main, Options, Changelog, Profile, Emoji, Offline, Dialog };
+inline constexpr std::size_t pane_count = 7;
+
+// How a pane's window is made, in DIPs. One that resizes keeps its size under `key`.
+struct PaneInfo {
+  std::string_view key;
+  std::string title;
+  float w = 0, h = 0, min_w = 0, min_h = 0;
+  bool resizable = false, close = true;
+};
+
+// What decides which windows should exist and how large; the shell compares it with what it made.
+struct PaneState {
+  unsigned open = 0;
+  unsigned revision = 0;
+  bool raising = false, hidden = false;
+  bool operator==(const PaneState&) const = default;
+};
 
 class App {
  public:
@@ -58,10 +90,17 @@ class App {
   [[nodiscard]] EmojiPicker& emoji_picker() { return emoji_picker_; }
   [[nodiscard]] UpdatePopup& update_popup() { return update_popup_; }
   [[nodiscard]] ChangelogView& changelog() { return changelog_; }
+  [[nodiscard]] WindowFrame& frame() { return frame_; }
+  // Does the app draw the window's frame?
+  [[nodiscard]] bool own_frame() const { return !ui_.skin().scales_stage(); }
+  [[nodiscard]] ScreenSize screen_size() const;
   // The settings surfaces read and change; in memory until the shell sets its own.
   void set_prefs(Prefs& prefs) { ui_.prefs = &prefs; }
 
-  void set_theme(ThemeId id) { ui_.theme = make_theme(id); }
+  // An id from themes.hpp; an unknown one means the default.
+  void set_theme(std::string_view id);
+  // Whether the system or the caller wants motion; a Skin may have none anyway.
+  void set_animations(bool wanted);
   void show_setup(int percent);
   void show_home();
   void show_session(std::string room_code);
@@ -73,6 +112,27 @@ class App {
   [[nodiscard]] PromptScreen& prompt() { return prompt_; }
   // The view under the prompt, or the view itself when there is none.
   [[nodiscard]] View base_view() const { return view_ == View::Prompt ? prompt_return_ : view_; }
+
+  // For --shot luna-controls: nothing but the page of controls.
+  void show_controls_sheet() { controls_sheet_ = true; }
+
+  // --- windows ---
+  // Which panels should have a window now, in the order to make them.
+  [[nodiscard]] std::vector<Pane> open_panes() const;
+  [[nodiscard]] PaneInfo pane_info(Pane pane) const;
+  [[nodiscard]] PaneState pane_state() const;
+  // All that follows, drawing and input, is about this window. See PaneScope.
+  void use_pane(Pane pane);
+  [[nodiscard]] Pane current_pane() const { return pane_; }
+  // Its close button, or the system asking.
+  void close_pane(Pane pane);
+  void set_pane_active(Pane pane, bool active);
+  // The window lost the keyboard: what closes on a click elsewhere closes. True if it matters.
+  bool window_deactivated();
+  // A window has gone: it starts afresh next time.
+  void forget_pane(Pane pane);
+  // A command asked for a window that may already be open.
+  [[nodiscard]] std::optional<Pane> take_raised_pane();
 
   // --- drawing ---
   void paint(ID2D1RenderTarget* rt, float width, float height);
@@ -102,12 +162,17 @@ class App {
   [[nodiscard]] bool wants_blink() const { return ui_.focus != nullptr; }
 
  private:
-  // The surfaces on screen now, topmost first.
+  // The surfaces on the current window now, topmost first.
   [[nodiscard]] std::vector<Surface*> layers();
+  // The surfaces on every window, for what runs whichever window is in front.
+  [[nodiscard]] std::vector<Surface*> all_layers();
+  void paint_pane(Painter& p, float width, float height);
   void view_left(View from);
   void finish_leaving_room();
   void paint_screen(Painter& p, View view);
   void paint_screens(Painter& p);
+  void paint_controls_sheet(Painter& p);
+  void paint_layers(Painter& p);
 
   Ui ui_;
   MemoryPrefs memory_prefs_;
@@ -123,6 +188,14 @@ class App {
   ChangelogView changelog_{ui_};
   Dialogs dialogs_{ui_};
   PromptScreen prompt_{ui_};
+  WindowFrame frame_{ui_};
+  WindowFrame pane_frame_{ui_};
+  Pane pane_ = Pane::Main;
+  std::array<WindowState, pane_count> windows_;  // of those not in use
+  std::array<bool, pane_count> pane_active_{};
+  std::optional<Pane> raised_pane_;
+  float main_pixels_per_dip_ = 1;
+  float pixels_per_dip_ = 1;
   View view_ = View::Home;
   View prompt_return_ = View::Home;
   // The screen fading out while left_at_ is set. A Room fading out resets after that.
@@ -130,6 +203,22 @@ class App {
   unsigned long long left_at_ = 0;
   bool room_leaving_ = false;
   bool full_frame_ = false;
+  bool animations_wanted_ = true;
+  bool controls_sheet_ = false;
+};
+
+// While this lives, the app is on this window. A window's messages run in one, as what they
+// do may make another window handle something before they return.
+class PaneScope {
+ public:
+  PaneScope(App& app, Pane pane) : app_(app), before_(app.current_pane()) { app_.use_pane(pane); }
+  ~PaneScope() { app_.use_pane(before_); }
+  PaneScope(const PaneScope&) = delete;
+  PaneScope& operator=(const PaneScope&) = delete;
+
+ private:
+  App& app_;
+  Pane before_;
 };
 
 }  // namespace crpp::ui

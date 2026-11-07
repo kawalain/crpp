@@ -56,9 +56,9 @@ inline constexpr TextStyle tip_style{.size = 16, .weight = 700, .line_height = t
 }
 [[nodiscard]] constexpr float tip_height() { return tip_line + 2 * tip_pad_y; }
 
-inline void paint_tip(Painter& p, Rect r, std::string_view text, Color fill, Color ink, float shown) {
-  p.fill_round(r, 11, with_alpha(fill, shown));
-  p.text(text, {r.x + tip_pad_x, r.y + tip_pad_y, r.w - 2 * tip_pad_x + 1, tip_line}, tip_style, with_alpha(ink, shown));
+inline void paint_tip(Painter& p, const Theme& t, Rect r, std::string_view text, Color fill, Color ink, float shown) {
+  const Color written = skin_of(t).bubble(p, t, r, 11, fill, ink, shown);
+  p.text(text, {r.x + tip_pad_x, r.y + tip_pad_y, r.w - 2 * tip_pad_x + 1, tip_line}, tip_style, written);
 }
 
 }  // namespace crpp::ui

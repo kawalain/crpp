@@ -321,6 +321,18 @@ std::optional<SeatReturn> Store::find_seat(std::string_view code, std::int64_t n
   return std::nullopt;
 }
 
+std::vector<std::string> Store::seat_codes(std::int64_t now_ms) const {
+  const std::string server = normalize_server(string_or("serverUrl", default_server_url));
+  const std::string owner = seat_owner();
+  std::vector<SeatReturn> seats = live_seats(now_ms);
+  std::erase_if(seats, [&](const SeatReturn& seat) { return seat.server != server || seat.owner != owner; });
+  std::ranges::stable_sort(seats, std::greater{}, &SeatReturn::left_at);
+  std::vector<std::string> codes;
+  codes.reserve(seats.size());
+  for (SeatReturn& seat : seats) codes.push_back(std::move(seat.code));
+  return codes;
+}
+
 std::optional<SeatReturn> Store::latest_seat(std::int64_t now_ms) const {
   const std::string server = normalize_server(string_or("serverUrl", default_server_url));
   const std::string owner = seat_owner();

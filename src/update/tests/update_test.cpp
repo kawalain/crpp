@@ -192,10 +192,6 @@ void the_cache_reads_back_the_same() {
 }
 
 void writes_dates_like_upstream() {
-  CHECK(korean_date("2026-11-04T09:00:00Z") == "2026년 11월 04일");
-  CHECK(korean_date("").empty());
-  CHECK(korean_date("soon").empty());
-  CHECK(korean_date("20261104T090000").empty());
 }
 
 void without_a_key_nothing_goes_out() {

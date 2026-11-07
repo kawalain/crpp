@@ -10,6 +10,7 @@
 #include "crpp/ui/prefs.hpp"
 #include "crpp/ui/settings_rows.hpp"
 #include "crpp/ui/surface.hpp"
+#include "crpp/ui/themes.hpp"
 
 namespace crpp::ui {
 
@@ -26,6 +27,10 @@ class SettingsTab : public Surface {
   [[nodiscard]] virtual float content_height() const = 0;
   // The tab came on screen.
   virtual void shown() {}
+
+ protected:
+  // How tall a Skin's flowing layout came out the last time it was drawn.
+  float flow_height_ = 0;
 };
 
 // Pen's volume and pack, built but hidden until Pen is verified on a real device.
@@ -98,7 +103,9 @@ class SoundTab final : public SettingsTab {
   void set_slider(int id, float window_x);
   void pick(Picker& picker, int id);
   [[nodiscard]] Picker* picker_of_row(std::size_t row);
+  void paint_luna(Painter& p, Rect area);
   void paint_tip(Painter& p, Rect area);
+  void paint_tip_luna(Painter& p, int row);
   void paint_balance(Painter& p, Rect area);
   void paint_person(Painter& p, float x, float y, Color c, bool marked);
 
@@ -107,6 +114,10 @@ class SoundTab final : public SettingsTab {
   Picker reverb_;
   std::vector<SoundChoice> speakers_;
   Rect last_area_;
+  // Where the flowing layout last put these: by volume row, the list after them for reverb.
+  std::array<Rect, 4> slider_rects_;
+  std::array<Rect, 5> combo_rects_;
+  Rect balance_rect_;
   int held_ = -1;  // the slider being dragged
   int knob_id_ = -1;
   unsigned long long knob_start_ = 0;
@@ -116,7 +127,7 @@ class SoundTab final : public SettingsTab {
 };
 
 // The theme in use: upstream's effectiveTheme, with an unknown name taken as the default.
-[[nodiscard]] ThemeId effective_theme(const Prefs& prefs, bool system_dark);
+[[nodiscard]] const ThemeEntry& effective_theme(const Prefs& prefs, bool system_dark);
 
 class DisplayTab final : public SettingsTab {
  public:
@@ -140,6 +151,7 @@ class DisplayTab final : public SettingsTab {
   [[nodiscard]] bool animating() const override;
 
  private:
+  void paint_luna(Painter& p, Rect area);
   void paint_sample(Painter& p, Rect box, float zoom);
   [[nodiscard]] float chat_top() const;
 
@@ -173,6 +185,7 @@ class NotifyTab final : public SettingsTab {
   [[nodiscard]] bool animating() const override;
 
  private:
+  void paint_luna(Painter& p, Rect area);
   struct Row {
     ToggleAnim toggle;
     Fade grow, tip;
@@ -184,14 +197,8 @@ class NotifyTab final : public SettingsTab {
 
 class SystemTab final : public SettingsTab {
  public:
-  // Three lines fit between the switch and the next heading.
-  static constexpr std::string_view detail_hint =
-      "글자 키의 열과 특수 키를 구분해 보내 소리가 다양해집니다.\n"
-      "대신 누른 키의 줄, 단어의 경계, 줄바꿈이 다른 사람에게 드러납니다.\n"
-      "입력 타이밍과 합치면 입력 내용을 추측하기가 쉬워집니다.";
-
   explicit SystemTab(Ui& ui);
-  enum Id : int { Autostart = 1, Tray, Detail, Use24h, Logging, OpenLogs, Reset, IdleList = 100 };
+  enum Id : int { Autostart = 1, Tray, Detail, Use24h, Logging, OpenLogs, Reset, IdleList = 100, LanguageList = 200 };
 
   std::function<void()> on_open_logs;
 
@@ -205,8 +212,11 @@ class SystemTab final : public SettingsTab {
   [[nodiscard]] bool animating() const override;
 
  private:
-  Dropdown idle_;
-  Rect idle_rect_;
+  void paint_luna(Painter& p, Rect area);
+  void sync_idle();
+  void sync_language();
+  Dropdown idle_, language_;
+  Rect idle_rect_, language_rect_;
   std::array<ToggleAnim, 5> toggles_;
   Fade open_logs_, reset_;
 };
@@ -232,6 +242,7 @@ class AccountTab final : public SettingsTab {
   void click(int id, float x, float y, bool shift) override;
 
  private:
+  void paint_luna(Painter& p, Rect area);
   Profile profile_;
 };
 

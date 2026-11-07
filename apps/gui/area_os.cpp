@@ -54,6 +54,7 @@ void CALLBACK release_graphics(HWND hwnd, UINT, UINT_PTR id, DWORD) {
   Shell& s = *state.shell;
   if (!s.hidden) return;
   s.target.reset();
+  drop_pane_targets(s);
   s.app.release_graphics();
   SetProcessWorkingSetSize(GetCurrentProcess(), static_cast<SIZE_T>(-1), static_cast<SIZE_T>(-1));
 }
@@ -93,7 +94,7 @@ void notify_chat(Shell& s, const ChatEntry& entry) {
   // Drawing that made the factory again if it had gone, and a burst should share it.
   if (s.hidden) SetTimer(s.hwnd, graphics_timer, graphics_release_ms, release_graphics);
   HICON icon = icon_from_pixels(pixels, size);
-  const std::wstring title = widen(entry.nick.empty() ? std::string_view("게스트") : std::string_view(entry.nick));
+  const std::wstring title = widen(entry.nick.empty() ? std::string_view(tr().guest) : std::string_view(entry.nick));
   if (show_notification(s, title, widen(entry.text), icon, NIIF_NOSOUND | NIIF_RESPECT_QUIET_TIME)) state.notified = true;
   if (icon) DestroyIcon(icon);
 }
@@ -161,7 +162,7 @@ void show_window(Shell& s) {
 // Input timing keeps being shared with the Room while the window is away.
 void hint_room_stays_connected(Shell& s) {
   if (!os_policy::hide_needs_hint(s.app.view() == View::Session, s.store->bool_or(hint_shown_key, false))) return;
-  if (show_notification(s, L"Cloudroom++", L"창을 숨겨도 구름에 계속 연결되어 있어요. 키보드와 마우스 입력 시점도 계속 공유돼요.",
+  if (show_notification(s, L"Cloudroom++", ui::widen(tr().tray_still_connected).c_str(),
                         nullptr, NIIF_NOSOUND)) {
     s.store->set(hint_shown_key, store::Json(true));
   }
@@ -176,7 +177,7 @@ void show_menu(Shell& s, int x, int y) {
   HMENU menu = CreatePopupMenu();
   if (!menu) return;
   constexpr UINT_PTR exit_item = 1;
-  AppendMenuW(menu, MF_STRING, exit_item, L"Cloudroom++ 종료");
+  AppendMenuW(menu, MF_STRING, exit_item, ui::widen(tr().tray_exit).c_str());
   // Without both of these the menu does not close on a click elsewhere, or closes
   // at once the second time it opens (TrackPopupMenu's documentation).
   SetForegroundWindow(s.hwnd);
@@ -218,7 +219,7 @@ void apply_start_with_system(Shell& s) {
   state.reverting_autostart = true;
   s.prefs->set(pref::start_with_system, !enabled);
   state.reverting_autostart = false;
-  s.app.toasts().toast("시스템과 함께 자동 실행 설정을 바꾸지 못했어요.");
+  s.app.toasts().toast(tr().system_autostart_failed);
 }
 
 // A hidden window draws nothing. What it drew with comes back on the next WM_PAINT.
@@ -228,6 +229,7 @@ void sync_hidden(Shell& s) {
   s.hidden = hidden;
   if (hidden) {
     s.target.reset();
+    drop_pane_targets(s);
     s.app.ui().forget_render_target();
     if (s.app.ui().emoji) s.app.ui().emoji.emplace(s.assets_dir);
     // Freed memory stays in the working set until asked for. What is still in use comes
@@ -246,6 +248,10 @@ void sync_hidden(Shell& s) {
 void wire(Shell& s) {
   state.shell = &s;
   state.tray.attach(s.hwnd);
+  // A Skin's own frame asks for these; posted, so the surface is not destroyed under its click.
+  s.app.frame().on_minimize = [hwnd = s.hwnd] { PostMessageW(hwnd, WM_SYSCOMMAND, SC_MINIMIZE, 0); };
+  s.app.frame().on_close = [hwnd = s.hwnd] { PostMessageW(hwnd, WM_CLOSE, 0, 0); };
+  s.app.frame().on_exit = [hwnd = s.hwnd] { PostMessageW(hwnd, wm_exit, 0, 0); };
   state.taskbar_created = RegisterWindowMessageW(L"TaskbarCreated");
   state.show_window_requested = RegisterWindowMessageW(show_window_message);
   if (s.throwaway_data) state.run_key = std::make_unique<MemoryRunKey>();

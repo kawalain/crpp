@@ -18,20 +18,25 @@ void NotifyTab::shown() {
 }
 
 float NotifyTab::content_height() const {
+  if (!ui_.skin().scales_stage()) return flow_height_;
   const float rows = static_cast<float>(sounds_.size());
   const float bottom = rows > 0 ? sounds_top + row_top - 25 + (rows - 1) * row_step + 36 : sounds_top + 32;
   return bottom + settings_bottom_pad;
 }
 
 void NotifyTab::paint(Painter& p, Rect area) {
+  if (!ui_.skin().scales_stage()) {
+    paint_luna(p, area);
+    return;
+  }
   const Theme& t = ui_.theme;
   const Prefs& prefs = *ui_.prefs;
-  paint_heading(p, t, area, 25, "알림");
-  paint_subheading(p, t, area, row_top - 6, "메시지 수신 시");
-  paint_toggle(ui_, this, p, area, row_top + 34, "트레이 알림", prefs.get(pref::chat_tray_notify), TrayToggle, tray_);
-  paint_toggle(ui_, this, p, area, row_top + 34 + row_step, "작업표시줄 아이콘 점멸", prefs.get(pref::chat_taskbar_flash),
+  paint_heading(p, t, area, 25, tr().notify_heading);
+  paint_subheading(p, t, area, row_top - 6, tr().notify_on_message);
+  paint_toggle(ui_, this, p, area, row_top + 34, tr().notify_tray, prefs.get(pref::chat_tray_notify), TrayToggle, tray_);
+  paint_toggle(ui_, this, p, area, row_top + 34 + row_step, tr().notify_flash, prefs.get(pref::chat_taskbar_flash),
                FlashToggle, flash_);
-  paint_heading(p, t, area, sounds_top, "알림음");
+  paint_heading(p, t, area, sounds_top, tr().notify_sounds);
 
   const TextStyle name_style{.size = 18, .line_height = 36};
   for (std::size_t i = 0; i < sounds_.size(); ++i) {
@@ -50,10 +55,10 @@ void NotifyTab::paint(Painter& p, Rect area) {
     if (g > 0) p.push(scale_about(name.x, name.y + 18, 1 + 0.07f * g));
     p.text(sounds_[i].name, {name.x, name.y, 400, 36}, name_style, t.hl_text);
     if (const float shown = row.tip.value(ui_); shown > 0) {
-      constexpr const char* tip = "미리 듣기";
+      const char* tip = tr().notify_preview;
       const TextStyle style{.size = 14, .weight = 700, .line_height = 20};
       const float tip_w = text_width(p, tip, style) + 24;
-      paint_bubble(p, tip, {name.x + w / 2 - tip_w / 2, name.y - 2 - 26 + 4 * (1 - shown), tip_w, 26}, style, 10, t.hl,
+      paint_bubble(p, t, tip, {name.x + w / 2 - tip_w / 2, name.y - 2 - 26 + 4 * (1 - shown), tip_w, 26}, style, 10, t.hl,
                    t.on_accent, shown);
     }
     if (g > 0) p.pop();

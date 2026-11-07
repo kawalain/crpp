@@ -9,7 +9,6 @@
 namespace crpp::ui::home {
 
 inline constexpr std::size_t code_length = 6;
-inline constexpr const char* code_length_error = "구름 코드를 6자리로 입력해 주세요.";
 
 // The characters ECMAScript's String.prototype.trim removes.
 [[nodiscard]] constexpr bool is_trimmed(wchar_t c) {

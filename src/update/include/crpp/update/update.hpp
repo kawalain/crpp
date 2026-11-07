@@ -76,7 +76,6 @@ struct Release {
 [[nodiscard]] std::string dump_releases(std::span<const Release> releases);
 
 // "2026-11-04T09:00:00Z" as upstream's changelog writes dates, or empty.
-[[nodiscard]] std::string korean_date(std::string_view published_at);
 
 class Platform {
  public:

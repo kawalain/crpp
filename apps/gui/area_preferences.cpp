@@ -21,20 +21,28 @@ bool system_prefers_dark() {
 }
 
 void apply_theme(Shell& s) {
-  const ThemeId id = effective_theme(*s.app.ui().prefs, system_prefers_dark());
-  s.app.set_theme(id);
+  s.app.set_theme(effective_theme(*s.app.ui().prefs, system_prefers_dark()).id);
+  area::sound::theme_changed(s);
   if (!s.hwnd) return;
   // The title bar too (DWMWA_USE_IMMERSIVE_DARK_MODE). Older Windows refuses; harmless.
   const BOOL dark = s.app.ui().theme.dark ? TRUE : FALSE;
   constexpr DWORD use_immersive_dark_mode = 20;
   DwmSetWindowAttribute(s.hwnd, use_immersive_dark_mode, &dark, sizeof dark);
+  frame_changed(s);
   InvalidateRect(s.hwnd, nullptr, FALSE);
 }
 
 // Windows' "Animation effects", as a browser's prefers-reduced-motion follows it.
 void follow_system_animations(Shell& s) {
   BOOL on = TRUE;
-  if (SystemParametersInfoW(SPI_GETCLIENTAREAANIMATION, 0, &on, 0)) s.app.ui().animations = on != FALSE;
+  if (SystemParametersInfoW(SPI_GETCLIENTAREAANIMATION, 0, &on, 0)) s.app.set_animations(on != FALSE);
+}
+
+// In Windows' display language, "ko-KR".
+std::string os_language() {
+  wchar_t name[LOCALE_NAME_MAX_LENGTH]{};
+  if (LCIDToLocaleName(MAKELCID(GetUserDefaultUILanguage(), SORT_DEFAULT), name, LOCALE_NAME_MAX_LENGTH, 0) == 0) return {};
+  return ui::narrow(name);
 }
 
 void apply_chat(Shell& s) {
@@ -52,6 +60,9 @@ std::vector<NotifySound> load_sounds(const Shell& s) {
   }
   std::vector<NotifySound> sounds;
   for (auto& found : find_notification_sounds(s.assets_dir / "sounds" / "notifications", pref::notification_id, stems)) {
+    // Those this program has words for; a pack.json names only what it brings.
+    if (found.id == "cloud_chat") found.name = tr().notify_sound_chat;
+    if (found.id == "cloud_enter") found.name = tr().notify_sound_enter;
     sounds.push_back({std::move(found.stem), std::move(found.id), std::move(found.name)});
   }
   return sounds;
@@ -63,7 +74,7 @@ void open_log_folder(Shell& s) {
   std::filesystem::create_directories(folder, ec);
   // ShellExecute's result above 32 is success.
   const auto result = reinterpret_cast<INT_PTR>(ShellExecuteW(s.hwnd, L"open", folder.c_str(), nullptr, nullptr, SW_SHOWNORMAL));
-  if (result <= 32) s.app.toasts().toast("로그 폴더를 열지 못했습니다.");
+  if (result <= 32) s.app.toasts().toast(tr().system_logs_failed);
 }
 
 DiagEvent event_of(session::State state) {
@@ -125,6 +136,12 @@ void wire_tabs(Shell& s) {
 
 }  // namespace
 
+void apply_language(Shell& s) {
+  const locale::Locale& chosen = locale::choose_locale(s.app.ui().prefs->get(pref::language), os_language());
+  locale::set_current(chosen);
+  s.app.ui().gfx.set_language(ui::widen(chosen.tag));
+}
+
 void wire(Shell& s) {
   follow_system_animations(s);
   wire_tabs(s);
@@ -136,8 +153,8 @@ void wire(Shell& s) {
 
 bool scene(Shell& s, std::string_view name) {
   Prefs& prefs = *s.app.ui().prefs;
-  const auto dark = [&] { s.app.set_theme(ThemeId::DarkCloud); };
-  const auto pastel = [&] { s.app.set_theme(ThemeId::Pastel); };
+  const auto dark = [&] { s.app.set_theme("darkcloud"); };
+  const auto pastel = [&] { s.app.set_theme("pastel"); };
   SettingsPanel& panel = s.app.settings();
   const auto open = [&](SettingsPage page) {
     panel.open(page);
@@ -208,6 +225,11 @@ bool scene(Shell& s, std::string_view name) {
 void pref_changed(Shell& s, std::string_view key) {
   if (key == "theme" || key == "systemTheme" || key == "lightTheme" || key == "darkTheme") {
     apply_theme(s);
+  } else if (key == "language") {
+    apply_language(s);
+    s.app.room().chat().locale_changed();
+    sound::language_changed(s);
+    InvalidateRect(s.hwnd, nullptr, FALSE);
   } else if (key == "chatScale" || key == "use24h") {
     apply_chat(s);
     InvalidateRect(s.hwnd, nullptr, FALSE);

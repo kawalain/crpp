@@ -9,8 +9,8 @@ namespace crpp::ui {
 
 namespace {
 
-constexpr float pad = 6, item_h = 38;
-constexpr float row_h = 6 + 22 + 8 + 14 + 10;  // .menu-volume: padding, label, margin, slider
+constexpr float menu_pad = 6, menu_item_h = 38;
+constexpr float menu_row_h = 6 + 22 + 8 + 14 + 10;  // .menu-volume: padding, label, margin, slider
 // .member-menu's min-width; one with a volume row is a fifth wider, for the slider.
 constexpr float self_w = 128, other_w = 154;
 
@@ -40,30 +40,26 @@ void MemberMenu::paint(Painter& p) {
   window_w_ = ui_.width;
   window_h_ = ui_.height;
   const Theme& t = ui_.theme;
+  const bool plain = !ui_.skin().moves();
+  const float pad = plain ? 1 : menu_pad, item_h = plain ? 22 : menu_item_h, row_h = plain ? 46 : menu_row_h;
   const float w = self_ ? self_w : other_w;
   const float h = 2 * pad + 2 * item_h + (self_ ? 0 : row_h);
   const Rect r{std::max(8.0f, std::min(x_, ui_.width - w - 8)), std::max(8.0f, std::min(y_, ui_.height - h - 8)), w, h};
-  p.shadow_round(r, 14, 16, 4, rgb(0x2e78aa, 0.22f));
-  p.fill_round(r, 14, t.surface);
+  ui_.skin().panel(p, t, r, PanelKind::Menu);
   ui_.add_hit_window(this, r, Card);
 
-  const TextStyle label{.size = 17, .weight = 700, .line_height = 22};
   const auto item = [&](Rect box, std::string_view text, int id, bool active, bool disabled) {
-    const bool hot = !disabled && ui_.hot(this, id);
-    const Color fill = active ? (hot ? t.hl_dark : t.hl) : t.hl_soft;
-    if (active || hot) p.fill_round(box, 9, fill);
-    const Color ink = active || hot ? t.on_accent : t.hl_text;
-    p.text(text, {box.x + 12, box.y + 8, box.w - 24, 22}, label, with_alpha(ink, disabled ? 0.45f : 1.0f));
+    ui_.skin().menu_item(p, t, box, text, active, !disabled && ui_.hot(this, id), disabled);
     if (!disabled) ui_.add_hit_window(this, box, id);
   };
 
   float y = r.y + pad;
-  item({r.x + pad, y, w - 2 * pad, item_h}, "프로필", Profile, false, false);
+  item({r.x + pad, y, w - 2 * pad, item_h}, tr().member_profile, Profile, false, false);
   y += item_h;
   HoverTip::Spec tip;
   bool show_tip = false;
   if (!self_) {
-    p.text("사용자 음량", {r.x + pad + 12, y + 6, w - 2 * pad - 24, 22}, label, t.hl_text);
+    p.text(tr().member_volume, {r.x + pad + 12, y + 6, w - 2 * pad - 24, 22}, {.size = 17, .weight = 700, .line_height = 22}, t.hl_text);
     track_ = {r.x + pad + 12, y + 6 + 22 + 8, w - 2 * pad - 24, 14};
     paint_slider(p, t, track_, volume_, 0, 100);
     ui_.add_hit_window(this, track_, Slider);
@@ -89,7 +85,7 @@ void MemberMenu::paint(Painter& p) {
     }
   }
   const bool muted_now = muted();
-  item({r.x + pad, y, w - 2 * pad, item_h}, muted_now ? "음소거 해제" : "음소거", Mute, muted_now, self_);
+  item({r.x + pad, y, w - 2 * pad, item_h}, muted_now ? tr().unmute : tr().mute, Mute, muted_now, self_);
   tooltip_.paint(ui_, p, show_tip ? &tip : nullptr);
 }
 

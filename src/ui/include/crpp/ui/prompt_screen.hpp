@@ -56,10 +56,14 @@ class PromptScreen final : public Surface {
   void enter(bool shift) override;
   bool escape() override;
   [[nodiscard]] Cursor cursor(int id) const override;
+  [[nodiscard]] bool is_link(int id) const override { return id == Link; }
   bool tick(unsigned long long now_ms) override;
   [[nodiscard]] unsigned long long wake_at() const override { return next_wake_; }
 
  private:
+  void paint_luna(Painter& p, bool is_locked, bool hint_error);
+  [[nodiscard]] TextStyle luna_field_style() const;
+  [[nodiscard]] TextStyle field_style() const;
   void submit();
   void take_focus();
   void sync_with_field();

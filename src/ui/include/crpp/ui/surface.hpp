@@ -5,9 +5,11 @@
 #include <cstdint>
 #include <optional>
 #include <string_view>
+#include <utility>
 #include <vector>
 
 #include "crpp/ui/gfx.hpp"
+#include "crpp/ui/skin.hpp"
 #include "crpp/ui/svg.hpp"
 #include "crpp/ui/textfield.hpp"
 
@@ -23,6 +25,10 @@ enum class Cursor : std::uint8_t { Arrow, Hand, IBeam };
 [[nodiscard]] unsigned long long clock_ms() noexcept;
 // Stops the clock at this time, for rendering a moment of a motion; 0 restarts it.
 void hold_clock_at(unsigned long long ms) noexcept;
+// Seconds since 1970, as std::time gives them, unless held: --shot stops it so that the
+// same scene always renders the same image.
+[[nodiscard]] long long wall_clock_seconds() noexcept;
+void hold_wall_clock(long long seconds) noexcept;
 
 inline D2D1_MATRIX_3X2_F scale_about(float cx, float cy, float s) {
   return D2D1::Matrix3x2F::Translation(-cx, -cy) * D2D1::Matrix3x2F::Scale(s, s) * D2D1::Matrix3x2F::Translation(cx, cy);
@@ -34,15 +40,65 @@ class Dialogs;
 class Toasts;
 class EmojiPicker;
 
+// What each window of the app has of its own. The surfaces read it from Ui, which holds the
+// state of the window being painted or handling input; App swaps the others in and out.
+struct WindowState {
+  // Which window this is: 0 the main one, otherwise a panel with a window of its own.
+  int window = 0;
+
+  // Set while painting by whatever needs another frame after this one.
+  bool more_frames = false;
+
+  // The stage is scaled to cover the window; the overflow is cropped, centered.
+  float scale = 1, ox = 0, oy = 0, width = stage_w, height = stage_h;
+
+  // The field that takes typing, and who decides what Enter does in it.
+  TextField* focus = nullptr;
+  Surface* focus_owner = nullptr;
+  bool caret_on = true;
+  Rect caret;  // window coordinates, for IME placement
+
+  // A surface that set this in click() gets drag() until the button goes up.
+  Surface* capture = nullptr;
+
+  // Where a screen and a modal go: the whole window, or what a Skin's own frame leaves.
+  Rect content{0, 0, stage_w, stage_h};
+  // What a modal takes clicks from: everything but a caption the system or its buttons need.
+  Rect modal_area{0, 0, stage_w, stage_h};
+  // Where a settings list has room to open.
+  Rect dropdown_view{296, 137, 566, 504};
+
+  // What the button went down on, for a Skin that shows it.
+  Surface* pressed_owner = nullptr;
+  int pressed_id = 0;
+
+  Surface* hover_owner = nullptr;
+  int hover_id = 0;
+
+  struct Hit {
+    Rect rect;  // window coordinates
+    Surface* owner;
+    int id;
+  };
+
+ protected:
+  std::vector<Hit> hits_;
+  std::vector<Rect> hit_clips_;
+};
+
 // What the surfaces share: drawing resources, the geometry of the current frame,
 // the hit list, the keyboard focus and the app-wide services.
-class Ui {
+class Ui : public WindowState {
  public:
+  // Puts this window's state in `other` and takes that one's.
+  void swap_window(WindowState& other) { std::swap(static_cast<WindowState&>(*this), other); }
+
   Gfx gfx;
   std::optional<EmojiCache> emoji;
   std::vector<std::string> emoji_ids;  // what the picker offers, when it can show them
-  Theme theme = make_theme(ThemeId::Cloudroom);
+  Theme theme = light_cloud_palette(rgb(0x66ccff));
 
+  [[nodiscard]] const Skin& skin() const { return skin_of(theme); }
   [[nodiscard]] ID2D1PathGeometry* cloud() const { return gfx.path(cloud_path_data); }
 
   // Never null once App exists.
@@ -54,24 +110,12 @@ class Ui {
   // Off for --shot, tests and a system set to show no animations: every transition
   // shows its end state.
   bool animations = true;
-  // Set while painting by whatever needs another frame after this one.
-  bool more_frames = false;
-
-  // The stage is scaled to cover the window; the overflow is cropped, centered.
-  float scale = 1, ox = 0, oy = 0, width = stage_w, height = stage_h;
   unsigned long long now_ms = 0;
-
-  // The field that takes typing, and who decides what Enter does in it.
-  TextField* focus = nullptr;
-  Surface* focus_owner = nullptr;
-  bool caret_on = true;
-  Rect caret;  // window coordinates, for IME placement
 
   // Off while drawing what is on its way out: only what stays takes clicks.
   bool hits_enabled = true;
 
-  // A surface that set this in click() gets drag() until the button goes up.
-  Surface* capture = nullptr;
+  [[nodiscard]] bool pressed(const Surface* owner, int id) const { return pressed_owner == owner && pressed_id == id; }
 
   void begin_frame(float window_w, float window_h, unsigned long long now);
   void set_focus(Surface* owner, TextField* field) {
@@ -98,17 +142,9 @@ class Ui {
   // The emoji with this Twemoji id, or the default droplet for an empty or unknown one.
   [[nodiscard]] const SvgImage& emoji_image(std::string_view id);
 
-  struct Hit {
-    Rect rect;  // window coordinates
-    Surface* owner;
-    int id;
-  };
   [[nodiscard]] const Hit* hit_at(float x, float y) const;
   // Where a hit was last drawn, for tests driving the UI without a window.
   [[nodiscard]] const Hit* find_hit(const Surface* owner, int id) const;
-
-  Surface* hover_owner = nullptr;
-  int hover_id = 0;
 
  private:
   struct FadeMask {
@@ -117,8 +153,6 @@ class Ui {
   };
   std::vector<FadeMask> fade_masks_;
   ID2D1RenderTarget* masks_target_ = nullptr;
-  std::vector<Hit> hits_;
-  std::vector<Rect> hit_clips_;
 };
 
 class Surface {
@@ -146,6 +180,8 @@ class Surface {
   // A key in a field this surface focused. The default edits the field.
   virtual bool key(unsigned vk, bool ctrl, bool shift);
   [[nodiscard]] virtual Cursor cursor(int /*id*/) const { return Cursor::Hand; }
+  // Is this a link? A Skin whose buttons keep the arrow still shows the hand on one.
+  [[nodiscard]] virtual bool is_link(int /*id*/) const { return false; }
 
   // A running effect that needs frames.
   [[nodiscard]] virtual bool animating() const { return false; }

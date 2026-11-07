@@ -2,6 +2,7 @@
 // What the parts of the window shell share.
 #include <windows.h>
 
+#include <array>
 #include <atomic>
 #include <chrono>
 #include <cstdint>
@@ -29,6 +30,8 @@
 
 namespace crpp::gui {
 
+using locale::tr;
+
 namespace area::sound {
 struct State;
 }
@@ -41,6 +44,8 @@ inline constexpr UINT_PTR wake_timer = 5;
 inline constexpr UINT save_delay_ms = 2000;  // chat arrives in bursts; write once per burst
 inline constexpr UINT wm_ui_task = WM_APP + 1;
 inline constexpr UINT wm_own_input = WM_APP + 2;
+inline constexpr UINT wm_exit = WM_APP + 3;
+inline constexpr UINT wm_sync_panes = WM_APP + 4;
 
 inline std::int64_t unix_ms() {
   using namespace std::chrono;
@@ -112,6 +117,18 @@ class InputSink final : public input::Sink {
 };
 
 struct ConnectionArea;  // area_connection.cpp
+struct Shell;
+
+// A panel's own window, while it has one.
+struct PaneWindow {
+  Shell* shell = nullptr;
+  ui::Pane pane = ui::Pane::Main;
+  HWND hwnd = nullptr;
+  ui::ComPtr<ID2D1HwndRenderTarget> target;
+  UINT dpi = USER_DEFAULT_SCREEN_DPI;
+  bool tracking = false, blink_on = false;
+  float fitted_w = 0, fitted_h = 0;
+};
 
 struct Shell {
   ui::App app;
@@ -125,6 +142,11 @@ struct Shell {
   bool blink_timer_on = false;
   bool hidden = true;       // hidden or minimized: no render resources, no frames
   UINT dpi = USER_DEFAULT_SCREEN_DPI;
+  bool own_frame = false;     // the window as it was last set up for the Skin
+  std::string fitted_screen;  // which screen's size the window has; empty: the one size of all
+  std::array<PaneWindow, ui::pane_count> panes;  // by Pane; the first is not used
+  ui::PaneState panes_made;
+  bool panes_posted = false;
   std::filesystem::path assets_dir;
   assets::Manifest asset_manifest;
   std::string asset_url;
@@ -167,9 +189,25 @@ std::string random_nickname(const std::filesystem::path& words);
 
 // --- window.cpp ---
 HWND create_window(Shell& s);
+// The Skin may have changed: makes the window's frame and size what it wants.
+void frame_changed(Shell& s);
 // Runs the frame timer while an effect is animating, and a single wake-up for the
 // next one that is only waiting.
 void sync_frames(Shell& s);
+// For the other windows of a Skin's own frame.
+[[nodiscard]] std::string saved_size_key(std::string_view screen, std::string_view side);
+void set_frame_region(HWND hwnd, UINT dpi);
+[[nodiscard]] LRESULT frame_hit_code(ui::WindowFrame::Zone zone);
+void place_ime(Shell& s, HWND hwnd, UINT dpi);
+[[nodiscard]] std::wstring ime_string(HIMC imc, DWORD kind);
+
+// --- pane_window.cpp ---
+// Asks for the windows to be brought in line with App, once it is safe to destroy one.
+void request_pane_sync(Shell& s);
+void sync_panes(Shell& s);
+void invalidate_panes(Shell& s);
+// Before App::release_graphics, and whenever nobody sees them.
+void drop_pane_targets(Shell& s);
 
 // --- shot.cpp ---
 // `--shot out.png [WxH] [hour] [scene] [notice]`; the exit code of the process.

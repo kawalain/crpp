@@ -346,10 +346,20 @@ void Engine::play(const Event& event) {
   start_voice(samples, mix, gain_of(device_volume) * gain_of(member_volume));
 }
 
+std::span<const float> Engine::generated_chime(const std::string& name) {
+  const std::string key = "chime:" + name;
+  if (const auto found = recordings_.find(key); found != recordings_.end()) return found->second;
+  return recordings_.emplace(key, synthesize_chime(name, rate_)).first->second;
+}
+
 void Engine::play_cue(const Cue& cue) {
   if (settings_.volume <= 0) return;
   if (cue.kind == CueKind::Notification &&
       (settings_.idle_muted || (settings_.muted && settings_.mute_notifications))) {
+    return;
+  }
+  if (settings_.chimes && cue.kind != CueKind::System && can_chime(cue.name)) {
+    if (ensure_open()) start_voice(generated_chime(cue.name), own_mix(), 1.0f);
     return;
   }
   const auto file = cue.kind == CueKind::System ? std::optional(sounds_dir_ / "system" / (cue.name + ".wav"))

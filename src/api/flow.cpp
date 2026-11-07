@@ -4,7 +4,13 @@
 #include <array>
 #include <utility>
 
+#include "crpp/locale/locale.hpp"
+
 namespace crpp::api {
+
+using locale::fill;
+using locale::Strings;
+using locale::tr;
 
 namespace {
 
@@ -70,20 +76,12 @@ bool nickname_valid(std::string_view value) {
   return true;
 }
 
-constexpr std::array<StepText, 6> step_texts{{
-    {"", "ID", "ID 입력", "3~32자, 영문, 숫자, 밑줄, 마침표만 사용할 수 있습니다.", "", "", "계정을 만들고 싶지 않아요.", 32, false, true, false},
-    {"계정 생성", "비밀번호", "비밀번호 입력", "8~32자, 영문과 숫자를 포함해야 하며 특수문자도 사용할 수 있습니다.", "", "", "← ID 다시 입력", 32, true, false, false},
-    {"비밀번호 확인", "비밀번호", "비밀번호 재입력", "입력한 비밀번호를 한 번 더 입력해주세요.", "", "", "← 처음부터 다시", 32, true, false, false},
-    {"로그인", "비밀번호", "비밀번호 입력", "계정 비밀번호를 입력해주세요.", "", "", "← ID 다시 입력", 128, true, false, false},
-    {"사용자명 설정", "사용자명", "사용자명 입력", "3~16자, 영문, 숫자, 밑줄, 마침표만 사용할 수 있습니다.", "@", "", "", 16, false, true, true},
-    {"별명 설정", "별명", "별명 입력", "별명은 중복 설정 가능합니다.", "", "무작위 설정", "", 512, false, false, false},
-}};
 
 }  // namespace
 
 std::string display_name(const Identity& identity) {
   if (const auto nick = trimmed(identity.nickname); !nick.empty()) return std::string(nick);
-  return identity.handle.empty() ? "게스트" : "@" + identity.handle;
+  return identity.handle.empty() ? std::string(tr().guest) : "@" + identity.handle;
 }
 
 bool needs_first_run(const Identity& identity, std::string_view guest_id) {
@@ -108,34 +106,51 @@ bool step_valid(Step step, std::string_view value) {
 }
 
 std::string nickname_length_hint(std::string_view value) {
-  return code_points(trimmed(value)) >= 128 ? "별명은 최대 128자까지 설정할 수 있습니다." : "";
+  return code_points(trimmed(value)) >= 128 ? tr().account_nickname_too_long : "";
 }
 
 std::string failure_message(Step step, const Failure& failure) {
   const std::string_view code = failure.code;
   if (code == "invalid_credentials" && step == Step::Login && failure.attempts > 0) {
-    return "비밀번호가 올바르지 않습니다. (" + std::to_string(failure.attempts) + "/" +
-           std::to_string(failure.max_attempts > 0 ? failure.max_attempts : 5) + ")";
+    return fill(tr().account_wrong_password,
+                {std::to_string(failure.attempts), std::to_string(failure.max_attempts > 0 ? failure.max_attempts : 5)});
   }
-  if (code == "username_taken") return "이미 사용 중인 ID입니다.";
-  if (code == "invalid_username") return "ID 형식이 올바르지 않습니다.";
-  if (code == "invalid_password") return "비밀번호는 8~32자의 영문, 숫자, 특수문자만 사용할 수 있어요.";
-  if (code == "weak_password") return "영문과 숫자를 포함해주세요.";
-  if (code == "handle_taken") return "사용할 수 없는 사용자명입니다.";
-  if (code == "invalid_handle") return "사용자명 형식이 올바르지 않습니다.";
-  if (code == "invalid_credentials") return "ID 또는 비밀번호가 올바르지 않습니다.";
-  if (code == "rate_limited") return "요청이 너무 많습니다. 잠시 후 다시 시도해주세요.";
-  if (code == "unauthorized") return "로그인이 만료되었어요. 다시 로그인해주세요.";
-  return "요청을 처리하지 못했습니다.";
+  if (code == "username_taken") return tr().account_username_taken;
+  if (code == "invalid_username") return tr().account_invalid_username;
+  if (code == "invalid_password") return tr().account_invalid_password;
+  if (code == "weak_password") return tr().account_weak_password;
+  if (code == "handle_taken") return tr().account_handle_taken;
+  if (code == "invalid_handle") return tr().account_invalid_handle;
+  if (code == "invalid_credentials") return tr().account_invalid_credentials;
+  if (code == "rate_limited") return tr().account_rate_limited;
+  if (code == "unauthorized") return tr().account_expired;
+  return tr().account_failed;
 }
 
 std::string lock_hint(long long seconds) {
   seconds = std::max(1LL, seconds);
-  const std::string label = seconds >= 3600 ? "1시간" : std::to_string((seconds + 59) / 60) + "분";
-  return "비밀번호를 너무 많이 틀렸습니다. " + label + " 뒤 다시 시도해주세요.";
+  const std::string label = seconds >= 3600 ? std::string(tr().account_lock_hour) : fill(tr().account_lock_minutes, {std::to_string((seconds + 59) / 60)});
+  return fill(tr().account_locked, {label});
 }
 
-const StepText& step_text(Step step) { return step_texts[static_cast<std::size_t>(step)]; }
+StepText step_text(Step step) {
+  const Strings& s = tr();
+  switch (step) {
+    case Step::Username:
+      return {"", s.account_id, s.account_id_placeholder, s.account_id_hint, "", "", s.account_id_link, 32, false, true, false};
+    case Step::Password:
+      return {s.account_create, s.account_password, s.account_password_placeholder, s.account_password_hint, "", "", s.account_password_link, 32, true, false, false};
+    case Step::PasswordConfirm:
+      return {s.account_confirm, s.account_password, s.account_confirm_placeholder, s.account_confirm_hint, "", "", s.account_confirm_link, 32, true, false, false};
+    case Step::Login:
+      return {s.account_login, s.account_password, s.account_password_placeholder, s.account_login_hint, "", "", s.account_password_link, 128, true, false, false};
+    case Step::Handle:
+      return {s.account_handle_heading, s.account_handle, s.account_handle_placeholder, s.account_handle_hint, "@", "", "", 16, false, true, true};
+    case Step::Nickname:
+      break;
+  }
+  return {s.account_nickname_heading, s.account_nickname, s.account_nickname_placeholder, s.account_nickname_hint, "", s.account_nickname_random, "", 512, false, false, false};
+}
 
 void Flow::start(Step step, std::string value, std::string error_text, bool cancelable) {
   step_ = step;
@@ -170,15 +185,15 @@ Flow::Next Flow::submit(std::string_view value) {
       return call(CallKind::CheckUsername, check_username(value));
     case Step::Password: {
       const bool printable = std::ranges::all_of(value, [](char c) { return c >= 0x21 && c <= 0x7E; });
-      if (!printable) return error("비밀번호에 사용할 수 없는 문자가 있어요.");
+      if (!printable) return error(tr().account_bad_password_char);
       const bool letter = std::ranges::any_of(value, [](char c) { return (c >= 'a' && c <= 'z') || (c >= 'A' && c <= 'Z'); });
       const bool digit = std::ranges::any_of(value, [](char c) { return c >= '0' && c <= '9'; });
-      if (!letter || !digit) return error("영문과 숫자를 포함해주세요.");
+      if (!letter || !digit) return error(tr().account_weak_password);
       pending_password_ = std::string(value);
       return show(Step::PasswordConfirm);
     }
     case Step::PasswordConfirm:
-      if (value != pending_password_) return error("비밀번호가 일치하지 않아요.");
+      if (value != pending_password_) return error(tr().account_password_mismatch);
       return call(CallKind::Register, register_account(pending_username_, value));
     case Step::Login:
       return call(CallKind::Login, login(pending_username_, value));
@@ -218,7 +233,7 @@ Flow::Next Flow::on_response(const HttpResult& result) {
     case CallKind::CheckUsername: {
       const auto answer = read_availability(result);
       if (!answer) return failed(answer.error());
-      if (!answer->valid) return error("ID 형식이 올바르지 않습니다.");
+      if (!answer->valid) return error(tr().account_invalid_username);
       pending_username_ = value_;
       return show(answer->available ? Step::Password : Step::Login);
     }
@@ -243,8 +258,8 @@ Flow::Next Flow::on_response(const HttpResult& result) {
     case CallKind::CheckHandle: {
       const auto answer = read_availability(result);
       if (!answer) return failed(answer.error());
-      if (!answer->valid) return error("사용자명 형식이 올바르지 않습니다.");
-      if (!answer->available) return error("사용할 수 없는 사용자명입니다.");
+      if (!answer->valid) return error(tr().account_invalid_handle);
+      if (!answer->available) return error(tr().account_handle_taken);
       return call(CallKind::SetHandle, set_handle(identity_.token, pending_value_));
     }
     case CallKind::SetHandle: {

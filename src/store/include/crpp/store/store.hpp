@@ -106,6 +106,8 @@ class Store {
   void remember_seat(std::string_view code, std::string_view key, bool is_public, bool left, std::int64_t now_ms);
   void forget_seat(std::string_view code);
   [[nodiscard]] std::optional<SeatReturn> find_seat(std::string_view code, std::int64_t now_ms) const;
+  // The Rooms this user has a Seat in on this server, the one left last first.
+  [[nodiscard]] std::vector<std::string> seat_codes(std::int64_t now_ms) const;
   [[nodiscard]] std::optional<SeatReturn> latest_seat(std::int64_t now_ms) const;
   void forget_all_seats() { store_seats({}); }
 

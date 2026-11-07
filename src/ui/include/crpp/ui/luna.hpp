@@ -14,7 +14,8 @@ inline constexpr float caption_h = 28, frame_w = 3, menu_h = 20;
 inline constexpr float scrollbar_w = 17;
 
 // Body text at this language's size, centered in a line of the given height.
-[[nodiscard]] TextStyle body(const Painter& p, float line_height = 16, Align align = Align::Left);
+[[nodiscard]] TextStyle body(const Gfx& gfx, float line_height = 16, Align align = Align::Left);
+[[nodiscard]] inline TextStyle body(const Painter& p, float line_height = 16, Align align = Align::Left) { return body(p.gfx(), line_height, align); }
 [[nodiscard]] TextStyle bold(const Painter& p, float line_height = 16, Align align = Align::Left);
 // Text that wraps, for a paragraph.
 [[nodiscard]] TextStyle paragraph(const Painter& p, Align align = Align::Left);

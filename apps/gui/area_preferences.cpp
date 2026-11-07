@@ -27,6 +27,7 @@ void apply_theme(Shell& s) {
   const BOOL dark = s.app.ui().theme.dark ? TRUE : FALSE;
   constexpr DWORD use_immersive_dark_mode = 20;
   DwmSetWindowAttribute(s.hwnd, use_immersive_dark_mode, &dark, sizeof dark);
+  frame_changed(s);
   InvalidateRect(s.hwnd, nullptr, FALSE);
 }
 

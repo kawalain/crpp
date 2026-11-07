@@ -9,8 +9,8 @@ namespace crpp::ui {
 
 namespace {
 
-constexpr float pad = 6, item_h = 38;
-constexpr float row_h = 6 + 22 + 8 + 14 + 10;  // .menu-volume: padding, label, margin, slider
+constexpr float menu_pad = 6, menu_item_h = 38;
+constexpr float menu_row_h = 6 + 22 + 8 + 14 + 10;  // .menu-volume: padding, label, margin, slider
 // .member-menu's min-width; one with a volume row is a fifth wider, for the slider.
 constexpr float self_w = 128, other_w = 154;
 
@@ -40,6 +40,8 @@ void MemberMenu::paint(Painter& p) {
   window_w_ = ui_.width;
   window_h_ = ui_.height;
   const Theme& t = ui_.theme;
+  const bool plain = !ui_.skin().moves();
+  const float pad = plain ? 1 : menu_pad, item_h = plain ? 22 : menu_item_h, row_h = plain ? 46 : menu_row_h;
   const float w = self_ ? self_w : other_w;
   const float h = 2 * pad + 2 * item_h + (self_ ? 0 : row_h);
   const Rect r{std::max(8.0f, std::min(x_, ui_.width - w - 8)), std::max(8.0f, std::min(y_, ui_.height - h - 8)), w, h};

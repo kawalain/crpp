@@ -11,6 +11,11 @@ App::App() {
   ui_.dialogs = &dialogs_;
   ui_.toasts = &toasts_;
   ui_.emoji_picker = &emoji_picker_;
+  frame_.on_leave_room = [this] { room_.click(RoomScreen::Leave, 0, 0, false); };
+  frame_.on_options = [this] { settings_.open(settings_.page()); };
+  frame_.on_changelog = [this] {
+    if (settings_.on_version) settings_.on_version();
+  };
 }
 
 bool App::init(const std::filesystem::path& assets_dir, bool load_font) {
@@ -41,11 +46,22 @@ void App::set_theme(std::string_view id) {
   ui_.theme = theme_named(id).theme;
   ui_.gfx.set_classic(!ui_.skin().scales_stage());
   set_animations(animations_wanted_);
+  room_.chat().locale_changed();  // its rows hold their text, laid out in the other font
 }
 
 void App::set_animations(bool wanted) {
   animations_wanted_ = wanted;
   ui_.animations = wanted && ui_.skin().moves();
+}
+
+ScreenSize App::screen_size() const {
+  if (!own_frame()) return {};
+  if (settings_.is_open()) return {"Options", 580, 480, 540, 440};
+  switch (view_) {
+    case View::Home: return {"Home", 300, 560, 260, 400};
+    case View::Session: return {"Room", 640, 500, 480, 360};
+    default: return {"Prompt", 360, 420, 320, 360};
+  }
 }
 
 void App::view_left(View from) {
@@ -113,17 +129,28 @@ void App::close_prompt() {
 }
 
 std::vector<Surface*> App::layers() {
-  if (view_ == View::Setup) return {&changelog_, &update_popup_, &setup_};
-  if (view_ == View::Prompt) return {&dialogs_, &toasts_, &notice_, &prompt_};
-  Surface* screen = view_ == View::Home ? static_cast<Surface*>(&home_) : &room_;
-  return {&dialogs_, &changelog_, &update_popup_, &toasts_, &emoji_picker_, &notice_, &settings_, &offline_, screen};
+  std::vector<Surface*> list;
+  if (own_frame()) list.push_back(&frame_);
+  if (view_ == View::Setup) {
+    list.insert(list.end(), {&changelog_, &update_popup_, &setup_});
+  } else if (view_ == View::Prompt) {
+    list.insert(list.end(), {&dialogs_, &toasts_, &notice_, &prompt_});
+  } else {
+    Surface* screen = view_ == View::Home ? static_cast<Surface*>(&home_) : &room_;
+    list.insert(list.end(), {&dialogs_, &changelog_, &update_popup_, &toasts_, &emoji_picker_, &notice_, &settings_, &offline_, screen});
+  }
+  return list;
 }
 
 void App::paint(ID2D1RenderTarget* rt, float width, float height) {
   full_frame_ = false;
   FLOAT dpi_x = 96, dpi_y = 96;
   rt->GetDpi(&dpi_x, &dpi_y);
-  ui_.gfx.set_pixels_per_dip(dpi_x / 96);
+  if (dpi_x / 96 != pixels_per_dip_) {  // classic text is fitted to the pixels
+    pixels_per_dip_ = dpi_x / 96;
+    ui_.gfx.set_pixels_per_dip(pixels_per_dip_);
+    room_.chat().locale_changed();
+  }
   ui_.begin_frame(width, height, clock_ms());
   ui_.more_frames = false;
   Painter p(ui_.gfx, rt);
@@ -134,7 +161,22 @@ void App::paint(ID2D1RenderTarget* rt, float width, float height) {
     return;
   }
   room_.set_controls_shown(!settings_.is_open());
+  const bool own = own_frame();
+  if (own) {
+    const bool menus = (view_ == View::Home || view_ == View::Session) && !settings_.is_open();
+    frame_.set_menu_shown(menus);
+    frame_.set_in_room(view_ == View::Session);
+    frame_.set_title(settings_.is_open() ? std::string(tr().options_title) + " - Cloudroom++" : "Cloudroom++");
+    ui_.content = WindowFrame::content(width, height, menus);
+    ui_.modal_area = WindowFrame::below_caption(width, height);
+  }
   paint_screens(p);
+  if (own) frame_.paint(p);
+  paint_layers(p);
+  if (own) frame_.paint_menu(p);
+}
+
+void App::paint_layers(Painter& p) {
   if (view_ == View::Setup) {
     update_popup_.paint(p);
     changelog_.paint(p);
@@ -213,7 +255,9 @@ bool App::mouse_leave() {
 }
 
 bool App::mouse_up() {
-  if (!ui_.capture) return false;
+  const bool was_pressed = ui_.pressed_owner != nullptr;
+  ui_.pressed_owner = nullptr;
+  if (!ui_.capture) return was_pressed;
   ui_.capture->release();
   ui_.capture = nullptr;
   return true;
@@ -234,6 +278,10 @@ bool App::mouse_down(float x, float y, bool shift) {
   ui_.set_focus(nullptr, nullptr);
   ui_.caret_on = true;
   for (Surface* s : layers()) s->before_click(owner, id);
+  if (!ui_.skin().moves()) {
+    ui_.pressed_owner = owner;
+    ui_.pressed_id = id;
+  }
   if (owner) owner->click(id, x, y, shift);
   return true;
 }
@@ -318,9 +366,11 @@ unsigned long long App::wake_at() {
 
 Cursor App::cursor() const {
   // A field keeps its own while dragging; a slider may be dragged far off itself.
-  if (ui_.capture && ui_.capture != ui_.hover_owner) return Cursor::Hand;
+  const bool hand_on_links_only = !ui_.skin().moves();
+  if (ui_.capture && ui_.capture != ui_.hover_owner) return hand_on_links_only ? Cursor::Arrow : Cursor::Hand;
   if (!ui_.hover_owner) return Cursor::Arrow;
-  return ui_.hover_owner->cursor(ui_.hover_id);
+  const Cursor wanted = ui_.hover_owner->cursor(ui_.hover_id);
+  return hand_on_links_only && wanted == Cursor::Hand && !ui_.hover_owner->is_link(ui_.hover_id) ? Cursor::Arrow : wanted;
 }
 
 }  // namespace crpp::ui

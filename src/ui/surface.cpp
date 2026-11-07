@@ -21,6 +21,7 @@ void Ui::begin_frame(float window_w, float window_h, unsigned long long now) {
     scale = 1;
     ox = oy = 0;
   }
+  content = modal_area = {0, 0, window_w, window_h};
   hits_.clear();
   hit_clips_.clear();
 }

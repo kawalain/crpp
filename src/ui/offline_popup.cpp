@@ -27,9 +27,9 @@ void OfflinePopup::hide() {
 
 void OfflinePopup::paint(Painter& p) {
   if (!shown_ || covered_) return;
-  constexpr float pad_top = 24, pad_x = 25, pad_bottom = 20;
-  const float w = std::min(320.0f, ui_.width - 40);
-  const TextStyle body{.size = 18, .weight = 700, .line_height = 27, .align = Align::Center, .wrap = true};
+  const auto [pad_top, pad_x, pad_bottom, gap, button_h, button_w, button_gap, width, wide_width, margin, text_size, text_line, align] = ui_.skin().dialog_metrics();
+  const float w = std::min(width, ui_.width - margin);
+  const TextStyle body{.size = text_size, .weight = 700, .line_height = text_line, .align = align, .wrap = true, .keep_words = true};
   const float text_w = w - 2 * pad_x;
   DWRITE_TEXT_METRICS size{};
   if (const auto layout = ui_.gfx.layout(widen(tr().offline_message), body, text_w)) layout->GetMetrics(&size);

@@ -24,6 +24,10 @@ class CloudSkin final : public Skin {
     p.fill_round(r, 14, with_alpha(t.surface, shown));
   }
 
+  [[nodiscard]] Rect panel_bounds(Rect r, PanelKind) const override { return r; }
+
+  [[nodiscard]] DialogMetrics dialog_metrics() const override { return {24, 25, 20, 20, 38, 96, 10, 320, 380, 40, 18, 27, Align::Center}; }
+
   void backdrop(Painter& p, const Theme&, Rect window, float shown) const override {
     // .modal-backdrop's fade is a little shorter than the card's rise.
     constexpr float fade_ms = 140, pop_ms = 160;

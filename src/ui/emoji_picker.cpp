@@ -91,9 +91,9 @@ void EmojiPicker::paint_shown(Painter& p) {
   const Theme& t = ui_.theme;
   p.set_base(D2D1::Matrix3x2F::Identity());
   const Rect window{0, 0, ui_.width, ui_.height};
-  p.fill_rect(window, rgb(0x365669, 0.28f));
-  ui_.add_hit_window(this, window, Backdrop);
-  const Rect r{(ui_.width - picker_w) / 2, (ui_.height - picker_h) / 2, picker_w, picker_h};
+  if (ui_.skin().moves()) p.fill_rect(window, rgb(0x365669, 0.28f));
+  ui_.add_hit_window(this, ui_.modal_area, Backdrop);
+  const Rect r{ui_.content.x + (ui_.content.w - picker_w) / 2, ui_.content.y + (ui_.content.h - picker_h) / 2, picker_w, picker_h};
   ui_.skin().panel(p, t, r, PanelKind::Picker);
   ui_.add_hit_window(this, r, Card);
 
@@ -135,7 +135,8 @@ void EmojiPicker::paint_shown(Painter& p) {
     const bool over = ui_.hot(this, Track) || ui_.hot(this, Thumb) || ui_.capture == this;
     if (over && !thumb_on_) reveal_thumb();
     const float moved = transition(ui_, thumb_since_, thumb_on_ ? thumb_in_ms : thumb_out_ms);
-    const float alpha = thumb_on_ ? moved : (thumb_since_ == 0 ? 0 : 1 - moved);
+    // A Skin that does not move always shows it.
+    const float alpha = !ui_.skin().moves() ? 1 : thumb_on_ ? moved : (thumb_since_ == 0 ? 0 : 1 - moved);
     if (alpha > 0) {
       ui_.skin().scrollbar(p, t, thumb, over ? 1.0f : 0.0f, alpha);
     }

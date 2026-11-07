@@ -10,8 +10,8 @@ namespace crpp::ui {
 
 namespace luna {
 
-TextStyle body(const Painter& p, float line_height, Align align) {
-  return {.size = p.gfx().classic_size(), .line_height = line_height, .align = align, .ellipsis = true, .exact = true};
+TextStyle body(const Gfx& gfx, float line_height, Align align) {
+  return {.size = gfx.classic_size(), .line_height = line_height, .align = align, .ellipsis = true, .exact = true};
 }
 
 TextStyle bold(const Painter& p, float line_height, Align align) {
@@ -22,7 +22,7 @@ TextStyle bold(const Painter& p, float line_height, Align align) {
 
 TextStyle paragraph(const Painter& p, Align align) {
   const float size = p.gfx().classic_size();
-  return {.size = size, .line_height = size + 4, .align = align, .wrap = true, .exact = true};
+  return {.size = size, .line_height = size + 4, .align = align, .wrap = true, .exact = true, .keep_words = true};
 }
 
 namespace {
@@ -259,10 +259,10 @@ void caption_button(Painter& p, const Theme& t, Rect r, CaptionGlyph glyph, bool
   rounded_line(p, r, l.caption_ink);
   const Color ink = l.caption_ink;
   if (close) {
-    for (int i = 0; i < 9; ++i) {
-      const auto n = static_cast<float>(i);
-      p.fill_rect({r.x + 6 + n, r.y + 6 + n, 2, 1}, ink);
-      p.fill_rect({r.right() - 8 - n, r.y + 6 + n, 2, 1}, ink);
+    const float inset = r.w >= 21 ? 6 : 5;
+    for (float n = 0; n < r.w - 2 * inset; ++n) {
+      p.fill_rect({r.x + inset + n, r.y + inset + n, 2, 1}, ink);
+      p.fill_rect({r.right() - inset - 2 - n, r.y + inset + n, 2, 1}, ink);
     }
   } else {
     p.fill_rect({r.x + 5, r.bottom() - 7, 8, 3}, ink);
@@ -310,6 +310,10 @@ class LunaSkin final : public Skin {
         break;
     }
   }
+
+  [[nodiscard]] Rect panel_bounds(Rect r, PanelKind kind) const override { return kind == PanelKind::Modal ? luna::dialog_bounds(r) : r; }
+
+  [[nodiscard]] DialogMetrics dialog_metrics() const override { return {14, 14, 12, 14, luna::button_h, luna::button_w, 6, 280, 340, 16, 18, 16, Align::Left}; }
 
   void backdrop(Painter&, const Theme&, Rect, float) const override {}  // a dialog of the time dims nothing
 
@@ -395,7 +399,7 @@ class LunaSkin final : public Skin {
   }
 
   void close_button(Painter& p, const Theme& t, Rect r, bool hot, float) const override {
-    luna::caption_button(p, t, {std::floor(r.x + (r.w - 21) / 2), std::floor(r.y + (r.h - 21) / 2), 21, 21}, luna::CaptionGlyph::Close, hot, false);
+    luna::caption_button(p, t, r, luna::CaptionGlyph::Close, hot, false);
   }
 };
 

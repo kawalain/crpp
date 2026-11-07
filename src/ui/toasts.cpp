@@ -54,7 +54,8 @@ void Toasts::paint(Painter& p) {
 
 void Toasts::paint_toast(Painter& p) {
   const Theme& t = ui_.theme;
-  constexpr float pad_x = 18, pad_y = 11, gap = 16, action_pad_x = 13, action_h = 32;
+  const bool plain = !ui_.skin().moves();
+  const float pad_x = plain ? 10 : 18, pad_y = plain ? 7 : 11, gap = plain ? 10 : 16, action_pad_x = plain ? 12 : 13, action_h = plain ? 23 : 32;
   const float max_w = ui_.width - 32;
   const TextStyle body{.size = 15, .weight = 700, .line_height = 22, .wrap = true};
   const TextStyle action_style{.size = 15, .weight = 700, .line_height = action_h, .align = Align::Center};
@@ -72,7 +73,7 @@ void Toasts::paint_toast(Painter& p) {
   const float h = inner_h + 2 * pad_y;
   const float shown = visibility(toast_, toast_ms);
   // Slides from above the window to 8 below its top (translate(-50%, -150%)).
-  const float y = 8 - (h * 1.5f + 8) * (1 - shown);
+  const float y = ui_.content.y + 8 - (h * 1.5f + 8) * (1 - shown);
   const Rect card{(ui_.width - w) / 2, y, w, h};
   ui_.skin().panel(p, t, card, PanelKind::Toast, shown);
   p.text(toast_.text, {card.x + pad_x, card.y + (h - size.height) / 2, size.widthIncludingTrailingWhitespace + 1, size.height},
@@ -86,7 +87,8 @@ void Toasts::paint_toast(Painter& p) {
 
 void Toasts::paint_bubble(Painter& p) {
   const Theme& t = ui_.theme;
-  constexpr float pad_x = 15, pad_y = 5;
+  const bool plain = !ui_.skin().moves();
+  const float pad_x = plain ? 4 : 15, pad_y = plain ? 2 : 5;
   const TextStyle body{.size = 16, .weight = 700, .line_height = 22, .align = Align::Center, .wrap = true};
   DWRITE_TEXT_METRICS size{};
   if (const auto layout = ui_.gfx.layout(widen(bubble_.text), body, 420 - 2 * pad_x)) layout->GetMetrics(&size);

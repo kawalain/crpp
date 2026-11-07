@@ -51,6 +51,9 @@ struct Scroll {
   [[nodiscard]] float fade_top() const;
   [[nodiscard]] float fade_bottom() const;
   [[nodiscard]] Rect thumb(Rect track) const;
+  // A click on a scrollbar with arrows: a line on an arrow, beyond the track, and a page
+  // beside the thumb.
+  void step_towards(Rect track, float y, float line = 20);
   // Moves so the thumb's middle is at y.
   void drag_thumb(Rect track, float y);
 };

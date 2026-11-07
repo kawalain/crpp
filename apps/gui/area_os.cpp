@@ -246,6 +246,10 @@ void sync_hidden(Shell& s) {
 void wire(Shell& s) {
   state.shell = &s;
   state.tray.attach(s.hwnd);
+  // A Skin's own frame asks for these; posted, so the surface is not destroyed under its click.
+  s.app.frame().on_minimize = [hwnd = s.hwnd] { PostMessageW(hwnd, WM_SYSCOMMAND, SC_MINIMIZE, 0); };
+  s.app.frame().on_close = [hwnd = s.hwnd] { PostMessageW(hwnd, WM_CLOSE, 0, 0); };
+  s.app.frame().on_exit = [hwnd = s.hwnd] { PostMessageW(hwnd, wm_exit, 0, 0); };
   state.taskbar_created = RegisterWindowMessageW(L"TaskbarCreated");
   state.show_window_requested = RegisterWindowMessageW(show_window_message);
   if (s.throwaway_data) state.run_key = std::make_unique<MemoryRunKey>();

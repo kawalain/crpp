@@ -25,6 +25,12 @@ struct ListMetrics {
   float pad, item_h, gap, max_h, margin;
 };
 
+struct DialogMetrics {
+  float pad_top, pad_x, pad_bottom, gap, button_h, button_w, button_gap, width, wide_width, margin;
+  float text_size, text_line;
+  Align align;
+};
+
 class Skin {
  public:
   virtual ~Skin() = default;
@@ -35,6 +41,8 @@ class Skin {
   [[nodiscard]] virtual bool moves() const = 0;
 
   virtual void panel(Painter& p, const Theme& t, Rect r, PanelKind kind, float shown = 1) const = 0;
+  // How far a panel of this kind reaches beyond its rectangle.
+  [[nodiscard]] virtual Rect panel_bounds(Rect r, PanelKind kind) const = 0;
   // What dims everything under a modal; shown is its transition's progress.
   virtual void backdrop(Painter& p, const Theme& t, Rect window, float shown) const = 0;
   virtual void button(Painter& p, const Theme& t, Rect r, std::string_view label, const ButtonLook& look) const = 0;
@@ -58,6 +66,8 @@ class Skin {
   virtual void avatar(Painter& p, const Theme& t, Rect r, float grow, bool lit, float shown) const = 0;
   virtual void progress(Painter& p, const Theme& t, Rect track, int percent) const = 0;
   virtual void close_button(Painter& p, const Theme& t, Rect r, bool hot, float shown) const = 0;
+  // How a question lays itself out.
+  [[nodiscard]] virtual DialogMetrics dialog_metrics() const = 0;
 };
 
 // inline constexpr so that code laying out a slider's tip can say where the thumb is.

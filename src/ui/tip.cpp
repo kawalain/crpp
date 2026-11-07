@@ -34,6 +34,12 @@ void HoverTip::paint(Ui& ui, Painter& p, const Spec* want) {
   const float alpha = shown_ ? moved : 1 - moved;
   if (alpha <= 0) return;
 
+  if (!ui.skin().moves()) {  // a small box against what it is about
+    spec_.pad_x = 4;
+    spec_.pad_y = 1;
+    spec_.line_height = 16;
+    spec_.gap = std::min(spec_.gap, 3.0f);
+  }
   const TextStyle style{.size = spec_.size,
                         .weight = spec_.weight,
                         .line_height = spec_.line_height,

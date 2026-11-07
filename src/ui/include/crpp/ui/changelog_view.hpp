@@ -42,7 +42,7 @@ class ChangelogOverscroll {
 class ChangelogView final : public Surface {
  public:
   using Surface::Surface;
-  enum Id : int { Backdrop, Card, Close };
+  enum Id : int { Backdrop, Card, Close, BarTrack, BarThumb };
 
   // Entries are newest first. An empty list says there is nothing to show.
   void open(std::vector<ChangelogEntry> entries, std::size_t index);
@@ -59,6 +59,7 @@ class ChangelogView final : public Surface {
 
   void paint(Painter& p);
   void click(int id, float x, float y, bool shift) override;
+  void drag(float x, float y) override;
   bool wheel(float x, float y, float delta) override;
   bool escape() override;
   [[nodiscard]] Cursor cursor(int id) const override;
@@ -90,6 +91,8 @@ class ChangelogView final : public Surface {
   float built_width_ = 0, head_h_ = 0, body_h_ = 0;
   Scroll scroll_;
   bool start_at_bottom_ = false;
+  Rect bar_track_;
+  float grab_y_ = 0, grab_offset_ = 0;
 
   ChangelogOverscroll overscroll_;
   int hint_ = 0, hint_shown_ = 0;  // the wanted direction; the one being drawn or fading

@@ -447,6 +447,17 @@ ComPtr<IDWriteTextLayout> Gfx::classic_layout(std::wstring_view text, TextStyle 
     style.letter_spacing = 0;
     if (style.wrap) style.line_height = classic_size_ + 4;
   }
+  std::wstring kept;
+  if (style.keep_words) {
+    // DirectWrite has no word-break: keep-all, so a word joiner holds each pair of syllables.
+    const auto syllable = [](wchar_t c) { return c >= 0xAC00 && c <= 0xD7A3; };
+    kept.reserve(text.size() + text.size() / 2);
+    for (std::size_t i = 0; i < text.size(); ++i) {
+      kept.push_back(text[i]);
+      if (i + 1 < text.size() && syllable(text[i]) && syllable(text[i + 1])) kept.push_back(L'\x2060');
+    }
+    text = kept;
+  }
   const bool caption = style.role == FontRole::Caption;
   const std::wstring& family = caption ? classic_caption_ : classic_body_;
   ComPtr<IDWriteTextFormat> format;

@@ -30,6 +30,63 @@ void save_window_size(Shell& s, HWND hwnd) {
   s.store->set("windowHeight", store::Json(static_cast<std::int64_t>(MulDiv(rc.bottom, 96, static_cast<int>(s.dpi)))));
 }
 
+std::string saved_key(std::string_view screen, std::string_view side) { return "window" + std::string(screen) + std::string(side); }
+
+// What a Skin with a size per screen remembers, under keys of this client's own.
+void save_screen_size(Shell& s, HWND hwnd) {
+  RECT rc;
+  if (s.fitted_screen.empty() || IsIconic(hwnd) || !GetClientRect(hwnd, &rc) || rc.right <= 0 || rc.bottom <= 0) return;
+  s.store->set(saved_key(s.fitted_screen, "Width"), store::Json(static_cast<std::int64_t>(MulDiv(rc.right, 96, static_cast<int>(s.dpi)))));
+  s.store->set(saved_key(s.fitted_screen, "Height"), store::Json(static_cast<std::int64_t>(MulDiv(rc.bottom, 96, static_cast<int>(s.dpi)))));
+}
+
+// Rounds the top corners; only a region does that on every Windows.
+void update_region(Shell& s, HWND hwnd) {
+  if (!s.own_frame) {
+    SetWindowRgn(hwnd, nullptr, TRUE);
+    return;
+  }
+  RECT rc;
+  if (IsIconic(hwnd) || !GetWindowRect(hwnd, &rc)) return;
+  const int w = rc.right - rc.left, h = rc.bottom - rc.top;
+  const int radius = MulDiv(8, static_cast<int>(s.dpi), 96);
+  HRGN round = CreateRoundRectRgn(0, 0, w + 1, h + 2 * radius, 2 * radius, 2 * radius);
+  HRGN box = CreateRectRgn(0, 0, w, h);
+  CombineRgn(round, round, box, RGN_AND);
+  DeleteObject(box);
+  if (SetWindowRgn(hwnd, round, TRUE) == 0) DeleteObject(round);  // otherwise the system owns it
+}
+
+// Makes the window the size of what is on screen, if that has changed. The top left stays,
+// unless that would leave the window off its monitor.
+void fit_window(Shell& s, HWND hwnd) {
+  const ScreenSize screen = s.app.screen_size();
+  if (s.fitted_screen == screen.key) return;
+  save_screen_size(s, hwnd);
+  s.fitted_screen = std::string(screen.key);
+  const auto scaled = [&](std::int64_t dips) { return MulDiv(static_cast<int>(dips), static_cast<int>(s.dpi), 96); };
+  RECT rc;
+  if (screen.key.empty()) {
+    rc = {0, 0, scaled(s.store->i64_or("windowWidth", 951)), scaled(s.store->i64_or("windowHeight", 692))};
+    AdjustWindowRectExForDpi(&rc, window_style, FALSE, 0, s.dpi);
+  } else {
+    const auto side = [&](std::string_view name, float fallback, float least) {
+      return scaled(std::max(static_cast<std::int64_t>(least), s.store->i64_or(saved_key(screen.key, name), static_cast<std::int64_t>(fallback))));
+    };
+    rc = {0, 0, side("Width", screen.w, screen.min_w), side("Height", screen.h, screen.min_h)};
+  }
+  RECT at;
+  GetWindowRect(hwnd, &at);
+  const LONG w = rc.right - rc.left, h = rc.bottom - rc.top;
+  MONITORINFO info{sizeof info};
+  LONG x = at.left, y = at.top;
+  if (GetMonitorInfoW(MonitorFromWindow(hwnd, MONITOR_DEFAULTTONEAREST), &info)) {
+    x = std::max(info.rcWork.left, std::min(x, info.rcWork.right - w));
+    y = std::max(info.rcWork.top, std::min(y, info.rcWork.bottom - h));
+  }
+  SetWindowPos(hwnd, nullptr, x, y, w, h, SWP_NOZORDER | SWP_NOACTIVATE);
+}
+
 void ensure_target(Shell& s, HWND hwnd) {
   if (s.target) return;
   RECT rc;
@@ -114,12 +171,68 @@ LRESULT CALLBACK wnd_proc(HWND hwnd, UINT msg, WPARAM wp, LPARAM lp) {
       KillTimer(hwnd, frame_timer);
       KillTimer(hwnd, save_timer);
       KillTimer(hwnd, wake_timer);
-      if (s->store) save_window_size(*s, hwnd);
+      if (s->store) {
+        if (s->own_frame) save_screen_size(*s, hwnd);
+        else save_window_size(*s, hwnd);
+      }
       PostQuitMessage(0);
       return 0;
     case WM_ERASEBKGND:
       return 1;
+    case WM_NCCALCSIZE:
+      // The whole window is client area, and the app draws the frame in it.
+      if (s->own_frame && wp) return 0;
+      break;
+    case WM_NCPAINT:
+      if (s->own_frame) return 0;
+      break;
+    case WM_NCACTIVATE:
+      s->app.frame().set_active(wp != FALSE);
+      if (s->own_frame) {
+        InvalidateRect(hwnd, nullptr, FALSE);
+        return DefWindowProcW(hwnd, msg, wp, -1);  // -1: the system draws no frame of its own
+      }
+      break;
+    case WM_NCHITTEST:
+      if (s->own_frame) {
+        POINT pt{GET_X_LPARAM(lp), GET_Y_LPARAM(lp)};
+        ScreenToClient(hwnd, &pt);
+        RECT rc;
+        GetClientRect(hwnd, &rc);
+        using Zone = WindowFrame::Zone;
+        switch (WindowFrame::zone_at(dips(pt.x), dips(pt.y), dips(rc.right), dips(rc.bottom))) {
+          case Zone::Caption: return HTCAPTION;
+          case Zone::Left: return HTLEFT;
+          case Zone::Right: return HTRIGHT;
+          case Zone::Top: return HTTOP;
+          case Zone::Bottom: return HTBOTTOM;
+          case Zone::TopLeft: return HTTOPLEFT;
+          case Zone::TopRight: return HTTOPRIGHT;
+          case Zone::BottomLeft: return HTBOTTOMLEFT;
+          case Zone::BottomRight: return HTBOTTOMRIGHT;
+          case Zone::Client: return HTCLIENT;
+        }
+      }
+      break;
+    case WM_EXITSIZEMOVE:
+      if (s->own_frame && s->store) {
+        save_screen_size(*s, hwnd);
+        if (!s->save_timer_on) {
+          SetTimer(hwnd, save_timer, save_delay_ms, nullptr);
+          s->save_timer_on = true;
+        }
+      }
+      break;
+    case wm_exit:
+      DestroyWindow(hwnd);
+      return 0;
     case WM_GETMINMAXINFO: {
+      if (s->own_frame) {
+        const ScreenSize screen = s->app.screen_size();
+        reinterpret_cast<MINMAXINFO*>(lp)->ptMinTrackSize = {MulDiv(static_cast<int>(screen.min_w), static_cast<int>(s->dpi), 96),
+                                                             MulDiv(static_cast<int>(screen.min_h), static_cast<int>(s->dpi), 96)};
+        return 0;
+      }
       RECT rc{0, 0, MulDiv(min_client_width, static_cast<int>(s->dpi), 96), MulDiv(min_client_height, static_cast<int>(s->dpi), 96)};
       AdjustWindowRectExForDpi(&rc, window_style, FALSE, 0, s->dpi);
       reinterpret_cast<MINMAXINFO*>(lp)->ptMinTrackSize = {rc.right - rc.left, rc.bottom - rc.top};
@@ -127,9 +240,12 @@ LRESULT CALLBACK wnd_proc(HWND hwnd, UINT msg, WPARAM wp, LPARAM lp) {
     }
     case WM_SIZE:
       if (s->target) s->target->Resize(D2D1::SizeU(LOWORD(lp), HIWORD(lp)));
+      if (s->own_frame && wp != SIZE_MINIMIZED) update_region(*s, hwnd);
       InvalidateRect(hwnd, nullptr, FALSE);
       return 0;
     case WM_PAINT: {
+      // Before anything is drawn, so a screen never shows at another's size.
+      if (s->store) fit_window(*s, hwnd);
       PAINTSTRUCT ps;
       BeginPaint(hwnd, &ps);
       if (s->frame_running) s->app.tick(clock_ms());
@@ -279,6 +395,19 @@ LRESULT CALLBACK wnd_proc(HWND hwnd, UINT msg, WPARAM wp, LPARAM lp) {
 }
 
 }  // namespace
+
+void frame_changed(Shell& s) {
+  const bool own = s.app.own_frame();
+  if (own != s.own_frame) {
+    if (own) save_window_size(s, s.hwnd);
+    else save_screen_size(s, s.hwnd);
+    s.own_frame = own;
+    update_region(s, s.hwnd);
+    // The frame is measured again now, which WM_NCCALCSIZE answers.
+    SetWindowPos(s.hwnd, nullptr, 0, 0, 0, 0, SWP_NOMOVE | SWP_NOSIZE | SWP_NOZORDER | SWP_NOACTIVATE | SWP_FRAMECHANGED);
+  }
+  fit_window(s, s.hwnd);
+}
 
 void invalidate_frame(Shell& s) {
   if (const auto area = s.app.only_moving_area()) {

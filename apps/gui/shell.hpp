@@ -43,6 +43,7 @@ inline constexpr UINT_PTR wake_timer = 5;
 inline constexpr UINT save_delay_ms = 2000;  // chat arrives in bursts; write once per burst
 inline constexpr UINT wm_ui_task = WM_APP + 1;
 inline constexpr UINT wm_own_input = WM_APP + 2;
+inline constexpr UINT wm_exit = WM_APP + 3;
 
 inline std::int64_t unix_ms() {
   using namespace std::chrono;
@@ -127,6 +128,8 @@ struct Shell {
   bool blink_timer_on = false;
   bool hidden = true;       // hidden or minimized: no render resources, no frames
   UINT dpi = USER_DEFAULT_SCREEN_DPI;
+  bool own_frame = false;     // the window as it was last set up for the Skin
+  std::string fitted_screen;  // which screen's size the window has; empty: the one size of all
   std::filesystem::path assets_dir;
   assets::Manifest asset_manifest;
   std::string asset_url;
@@ -169,6 +172,8 @@ std::string random_nickname(const std::filesystem::path& words);
 
 // --- window.cpp ---
 HWND create_window(Shell& s);
+// The Skin may have changed: makes the window's frame and size what it wants.
+void frame_changed(Shell& s);
 // Runs the frame timer while an effect is animating, and a single wake-up for the
 // next one that is only waiting.
 void sync_frames(Shell& s);

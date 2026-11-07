@@ -95,7 +95,17 @@ int run_shot(Shell& s, int argc, char** argv, float dpi) {
   }
   if (argc >= 5) s.app.home().set_hour(std::atoi(argv[4]));
   s.app.home().set_nickname("크롬이");
+  const bool sized_by_screen = argc >= 4 && std::string_view(argv[3]) == "auto" && !s.app.screen_size().key.empty();
+  if (sized_by_screen) {  // a layout of its own says where things are by drawing them
+    const ScreenSize screen = s.app.screen_size();
+    if (!save_png(s.app, widen(argv[2]), static_cast<unsigned>(screen.w), static_cast<unsigned>(screen.h), dpi)) return 1;
+  }
   if (argc >= 6) (void)apply_scene(s, argv[5]);
+  if (sized_by_screen) {
+    const ScreenSize screen = s.app.screen_size();
+    w = static_cast<unsigned>(screen.w);
+    h = static_cast<unsigned>(screen.h);
+  }
   if (std::string(argv[argc - 1]) == "notice") {
     s.app.notice().set(Notice{tr().notice_shared, tr().notice_move, tr().notice_close});
   }

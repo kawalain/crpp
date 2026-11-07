@@ -43,6 +43,9 @@ struct TextStyle {
   // With classic fonts a size means a kind of text and not its pixels, unless this says so.
   bool exact = false;
   FontRole role = FontRole::Body;
+  // With classic fonts: a line of Hangul breaks only between words. Character positions in the
+  // layout then differ from the text's, so it is not for text with ranges or a caret.
+  bool keep_words = false;
 };
 
 std::wstring widen(std::string_view utf8);

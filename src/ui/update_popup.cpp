@@ -23,7 +23,9 @@ void UpdatePopup::paint(Painter& p) {
   const Theme& t = ui_.theme;
   p.set_base(D2D1::Matrix3x2F::Identity());
   // .update-popup: padding 10 12 10 16, gap 12; .update-button: padding 6 14, radius 9.
-  constexpr float pad_left = 16, pad_right = 12, pad_y = 10, gap = 12, button_pad_x = 14, button_h = 32, margin = 14;
+  const bool plain = !ui_.skin().moves();
+  const float pad_left = plain ? 10 : 16, pad_right = plain ? 6 : 12, pad_y = plain ? 5 : 10, gap = plain ? 8 : 12, button_pad_x = plain ? 12 : 14,
+              button_h = plain ? 23 : 32, margin = 14;
   const TextStyle body{.size = 15, .weight = 700, .line_height = 22, .ellipsis = true};
   const TextStyle label_style{.size = 15, .weight = 700, .line_height = button_h, .align = Align::Center};
 
@@ -49,13 +51,13 @@ void UpdatePopup::paint(Painter& p) {
     if (const auto layout = ui_.gfx.layout(widen(label), label_style, ui_.width)) layout->GetMetrics(&m);
     label_w = m.widthIncludingTrailingWhitespace + 2 * button_pad_x;
   }
-  const float max_w = std::max(120.0f, ui_.width - 100);  // max-width: calc(100vw - 100px)
+  const float max_w = plain ? ui_.content.w - 16 : std::max(120.0f, ui_.width - 100);  // max-width: calc(100vw - 100px)
   const float chrome = pad_left + pad_right + (label_w > 0 ? label_w + gap : 0);
   DWRITE_TEXT_METRICS size{};
   if (const auto layout = ui_.gfx.layout(widen(text), body, std::max(40.0f, max_w - chrome))) layout->GetMetrics(&size);
   const float text_w = std::min(size.widthIncludingTrailingWhitespace + 1, std::max(40.0f, max_w - chrome));
   const float inner_h = label_w > 0 ? button_h : 22;
-  const Rect card{margin, margin, text_w + chrome, inner_h + 2 * pad_y};
+  const Rect card{plain ? ui_.content.x + 8 : margin, plain ? ui_.content.y + 8 : margin, text_w + chrome, inner_h + 2 * pad_y};
 
   ui_.skin().panel(p, t, card, PanelKind::Update);
   ui_.add_hit_window(this, card, Card);

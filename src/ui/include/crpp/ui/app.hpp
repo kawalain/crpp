@@ -27,10 +27,19 @@
 #include "crpp/ui/surface.hpp"
 #include "crpp/ui/toasts.hpp"
 #include "crpp/ui/update_popup.hpp"
+#include "crpp/ui/window_frame.hpp"
 
 namespace crpp::ui {
 
 enum class View : std::uint8_t { Setup, Home, Session, Prompt };
+
+// How large the window wants to be for what is on screen, in DIPs. For a Skin whose controls
+// keep their size, each screen has a window size of its own; `key` is what it is saved under.
+// An empty key means this Skin has one window size for all.
+struct ScreenSize {
+  std::string_view key;
+  float w = 0, h = 0, min_w = 0, min_h = 0;
+};
 
 class App {
  public:
@@ -58,6 +67,10 @@ class App {
   [[nodiscard]] EmojiPicker& emoji_picker() { return emoji_picker_; }
   [[nodiscard]] UpdatePopup& update_popup() { return update_popup_; }
   [[nodiscard]] ChangelogView& changelog() { return changelog_; }
+  [[nodiscard]] WindowFrame& frame() { return frame_; }
+  // Does the app draw the window's frame?
+  [[nodiscard]] bool own_frame() const { return !ui_.skin().scales_stage(); }
+  [[nodiscard]] ScreenSize screen_size() const;
   // The settings surfaces read and change; in memory until the shell sets its own.
   void set_prefs(Prefs& prefs) { ui_.prefs = &prefs; }
 
@@ -115,6 +128,7 @@ class App {
   void paint_screen(Painter& p, View view);
   void paint_screens(Painter& p);
   void paint_controls_sheet(Painter& p);
+  void paint_layers(Painter& p);
 
   Ui ui_;
   MemoryPrefs memory_prefs_;
@@ -130,6 +144,8 @@ class App {
   ChangelogView changelog_{ui_};
   Dialogs dialogs_{ui_};
   PromptScreen prompt_{ui_};
+  WindowFrame frame_{ui_};
+  float pixels_per_dip_ = 1;
   View view_ = View::Home;
   View prompt_return_ = View::Home;
   // The screen fading out while left_at_ is set. A Room fading out resets after that.

@@ -79,6 +79,18 @@ class Ui {
   // A surface that set this in click() gets drag() until the button goes up.
   Surface* capture = nullptr;
 
+  // Where a screen and a modal go: the whole window, or what a Skin's own frame leaves.
+  Rect content{0, 0, stage_w, stage_h};
+  // What a modal takes clicks from: everything but a caption the system or its buttons need.
+  Rect modal_area{0, 0, stage_w, stage_h};
+  // Where a settings list has room to open.
+  Rect dropdown_view{296, 137, 566, 504};
+
+  // What the button went down on, for a Skin that shows it.
+  Surface* pressed_owner = nullptr;
+  int pressed_id = 0;
+  [[nodiscard]] bool pressed(const Surface* owner, int id) const { return pressed_owner == owner && pressed_id == id; }
+
   void begin_frame(float window_w, float window_h, unsigned long long now);
   void set_focus(Surface* owner, TextField* field) {
     focus_owner = owner;
@@ -152,6 +164,8 @@ class Surface {
   // A key in a field this surface focused. The default edits the field.
   virtual bool key(unsigned vk, bool ctrl, bool shift);
   [[nodiscard]] virtual Cursor cursor(int /*id*/) const { return Cursor::Hand; }
+  // Is this a link? A Skin whose buttons keep the arrow still shows the hand on one.
+  [[nodiscard]] virtual bool is_link(int /*id*/) const { return false; }
 
   // A running effect that needs frames.
   [[nodiscard]] virtual bool animating() const { return false; }

@@ -175,6 +175,23 @@ struct Strings {
   const char* account_change_nickname;
   const char* account_change_handle;
 
+  const char* menu_file;
+  const char* menu_leave;
+  const char* menu_exit;
+  const char* menu_tools;
+  const char* menu_options;
+  const char* menu_help;
+  const char* menu_changelog;
+  const char* options_title;
+  const char* options_close;
+  const char* home_enter;
+  const char* home_seats;
+  const char* home_seats_empty;
+  const char* home_tasks;
+  const char* room_contacts;
+  const char* room_options;
+  const char* chat_says;
+  const char* chat_send;
   const char* theme_cloud;
   const char* theme_dark_cloud;
   const char* theme_pastel;

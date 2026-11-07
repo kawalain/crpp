@@ -46,7 +46,7 @@ class TestNames final : public Names {
 class TestEnv final : public Env {
  public:
   float number(std::uint16_t id) override { return id == 7 ? 5.0f : -1.0f; }
-  float text_width(std::uint16_t style, std::uint32_t text) override { return static_cast<float>(style) * 100 + static_cast<float>(text); }
+  float text_width(std::uint16_t style, std::uint32_t text, float width) override { return static_cast<float>(style) * 100 + static_cast<float>(text) + (width == unlimited_text_width ? 0 : width); }
   float text_height(std::uint16_t style, std::uint32_t text, float width) override { return static_cast<float>(style) * 100 + static_cast<float>(text) + width; }
   float snap(float value) override { return std::round(value * 2) / 2; }
 };
@@ -118,6 +118,7 @@ void functions() {
   CHECK(run("round(1.5)") == 2);
   CHECK(run("max(75,ceil(20.2)+24)") == 75);
   CHECK(run("textw('body','#ok')") == 209);
+  CHECK(run("textw('body','#ok',50)") == 259);
   CHECK(run("texth('body','#ok',W)") == 409);
   CHECK(run("1+texth('body','#ok',1+1)") == 212);
   CHECK(run("snap(1.3)") == 1.5f);
@@ -155,7 +156,7 @@ void a_lone_number_needs_no_program() {
 
 void bad_expressions_are_refused() {
   for (const std::string_view source : {"", "1+", "(1", "1)", "1 2", "nobody", "$nobody", "@nobody", "nobody.x", "field.nothing", "nothing(1)", "min(1)", "min(1,2", "1?2", "textw('nobody','#ok')",
-                                        "textw('body','#nothing')", "textw('body')", "texth('body','#ok')", "texth('nobody','#ok',1)", "snap()", "#", "1=2", "'text'"}) {
+                                        "textw('body','#nothing')", "textw('body')", "textw('body','#ok',", "texth('body','#ok')", "texth('nobody','#ok',1)", "snap()", "#", "1=2", "'text'"}) {
     CHECK(refused(source));
   }
 }

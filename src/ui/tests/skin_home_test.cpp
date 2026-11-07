@@ -1,5 +1,8 @@
 // Home drawn from the Messenger pack in skins/: the same places to click as the C++ layout, and
 // the same results. Their pixels are compared with tests/shots while both forms exist.
+#include <cmath>
+#include <filesystem>
+#include <fstream>
 #include <string>
 #include <vector>
 
@@ -217,6 +220,194 @@ void test_the_chat_from_the_pack_scrolls_and_sends() {
   CHECK(sent == "hi");
 }
 
+// Everything the panels offer to click, with where it is. A window's panel is looked at from that window.
+struct PanelHit {
+  const Surface* owner;
+  Pane pane;
+  int id;
+};
+
+void open_every_panel(UiHarness& h) {
+  h.app.show_session("ABC234");
+  h.app.room().set_room({{0, "Me", "", false, "c0"}, {1, "You", "", false, "c1"}}, 0, 0, false, true);
+  h.app.room().member_menu().open(1, false, 70, 300, 200);
+  h.app.toasts().toast("A message", "Do it", [] {});
+  h.app.update_popup().show_available();
+  h.app.notice().set(Notice{"A longer notice that takes more than one line of this window to say what it wants to say", "Act", "Later"});
+  h.app.dialogs().show({"Is this a question that wraps on to a second line of its own?", "Yes", "No", false, nullptr, nullptr});
+  RoomScreen& room = h.app.room();
+  room.profile_card().request(1);
+  room.show_profile({1, "You", "", std::optional<std::string>("you"), std::optional<std::int64_t>(1700000000), 3900, 12345});
+  h.app.offline().show();
+}
+
+void test_the_panels_from_the_pack_stand_where_the_code_puts_them() {
+  UiHarness h;
+  CHECK(h.start(640, 500));
+  h.app.set_theme("messenger");
+  open_every_panel(h);
+  const NoticeCard& notice = h.app.notice();
+  const MemberMenu& menu = h.app.room().member_menu();
+  const std::vector<PanelHit> wanted = {
+      {&notice, Pane::Main, NoticeCard::Card},
+      {&notice, Pane::Main, NoticeCard::Action},
+      {&notice, Pane::Main, NoticeCard::Dismiss},
+      {&h.app.toasts(), Pane::Main, Toasts::Action},
+      {&h.app.update_popup(), Pane::Main, UpdatePopup::Card},
+      {&h.app.update_popup(), Pane::Main, UpdatePopup::Button},
+      {&menu, Pane::Main, MemberMenu::Card},
+      {&menu, Pane::Main, MemberMenu::Profile},
+      {&menu, Pane::Main, MemberMenu::Slider},
+      {&menu, Pane::Main, MemberMenu::Mute},
+      {&h.app.dialogs(), Pane::Dialog, Dialogs::Card},
+      {&h.app.dialogs(), Pane::Dialog, Dialogs::Confirm},
+      {&h.app.dialogs(), Pane::Dialog, Dialogs::Cancel},
+      {&h.app.room().profile_card(), Pane::Profile, ProfileCard::Card},
+      {&h.app.offline(), Pane::Offline, OfflinePopup::Card},
+  };
+  const auto look = [&] {
+    std::vector<Rect> found;
+    for (const PanelHit& want : wanted) {
+      h.on_pane(want.pane);
+      const Ui::Hit* hit = h.app.ui().find_hit(want.owner, want.id);
+      CHECK(hit != nullptr);
+      found.push_back(hit ? hit->rect : Rect{});
+    }
+    h.on_pane(Pane::Main);
+    return found;
+  };
+  const std::vector<Rect> code = look();
+  const PaneInfo dialog = h.app.pane_info(Pane::Dialog), profile = h.app.pane_info(Pane::Profile), offline = h.app.pane_info(Pane::Offline), emoji = h.app.pane_info(Pane::Emoji);
+  CHECK(h.app.load_skin_dir(messenger_pack).has_value());
+  const std::vector<Rect> pack = look();
+  for (std::size_t i = 0; i < std::min(pack.size(), code.size()); ++i) {
+    CHECK(std::abs(pack[i].x - code[i].x) < 0.01f && std::abs(pack[i].y - code[i].y) < 0.01f);
+    CHECK(std::abs(pack[i].w - code[i].w) < 0.01f && std::abs(pack[i].h - code[i].h) < 0.01f);
+  }
+  // A window of its own is as big as what is in it.
+  CHECK(h.app.pane_info(Pane::Dialog).w == dialog.w && h.app.pane_info(Pane::Dialog).h == dialog.h);
+  CHECK(h.app.pane_info(Pane::Profile).w == profile.w && h.app.pane_info(Pane::Profile).h == profile.h);
+  CHECK(h.app.pane_info(Pane::Offline).w == offline.w && h.app.pane_info(Pane::Offline).h == offline.h);
+  CHECK(h.app.pane_info(Pane::Emoji).w == emoji.w && h.app.pane_info(Pane::Emoji).h == emoji.h);
+}
+
+void test_the_panels_from_the_pack_do_what_they_do_on_the_code() {
+  UiHarness h;
+  CHECK(h.start(640, 500));
+  h.app.set_theme("messenger");
+  CHECK(h.app.load_skin_dir(messenger_pack).has_value());
+  h.app.show_session("ABC234");
+  h.app.room().set_room({{0, "Me", "", false, "c0"}, {1, "You", "", false, "c1"}}, 0, 0, false, true);
+
+  // A menu's slider and mute; one's own has a mute that cannot be pressed.
+  MemberMenu& menu = h.app.room().member_menu();
+  int volume = -1;
+  menu.on_volume = [&](std::uint32_t, int percent) { volume = percent; };
+  menu.open(1, false, 70, 300, 200);
+  h.render();
+  CHECK(h.click(menu, MemberMenu::Slider));
+  CHECK(volume >= 45 && volume <= 55);  // the slider's middle
+  h.app.mouse_up();
+  CHECK(h.click(menu, MemberMenu::Mute));
+  CHECK(volume == 0);
+  menu.close();
+  menu.open(0, true, 100, 300, 200);
+  h.render();
+  CHECK(h.drawn(menu, MemberMenu::Profile));
+  CHECK(!h.drawn(menu, MemberMenu::Mute));
+  CHECK(!h.drawn(menu, MemberMenu::Slider));
+  menu.close();
+
+  // A question and its two answers.
+  int answered = 0;
+  h.app.dialogs().show({"Sure?", "Yes", "No", false, [&] { answered = 1; }, [&] { answered = 2; }});
+  h.on_pane(Pane::Dialog);
+  CHECK(h.click(h.app.dialogs(), Dialogs::Cancel));
+  CHECK(answered == 2);
+  h.app.dialogs().show({"Sure?", "Yes", "", false, [&] { answered = 1; }, nullptr});
+  h.render();
+  CHECK(!h.drawn(h.app.dialogs(), Dialogs::Cancel));
+  CHECK(h.click(h.app.dialogs(), Dialogs::Confirm));
+  CHECK(answered == 1);
+  h.on_pane(Pane::Main);
+
+  // Messages with something to press.
+  int acted = 0;
+  h.app.toasts().toast("Saved", "Undo", [&] { ++acted; });
+  h.render();
+  CHECK(h.click(h.app.toasts(), Toasts::Action));
+  CHECK(acted == 1);
+  h.app.notice().on_action = [&] { ++acted; };
+  h.app.notice().set(Notice{"News", "Act", "Later"});
+  h.render();
+  CHECK(h.click(h.app.notice(), NoticeCard::Action));
+  CHECK(acted == 2);
+  CHECK(!h.drawn(h.app.notice(), NoticeCard::Dismiss));
+  h.app.update_popup().on_update = [&] { ++acted; };
+  h.app.update_popup().show_available();
+  h.render();
+  CHECK(h.click(h.app.update_popup(), UpdatePopup::Button));
+  CHECK(acted == 3);
+  h.app.update_popup().show_progress(40);
+  h.render();
+  CHECK(!h.drawn(h.app.update_popup(), UpdatePopup::Button));
+  h.app.update_popup().hide();
+
+  // Someone's own card changes the icon from it, and nobody else's does.
+  RoomScreen& room = h.app.room();
+  ProfileCard& card = room.profile_card();
+  int changing = 0;
+  card.on_change_icon = [&] { ++changing; };
+  card.request(1);
+  room.show_profile({1, "You", "", std::nullopt, std::nullopt, 60, 1});
+  h.on_pane(Pane::Profile);
+  CHECK(!h.drawn(card, ProfileCard::Icon));
+  card.close();
+  card.request(0);
+  room.show_profile({0, "Me", "", std::nullopt, std::nullopt, 60, 1});
+  h.render();
+  CHECK(h.click(card, ProfileCard::Icon));
+  CHECK(changing == 1);
+  card.close();
+  h.on_pane(Pane::Main);
+}
+
+void test_the_emoji_from_the_pack_walk_only_what_is_in_view() {
+  UiHarness h;
+  CHECK(h.start(640, 500));
+  h.app.set_theme("messenger");
+  CHECK(h.app.load_skin_dir(messenger_pack).has_value());
+  h.app.show_session("ABC234");
+  const std::filesystem::path dir = std::filesystem::temp_directory_path() / "crpp_skin_emoji_test";
+  std::filesystem::create_directories(dir / "emoji");
+  std::vector<std::string> ids;
+  for (int i = 0; i < 400; ++i) {
+    ids.push_back("1f" + std::to_string(1000 + i));
+    std::ofstream(dir / "emoji" / (ids.back() + ".svg")) << R"(<svg viewBox="0 0 36 36"><circle cx="18" cy="18" r="18" fill="#fc0"/></svg>)";
+  }
+  h.app.ui().emoji_ids = ids;
+  h.app.reload_assets(dir);
+  EmojiPicker& picker = h.app.emoji_picker();
+  std::string picked;
+  picker.show(ids[2], [&](std::string id) { picked = std::move(id); });
+  h.on_pane(Pane::Emoji);
+  CHECK(picker.ids().size() == 400);
+  CHECK(h.drawn(picker, EmojiPicker::CellBase));
+  CHECK(!h.drawn(picker, EmojiPicker::CellBase + 399));
+  CHECK(picker.parsed() <= EmojiPicker::cache_capacity);
+  CHECK(h.drawn(picker, EmojiPicker::Thumb));
+  for (int i = 0; i < 200; ++i) picker.wheel(0, 0, -1);
+  h.app.tick(clock_ms());
+  h.render();
+  CHECK(!h.drawn(picker, EmojiPicker::CellBase));
+  CHECK(h.drawn(picker, EmojiPicker::CellBase + 399));
+  CHECK(picker.parsed() <= EmojiPicker::cache_capacity);
+  const std::string last = picker.ids()[399];
+  CHECK(h.click(picker, EmojiPicker::CellBase + 399));
+  CHECK(picked == last);
+  h.on_pane(Pane::Main);
+}
+
 void test_a_folder_without_a_pack_is_refused_and_changes_nothing() {
   UiHarness h;
   start_on_home(h);
@@ -237,6 +428,9 @@ int main() {
   test_the_prompt_from_the_pack_takes_typing_and_clicks();
   test_a_room_from_the_pack_redraws_only_the_disc();
   test_the_chat_from_the_pack_scrolls_and_sends();
+  test_the_panels_from_the_pack_stand_where_the_code_puts_them();
+  test_the_panels_from_the_pack_do_what_they_do_on_the_code();
+  test_the_emoji_from_the_pack_walk_only_what_is_in_view();
   test_a_folder_without_a_pack_is_refused_and_changes_nothing();
   return crpp_test_result();
 }

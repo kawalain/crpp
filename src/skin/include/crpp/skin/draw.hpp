@@ -27,7 +27,7 @@ class Canvas {
   [[nodiscard]] virtual float snap(float value) = 0;
   [[nodiscard]] virtual float line() = 0;
   [[nodiscard]] virtual float font_size() = 0;
-  [[nodiscard]] virtual float text_width(std::string_view text, const TextLook& look) = 0;
+  [[nodiscard]] virtual float text_width(std::string_view text, const TextLook& look, float width) = 0;
   [[nodiscard]] virtual float text_height(std::string_view text, const TextLook& look, float width) = 0;
   virtual void fill(Box box, Color color) = 0;
   // A gradient straight down from y0 to y1, on the window.

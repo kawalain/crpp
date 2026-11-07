@@ -22,6 +22,9 @@ which gives an editor that follows `$schema`, such as VS Code, completion, descr
 }
 ```
 
+`report` tells the program what a screen found out. A screen of a panel that has a window of its own reports `width`
+and `height`, and the window takes that size: the program walks the screen without drawing to learn it.
+
 A screen's schema lists what the program offers there: `@numbers` and `@texts` to read, and the names of its hits,
 pictures, fields, slots, reports and notes. A screen with no file is drawn by the program itself, so a pack can grow
 one screen at a time. The node language is described at the top of `src/skin/include/crpp/skin/pack.hpp`.

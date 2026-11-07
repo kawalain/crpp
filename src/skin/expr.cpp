@@ -251,13 +251,15 @@ class Compiler {
     }
     if (word == "textw") {
       const auto style = quoted();
-      if (!style || !eat(",")) return fail("textw takes 'style', 'text'");
+      if (!style || !eat(",")) return fail("textw takes 'style', 'text' and maybe a width");
       const auto text = quoted();
-      if (!text || !eat(")")) return fail("textw takes 'style', 'text'");
+      if (!text) return fail("textw takes 'style', 'text' and maybe a width");
       const auto style_id = names_.style(*style);
       if (!style_id) return fail("no style \"" + std::string(*style) + "\"");
       const auto text_id = names_.text(*text);
       if (!text_id) return fail("no such text \"" + std::string(*text) + "\"");
+      if (eat(",")) return ternary() && (eat(")") || fail("a ( has no )")) && emit(Op::TextWidthIn, 0, *style_id, static_cast<float>(*text_id));
+      if (!eat(")")) return fail("textw takes 'style', 'text' and maybe a width");
       return emit(Op::TextWidth, 1, *style_id, static_cast<float>(*text_id));
     }
     if (word == "texth") {
@@ -320,7 +322,8 @@ float eval(std::span<const Instr> code, Expr expr, Env& env) {
       case Op::Slot: stack[++top] = env.frame[i->arg]; break;
       case Op::Var: stack[++top] = env.vars[i->arg]; break;
       case Op::Number: stack[++top] = env.number(i->arg); break;
-      case Op::TextWidth: stack[++top] = env.text_width(i->arg, static_cast<std::uint32_t>(i->value)); break;
+      case Op::TextWidth: stack[++top] = env.text_width(i->arg, static_cast<std::uint32_t>(i->value), Env::unlimited_text_width); break;
+      case Op::TextWidthIn: stack[top] = env.text_width(i->arg, static_cast<std::uint32_t>(i->value), stack[top]); break;
       case Op::TextHeight: stack[top] = env.text_height(i->arg, static_cast<std::uint32_t>(i->value), stack[top]); break;
       case Op::Snap: stack[top] = env.snap(stack[top]); break;
       case Op::Add: --top; stack[top] += stack[top + 1]; break;

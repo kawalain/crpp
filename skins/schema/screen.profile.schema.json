@@ -1,0 +1,92 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "The screen profile of a Skin Pack",
+  "description": "A screen of a Skin Pack, as {\"draw\": [nodes]}. With no file for a screen, the program draws it itself.\nNumbers: @mine, @has_handle, @has_joined.\nTexts: @nick, @handle, @joined, @stayed, @inputs.\nHits: card, icon.\nPictures: icon.\nFields: none.\nSlots: none.\nReports: width, height.\nNotes: icon.",
+  "allowComments": true,
+  "allowTrailingCommas": true,
+  "type": "object",
+  "required": [
+    "draw"
+  ],
+  "additionalProperties": false,
+  "properties": {
+    "$schema": {
+      "type": "string"
+    },
+    "draw": {
+      "$ref": "#/definitions/nodes"
+    }
+  },
+  "definitions": {
+    "text": {
+      "anyOf": [
+        {
+          "enum": [
+            "@nick",
+            "@handle",
+            "@joined",
+            "@stayed",
+            "@inputs"
+          ]
+        },
+        {
+          "$ref": "common.schema.json#/definitions/plain_text"
+        }
+      ]
+    },
+    "nodes": {
+      "type": "array",
+      "items": {
+        "$ref": "#/definitions/node"
+      }
+    },
+    "node": {
+      "allOf": [
+        {
+          "$ref": "common.schema.json#/definitions/node_shape"
+        }
+      ],
+      "properties": {
+        "hit": {
+          "enum": [
+            "card",
+            "icon"
+          ]
+        },
+        "note": {
+          "enum": [
+            "icon"
+          ]
+        },
+        "picture": {
+          "enum": [
+            "icon"
+          ]
+        },
+        "field": false,
+        "slot": false,
+        "report": {
+          "enum": [
+            "width",
+            "height"
+          ]
+        },
+        "text": {
+          "$ref": "#/definitions/text"
+        },
+        "placeholder": {
+          "$ref": "#/definitions/text"
+        },
+        "group": {
+          "$ref": "#/definitions/nodes"
+        },
+        "column": {
+          "$ref": "#/definitions/nodes"
+        },
+        "draw": {
+          "$ref": "#/definitions/nodes"
+        }
+      }
+    }
+  }
+}

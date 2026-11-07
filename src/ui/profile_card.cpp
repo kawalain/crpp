@@ -7,11 +7,22 @@
 #include <ctime>
 
 #include "crpp/ui/controls.hpp"
+#include "crpp/ui/skin_canvas.hpp"
 #include "crpp/ui/toasts.hpp"
 
 namespace crpp::ui {
 
 namespace {
+
+enum TextId : int { Nick, Handle, Joined, Stayed, Inputs };
+enum NumberId : int { Mine, HasHandle, HasJoined };
+enum ReportId : int { Width, Height };
+constexpr skin::Name text_names[] = {{"nick", Nick}, {"handle", Handle}, {"joined", Joined}, {"stayed", Stayed}, {"inputs", Inputs}};
+constexpr skin::Name number_names[] = {{"mine", Mine}, {"has_handle", HasHandle}, {"has_joined", HasJoined}};
+constexpr skin::Name picture_names[] = {{"icon", 0}};
+constexpr skin::Name hit_names[] = {{"card", ProfileCard::Card}, {"icon", ProfileCard::Icon}};
+constexpr skin::Name report_names[] = {{"width", Width}, {"height", Height}};
+constexpr skin::Name note_names[] = {{"icon", 0}};
 
 constexpr float card_w = 380, pad_top = 24, pad_x = 25, pad_bottom = 20;
 constexpr float icon_size = 72, icon_emoji = 46, head_gap = 18, head_bottom = 20;
@@ -25,6 +36,59 @@ std::string format_date(std::int64_t seconds) {
   std::snprintf(date, sizeof date, "%d.%02d.%02d", tm.tm_year + 1900, tm.tm_mon + 1, tm.tm_mday);
   return date;
 }
+
+}  // namespace
+
+skin::ScreenSchema ProfileCard::schema() {
+  return {.screen = "profile", .texts = text_names, .numbers = number_names, .pictures = picture_names, .hits = hit_names, .reports = report_names, .notes = note_names};
+}
+
+namespace {
+
+class ShownProfile final : public skin::Source {
+ public:
+  ShownProfile(const ProfileView& profile, bool mine, Ui& ui, Painter* painter, Rect* icon) : v_(profile), mine_(mine), ui_(ui), p_(painter), icon_(icon) {
+    nick_ = v_.nick.empty() ? std::string(tr().guest) : v_.nick;
+    if (v_.handle) handle_ = "@" + *v_.handle;
+    if (v_.created) joined_ = locale::fill(tr().profile_joined, {format_date(*v_.created)});
+    stayed_ = locale::fill(tr().profile_stayed, {locale::format_stay(v_.stayed)});
+    inputs_ = locale::fill(tr().profile_inputs, {locale::format_times(v_.events)});
+  }
+
+  std::string_view text(int id, int) override {
+    switch (id) {
+      case Nick: return nick_;
+      case Handle: return handle_;
+      case Joined: return joined_;
+      case Stayed: return stayed_;
+      default: return inputs_;
+    }
+  }
+  float number(int id, int) override {
+    switch (id) {
+      case Mine: return mine_ ? 1.0f : 0.0f;
+      case HasHandle: return v_.handle && nick_ != handle_ ? 1.0f : 0.0f;
+      default: return v_.created ? 1.0f : 0.0f;
+    }
+  }
+  void picture(int, int, skin::Box box, float opacity, float gray) override {
+    if (p_) draw_svg(*p_, ui_.emoji_image(v_.emoji), rect_of(box), opacity, gray);
+  }
+  void report(int id, float value) override { (id == Width ? size.width : size.height) = value; }
+  void note(int, int, skin::Box box) override {
+    if (icon_) *icon_ = rect_of(box);
+  }
+
+  D2D1_SIZE_F size{};
+
+ private:
+  const ProfileView& v_;
+  bool mine_;
+  Ui& ui_;
+  Painter* p_;
+  Rect* icon_;
+  std::string nick_, handle_, joined_, stayed_, inputs_;
+};
 
 }  // namespace
 
@@ -56,12 +120,28 @@ void ProfileCard::close() {
 }
 
 D2D1_SIZE_F ProfileCard::content_size() const {
+  if (const skin::Screen* screen = ui_.pack_screen("profile")) {
+    ShownProfile shown(profile_, mine_, ui_, nullptr, nullptr);
+    measure_screen(ui_, *screen, ui_.content, shown);
+    return shown.size;
+  }
   const int rows = profile_.created ? 3 : 2;
   return {card_w, pad_top + icon_size + head_bottom + static_cast<float>(rows) * stat_line + pad_bottom};
 }
 
 void ProfileCard::paint(Painter& p) {
   if (!open_) return;
+  if (const skin::Screen* screen = ui_.pack_screen("profile")) {
+    p.set_base(D2D1::Matrix3x2F::Identity());
+    Rect icon;
+    ShownProfile shown(profile_, mine_, ui_, &p, &icon);
+    draw_screen(ui_, p, this, *screen, ui_.content, shown);
+    HoverTip::Spec spec;
+    spec.text = tr().profile_change_icon;
+    spec.anchor = icon;
+    tip_.paint(ui_, p, mine_ && ui_.hot(this, Icon) ? &spec : nullptr);
+    return;
+  }
   const Theme& t = ui_.theme;
   const float w = ui_.window != 0 ? card_w : std::min(card_w, ui_.width - 40);
   const float h = content_size().height;

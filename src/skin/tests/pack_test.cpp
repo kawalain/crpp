@@ -102,7 +102,7 @@ class Log final : public Canvas {
   float snap(float v) override { return std::round(v); }
   float line() override { return 2; }
   float font_size() override { return 12; }
-  float text_width(std::string_view text, const TextLook&) override { return static_cast<float>(text.size()) * 10; }
+  float text_width(std::string_view text, const TextLook&, float width) override { return std::min(static_cast<float>(text.size()) * 10, width); }
   float text_height(std::string_view text, const TextLook& look, float width) override { return std::ceil(static_cast<float>(text.size()) * 10 / width) * look.line_height; }
   void fill(Box b, Color c) override { add("fill " + str(b) + " " + str(c)); }
   void fill_down(Box b, float y0, float y1, std::span<const GradientStop> s) override { add("down " + str(b) + " " + str(y0) + ".." + str(y1) + " " + std::to_string(s.size())); }
@@ -452,7 +452,7 @@ void a_walk_ends_however_parts_multiply() {
     float line() override { return 1; }
     float font_size() override { return 12; }
     float snap(float v) override { return v; }
-    float text_width(std::string_view, const TextLook&) override { return 0; }
+    float text_width(std::string_view, const TextLook&, float) override { return 0; }
     float text_height(std::string_view, const TextLook&, float) override { return 0; }
     void fill(Box, Color) override { ++fills; }
     void fill_down(Box, float, float, std::span<const GradientStop>) override {}

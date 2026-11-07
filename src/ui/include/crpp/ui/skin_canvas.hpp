@@ -13,6 +13,11 @@ namespace crpp::ui {
 // A Skin whose controls are the parts of the pack in use.
 [[nodiscard]] std::unique_ptr<Skin> make_pack_skin(Ui& ui);
 
+// A screen walked on a Painter, with its hits going to `owner`, which may be nothing.
+void draw_screen(Ui& ui, Painter& p, Surface* owner, const skin::Screen& screen, Rect area, skin::Source& source);
+// The same walk with nothing drawn, for what the screen reports about its size.
+void measure_screen(const Ui& ui, const skin::Screen& screen, Rect area, skin::Source& source);
+
 class SkinCanvas final : public skin::Canvas {
  public:
   SkinCanvas(Ui& ui, Painter& painter, Surface* owner) : ui_(ui), p_(painter), owner_(owner) {}
@@ -21,7 +26,7 @@ class SkinCanvas final : public skin::Canvas {
   float snap(float value) override;
   float line() override { return p_.line(); }
   float font_size() override { return p_.gfx().classic_size(); }
-  float text_width(std::string_view text, const skin::TextLook& look) override;
+  float text_width(std::string_view text, const skin::TextLook& look, float width) override;
   void fill(skin::Box box, skin::Color color) override { p_.fill_rect(rect_of(box), color); }
   float text_height(std::string_view text, const skin::TextLook& look, float width) override;
   void fill_down(skin::Box box, float y0, float y1, std::span<const skin::GradientStop> stops) override { p_.fill_gradient(rect_of(box), {box.x, y0}, {box.x, y1}, stops); }

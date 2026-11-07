@@ -204,6 +204,9 @@
     "button": {"size": "font_size", "line_height": "h", "align": "center", "ellipsis": true, "exact": true},
     "paragraph": {"size": "font_size", "line_height": "font_size+4", "wrap": true, "exact": true, "keep_words": true},
     "chat_text": {"size": "font_size", "line_height": "font_size+4", "wrap": true, "exact": true},
+    "paragraph_center": {"size": "font_size", "line_height": "font_size+4", "align": "center", "wrap": true, "exact": true},
+    "tip_line": {"size": "font_size", "line_height": 16, "exact": true},
+    "title": {"size": "font_size+2", "weight": 700, "line_height": "h", "ellipsis": true, "exact": true},
     "sample": {"size": "font_size", "line_height": "font_size+4", "ellipsis": true, "exact": true},
     "caption": {"size": 13, "weight": 700, "line_height": "h", "ellipsis": true, "exact": true, "role": "caption"}
   },

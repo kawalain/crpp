@@ -1,0 +1,11 @@
+{
+  "$schema": "../../schema/screen.setup.schema.json",
+  "draw": [
+    {"let": "col_w", "value": "min(380, W-32)"},
+    {"x": "(W-col_w)/2", "y": "H/2-60", "w": "col_w", "group": [
+      {"text": "@message", "style": "paragraph_center", "color": "$ink", "h": 26},
+      {"use": "progress", "y": 46, "h": 8, "args": {"percent": "@percent"}},
+      {"text": "@percent_text", "style": "body_center", "color": "$ink", "y": 64, "h": 22}
+    ]}
+  ]
+}

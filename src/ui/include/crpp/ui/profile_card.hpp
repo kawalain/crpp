@@ -44,6 +44,7 @@ class ProfileCard final : public Surface {
   [[nodiscard]] bool mine() const { return mine_; }
 
   // What the card takes inside a window of its own.
+  [[nodiscard]] static skin::ScreenSchema schema();
   [[nodiscard]] D2D1_SIZE_F content_size() const;
   void paint(Painter& p);
   void click(int id, float x, float y, bool shift) override;

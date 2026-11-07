@@ -61,6 +61,12 @@ Step 1, Messenger's Home from data against its C++ layout, MSVC Release on a hid
   C++, 4.4-6.1% (mean 5.22%) from data. Offscreen one frame costs 1.1% more. Scrolling is not comparable
   until Settings is data, in step 2.
 
+Step 2, the options window of Messenger from data against its C++ layout, the same way, with the wheel posted
+about 60 times a second and reversing every 20 notches, five rounds of each:
+
+- Scrolling: 5.39-6.72% (mean 6.17%) from C++, 5.78-6.48% (mean 6.11%) from data.
+- Idle 0.00% and afterwards 0.00%, working set 48.4-48.9 MB and 48.8-49.1 MB, private 62.6-64.7 MB and 63.1-64.5 MB.
+
 ## Steps
 
 Start from `main` with the Messenger work merged, after the user has seen its real windows.

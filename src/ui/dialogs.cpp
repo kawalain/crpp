@@ -5,8 +5,43 @@
 #include <algorithm>
 
 #include "crpp/ui/controls.hpp"
+#include "crpp/ui/skin_canvas.hpp"
 
 namespace crpp::ui {
+
+namespace {
+
+enum TextId : int { Text, ConfirmText, CancelText };
+enum NumberId : int { Wide, HasCancel };
+enum ReportId : int { Width, Height };
+constexpr skin::Name text_names[] = {{"text", Text}, {"confirm", ConfirmText}, {"cancel", CancelText}};
+constexpr skin::Name number_names[] = {{"wide", Wide}, {"has_cancel", HasCancel}};
+constexpr skin::Name hit_names[] = {{"card", Dialogs::Card}, {"confirm", Dialogs::Confirm}, {"cancel", Dialogs::Cancel}};
+constexpr skin::Name report_names[] = {{"width", Width}, {"height", Height}};
+
+class Shown final : public skin::Source {
+ public:
+  explicit Shown(const Dialog& dialog) : d_(dialog) {}
+
+  std::string_view text(int id, int) override {
+    switch (id) {
+      case Text: return d_.text;
+      case ConfirmText: return d_.confirm;
+      default: return d_.cancel;
+    }
+  }
+  float number(int id, int) override { return (id == Wide ? d_.wide : !d_.cancel.empty()) ? 1.0f : 0.0f; }
+  void report(int id, float value) override { (id == Width ? size.width : size.height) = value; }
+
+  D2D1_SIZE_F size{};
+
+ private:
+  const Dialog& d_;
+};
+
+}  // namespace
+
+skin::ScreenSchema Dialogs::schema() { return {.screen = "dialog", .texts = text_names, .numbers = number_names, .hits = hit_names, .reports = report_names}; }
 
 void Dialogs::show(Dialog dialog) {
   dialog_ = std::move(dialog);
@@ -24,6 +59,11 @@ float Dialogs::width_here() const {
 
 D2D1_SIZE_F Dialogs::content_size() const {
   if (!dialog_) return {0, 0};
+  if (const skin::Screen* screen = ui_.pack_screen("dialog")) {
+    Shown shown(*dialog_);
+    measure_screen(ui_, *screen, ui_.content, shown);
+    return shown.size;
+  }
   const DialogMetrics m = ui_.skin().dialog_metrics();
   const float w = width_here();
   const TextStyle body{.size = m.text_size, .weight = 700, .line_height = m.text_line, .align = m.align, .wrap = true, .keep_words = true};
@@ -34,6 +74,12 @@ D2D1_SIZE_F Dialogs::content_size() const {
 
 void Dialogs::paint(Painter& p) {
   if (!dialog_) return;
+  if (const skin::Screen* screen = ui_.pack_screen("dialog")) {
+    p.set_base(D2D1::Matrix3x2F::Identity());
+    Shown shown(*dialog_);
+    draw_screen(ui_, p, this, *screen, ui_.content, shown);
+    return;
+  }
   const DialogMetrics m = ui_.skin().dialog_metrics();
   const auto [pad_top, pad_x, pad_bottom, gap, button_h, button_w, button_gap, width, wide_width, margin, text_size, text_line, align] = m;
   const float w = width_here();

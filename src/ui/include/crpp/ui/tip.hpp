@@ -31,6 +31,8 @@ class HoverTip {
     float dx = 0;                    // an added shift, for a shake
   };
 
+  [[nodiscard]] static skin::ScreenSchema schema();
+
   // Call every frame with what should show, nullptr for nothing. A different text
   // starts a new fade in.
   void paint(Ui& ui, Painter& p, const Spec* want);

@@ -20,7 +20,7 @@ enum class Op : std::uint8_t {
   Add, Sub, Mul, Div,
   Less, LessEq, Greater, GreaterEq, Equal, NotEqual,
   And, Or, Not, Neg, Select,
-  Min, Max, Floor, Ceil, Round, Snap, TextWidth, TextHeight,
+  Min, Max, Floor, Ceil, Round, Snap, TextWidth, TextWidthIn, TextHeight,
 };
 
 struct Instr {
@@ -101,7 +101,9 @@ class Env {
   std::array<float, VarCount> vars{};
   const float* frame = nullptr;  // the slots of the screen or part being walked
   [[nodiscard]] virtual float number(std::uint16_t /*id*/) { return 0; }
-  [[nodiscard]] virtual float text_width(std::uint16_t /*style*/, std::uint32_t /*text*/) { return 0; }
+  // What textw measures in when it is given no width.
+  static constexpr float unlimited_text_width = 1000;
+  [[nodiscard]] virtual float text_width(std::uint16_t /*style*/, std::uint32_t /*text*/, float /*width*/) { return 0; }
   [[nodiscard]] virtual float text_height(std::uint16_t /*style*/, std::uint32_t /*text*/, float /*width*/) { return 0; }
   // To whole pixels of what is being drawn on.
   [[nodiscard]] virtual float snap(float value) { return value; }

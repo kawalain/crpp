@@ -37,7 +37,7 @@ class Walker final : public Env {
 
   float number(std::uint16_t id) override { return source_.number(id, static_cast<int>(vars[VarI])); }
 
-  float text_width(std::uint16_t style, std::uint32_t text) override { return canvas_.text_width(text_of(text), look_of(style)); }
+  float text_width(std::uint16_t style, std::uint32_t text, float width) override { return canvas_.text_width(text_of(text), look_of(style), width); }
 
   float text_height(std::uint16_t style, std::uint32_t text, float width) override { return canvas_.text_height(text_of(text), look_of(style), width); }
 

@@ -16,6 +16,8 @@ class MemberMenu final : public Surface {
   std::function<void(std::uint32_t slot)> on_profile;
   std::function<void(std::uint32_t slot, int percent)> on_volume;
 
+  [[nodiscard]] static skin::ScreenSchema schema();
+
   // x, y in window coordinates; it keeps 8 away from the edges. One's own menu has no
   // volume, and its mute is disabled.
   void open(std::uint32_t slot, bool self, int volume, float x, float y);
@@ -35,6 +37,8 @@ class MemberMenu final : public Surface {
 
  private:
   void set_volume(int percent);
+  void paint_pack(Painter& p, const skin::Screen& screen);
+  [[nodiscard]] HoverTip::Spec volume_tip() const;
 
   bool open_ = false, self_ = false;
   std::uint32_t slot_ = 0;

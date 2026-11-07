@@ -5,13 +5,25 @@
 #include <algorithm>
 
 #include "crpp/ui/controls.hpp"
+#include "crpp/ui/skin_canvas.hpp"
 
 namespace crpp::ui {
 
 namespace {
 constexpr float toast_ms = 180;   // .toast transition
 constexpr float bubble_ms = 150;  // .btn-notice transition
+
+enum TextId : int { Text, ActionText };
+enum BubbleNumberId : int { AnchorRight, AnchorY, Gap };
+constexpr skin::Name text_names[] = {{"text", Text}, {"action", ActionText}};
+constexpr skin::Name number_names[] = {{"has_action", 0}};
+constexpr skin::Name hit_names[] = {{"action", Toasts::Action}};
+constexpr skin::Name bubble_text_names[] = {{"text", Text}};
+constexpr skin::Name bubble_number_names[] = {{"anchor_right", AnchorRight}, {"anchor_y", AnchorY}, {"gap", Gap}};
 }  // namespace
+
+skin::ScreenSchema Toasts::schema() { return {.screen = "toast", .texts = text_names, .numbers = number_names, .hits = hit_names}; }
+skin::ScreenSchema Toasts::bubble_schema() { return {.screen = "bubble", .texts = bubble_text_names, .numbers = bubble_number_names}; }
 
 void Toasts::toast(std::string text, unsigned long long duration_ms) { toast(std::move(text), {}, nullptr, duration_ms); }
 
@@ -55,6 +67,19 @@ void Toasts::paint(Painter& p) {
 }
 
 void Toasts::paint_toast(Painter& p) {
+  if (const skin::Screen* screen = ui_.pack_screen("toast")) {
+    class Shown final : public skin::Source {
+     public:
+      Shown(std::string_view words, std::string_view action) : text_(words), action_(action) {}
+      std::string_view text(int id, int) override { return id == Text ? text_ : action_; }
+      float number(int, int) override { return action_.empty() ? 0.0f : 1.0f; }
+
+     private:
+      std::string_view text_, action_;
+    } shown(toast_.text, action_);
+    draw_screen(ui_, p, this, *screen, ui_.content, shown);
+    return;
+  }
   const Theme& t = ui_.theme;
   const bool plain = !ui_.skin().moves();
   const float pad_x = plain ? 10 : 18, pad_y = plain ? 7 : 11, gap = plain ? 10 : 16, action_pad_x = plain ? 12 : 13, action_h = plain ? 23 : 32;
@@ -88,6 +113,27 @@ void Toasts::paint_toast(Painter& p) {
 }
 
 void Toasts::paint_bubble(Painter& p) {
+  if (const skin::Screen* screen = ui_.pack_screen("bubble")) {
+    class Shown final : public skin::Source {
+     public:
+      Shown(std::string_view words, Rect anchor, float gap) : text_(words), anchor_(anchor), gap_(gap) {}
+      std::string_view text(int, int) override { return text_; }
+      float number(int id, int) override {
+        switch (id) {
+          case AnchorRight: return anchor_.right();
+          case AnchorY: return anchor_.y;
+          default: return gap_;
+        }
+      }
+
+     private:
+      std::string_view text_;
+      Rect anchor_;
+      float gap_;
+    } shown(bubble_.text, anchor_, gap_);
+    draw_screen(ui_, p, this, *screen, {0, 0, ui_.width, ui_.height}, shown);
+    return;
+  }
   const Theme& t = ui_.theme;
   const bool plain = !ui_.skin().moves();
   const float pad_x = plain ? 4 : 15, pad_y = plain ? 2 : 5;

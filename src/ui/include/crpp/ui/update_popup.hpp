@@ -14,6 +14,8 @@ class UpdatePopup final : public Surface {
   enum Id : int { Card, Button };
   enum class State : std::uint8_t { Hidden, Available, Busy, Failed };
 
+  [[nodiscard]] static skin::ScreenSchema schema();
+
   // The button, in both of its wordings.
   std::function<void()> on_update;
   // The update check that was scheduled is due.

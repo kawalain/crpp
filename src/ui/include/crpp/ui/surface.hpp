@@ -8,6 +8,7 @@
 #include <utility>
 #include <vector>
 
+#include "crpp/skin/pack.hpp"
 #include "crpp/ui/gfx.hpp"
 #include "crpp/ui/skin.hpp"
 #include "crpp/ui/svg.hpp"

@@ -4,10 +4,18 @@
 #include <string>
 
 #include "crpp/ui/controls.hpp"
+#include "crpp/ui/skin_canvas.hpp"
 
 namespace crpp::ui {
 
 namespace {
+
+enum TextId : int { ProfileText, VolumeText, MuteText };
+enum NumberId : int { Self, Muted, Volume, PointX, PointY };
+constexpr skin::Name text_names[] = {{"profile", ProfileText}, {"volume_label", VolumeText}, {"mute", MuteText}};
+constexpr skin::Name number_names[] = {{"self", Self}, {"muted", Muted}, {"volume", Volume}, {"point_x", PointX}, {"point_y", PointY}};
+constexpr skin::Name hit_names[] = {{"card", MemberMenu::Card}, {"profile", MemberMenu::Profile}, {"slider", MemberMenu::Slider}, {"mute", MemberMenu::Mute}};
+constexpr skin::Name note_names[] = {{"track", 0}};
 
 constexpr float menu_pad = 6, menu_item_h = 38;
 constexpr float menu_row_h = 6 + 22 + 8 + 14 + 10;  // .menu-volume: padding, label, margin, slider
@@ -15,6 +23,8 @@ constexpr float menu_row_h = 6 + 22 + 8 + 14 + 10;  // .menu-volume: padding, la
 constexpr float self_w = 128, other_w = 154;
 
 }  // namespace
+
+skin::ScreenSchema MemberMenu::schema() { return {.screen = "member_menu", .texts = text_names, .numbers = number_names, .hits = hit_names, .notes = note_names}; }
 
 void MemberMenu::open(std::uint32_t slot, bool self, int volume, float x, float y) {
   open_ = true;
@@ -39,6 +49,10 @@ void MemberMenu::paint(Painter& p) {
   }
   window_w_ = ui_.width;
   window_h_ = ui_.height;
+  if (const skin::Screen* screen = ui_.pack_screen("member_menu")) {
+    paint_pack(p, *screen);
+    return;
+  }
   const Theme& t = ui_.theme;
   const bool plain = !ui_.skin().moves();
   const float pad = plain ? 1 : menu_pad, item_h = plain ? 22 : menu_item_h, row_h = plain ? 46 : menu_row_h;
@@ -65,27 +79,62 @@ void MemberMenu::paint(Painter& p) {
     ui_.add_hit_window(this, track_, Slider);
     y += row_h;
     show_tip = ui_.hot(this, Slider) || ui_.capture == this;
-    if (show_tip) {
-      // .volume-tooltip, over the thumb.
-      constexpr float thumb = 21;
-      const float at = static_cast<float>(volume_) / 100.0f;
-      tip.text = std::to_string(volume_) + "%";
-      tip.anchor = {track_.x + thumb / 2 + (track_.w - thumb) * at, track_.y, 0, track_.h};
-      tip.size = 15;
-      tip.weight = 400;
-      tip.line_height = 20;
-      tip.gap = 11;
-      tip.slide = 0;
-      tip.in_ms = tip.out_ms = 120;
-      tip.pad_x = 9;
-      tip.pad_y = 3;
-      tip.radius = 13;
-      tip.fill = rgb(0x75ccff);
-      tip.ink = rgb(0xFFFFFF);
-    }
+    if (show_tip) tip = volume_tip();
   }
   const bool muted_now = muted();
   item({r.x + pad, y, w - 2 * pad, item_h}, muted_now ? tr().unmute : tr().mute, Mute, muted_now, self_);
+  tooltip_.paint(ui_, p, show_tip ? &tip : nullptr);
+}
+
+HoverTip::Spec MemberMenu::volume_tip() const {
+  // .volume-tooltip, over the thumb.
+  constexpr float thumb = 21;
+  const float at = static_cast<float>(volume_) / 100.0f;
+  HoverTip::Spec tip;
+  tip.text = std::to_string(volume_) + "%";
+  tip.anchor = {track_.x + thumb / 2 + (track_.w - thumb) * at, track_.y, 0, track_.h};
+  tip.size = 15;
+  tip.weight = 400;
+  tip.line_height = 20;
+  tip.gap = 11;
+  tip.slide = 0;
+  tip.in_ms = tip.out_ms = 120;
+  tip.pad_x = 9;
+  tip.pad_y = 3;
+  tip.radius = 13;
+  tip.fill = rgb(0x75ccff);
+  tip.ink = rgb(0xFFFFFF);
+  return tip;
+}
+
+void MemberMenu::paint_pack(Painter& p, const skin::Screen& screen) {
+  class Shown final : public skin::Source {
+   public:
+    explicit Shown(MemberMenu& menu) : m_(menu) {}
+    std::string_view text(int id, int) override {
+      switch (id) {
+        case ProfileText: return tr().member_profile;
+        case VolumeText: return tr().member_volume;
+        default: return m_.muted() ? tr().unmute : tr().mute;
+      }
+    }
+    float number(int id, int) override {
+      switch (id) {
+        case Self: return m_.self_ ? 1.0f : 0.0f;
+        case Muted: return m_.muted() ? 1.0f : 0.0f;
+        case Volume: return static_cast<float>(m_.volume_);
+        case PointX: return m_.x_;
+        default: return m_.y_;
+      }
+    }
+    void note(int, int, skin::Box box) override { m_.track_ = rect_of(box); }
+
+   private:
+    MemberMenu& m_;
+  } shown(*this);
+  draw_screen(ui_, p, this, screen, {0, 0, ui_.width, ui_.height}, shown);
+  const bool show_tip = !self_ && (ui_.hot(this, Slider) || ui_.capture == this);
+  const HoverTip::Spec tip = show_tip ? volume_tip() : HoverTip::Spec{};
   tooltip_.paint(ui_, p, show_tip ? &tip : nullptr);
 }
 

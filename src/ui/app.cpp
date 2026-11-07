@@ -55,7 +55,9 @@ void App::reload_assets(const std::filesystem::path& assets_dir) {
 
 std::span<const skin::ScreenSchema> screen_schemas() {
   static const skin::ScreenSchema schemas[] = {HomeScreen::schema(), PromptScreen::schema(), WindowFrame::schema(), WindowFrame::menu_schema(), RoomScreen::schema(), ChatPanel::schema(),
-                                               SettingsPanel::schema(), SoundTab::schema(), DisplayTab::schema(), NotifyTab::schema(), SystemTab::schema(), AccountTab::schema()};
+                                               SettingsPanel::schema(), SoundTab::schema(), DisplayTab::schema(), NotifyTab::schema(), SystemTab::schema(), AccountTab::schema(),
+                                               SetupScreen::schema(), Dialogs::schema(), OfflinePopup::schema(), NoticeCard::schema(), UpdatePopup::schema(), Toasts::schema(),
+                                               Toasts::bubble_schema(), HoverTip::schema(), MemberMenu::schema(), ProfileCard::schema(), EmojiPicker::schema()};
   return schemas;
 }
 
@@ -217,7 +219,7 @@ PaneInfo App::pane_info(Pane pane) const {
       break;
     case Pane::Emoji:
       info.title = tr().profile_change_icon;
-      fixed(EmojiPicker::content_size());
+      fixed(emoji_picker_.content_size());
       break;
     case Pane::Offline:
       info.close = false;  // it goes when the server is back

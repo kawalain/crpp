@@ -1,0 +1,17 @@
+{
+  "$schema": "../../schema/screen.member_menu.schema.json",
+  "draw": [
+    {"let": "item_h", "value": 22},
+    {"let": "volume_h", "value": "@self ? 0 : 46"},
+    {"let": "box_w", "value": "@self ? 128 : 154"},
+    {"let": "box_h", "value": "2+2*item_h+volume_h"},
+    {"x": "max(8, min(@point_x, W-box_w-8))", "y": "max(8, min(@point_y, H-box_h-8))", "w": "box_w", "h": "box_h", "group": [
+      {"use": "panel_menu"},
+      {"hit": "card", "group": []},
+      {"use": "menu_item", "text": "@profile", "hit": "profile", "x": 1, "y": 1, "w": "W-2", "h": "item_h"},
+      {"if": "!@self", "text": "@volume_label", "style": "body", "color": "$ink", "x": 13, "y": "1+item_h+6", "w": "W-26", "h": 22},
+      {"if": "!@self", "use": "slider", "hit": "slider", "note": "track", "x": 13, "y": "1+item_h+36", "w": "W-26", "h": 14, "args": {"at": "@volume/100"}},
+      {"use": "menu_item", "text": "@mute", "hit": "mute", "hit_if": "!@self", "live": "!@self", "x": 1, "y": "1+item_h+volume_h", "w": "W-2", "h": "item_h", "args": {"active": "@muted", "off": "@self"}}
+    ]}
+  ]
+}

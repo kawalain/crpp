@@ -23,6 +23,8 @@ class Dialogs final : public Surface {
   using Surface::Surface;
   enum Id : int { Backdrop, Card, Confirm, Cancel };
 
+  [[nodiscard]] static skin::ScreenSchema schema();
+
   void show(Dialog dialog);
   void close() { dialog_.reset(); }
   [[nodiscard]] bool is_open() const { return dialog_.has_value(); }

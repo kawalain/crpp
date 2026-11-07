@@ -6,9 +6,19 @@
 #include <filesystem>
 #include <system_error>
 
+#include "crpp/ui/skin_canvas.hpp"
+
 namespace crpp::ui {
 
 namespace {
+
+enum NumberId : int { Count, Offset, Drawn, Overflow, Selected };
+enum ReportId : int { View, Content, First, Width, Height };
+constexpr skin::Name number_names[] = {{"count", Count}, {"offset", Offset}, {"scroll", Drawn}, {"overflow", Overflow}, {"selected", Selected}};
+constexpr skin::Name picture_names[] = {{"cell", 0}};
+constexpr skin::Name hit_names[] = {{"backdrop", EmojiPicker::Backdrop}, {"card", EmojiPicker::Card}, {"track", EmojiPicker::Track}, {"thumb", EmojiPicker::Thumb}, {"cell", EmojiPicker::CellBase}};
+constexpr skin::Name report_names[] = {{"view", View}, {"content", Content}, {"first", First}, {"width", Width}, {"height", Height}};
+constexpr skin::Name note_names[] = {{"track", 0}};
 
 constexpr int columns = 8;
 constexpr float picker_w = 400, picker_h = 306, pad = 14, gap = 4;
@@ -19,7 +29,59 @@ constexpr unsigned long long thumb_hide_ms = 2000;
 
 }  // namespace
 
-D2D1_SIZE_F EmojiPicker::content_size() { return {picker_w, picker_h}; }
+skin::ScreenSchema EmojiPicker::schema() { return {.screen = "emoji", .numbers = number_names, .pictures = picture_names, .hits = hit_names, .reports = report_names, .notes = note_names}; }
+
+D2D1_SIZE_F EmojiPicker::content_size() const {
+  const skin::Screen* const screen = ui_.pack_screen("emoji");
+  if (!screen) return {picker_w, picker_h};
+  class Sized final : public skin::Source {
+   public:
+    void report(int id, float value) override {
+      if (id == Width) size.width = value;
+      else if (id == Height) size.height = value;
+    }
+    D2D1_SIZE_F size{};
+  } sized;
+  measure_screen(ui_, *screen, ui_.content, sized);
+  return sized.size;
+}
+
+void EmojiPicker::paint_pack(Painter& p, const skin::Screen& screen) {
+  class Shown final : public skin::Source {
+   public:
+    Shown(EmojiPicker& picker, Painter& painter) : e_(picker), p_(painter) {}
+    float number(int id, int index) override {
+      switch (id) {
+        case Count: return static_cast<float>(e_.ids_.size());
+        case Offset: return e_.scroll_.offset;
+        case Drawn: return e_.scroll_.drawn();
+        case Overflow: return e_.scroll_.max_offset() > 0 ? 1.0f : 0.0f;
+        default: return e_.ids_[first_ + static_cast<std::size_t>(index)] == e_.current_ ? 1.0f : 0.0f;
+      }
+    }
+    void picture(int, int index, skin::Box box, float opacity, float gray) override {
+      draw_svg(p_, e_.cache_->get(e_.ui_.gfx, e_.ids_[first_ + static_cast<std::size_t>(index)]), rect_of(box), opacity, gray);
+    }
+    void report(int id, float value) override {
+      if (id == View) {
+        e_.scroll_.view_h = value;
+      } else if (id == Content) {
+        e_.scroll_.content_h = value;
+        e_.scroll_.clamp();
+        e_.scroll_.advance(e_.ui_);
+      } else if (id == First) {
+        first_ = static_cast<std::size_t>(value);
+      }
+    }
+    void note(int, int, skin::Box box) override { e_.track_ = rect_of(box); }
+
+   private:
+    EmojiPicker& e_;
+    Painter& p_;
+    std::size_t first_ = 0;
+  } shown(*this, p);
+  draw_screen(ui_, p, this, screen, ui_.content, shown);
+}
 
 void EmojiPicker::show(std::string current, std::function<void(std::string id)> on_pick) {
   open_ = true;
@@ -92,6 +154,10 @@ void EmojiPicker::paint(Painter& p) {
 void EmojiPicker::paint_shown(Painter& p) {
   const Theme& t = ui_.theme;
   p.set_base(D2D1::Matrix3x2F::Identity());
+  if (const skin::Screen* screen = ui_.pack_screen("emoji")) {
+    paint_pack(p, *screen);
+    return;
+  }
   const Rect window{0, 0, ui_.width, ui_.height};
   if (ui_.skin().moves()) p.fill_rect(window, rgb(0x365669, 0.28f));
   ui_.add_hit_window(this, ui_.modal_area, Backdrop);

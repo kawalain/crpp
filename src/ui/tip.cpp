@@ -3,8 +3,19 @@
 #include <algorithm>
 
 #include "crpp/ui/controls.hpp"
+#include "crpp/ui/skin_canvas.hpp"
 
 namespace crpp::ui {
+
+namespace {
+
+enum NumberId : int { AnchorX, AnchorY, AnchorW, PlaceOf, Gap, Shift };
+constexpr skin::Name text_names[] = {{"text", 0}};
+constexpr skin::Name number_names[] = {{"anchor_x", AnchorX}, {"anchor_y", AnchorY}, {"anchor_w", AnchorW}, {"place", PlaceOf}, {"gap", Gap}, {"dx", Shift}};
+
+}  // namespace
+
+skin::ScreenSchema HoverTip::schema() { return {.screen = "tip", .texts = text_names, .numbers = number_names}; }
 
 float keyframes(float t, std::span<const std::pair<float, float>> stops) {
   for (std::size_t i = 1; i < stops.size(); ++i) {
@@ -33,6 +44,29 @@ void HoverTip::paint(Ui& ui, Painter& p, const Spec* want) {
   const float moved = transition(ui, since_, shown_ ? spec_.in_ms : spec_.out_ms);
   const float alpha = shown_ ? moved : 1 - moved;
   if (alpha <= 0) return;
+
+  if (const skin::Screen* screen = ui.pack_screen("tip")) {
+    class Shown final : public skin::Source {
+     public:
+      explicit Shown(const Spec& spec) : s_(spec) {}
+      std::string_view text(int, int) override { return s_.text; }
+      float number(int id, int) override {
+        switch (id) {
+          case AnchorX: return s_.anchor.x;
+          case AnchorY: return s_.anchor.y;
+          case AnchorW: return s_.anchor.w;
+          case PlaceOf: return static_cast<float>(s_.place);
+          case Gap: return s_.gap;
+          default: return s_.dx;
+        }
+      }
+
+     private:
+      const Spec& s_;
+    } shown(spec_);
+    draw_screen(ui, p, nullptr, *screen, {0, 0, ui.width, ui.height}, shown);
+    return;
+  }
 
   if (!ui.skin().moves()) {  // a small box against what it is about
     spec_.pad_x = 4;

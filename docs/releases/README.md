@@ -41,3 +41,18 @@ GitHub Actions no longer runs by itself, as its minutes are limited. Nothing bui
 or a tag, so GCC's portability check runs only on `gh workflow run ci.yml`; do that before a
 release that changed a pure module. `gh workflow run release.yml --ref v0.y.z` publishes an
 existing tag from a runner instead.
+
+## If Defender flags a release
+
+The first v0.1.1 exe was flagged as `Trojan:Win32/Bearfoos.A!ml` the moment it started after
+updating, and Defender removed it. From then on a plain scan flagged those exact bytes. 16
+other builds passed, including the same commit, and two self-updates through a local server
+did too. An exe rebuilt from the same tag then updated from v0.1.0 without a detection. So
+the verdict followed that one file, not the code; what caused it is unknown, and a scan
+before publishing does not predict it.
+
+After publishing, update from the previous version once and watch for a minute. If it is
+flagged, rebuild from the tag, sign and verify as `release.ps1` does, and replace the files
+with `gh release upload v0.y.z dist/crpp.exe dist/crpp-update.manifest --clobber`. The new
+exe's hash must differ. Until then an update can cost someone their copy of the app, because
+the rollback ends once the new exe has started.

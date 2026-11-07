@@ -37,11 +37,30 @@ SystemTab::SystemTab(Ui& ui) : SettingsTab(ui) {
   language_.id_base = LanguageList;
 }
 
+void SystemTab::sync_idle() {
+  const int minutes = ui_.prefs->get(pref::idle_minutes);
+  idle_.selected = 1;  // upstream takes anything else as 30 minutes
+  for (std::size_t i = 0; i < idle_minutes.size(); ++i) {
+    if (idle_minutes[i] == minutes) idle_.selected = static_cast<int>(i);
+  }
+}
+
+void SystemTab::sync_language() {
+  language_.options = {tr().system_language_auto};
+  for (const locale::Locale& l : locale::all_locales()) language_.options.emplace_back(l.name);
+  language_.selected = selected_language(ui_.prefs->get(pref::language));
+}
+
 float SystemTab::content_height() const {
+  if (!ui_.skin().scales_stage()) return flow_height_;
   return reset_top(ui_.prefs->get(pref::log_enabled)) + buttons_h + settings_bottom_pad;
 }
 
 void SystemTab::paint(Painter& p, Rect area) {
+  if (!ui_.skin().scales_stage()) {
+    paint_luna(p, area);
+    return;
+  }
   const Theme& t = ui_.theme;
   const Prefs& prefs = *ui_.prefs;
   idle_.options = {tr().system_idle_15, tr().system_idle_30, tr().system_idle_60};
@@ -54,19 +73,13 @@ void SystemTab::paint(Painter& p, Rect area) {
   paint_toggle(ui_, this, p, area, time_top + 51, tr().system_24h, prefs.get(pref::use_24h), Use24h, toggles_[3]);
   const float idle_top = time_top + 51 + row_step;
   paint_row_label(p, t, area, idle_top + 5, tr().system_idle);
-  const int minutes = prefs.get(pref::idle_minutes);
-  idle_.selected = 1;  // upstream takes anything else as 30 minutes
-  for (std::size_t i = 0; i < idle_minutes.size(); ++i) {
-    if (idle_minutes[i] == minutes) idle_.selected = static_cast<int>(i);
-  }
+  sync_idle();
   idle_rect_ = {area.x + dropdown_x, area.y + idle_top - 1, dropdown_w, dropdown_h};
   idle_.paint_button(ui_, this, p, idle_rect_);
 
   paint_heading(p, t, area, language_top, tr().system_language);
   paint_row_label(p, t, area, language_top + 51 + 5, tr().system_language_row);
-  language_.options = {tr().system_language_auto};
-  for (const locale::Locale& l : locale::all_locales()) language_.options.emplace_back(l.name);
-  language_.selected = selected_language(prefs.get(pref::language));
+  sync_language();
   language_rect_ = {area.x + dropdown_x, area.y + language_top + 51 - 1, dropdown_w, dropdown_h};
   language_.paint_button(ui_, this, p, language_rect_);
 
@@ -109,13 +122,13 @@ void SystemTab::click(int id, float, float, bool) {
     ui_.dialogs->show({tr().system_reset_question, tr().system_reset_confirm, tr().cancel, false, [ui] { ui->prefs->reset(); }, nullptr});
   } else if (idle_.owns(id)) {
     if (idle_.click(id)) prefs.set(pref::idle_minutes, idle_minutes[static_cast<std::size_t>(idle_.selected)]);
-    if (idle_.open) place_dropdown(idle_, idle_rect_);
+    if (idle_.open) place_dropdown(ui_, idle_, idle_rect_);
   } else if (language_.owns(id)) {
     if (language_.click(id)) {
       const auto locales = locale::all_locales();
       prefs.set(pref::language, language_.selected == 0 ? std::string_view{} : locales[static_cast<std::size_t>(language_.selected - 1)].id);
     }
-    if (language_.open) place_dropdown(language_, language_rect_);
+    if (language_.open) place_dropdown(ui_, language_, language_rect_);
   }
 }
 

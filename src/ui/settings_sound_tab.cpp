@@ -2,6 +2,7 @@
 
 #include <algorithm>
 #include <array>
+#include <cmath>
 #include <cstdio>
 
 #include "crpp/ui/prefs.hpp"
@@ -167,6 +168,10 @@ void SoundTab::paint_tip(Painter& p, Rect area) {
   const float progress = transition(ui_, tip_start_, tip_ms);
   const float opacity = tip_on_ ? progress : 1 - progress;
   if (opacity <= 0 || tip_row_ < 0) return;
+  if (!ui_.skin().scales_stage()) {
+    paint_tip_luna(p, tip_row_);
+    return;
+  }
 
   const VolumeRow& row = volume_rows[static_cast<std::size_t>(tip_row_)];
   const int value = ui_.prefs->get(row.key);
@@ -232,6 +237,10 @@ void SoundTab::paint_balance(Painter& p, Rect area) {
 }
 
 void SoundTab::paint(Painter& p, Rect area) {
+  if (!ui_.skin().scales_stage()) {
+    paint_luna(p, area);
+    return;
+  }
   reverb_.box.options = {tr().sound_reverb_off, tr().sound_reverb_office, tr().sound_reverb_large};
   speaker_.box.options[0] = tr().sound_default_output;
   const Theme& t = ui_.theme;
@@ -278,7 +287,24 @@ void SoundTab::paint(Painter& p, Rect area) {
   paint_tip(p, area);
 }
 
+void SoundTab::paint_tip_luna(Painter& p, int row_index) {
+  const auto row = static_cast<std::size_t>(row_index);
+  const int value = ui_.prefs->get(volume_rows[row].key);
+  const std::string text = std::to_string(value) + "%";
+  const float w = text_width(p, text, {.size = ui_.gfx.classic_size(), .exact = true}) + 10;
+  const Rect s = slider_rects_[row];
+  const float cx = s.x + slider_thumb / 2 + static_cast<float>(value) / 100 * (s.w - slider_thumb);
+  paint_bubble(p, ui_.theme, text, {std::floor(cx - w / 2), s.y - 17, std::ceil(w), 17}, {.size = ui_.gfx.classic_size(), .exact = true}, 0, {}, {}, 1);
+}
+
 void SoundTab::paint_popups(Painter& p, Rect area) {
+  if (!ui_.skin().scales_stage()) {
+    for (std::size_t i = 0; i < volume_rows.size(); ++i) {
+      if (row_shown(i)) picker_of_row(i)->box.paint_list(ui_, this, p, combo_rects_[i]);
+    }
+    reverb_.box.paint_list(ui_, this, p, combo_rects_[4]);
+    return;
+  }
   for (std::size_t i = 0; i < volume_rows.size(); ++i) {
     if (!row_shown(i)) continue;
     const Rect button{area.x + dropdown_x, area.y + volume_rows[i].dropdown_top, dropdown_w, dropdown_h};
@@ -287,7 +313,7 @@ void SoundTab::paint_popups(Painter& p, Rect area) {
   reverb_.box.paint_list(ui_, this, p, {area.x + dropdown_x, area.y + reverb_dropdown_top, dropdown_w, dropdown_h});
 }
 
-float SoundTab::content_height() const { return reverb_top + row_h + 25; }
+float SoundTab::content_height() const { return ui_.skin().scales_stage() ? reverb_top + row_h + 25 : flow_height_; }
 
 void SoundTab::close_lists(const Picker* except) {
   speaker_.box.open = speaker_.box.open && &speaker_ == except;
@@ -311,6 +337,17 @@ void SoundTab::before_click(const Surface* owner, int id) {
 
 void SoundTab::set_slider(int id, float window_x) {
   const float x = ui_.to_stage_x(window_x);
+  if (!ui_.skin().scales_stage()) {
+    if (id == Balance) {
+      const int value = slider_value(balance_rect_, x, balance_min, balance_max);
+      if (value != ui_.prefs->get(pref::channel_balance)) ui_.prefs->set(pref::channel_balance, value);
+      return;
+    }
+    const auto row = static_cast<std::size_t>(id - SpeakerVolume);
+    const int value = slider_value(slider_rects_[row], x, 0, 100);
+    if (value != ui_.prefs->get(volume_rows[row].key)) ui_.prefs->set(volume_rows[row].key, value);
+    return;
+  }
   if (id == Balance) {
     const float left = last_area_.x + balance_slider_x + balance_thumb_w / 2;
     const float at = std::clamp((x - left) / (balance_slider_w - balance_thumb_w), 0.0f, 1.0f);
@@ -324,7 +361,10 @@ void SoundTab::set_slider(int id, float window_x) {
 }
 
 void SoundTab::pick(Picker& picker, int id) {
-  if (id == picker.box.id_base && !picker.box.open) {
+  if (id == picker.box.id_base && !picker.box.open && !ui_.skin().scales_stage()) {
+    const auto row = &picker == &reverb_ ? std::size_t{4} : &picker == &speaker_ ? std::size_t{0} : static_cast<std::size_t>(&picker - packs_.data()) + 1;
+    place_dropdown(ui_, picker.box, combo_rects_[row]);
+  } else if (id == picker.box.id_base && !picker.box.open) {
     // Opens upward only when there is more room there (main.js bindDropdowns).
     const auto row = &picker == &speaker_ ? std::size_t{0} : static_cast<std::size_t>(&picker - packs_.data()) + 1;
     const float top = last_area_.y + (&picker == &reverb_ ? reverb_dropdown_top : volume_rows[row].dropdown_top);

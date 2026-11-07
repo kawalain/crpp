@@ -26,7 +26,13 @@ HomeScreen::HomeScreen(Ui& ui) : Surface(ui) {
   code_.uppercase = true;
 }
 
+TextStyle HomeScreen::field_style() const { return ui_.skin().scales_stage() ? code_style : luna_code_style(); }
+
 void HomeScreen::paint(Painter& p) {
+  if (!ui_.skin().scales_stage()) {
+    paint_luna(p);
+    return;
+  }
   refresh_seat(ui_.now_ms);
   const Theme& t = ui_.theme;
   // Sky: the large cloud at lower right, then the create cloud at upper left.
@@ -154,7 +160,7 @@ void HomeScreen::refresh_seat(unsigned long long now) {
 }
 
 bool HomeScreen::accepts(int id, float x, float y) const {
-  if (id != Create) return true;
+  if (id != Create || !ui_.skin().scales_stage()) return true;
   // The click area is the cloud's shape, not a rectangle.
   BOOL inside = FALSE;
   if (ID2D1PathGeometry* const shape = ui_.cloud()) {
@@ -178,7 +184,8 @@ void HomeScreen::join() {
 void HomeScreen::find() {
   if (is_busy()) return;
   refresh_seat(clock_ms());
-  if (home::find_step(returning()) == home::FindStep::AskReturn) {
+  // A Skin that lists the Seats has no need to ask.
+  if (ui_.skin().scales_stage() && home::find_step(returning()) == home::FindStep::AskReturn) {
     return_open_ = true;
     return_opened_at_ = clock_ms();
     was_moving_ = true;
@@ -195,16 +202,16 @@ void HomeScreen::left_home() {
 
 void HomeScreen::show_error(std::string text) {
   if (last_action_ == Join) {
-    ui_.toasts->bubble(ui_.to_window({469 + 221, 522 + 10, 52, 60}), std::move(text), 18);
+    ui_.toasts->bubble(ui_.to_window(join_rect_), std::move(text), 18);
   } else if (last_action_ == Find) {
-    ui_.toasts->bubble(ui_.to_window({759, 522, 92, 80}), std::move(text));
+    ui_.toasts->bubble(ui_.to_window(find_rect_), std::move(text));
     tip_muted_until_ = clock_ms() + Toasts::default_ms + 200;  // .notifying > .tip
   } else {
     ui_.toasts->toast(std::move(text));
   }
 }
 
-void HomeScreen::drag(float x, float) { code_.click_at(ui_.gfx, code_style, ui_.to_stage_x(x) - (469 + 18), true); }
+void HomeScreen::drag(float x, float) { code_.click_at(ui_.gfx, field_style(), ui_.to_stage_x(x) - code_x_, true); }
 
 void HomeScreen::click(int id, float x, float, bool shift) {
   switch (id) {
@@ -219,7 +226,7 @@ void HomeScreen::click(int id, float x, float, bool shift) {
       break;
     case Code:
       ui_.set_focus(this, &code_);
-      code_.click_at(ui_.gfx, code_style, ui_.to_stage_x(x) - (469 + 18), shift);
+      code_.click_at(ui_.gfx, field_style(), ui_.to_stage_x(x) - code_x_, shift);
       ui_.capture = this;
       break;
     case Find:
@@ -241,6 +248,14 @@ void HomeScreen::click(int id, float x, float, bool shift) {
       if (on_find_public) on_find_public();
       break;
     default:
+      if (id >= SeatBase && !is_busy() && held_seats && on_join) {
+        const std::vector<std::string> seats = held_seats();
+        const auto index = static_cast<std::size_t>(id - SeatBase);
+        if (index < seats.size()) {
+          last_action_ = Create;  // the list is what tried, so a failure goes to the top
+          on_join(seats[index]);
+        }
+      }
       break;
   }
 }

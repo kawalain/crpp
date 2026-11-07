@@ -55,6 +55,6 @@ void paint_bubble(Painter& p, const Theme& t, std::string_view text, Rect box, c
 
 // Which way the list of a dropdown just opened goes, as main.js decides it. `button`
 // is in stage coordinates.
-void place_dropdown(Dropdown& dropdown, Rect button);
+void place_dropdown(const Ui& ui, Dropdown& dropdown, Rect button);
 
 }  // namespace crpp::ui

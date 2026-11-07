@@ -156,7 +156,11 @@ float RoomScreen::speaking_level(std::uint32_t slot) const {
 void RoomScreen::add_area(Rect& area, std::uint32_t slot) const {
   for (const auto& [member, box] : member_rects_) {
     if (member != slot) continue;
-    const Rect avatar{box.x + 6, box.y + 1.5f, 44, 44};
+    Rect avatar{box.x + 6, box.y + 1.5f, 44, 44};
+    if (!ui_.skin().scales_stage()) {  // with the orange around it
+      const Rect picture = luna_picture_of(box);
+      avatar = {picture.x - 3, picture.y - 3, picture.w + 6, picture.h + 6};
+    }
     if (area.w <= 0) {
       area = avatar;
     } else {
@@ -289,6 +293,10 @@ RoomScreen::Layout RoomScreen::layout() const {
 }
 
 void RoomScreen::paint(Painter& p) {
+  if (!ui_.skin().scales_stage()) {
+    paint_luna(p);
+    return;
+  }
   const Theme& t = ui_.theme;
   needs_full_ = false;
   ended_area_ = {};
@@ -497,6 +505,7 @@ void RoomScreen::paint_mute_popup(Painter& p) {
 std::optional<HoverTip::Spec> RoomScreen::tip_for_hover() const {
   if (ui_.hover_owner != this) return std::nullopt;
   const int id = ui_.hover_id;
+  if ((id == Mute || id == More) && !ui_.skin().scales_stage()) return std::nullopt;  // they say it themselves
   HoverTip::Spec spec;
   if (id == Leave && controls_shown_) {
     spec.text = tr().room_tip_leave;
@@ -688,8 +697,18 @@ void RoomScreen::before_click(const Surface* owner, int id) {
   if (mute_popup_open_ && !in_mute) mute_popup_open_ = false;
 }
 
-void RoomScreen::click(int id, float x, float, bool) {
+void RoomScreen::click(int id, float x, float y, bool) {
   switch (id) {
+    case MembersBar:
+      if (const Rect thumb = members_scroll_.thumb(members_track_); y >= thumb.y && y < thumb.bottom()) {
+        ui_.capture = this;
+        members_held_ = true;
+        members_grab_y_ = y;
+        members_grab_offset_ = members_scroll_.offset;
+      } else {
+        members_scroll_.step_towards(members_track_, y);
+      }
+      break;
     case Leave:
       ask_leave();
       break;
@@ -740,7 +759,14 @@ bool RoomScreen::right_click(int id, float x, float y) {
   return true;
 }
 
-void RoomScreen::drag(float x, float) { set_volume_from(x); }
+void RoomScreen::drag(float x, float y) {
+  if (members_held_) {
+    const float travel = std::max(1.0f, members_track_.h - members_scroll_.thumb(members_track_).h);
+    members_scroll_.jump_to(members_grab_offset_ + (y - members_grab_y_) * members_scroll_.max_offset() / travel);
+    return;
+  }
+  set_volume_from(x);
+}
 
 bool RoomScreen::escape() {
   if (menu_.escape()) return true;

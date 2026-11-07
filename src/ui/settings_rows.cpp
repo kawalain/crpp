@@ -89,11 +89,12 @@ void paint_bubble(Painter& p, const Theme& t, std::string_view text, Rect box, c
   p.text(text, box, centered, written);
 }
 
-void place_dropdown(Dropdown& dropdown, Rect button) {
+void place_dropdown(const Ui& ui, Dropdown& dropdown, Rect button) {
   const auto n = static_cast<float>(dropdown.options.size());
-  const float list_h = std::min(224.0f, n * 38 + (n - 1) * 4 + 12);
-  const float below = settings_view.bottom() - button.bottom();
-  const float above = button.y - settings_view.y;
+  const auto [pad, item_h, gap, max_h, margin] = ui.skin().list_metrics();
+  const float list_h = std::min(max_h, n * item_h + (n - 1) * gap + 2 * pad);
+  const float below = ui.dropdown_view.bottom() - button.bottom();
+  const float above = button.y - ui.dropdown_view.y;
   dropdown.up = below < list_h + 8 && above > below;
 }
 

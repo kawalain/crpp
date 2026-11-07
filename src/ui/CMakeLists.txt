@@ -5,7 +5,8 @@ if(WIN32)
     offline_popup.cpp connection_feedback.cpp
     settings_panel.cpp settings_rows.cpp settings_sound_tab.cpp settings_display_tab.cpp settings_notify_tab.cpp settings_system_tab.cpp
     settings_account_tab.cpp tip.cpp profile_card.cpp member_menu.cpp chat_logic.cpp
-    update_popup.cpp changelog_view.cpp)
+    update_popup.cpp changelog_view.cpp
+    home_screen_luna.cpp prompt_screen_luna.cpp room_screen_luna.cpp chat_panel_luna.cpp settings_luna.cpp)
   target_include_directories(crpp_ui PUBLIC include)
   target_link_libraries(crpp_ui PUBLIC crpp_session crpp_update crpp_locale d2d1 dwrite windowscodecs ole32 user32 gdi32)
   target_compile_definitions(crpp_ui PUBLIC NOMINMAX WIN32_LEAN_AND_MEAN)
@@ -53,6 +54,12 @@ if(WIN32)
   target_include_directories(crpp_ui_prompt_test PRIVATE ${PROJECT_SOURCE_DIR}/tests/support tests)
   crpp_target_defaults(crpp_ui_prompt_test)
   add_test(NAME ui.prompt COMMAND crpp_ui_prompt_test)
+
+  add_executable(crpp_ui_luna_test tests/luna_test.cpp)
+  target_link_libraries(crpp_ui_luna_test PRIVATE crpp_ui)
+  target_include_directories(crpp_ui_luna_test PRIVATE ${PROJECT_SOURCE_DIR}/tests/support tests)
+  crpp_target_defaults(crpp_ui_luna_test)
+  add_test(NAME ui.luna COMMAND crpp_ui_luna_test)
 
   add_executable(crpp_ui_update_test tests/update_ui_test.cpp)
   target_link_libraries(crpp_ui_update_test PRIVATE crpp_ui)

@@ -56,11 +56,16 @@ float DisplayTab::chat_top() const {
 }
 
 float DisplayTab::content_height() const {
+  if (!ui_.skin().scales_stage()) return flow_height_;
   // .chat-size-block: the sample, then the label (14 + 26 + 8) and the slider (14).
   return chat_top() + sample_h / ui_.scale + 14 + 26 + 8 + 14 + settings_bottom_pad;
 }
 
 void DisplayTab::paint(Painter& p, Rect area) {
+  if (!ui_.skin().scales_stage()) {
+    paint_luna(p, area);
+    return;
+  }
   const Theme& t = ui_.theme;
   const Prefs& prefs = *ui_.prefs;
   const bool sync = prefs.get(pref::system_theme);
@@ -160,13 +165,13 @@ void DisplayTab::click(int id, float x, float, bool) {
     drag(x, 0);
   } else if (theme_.owns(id)) {
     if (theme_.click(id)) prefs.set(pref::theme, all_theme_entries()[static_cast<std::size_t>(theme_.selected)]->id);
-    if (theme_.open) place_dropdown(theme_, list_rect_[0]);
+    if (theme_.open) place_dropdown(ui_, theme_, list_rect_[0]);
   } else if (light_.owns(id)) {
     if (light_.click(id)) prefs.set(pref::light_theme, themes_of(false)[static_cast<std::size_t>(light_.selected)]->id);
-    if (light_.open) place_dropdown(light_, list_rect_[1]);
+    if (light_.open) place_dropdown(ui_, light_, list_rect_[1]);
   } else if (dark_.owns(id)) {
     if (dark_.click(id)) prefs.set(pref::dark_theme, themes_of(true)[static_cast<std::size_t>(dark_.selected)]->id);
-    if (dark_.open) place_dropdown(dark_, list_rect_[2]);
+    if (dark_.open) place_dropdown(ui_, dark_, list_rect_[2]);
   }
 }
 

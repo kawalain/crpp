@@ -51,6 +51,7 @@ class SettingsPanel final : public Surface {
   bool wheel(float x, float y, float delta) override;
   bool escape() override;
   [[nodiscard]] Cursor cursor(int id) const override;
+  [[nodiscard]] bool is_link(int id) const override { return id == Version; }
   [[nodiscard]] bool animating() const override;
   bool tick(unsigned long long now_ms) override;
   [[nodiscard]] unsigned long long wake_at() const override;
@@ -60,6 +61,8 @@ class SettingsPanel final : public Surface {
   [[nodiscard]] SettingsTab& tab();
   [[nodiscard]] SettingsTab& tab_of(SettingsPage page);
   [[nodiscard]] const SettingsTab& tab() const { return const_cast<SettingsPanel*>(this)->tab(); }
+  void paint_luna(Painter& p);
+  [[nodiscard]] static const char* locale::Strings::*tab_name(std::size_t index);
   void paint_panel(Painter& p);
   void paint_tabs(Painter& p);
   void paint_scrollbar_faded(Painter& p);
@@ -75,6 +78,8 @@ class SettingsPanel final : public Surface {
   bool open_ = false;
   SettingsPage page_ = SettingsPage::Sound;
   Scroll scroll_;
+  Rect content_area_{settings_view};
+  Rect scroll_track_{835, 187, 8, 403};  // .settings-scrollbar
   Fade panel_;  // the panel coming and going
   SettingsPage left_page_ = SettingsPage::Sound;  // the tab fading out, while left_at_ is set
   float left_scroll_ = 0, left_fade_top_ = 0, left_fade_bottom_ = 0;

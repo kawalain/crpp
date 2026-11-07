@@ -219,6 +219,10 @@ void ChatPanel::sync_rows(float list_w) {
 }
 
 void ChatPanel::paint(Painter& p, Rect panel) {
+  if (!ui_.skin().scales_stage()) {
+    paint_luna(p, panel);
+    return;
+  }
   const Theme& t = ui_.theme;
   const TextStyle input_style{.size = 17, .line_height = 22, .wrap = true};
   // .chat-panel.multi: from two lines on the button moves out and the text takes its place.
@@ -429,7 +433,20 @@ void ChatPanel::paint_calm(Painter& p, Rect anchor) {
   }
 }
 
-void ChatPanel::click(int id, float, float, bool) {
+bool ChatPanel::chat_grouped_with_previous(std::size_t index) const { return chat_grouped(log_[index], index > first_ ? &log_[index - 1] : nullptr); }
+
+void ChatPanel::click(int id, float, float y, bool) {
+  if (id == BarUp || id == BarDown || id == BarTrack) {
+    scroll_.step_towards(bar_track_, y);
+    scrolled();
+    return;
+  }
+  if (id == BarThumb) {
+    ui_.capture = this;
+    grab_y_ = y;
+    grab_offset_ = scroll_.offset;
+    return;
+  }
   if (id >= LinkBase) {
     const auto number = static_cast<std::size_t>(id - LinkBase) / links_per_entry;
     const auto link = static_cast<std::size_t>(id - LinkBase) % links_per_entry;
@@ -450,15 +467,26 @@ void ChatPanel::click(int id, float, float, bool) {
 
 bool ChatPanel::wheel(float x, float y, float delta) {
   if (!area_.contains(x, y)) return false;
-  scroll_.wheel(ui_, delta);
+  if (ui_.skin().moves()) scroll_.wheel(ui_, delta);
+  else scroll_.wheel(ui_, delta, 48);
+  scrolled();
+  return true;
+}
+
+void ChatPanel::scrolled() {
   stick_ = scroll_.target >= scroll_.max_offset() - 4;
-  // Close to the top the next page is laid out, without moving what is on screen.
+  // Without moving what is on screen.
   if (scroll_.target < 60 && first_ > 0) {
     first_ = first_ > chat_page ? first_ - chat_page : 0;
     dirty_ = true;
     older_pending_ = true;
   }
-  return true;
+}
+
+void ChatPanel::drag(float, float y) {
+  const float travel = std::max(1.0f, bar_track_.h - scroll_.thumb(bar_track_).h);
+  scroll_.jump_to(grab_offset_ + (y - grab_y_) * scroll_.max_offset() / travel);
+  scrolled();
 }
 
 void ChatPanel::enter(bool shift) {
@@ -467,6 +495,10 @@ void ChatPanel::enter(bool shift) {
 }
 
 bool ChatPanel::key(unsigned vk, bool ctrl, bool shift) {
+  if ((vk == VK_UP || vk == VK_DOWN) && !ui_.skin().scales_stage()) {
+    input_.move_vertical(ui_.gfx, luna_input(), input_text_w_, vk == VK_UP ? -1 : 1, shift);
+    return true;
+  }
   if (vk == VK_UP || vk == VK_DOWN) {
     const float w = area_.w - 11 - 17 - 36;
     input_.move_vertical(ui_.gfx, {.size = 17, .line_height = 22, .wrap = true}, w, vk == VK_UP ? -1 : 1, shift);

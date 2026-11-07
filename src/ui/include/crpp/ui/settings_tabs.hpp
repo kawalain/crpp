@@ -27,6 +27,10 @@ class SettingsTab : public Surface {
   [[nodiscard]] virtual float content_height() const = 0;
   // The tab came on screen.
   virtual void shown() {}
+
+ protected:
+  // How tall a Skin's flowing layout came out the last time it was drawn.
+  float flow_height_ = 0;
 };
 
 // Pen's volume and pack, built but hidden until Pen is verified on a real device.
@@ -99,7 +103,9 @@ class SoundTab final : public SettingsTab {
   void set_slider(int id, float window_x);
   void pick(Picker& picker, int id);
   [[nodiscard]] Picker* picker_of_row(std::size_t row);
+  void paint_luna(Painter& p, Rect area);
   void paint_tip(Painter& p, Rect area);
+  void paint_tip_luna(Painter& p, int row);
   void paint_balance(Painter& p, Rect area);
   void paint_person(Painter& p, float x, float y, Color c, bool marked);
 
@@ -108,6 +114,10 @@ class SoundTab final : public SettingsTab {
   Picker reverb_;
   std::vector<SoundChoice> speakers_;
   Rect last_area_;
+  // Where the flowing layout last put these: by volume row, the list after them for reverb.
+  std::array<Rect, 4> slider_rects_;
+  std::array<Rect, 5> combo_rects_;
+  Rect balance_rect_;
   int held_ = -1;  // the slider being dragged
   int knob_id_ = -1;
   unsigned long long knob_start_ = 0;
@@ -141,6 +151,7 @@ class DisplayTab final : public SettingsTab {
   [[nodiscard]] bool animating() const override;
 
  private:
+  void paint_luna(Painter& p, Rect area);
   void paint_sample(Painter& p, Rect box, float zoom);
   [[nodiscard]] float chat_top() const;
 
@@ -174,6 +185,7 @@ class NotifyTab final : public SettingsTab {
   [[nodiscard]] bool animating() const override;
 
  private:
+  void paint_luna(Painter& p, Rect area);
   struct Row {
     ToggleAnim toggle;
     Fade grow, tip;
@@ -200,6 +212,9 @@ class SystemTab final : public SettingsTab {
   [[nodiscard]] bool animating() const override;
 
  private:
+  void paint_luna(Painter& p, Rect area);
+  void sync_idle();
+  void sync_language();
   Dropdown idle_, language_;
   Rect idle_rect_, language_rect_;
   std::array<ToggleAnim, 5> toggles_;
@@ -227,6 +242,7 @@ class AccountTab final : public SettingsTab {
   void click(int id, float x, float y, bool shift) override;
 
  private:
+  void paint_luna(Painter& p, Rect area);
   Profile profile_;
 };
 

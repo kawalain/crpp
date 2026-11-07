@@ -12,6 +12,10 @@ constexpr Rect logout_rect{550 - 16 - 154, 440, 154, 38};
 }  // namespace
 
 void AccountTab::paint(Painter& p, Rect area) {
+  if (!ui_.skin().scales_stage()) {
+    paint_luna(p, area);
+    return;
+  }
   const Theme& t = ui_.theme;
   p.text(tr().account_heading, {area.x + 9, area.y + 25, 400, 32}, {.size = 26, .weight = 700, .line_height = 32}, t.hl_text);
 
@@ -51,7 +55,7 @@ void AccountTab::paint(Painter& p, Rect area) {
   button({area.x + logout_rect.x, area.y + logout_rect.y, logout_rect.w, logout_rect.h}, tr().account_logout, Logout);
 }
 
-float AccountTab::content_height() const { return logout_rect.bottom() + bottom_pad; }
+float AccountTab::content_height() const { return ui_.skin().scales_stage() ? logout_rect.bottom() + bottom_pad : flow_height_; }
 
 void AccountTab::click(int id, float, float, bool) {
   switch (id) {

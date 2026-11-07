@@ -18,12 +18,17 @@ void NotifyTab::shown() {
 }
 
 float NotifyTab::content_height() const {
+  if (!ui_.skin().scales_stage()) return flow_height_;
   const float rows = static_cast<float>(sounds_.size());
   const float bottom = rows > 0 ? sounds_top + row_top - 25 + (rows - 1) * row_step + 36 : sounds_top + 32;
   return bottom + settings_bottom_pad;
 }
 
 void NotifyTab::paint(Painter& p, Rect area) {
+  if (!ui_.skin().scales_stage()) {
+    paint_luna(p, area);
+    return;
+  }
   const Theme& t = ui_.theme;
   const Prefs& prefs = *ui_.prefs;
   paint_heading(p, t, area, 25, tr().notify_heading);

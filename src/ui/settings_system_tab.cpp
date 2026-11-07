@@ -18,11 +18,6 @@ constexpr float logging_top = time_top + 217;
 constexpr float open_logs_top = logging_top + row_step;
 constexpr float buttons_x = 381, buttons_w = 140, buttons_h = 38;
 
-constexpr std::string_view detail_hint =
-    "글자 키의 열과 Space, Enter, Shift 같은 특수 키를 구분해 보내 소리가 다양해집니다.\n"
-    "대신 어느 줄의 키를 눌렀는지, 단어의 경계와 줄바꿈이 다른 사람에게 드러납니다.\n"
-    "입력 타이밍과 합치면 입력 내용을 추측하기가 쉬워집니다.";
-
 float reset_top(bool logging) { return (logging ? open_logs_top + buttons_h : logging_top + 36) + 32; }
 
 }  // namespace

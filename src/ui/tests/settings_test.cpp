@@ -151,6 +151,12 @@ void test_system_rows() {
   CHECK(prefs.get(pref::start_with_system));
   CHECK(h.click(tab, SystemTab::Tray));
   CHECK(!prefs.get(pref::minimize_to_tray));
+  // Written line by line: wrapped any further, it would run over the next heading.
+  const auto hint = h.app.ui().gfx.layout(widen(SystemTab::detail_hint), {.size = 14, .line_height = 20, .wrap = true}, 439, 10000);
+  CHECK(hint.get() != nullptr);
+  DWRITE_TEXT_METRICS metrics{};
+  if (hint) hint->GetMetrics(&metrics);
+  CHECK(metrics.lineCount == 3);
   CHECK(!prefs.get(pref::input_detail));  // Presence mode is the default
   CHECK(h.click(tab, SystemTab::Detail));
   CHECK(prefs.get(pref::input_detail));

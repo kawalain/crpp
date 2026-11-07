@@ -38,7 +38,7 @@ class Canvas {
   virtual void stroke_round(Box box, float radius, Color color, float width) = 0;
   virtual void line(float x1, float y1, float x2, float y2, Color color, float width) = 0;
   // Filled when width is 0.
-  virtual void path(std::string_view data, float x, float y, float scale, Color color, float width, bool round_caps) = 0;
+  virtual void path(std::string_view data, float x, float y, float scale, Color color, float width, bool round_caps, bool soft) = 0;
   virtual void text(std::string_view text, Box box, const TextLook& look, Color color) = 0;
   virtual void push_clip(Box box) = 0;
   virtual void pop_clip() = 0;

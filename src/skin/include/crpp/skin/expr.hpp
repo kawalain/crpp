@@ -83,6 +83,9 @@ class Names {
   [[nodiscard]] virtual std::optional<std::uint16_t> style(std::string_view name) = 0;
   // A text as a node's "text" takes it. Null when it is no good.
   [[nodiscard]] virtual std::optional<std::uint32_t> text(std::string_view source) = 0;
+  // A screen's ids for a click and a note, which a screen can hand to a part.
+  [[nodiscard]] virtual std::optional<int> hit(std::string_view /*name*/) { return std::nullopt; }
+  [[nodiscard]] virtual std::optional<int> note(std::string_view /*name*/) { return std::nullopt; }
 };
 
 inline constexpr std::size_t max_expr_chars = 400;

@@ -30,7 +30,7 @@ class SkinCanvas final : public skin::Canvas {
   void frame(skin::Box box, skin::Color color) override { p_.frame(rect_of(box), color); }
   void stroke_round(skin::Box box, float radius, skin::Color color, float width) override { p_.stroke_round(rect_of(box), radius, color, width); }
   void line(float x1, float y1, float x2, float y2, skin::Color color, float width) override { p_.stroke_line(x1, y1, x2, y2, color, width); }
-  void path(std::string_view data, float x, float y, float scale, skin::Color color, float width, bool round_caps) override;
+  void path(std::string_view data, float x, float y, float scale, skin::Color color, float width, bool round_caps, bool soft) override;
   void text(std::string_view text, skin::Box box, const skin::TextLook& look, skin::Color color) override { p_.text(text, rect_of(box), text_style_of(look), color); }
   void push_clip(skin::Box box) override;
   void pop_clip() override;

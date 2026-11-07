@@ -154,10 +154,13 @@ float RoomScreen::speaking_level(std::uint32_t slot) const {
 }
 
 void RoomScreen::add_area(Rect& area, std::uint32_t slot) const {
-  for (const auto& [member, box] : member_rects_) {
+  const bool from_pack = ui_.pack_screen("room") != nullptr;
+  for (const auto& [member, box] : from_pack ? member_discs_ : member_rects_) {
     if (member != slot) continue;
     Rect avatar{box.x + 6, box.y + 1.5f, 44, 44};
-    if (!ui_.skin().scales_stage()) {  // with the orange around it
+    if (from_pack) {
+      avatar = box;
+    } else if (!ui_.skin().scales_stage()) {  // with the orange around it
       const Rect picture = luna_picture_of(box);
       avatar = {picture.x - 3, picture.y - 3, picture.w + 6, picture.h + 6};
     }
@@ -293,6 +296,10 @@ RoomScreen::Layout RoomScreen::layout() const {
 }
 
 void RoomScreen::paint(Painter& p) {
+  if (const skin::Screen* screen = ui_.pack_screen("room")) {
+    paint_pack(p, *screen);
+    return;
+  }
   if (!ui_.skin().scales_stage()) {
     paint_luna(p);
     return;

@@ -1,0 +1,30 @@
+{
+  "draw": [
+    {"let": "field_w", "value": "W-button_w-6"},
+    {"let": "input_h", "value": "min(100, max(52, ceil(texth('chat_text', '@input_text', field_w-8))+8))"},
+
+    {"//": "The messages.", "note": "area", "h": "H-input_h-6", "group": [
+      {"use": "field"},
+      {"hit": "area", "group": []},
+      {"x": 1, "y": 1, "w": "W-2", "h": "H-2", "group": [
+        {"slot": "messages", "numbers": [14, 7, 7, "scrollbar_w", "round(font_size*@zoom)", "round(font_size*@zoom)+4"], "styles": ["chat_text"], "colors": ["$ink", "$ink_soft"]},
+        {"use": "scrollbar", "x": "W-scrollbar_w", "w": "scrollbar_w",
+         "args": {"view": "@view", "content": "@content", "offset": "@offset", "track": "hit('bar_track')", "up": "hit('bar_up')", "down": "hit('bar_down')", "thumb": "hit('bar_thumb')", "track_note": "note('bar_track')"}}
+      ]}
+    ]},
+
+    {"//": "What is being written.", "hit": "input", "y": "H-input_h", "w": "field_w", "h": "input_h", "group": [
+      {"use": "field"},
+      {"clip": true, "x": 1, "y": 1, "w": "W-2", "h": "H-2", "group": [
+        {"field": "input", "style": "chat_text", "color": "$ink", "placeholder": "#chat_placeholder", "placeholder_color": "$ink_soft", "caret": "$ink", "selection": "$selection", "x": 3, "y": 3, "w": "W-6", "h": "H-6"}
+      ]}
+    ]},
+    {"use": "button", "id": "send", "text": "#chat_send", "hit": "send", "live": "!@send_off", "x": "W-button_w", "y": "H-input_h", "w": "button_w", "h": "input_h", "args": {"off": "@send_off"}},
+
+    {"//": "Too fast: said in a small box, over the button.", "let": "calm_w", "value": "ceil(textw('body_center', '@calm_text'))+10"},
+    {"if": "@calm", "x": "max(0, send.right-calm_w)", "y": "send.y-22", "w": "calm_w", "h": 18, "group": [
+      {"use": "bubble"},
+      {"text": "@calm_text", "style": "body_center", "color": "$tooltip_ink", "h": 16}
+    ]}
+  ]
+}

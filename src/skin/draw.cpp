@@ -142,13 +142,20 @@ class Walker final : public Env {
     if (n.slot != no_slot) std::copy_n(vars.begin() + Varx, 4, slots_.begin() + base_ + n.slot);
     const Box at{vars[VarX] + vars[Varx], vars[VarY] + vars[Vary], vars[Varw], vars[Varh]};
     if (n.note != no_hit) source_.note(n.note, static_cast<int>(vars[VarI]), at);
+    if (n.has_note_by) {
+      if (const int id = static_cast<int>(value(n.note_by)); id >= 0) source_.note(id, static_cast<int>(vars[VarI]), at);
+    }
     const Box box = n.snap ? canvas_.snap(at) : at;
     const float hot = vars[VarHot], pressed = vars[VarPressed];
     int hit = no_hit;
     if (n.hit != no_hit) {
       hit = n.hit + static_cast<int>(n.has_hit_index ? value(n.hit_index) : vars[VarI]);
-      vars[VarHot] = canvas_.hot(hit) ? 1.0f : 0.0f;
-      vars[VarPressed] = canvas_.pressed(hit) ? 1.0f : 0.0f;
+      if (hit < 0) {
+        hit = no_hit;
+      } else {
+        vars[VarHot] = canvas_.hot(hit) ? 1.0f : 0.0f;
+        vars[VarPressed] = canvas_.pressed(hit) ? 1.0f : 0.0f;
+      }
     }
     if (n.has_live && value(n.live) == 0) vars[VarHot] = vars[VarPressed] = 0;
 
@@ -157,7 +164,7 @@ class Walker final : public Env {
       case NodeKind::Frame: canvas_.frame(box, color_of(n)); break;
       case NodeKind::Stroke: canvas_.stroke_round(box, value(n.extra), color_of(n), value(n.width)); break;
       case NodeKind::Line: canvas_.line(box.x, box.y, vars[VarX] + value(n.extra), vars[VarY] + value(n.extra2), color_of(n.paint), value(n.width)); break;
-      case NodeKind::Path: canvas_.path(std::string_view(pack_.literals).substr(n.text, n.count), box.x, box.y, value(n.extra), color_of(n.paint), value(n.width), n.round_caps); break;
+      case NodeKind::Path: canvas_.path(std::string_view(pack_.literals).substr(n.text, n.count), box.x, box.y, value(n.extra), color_of(n.paint), value(n.width), n.round_caps, n.soft); break;
       case NodeKind::Text: canvas_.text(text_of(n.text), box, look_of(n.style), color_of(n)); break;
       case NodeKind::Picture: source_.picture(n.bound, static_cast<int>(vars[VarI]), box, value(n.extra), value(n.width)); break;
       case NodeKind::Field: field(n, box); break;

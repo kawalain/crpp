@@ -219,6 +219,10 @@ void ChatPanel::sync_rows(float list_w) {
 }
 
 void ChatPanel::paint(Painter& p, Rect panel) {
+  if (const skin::Screen* screen = ui_.pack_screen("chat")) {
+    paint_pack(p, *screen, panel);
+    return;
+  }
   if (!ui_.skin().scales_stage()) {
     paint_luna(p, panel);
     return;
@@ -496,7 +500,7 @@ void ChatPanel::enter(bool shift) {
 
 bool ChatPanel::key(unsigned vk, bool ctrl, bool shift) {
   if ((vk == VK_UP || vk == VK_DOWN) && !ui_.skin().scales_stage()) {
-    input_.move_vertical(ui_.gfx, luna_input(), input_text_w_, vk == VK_UP ? -1 : 1, shift);
+    input_.move_vertical(ui_.gfx, ui_.pack_screen("chat") ? pack_input_style_ : luna_input(), input_text_w_, vk == VK_UP ? -1 : 1, shift);
     return true;
   }
   if (vk == VK_UP || vk == VK_DOWN) {

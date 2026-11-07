@@ -36,6 +36,10 @@ const char* const test_pack = R"J({
     "big": {"size": 20, "line_height": "font_size+4", "weight": 700, "align": "center", "wrap": true}
   },
   "parts": {
+    "by": {
+      "args": {"own": -1, "where": -1},
+      "draw": [{"hit_by": "own", "note_by": "where", "group": [{"fill": "hot ? $ink : $face"}]}]
+    },
     "inner": {
       "args": {"amount": 1},
       "draw": [{"fill": "$face", "w": "amount"}]
@@ -107,7 +111,7 @@ class Log final : public Canvas {
   void frame(Box b, Color c) override { add("frame " + str(b) + " " + str(c)); }
   void stroke_round(Box b, float r, Color c, float w) override { add("stroke " + str(b) + " " + str(r) + " " + str(c) + " " + str(w)); }
   void line(float x1, float y1, float x2, float y2, Color c, float w) override { add("line " + str(x1) + "," + str(y1) + " " + str(x2) + "," + str(y2) + " " + str(c) + " " + str(w)); }
-  void path(std::string_view d, float x, float y, float s, Color c, float w, bool round_caps) override { add("path " + std::string(d) + " " + str(x) + "," + str(y) + " x" + str(s) + " " + str(c) + " " + str(w) + (round_caps ? " round" : " flat")); }
+  void path(std::string_view d, float x, float y, float s, Color c, float w, bool round_caps, bool) override { add("path " + std::string(d) + " " + str(x) + "," + str(y) + " x" + str(s) + " " + str(c) + " " + str(w) + (round_caps ? " round" : " flat")); }
   void text(std::string_view t, Box b, const TextLook& l, Color c) override {
     add("text " + std::string(t) + " " + str(b) + " " + str(l.size) + "/" + str(l.line_height) + "/" + std::to_string(l.weight) + " " + str(c));
   }
@@ -181,6 +185,16 @@ void a_let_is_read_further_on_and_inside() {
   CHECK(!load(R"({"fill":"$face","x":"gap"},{"let":"gap","value":1})"));
   CHECK(!load(R"({"let":"gap","value":1},{"let":"gap","value":2})"));
   CHECK(!load(R"({"let":"W","value":1})"));
+}
+
+void a_part_takes_its_hit_and_note_from_the_screen() {
+  CHECK(walk(R"J({"use":"by","args":{"own":"hit('join')"}})J", 0, 0, 51) == "fill 100,200,300,400 0/0/0/0.5\nhit 100,200,300,400 51\n");
+  // Less than 0 is none, and leaves what is lit from outside alone.
+  CHECK(walk(R"J({"use":"by"})J") == "fill 100,200,300,400 1/0/0/1\n");
+  CHECK(walk(R"J({"use":"by","hit":"join"})J", 0, 0, 51) == "fill 100,200,300,400 0/0/0/0.5\nhit 100,200,300,400 51\n");
+  CHECK(walk(R"J({"use":"by","args":{"where":"note('where')"}})J").starts_with("note 81"));
+  CHECK(!load(R"J({"fill":"$face","x":"hit('nothing')"})J"));
+  CHECK(!load(R"J({"fill":"$face","x":"note('nothing')"})J"));
 }
 
 void a_set_changes_a_name_from_further_in() {
@@ -432,7 +446,7 @@ void a_walk_ends_however_parts_multiply() {
     void frame(Box, Color) override {}
     void stroke_round(Box, float, Color, float) override {}
     void line(float, float, float, float, Color, float) override {}
-    void path(std::string_view, float, float, float, Color, float, bool) override {}
+    void path(std::string_view, float, float, float, Color, float, bool, bool) override {}
     void text(std::string_view, Box, const TextLook&, Color) override {}
     void push_clip(Box) override {}
     void pop_clip() override {}
@@ -452,6 +466,7 @@ int main() {
   siblings_read_each_others_boxes();
   a_let_is_read_further_on_and_inside();
   a_set_changes_a_name_from_further_in();
+  a_part_takes_its_hit_and_note_from_the_screen();
   conditions_skip_what_they_guard();
   palettes_choose_colours_and_gradients();
   texts_come_from_three_places();

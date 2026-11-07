@@ -14,6 +14,7 @@
 #include "crpp/ui/prefs.hpp"
 #include "crpp/ui/profile_card.hpp"
 #include "crpp/ui/settings_rows.hpp"
+#include "crpp/skin/pack.hpp"
 #include "crpp/ui/surface.hpp"
 #include "crpp/ui/tip.hpp"
 
@@ -32,6 +33,9 @@ class RoomScreen final : public Surface {
  public:
   explicit RoomScreen(Ui& ui);
   void forget_graphics() { cloud_.reset(); }
+
+  // What a Skin Pack can name on this screen.
+  [[nodiscard]] static skin::ScreenSchema schema();
 
   std::function<void()> on_leave;
   std::function<void(bool)> on_set_public;
@@ -108,6 +112,7 @@ class RoomScreen final : public Surface {
   };
 
   [[nodiscard]] Layout layout() const;
+  void paint_pack(Painter& p, const skin::Screen& screen);
   void paint_luna(Painter& p);
   void paint_members_luna(Painter& p, Rect area, int cols);
   void paint_options_luna(Painter& p);
@@ -180,6 +185,7 @@ class RoomScreen final : public Surface {
   // Where the labelled things were last drawn, window coordinates.
   Rect fab_rects_[3], code_rect_, public_rect_, chat_rect_;
   std::vector<std::pair<std::uint32_t, Rect>> member_rects_;
+  std::vector<std::pair<std::uint32_t, Rect>> member_discs_;  // what changes while one types, from a pack
   HoverTip tip_, copy_tip_;
   std::string copy_text_;
   unsigned long long copy_until_ = 0, hint_muted_until_ = 0;

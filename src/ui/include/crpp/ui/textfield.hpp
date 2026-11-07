@@ -45,8 +45,10 @@ class TextField {
              const TextStyle& placeholder_style, Color placeholder_color, Color caret, Color selection, bool focused,
              bool caret_on) const;
 
- private:
+  // The text as drawn: dots for a password, with what is being composed.
   [[nodiscard]] std::wstring shown() const;
+
+ private:
   void erase_selection();
   [[nodiscard]] bool has_selection() const { return anchor_ != caret_; }
   void move_to(std::size_t pos, bool extend);

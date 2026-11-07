@@ -30,17 +30,20 @@ float SkinCanvas::snap(float value) { return p_.snap({value, 0, 1, 1}).x; }
 
 float SkinCanvas::text_height(std::string_view text, const skin::TextLook& look, float width) {
   DWRITE_TEXT_METRICS m{};
-  if (const auto layout = p_.gfx().layout(widen(text), text_style_of(look), width)) layout->GetMetrics(&m);
+  if (const auto layout = p_.gfx().layout(widen(text), text_style_of(look), width, 100000)) layout->GetMetrics(&m);
   return m.height;
 }
 
-void SkinCanvas::path(std::string_view data, float x, float y, float scale, skin::Color color, float width, bool round_caps) {
+void SkinCanvas::path(std::string_view data, float x, float y, float scale, skin::Color color, float width, bool round_caps, bool soft) {
   ID2D1PathGeometry* const shape = p_.gfx().path(data);
   if (!shape) return;
+  const D2D1_ANTIALIAS_MODE mode = p_.rt()->GetAntialiasMode();
+  if (soft) p_.rt()->SetAntialiasMode(D2D1_ANTIALIAS_MODE_PER_PRIMITIVE);
   p_.push(scale == 1 ? D2D1::Matrix3x2F::Translation(x, y) : D2D1::Matrix3x2F::Scale(scale, scale) * D2D1::Matrix3x2F::Translation(x, y));
   if (width > 0) p_.stroke_geometry(shape, color, width, round_caps);
   else p_.fill_geometry(shape, color);
   p_.pop();
+  p_.rt()->SetAntialiasMode(mode);
 }
 
 void SkinCanvas::push_clip(skin::Box box) {

@@ -45,13 +45,13 @@ constexpr std::string_view kind_keys[] = {"fill", "frame", "stroke", "line", "pa
 
 [[nodiscard]] bool key_allowed(NodeKind kind, std::string_view key) {
   const auto among = [&](std::initializer_list<std::string_view> keys) { return std::ranges::find(keys, key) != keys.end(); };
-  if (among({"if", "id", "x", "right", "y", "bottom", "w", "h", "after", "hit", "hit_index", "live", "hit_if", "note", "snap", "alpha", "//"})) return true;
+  if (among({"if", "id", "x", "right", "y", "bottom", "w", "h", "after", "hit", "hit_index", "hit_by", "live", "hit_if", "note", "note_by", "snap", "alpha", "//"})) return true;
   switch (kind) {
     case NodeKind::Fill: return among({"radius", "down_to"});
     case NodeKind::Frame: return false;
     case NodeKind::Stroke: return among({"radius", "width"});
     case NodeKind::Line: return among({"x2", "y2", "width"});
-    case NodeKind::Path: return among({"color", "scale", "width", "caps"});
+    case NodeKind::Path: return among({"color", "scale", "width", "caps", "soft"});
     case NodeKind::Text: return among({"style", "color"});
     case NodeKind::Picture: return among({"opacity", "gray"});
     case NodeKind::Field: return among({"style", "color", "placeholder", "placeholder_color", "caret", "selection"});
@@ -151,6 +151,9 @@ class Loader final : public Names {
     }
     return std::nullopt;
   }
+
+  std::optional<int> hit(std::string_view name) override { return schema_ ? find_name(schema_->hits, name) : std::nullopt; }
+  std::optional<int> note(std::string_view name) override { return schema_ ? find_name(schema_->notes, name) : std::nullopt; }
 
   std::optional<std::uint32_t> text(std::string_view source) override {
     TextRef ref;
@@ -580,7 +583,14 @@ class Loader final : public Names {
     if (json.find("note")) {
       if (!bound_of(json, "note", schema_ ? schema_->notes : std::span<const Name>{}, out.note)) return false;
     }
-    return optional_expr(json, "after", out.after, &out.has_after) && optional_expr(json, "hit_index", out.hit_index, &out.has_hit_index) &&
+    if (json.find("hit_by")) {  // a part has the id from whoever uses it
+      if (json.find("hit") || json.find("hit_index")) return fail("hit_by is instead of hit and hit_index");
+      out.hit = 0;
+      if (!optional_expr(json, "hit_by", out.hit_index, &out.has_hit_index)) return false;
+    } else if (!optional_expr(json, "hit_index", out.hit_index, &out.has_hit_index)) {
+      return false;
+    }
+    return optional_expr(json, "note_by", out.note_by, &out.has_note_by) && optional_expr(json, "after", out.after, &out.has_after) &&
            optional_expr(json, "live", out.live, &out.has_live) && optional_expr(json, "hit_if", out.hit_if, &out.has_hit_if) &&
            optional_expr(json, "alpha", out.alpha, &out.has_alpha);
   }
@@ -652,6 +662,10 @@ class Loader final : public Names {
           const auto value = caps->as_string();
           if (value != "round" && value != "flat") return fail("caps is not round or flat");
           out.round_caps = value == "round";
+        }
+        if (const Json* soft = json.find("soft")) {
+          if (!soft->as_bool()) return fail("soft is not true or false");
+          out.soft = *soft->as_bool();
         }
         break;
       }

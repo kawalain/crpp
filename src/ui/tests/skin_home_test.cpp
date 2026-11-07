@@ -172,6 +172,51 @@ void test_the_prompt_from_the_pack_takes_typing_and_clicks() {
   CHECK(!h.drawn(prompt, PromptScreen::Back));
 }
 
+void test_a_room_from_the_pack_redraws_only_the_disc() {
+  UiHarness h;
+  CHECK(h.start(420, 400));
+  h.app.set_theme("messenger");
+  CHECK(h.app.load_skin_dir(messenger_pack).has_value());
+  h.app.show_session("ABC234");
+  h.app.room().set_room({{0, "Me", "", false, "c0"}, {1, "You", "", false, "c1"}}, 0, 0, false, true);
+  h.render();
+  RoomScreen& room = h.app.room();
+  h.app.tick(clock_ms());
+  h.render();
+  room.pulse(1);
+  CHECK(room.speaking_level(1) == 1);
+  const auto area = h.app.only_moving_area();
+  CHECK(area.has_value());
+  if (area) CHECK(area->w == 42 && area->h == 42);  // the picture and its orange
+}
+
+void test_the_chat_from_the_pack_scrolls_and_sends() {
+  UiHarness h;
+  CHECK(h.start(420, 400));
+  h.app.set_theme("messenger");
+  CHECK(h.app.load_skin_dir(messenger_pack).has_value());
+  h.app.show_session("ABC234");
+  h.app.room().set_room({{0, "Me", "", false, "c0"}, {1, "You", "", false, "c1"}}, 0, 0, false, true);
+  h.render();
+  ChatPanel& chat = h.app.room().chat();
+  for (int i = 0; i < 40; ++i) chat.add({1, "c1", "You", "", "hello " + std::to_string(i), 1700000000000});
+  h.render();
+  const float bottom = chat.scroll_offset();
+  CHECK(bottom > 0);
+  CHECK(h.click(chat, ChatPanel::BarUp));
+  CHECK(chat.scroll_offset() < bottom);
+  std::string sent;
+  chat.on_send = [&](std::string text) {
+    sent = std::move(text);
+    return true;
+  };
+  CHECK(h.click(chat, ChatPanel::Input));
+  for (const wchar_t c : std::wstring(L"hi")) h.app.char_input(c, false);
+  h.render();
+  CHECK(h.click(chat, ChatPanel::Send));
+  CHECK(sent == "hi");
+}
+
 void test_a_folder_without_a_pack_is_refused_and_changes_nothing() {
   UiHarness h;
   start_on_home(h);
@@ -190,6 +235,8 @@ int main() {
   test_a_theme_outside_the_pack_is_drawn_as_before();
   test_graphics_can_be_let_go_with_a_pack_drawn();
   test_the_prompt_from_the_pack_takes_typing_and_clicks();
+  test_a_room_from_the_pack_redraws_only_the_disc();
+  test_the_chat_from_the_pack_scrolls_and_sends();
   test_a_folder_without_a_pack_is_refused_and_changes_nothing();
   return crpp_test_result();
 }

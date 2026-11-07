@@ -242,6 +242,13 @@ class Compiler {
     if (word == "snap") return one(Op::Snap);
     if (word == "min") return two(Op::Min);
     if (word == "max") return two(Op::Max);
+    if (word == "hit" || word == "note") {
+      const auto named = quoted();
+      if (!named || !eat(")")) return fail(std::string(word) + " takes 'name'");
+      const auto id = word == "hit" ? names_.hit(*named) : names_.note(*named);
+      if (!id) return fail("this screen has no " + std::string(word) + " \"" + std::string(*named) + "\"");
+      return emit(Op::Const, 1, 0, static_cast<float>(*id));
+    }
     if (word == "textw") {
       const auto style = quoted();
       if (!style || !eat(",")) return fail("textw takes 'style', 'text'");

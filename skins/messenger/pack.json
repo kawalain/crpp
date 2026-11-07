@@ -3,7 +3,7 @@
   "id": "messenger",
   "constants": {
     "caption_h": 28, "frame_w": 3, "menu_h": 20, "window_radius": 8,
-    "button_h": 23, "field_h": 23, "check_size": 13, "row_h": 20, "scrollbar_w": 17,
+    "button_w": 75, "button_h": 23, "field_h": 23, "check_size": 13, "row_h": 20, "scrollbar_w": 17,
     "dialog_pad_top": 14, "dialog_pad_x": 14, "dialog_pad_bottom": 12, "dialog_gap": 14, "dialog_button_h": 23, "dialog_button_w": 75,
     "dialog_button_gap": 6, "dialog_width": 280, "dialog_wide_width": 340, "dialog_margin": 16, "dialog_text_size": 16, "dialog_text_line": 18, "dialog_align": 0,
     "list_pad": 1, "list_item_h": 17, "list_gap": 0, "list_max_h": 138, "list_margin": 0
@@ -202,6 +202,7 @@
     "bold_center": {"size": "font_size", "weight": 700, "line_height": "h", "align": "center", "ellipsis": true, "exact": true},
     "button": {"size": "font_size", "line_height": "h", "align": "center", "ellipsis": true, "exact": true},
     "paragraph": {"size": "font_size", "line_height": "font_size+4", "wrap": true, "exact": true, "keep_words": true},
+    "chat_text": {"size": "font_size", "line_height": "font_size+4", "wrap": true, "exact": true},
     "caption": {"size": 13, "weight": 700, "line_height": "h", "ellipsis": true, "exact": true, "role": "caption"}
   },
   "parts": {
@@ -332,6 +333,31 @@
           {"fill": "$edge_light", "x": 5, "y": "mid+(2*i-3)*u", "w": "W-10", "h": "u"},
           {"fill": "$bar_thumb_low", "x": 5, "y": "mid+(2*i-2)*u", "w": "W-10", "h": "u"}
         ]}
+      ]
+    },
+    "scrollbar": {
+      "args": {"view": 0, "content": 0, "offset": 0, "up": -1, "down": -1, "track": -1, "thumb": -1, "whole": 0, "track_note": -1},
+      "draw": [
+        {"let": "arrow_h", "value": "min(W, H/2)"},
+        {"let": "track_h", "value": "H-2*arrow_h"},
+        {"let": "room", "value": "content>view ? content-view : 0"},
+        {"let": "thumb_h", "value": "content>0 ? max(16, floor(track_h*min(1, view/content))) : track_h"},
+        {"let": "thumb_y", "value": "arrow_h+(room>0 ? floor((track_h-thumb_h)*offset/room) : 0)"},
+        {"fill": "$bar_track_from", "y": "arrow_h", "h": "track_h", "note_by": "track_note"},
+        {"hit_by": "track", "group": []},
+        {"use": "scroll_arrow", "hit_by": "up", "live": "!whole", "h": "arrow_h"},
+        {"use": "scroll_arrow", "hit_by": "down", "live": "!whole", "y": "H-arrow_h", "h": "arrow_h", "args": {"down": 1}},
+        {"hit_by": "thumb", "y": "thumb_y", "h": "thumb_h", "group": [
+          {"if": "track_h>=16 && thumb_h<track_h", "use": "scroll_thumb"}
+        ]}
+      ]
+    },
+    "check_row": {
+      "args": {"on": 0, "off": 0, "pinned": 0},
+      "draw": [
+        {"use": "check_box", "y": 5, "args": {"on": "on", "off": "off"}},
+        {"text": "@label", "style": "body", "color": "off ? $off_ink : $ink", "x": 18, "w": "W-30"},
+        {"if": "pinned", "fill": "$link", "x": "W-7", "y": 9, "w": 6, "h": 6}
       ]
     },
     "plain_thumb": {

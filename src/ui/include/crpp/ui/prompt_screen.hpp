@@ -74,7 +74,6 @@ class PromptScreen final : public Surface {
   unsigned long long next_wake_ = 0;
   float scroll_x_ = 0;  // how far the text is scrolled to keep the caret in view
   float text_x_ = 0;    // where the field's text starts, in window coordinates
-  ComPtr<ID2D1PathGeometry> arrow_, eye_, slash_;
 };
 
 }  // namespace crpp::ui

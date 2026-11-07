@@ -387,9 +387,8 @@ void ChatPanel::paint_send(Painter& p, Rect send_rect, float out) {
   const float a = input_.text().empty() || limiter_.cooling() ? 0.55f : 1.0f;
   p.fill_ellipse(send_rect.x + 15, send_rect.y + 15, 15, 15, with_alpha(mix(t.hl, t.surface, out * 100), a));
   {
-    if (!send_arrow_) send_arrow_ = ui_.gfx.parse_path("M5 12h14M13 6l6 6-6 6");
     p.push(D2D1::Matrix3x2F::Scale(18 / 24.f, 18 / 24.f) * D2D1::Matrix3x2F::Translation(send_rect.x + 6, send_rect.y + 6));
-    p.stroke_geometry(send_arrow_.get(), with_alpha(mix(t.on_accent, t.hl_text, out * 100), a), 3);
+    p.stroke_geometry(ui_.gfx.path("M5 12h14M13 6l6 6-6 6"), with_alpha(mix(t.on_accent, t.hl_text, out * 100), a), 3);
     p.pop();
   }
   if (hot) p.pop();

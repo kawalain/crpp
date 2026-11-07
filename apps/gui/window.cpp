@@ -34,7 +34,7 @@ void ensure_target(Shell& s, HWND hwnd) {
   const auto props = D2D1::RenderTargetProperties(D2D1_RENDER_TARGET_TYPE_DEFAULT, D2D1::PixelFormat(), dpi, dpi);
   const auto hwnd_props = D2D1::HwndRenderTargetProperties(
       hwnd, D2D1::SizeU(static_cast<UINT32>(rc.right - rc.left), static_cast<UINT32>(rc.bottom - rc.top)));
-  s.app.factory()->CreateHwndRenderTarget(props, hwnd_props, s.target.put());
+  if (ID2D1Factory* const factory = s.app.factory()) factory->CreateHwndRenderTarget(props, hwnd_props, s.target.put());
 }
 
 void place_ime(Shell& s, HWND hwnd) {

@@ -24,6 +24,7 @@ class EmojiPicker final : public Surface {
 
   void show(std::string current, std::function<void(std::string id)> on_pick);
   void close();
+  void forget_graphics();
   [[nodiscard]] bool is_open() const { return open_; }
 
   [[nodiscard]] const std::vector<std::string>& ids() const { return ids_; }

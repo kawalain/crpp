@@ -39,6 +39,10 @@ class App {
   bool init(const std::filesystem::path& assets_dir, bool load_font = true);
   void reload_assets(const std::filesystem::path& assets_dir);
   [[nodiscard]] ID2D1Factory* factory() const { return ui_.gfx.d2d(); }
+  // For a window nobody sees: lets go of everything made from the factory and of the
+  // factory, and with it of the GPU device. The render target must be gone first. The
+  // next frame makes it all again, which takes about 150 ms.
+  void release_graphics();
 
   // The parts of the screen; each has its own state and callbacks.
   [[nodiscard]] Ui& ui() { return ui_; }

@@ -15,8 +15,18 @@ bool App::init(const std::filesystem::path& assets_dir, bool load_font) {
   if (!ui_.gfx.init()) return false;
   if (!assets_dir.empty() && load_font) reload_assets(assets_dir);
   else ui_.emoji.emplace(assets_dir);
-  ui_.cloud = ui_.gfx.parse_path(cloud_path_data);
-  return ui_.cloud && room_.init() && settings_.init();
+  return ui_.cloud() != nullptr;
+}
+
+void App::release_graphics() {
+  ui_.forget_render_target();
+  if (ui_.emoji) {
+    auto dir = ui_.emoji->dir();  // what emplace is about to destroy
+    ui_.emoji.emplace(std::move(dir));
+  }
+  emoji_picker_.forget_graphics();
+  room_.forget_graphics();
+  ui_.gfx.release_factory();
 }
 
 void App::reload_assets(const std::filesystem::path& assets_dir) {

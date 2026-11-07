@@ -90,7 +90,6 @@ class ChangelogView final : public Surface {
   float built_width_ = 0, head_h_ = 0, body_h_ = 0;
   Scroll scroll_;
   bool start_at_bottom_ = false;
-  ComPtr<ID2D1PathGeometry> close_icon_;
 
   ChangelogOverscroll overscroll_;
   int hint_ = 0, hint_shown_ = 0;  // the wanted direction; the one being drawn or fading

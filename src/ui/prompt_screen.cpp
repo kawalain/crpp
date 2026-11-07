@@ -71,11 +71,6 @@ void PromptScreen::paint(Painter& p) {
   sync_with_field();
   const Theme& t = ui_.theme;
   p.set_base(D2D1::Matrix3x2F::Identity());
-  if (!arrow_) {
-    arrow_ = ui_.gfx.parse_path("M10 22h23M23 11l11 11-11 11");
-    eye_ = ui_.gfx.parse_path("M2 12s3.6-7 10-7 10 7 10 7-3.6 7-10 7S2 12 2 12Z");
-    slash_ = ui_.gfx.parse_path("M4 4l16 16");
-  }
 
   // .setup-card
   constexpr float pad_top = 28, pad_x = 30, pad_bottom = 26;
@@ -146,7 +141,7 @@ void PromptScreen::paint(Painter& p) {
   if (can_submit) p.fill_round(submit_r, 13, with_alpha(submit_hot ? t.hl_dark : t.hl, alpha));
   const Color arrow_ink = with_alpha(can_submit ? t.on_accent : t.hl_text_soft, alpha);
   p.push(D2D1::Matrix3x2F::Scale(30 / 44.f, 30 / 44.f) * D2D1::Matrix3x2F::Translation(submit_r.x + 7, submit_r.y + 7));
-  p.stroke_geometry(arrow_.get(), arrow_ink, 3);
+  p.stroke_geometry(ui_.gfx.path("M10 22h23M23 11l11 11-11 11"), arrow_ink, 3);
   p.pop();
   ui_.add_hit_window(this, submit_r, Submit);
 
@@ -155,9 +150,9 @@ void PromptScreen::paint(Painter& p) {
     right = eye.x;
     if (ui_.hot(this, Eye)) p.fill_round(eye, 10, t.hl_pale2);
     p.push(D2D1::Matrix3x2F::Scale(22 / 24.f, 22 / 24.f) * D2D1::Matrix3x2F::Translation(eye.x + 7, eye.y + 7));
-    p.stroke_geometry(eye_.get(), t.hl_text, 2);
+    p.stroke_geometry(ui_.gfx.path("M2 12s3.6-7 10-7 10 7 10 7-3.6 7-10 7S2 12 2 12Z"), t.hl_text, 2);
     p.stroke_ellipse(12, 12, 3, 3, t.hl_text, 2);
-    if (!field_.password) p.stroke_geometry(slash_.get(), t.hl_text, 2);
+    if (!field_.password) p.stroke_geometry(ui_.gfx.path("M4 4l16 16"), t.hl_text, 2);
     p.pop();
     ui_.add_hit_window(this, eye, Eye);
   }

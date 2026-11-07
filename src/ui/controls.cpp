@@ -99,11 +99,12 @@ void Dropdown::paint_list(Ui& ui, Surface* owner, Painter& p, Rect r) {
     opened_at_ = ui.now_ms;
   }
   const float shown = transition(ui, opened_at_, list_fade_ms);
+  const float blur = t.dark ? 38.0f : 16.0f, drop = t.dark ? 12.0f : 4.0f;
   if (shown < 1) {
     ui.more_frames = true;
-    p.push_opacity(shown);
+    p.push_opacity(shown, {list_.x - blur, list_.y - blur, list_.w + 2 * blur, list_.h + 2 * blur + drop});
   }
-  p.shadow_round(list_, 14, t.dark ? 38.0f : 16.0f, t.dark ? 12.0f : 4.0f, t.dark ? rgb(0x000000, 0.33f) : rgb(0x2e78aa, 0.22f));
+  p.shadow_round(list_, 14, blur, drop, t.dark ? rgb(0x000000, 0.33f) : rgb(0x2e78aa, 0.22f));
   p.fill_round(list_, 14, t.surface);
   ui.push_hit_clip(ui.to_window(list_));
   p.rt()->PushAxisAlignedClip(D2D1::RectF(list_.x, list_.y, list_.right(), list_.bottom()),

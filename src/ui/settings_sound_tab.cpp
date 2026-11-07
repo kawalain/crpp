@@ -177,7 +177,7 @@ void SoundTab::paint_tip(Painter& p, Rect area) {
 void SoundTab::paint_person(Painter& p, float x, float y, Color c, bool marked) {
   p.fill_ellipse(x + 23, y + 14, 14, 14, c);  // .person i
   p.push(D2D1::Matrix3x2F::Translation(x, y + person_h - 37));
-  p.fill_geometry(person_body_.get(), c);
+  p.fill_geometry(ui_.gfx.path(person_body_path), c);
   p.pop();
   if (marked) {
     p.text("나", {x, y + person_h - 37 + 11, person_w, 20}, {.size = 16, .weight = 700, .line_height = 20, .align = Align::Center},
@@ -198,9 +198,6 @@ void SoundTab::paint_balance(Painter& p, Rect area) {
   p.text(on ? std::string_view(ratio) : std::string_view("사용 안 함"), title,
          {.size = 16, .weight = 700, .line_height = 24, .align = Align::Right}, with_alpha(t.hl_text, a));
 
-  if (!person_body_) person_body_ = ui_.gfx.parse_path(person_body_path);
-  if (!balance_thumb_) balance_thumb_ = ui_.gfx.parse_path(balance_thumb_path);
-
   const float top = area.y + balance_top;
   const Color ink = with_alpha(t.hl, a);
   paint_person(p, area.x + balance_left, top - 1, ink, true);
@@ -215,7 +212,7 @@ void SoundTab::paint_balance(Painter& p, Rect area) {
   const float scale = balance_thumb_w / thumb_view_w;
   p.push(D2D1::Matrix3x2F::Translation(thumb_view_x, 0) * D2D1::Matrix3x2F::Scale(scale, scale) *
          D2D1::Matrix3x2F::Translation(thumb_x, slider.y));
-  p.fill_geometry(balance_thumb_.get(), ink);
+  p.fill_geometry(ui_.gfx.path(balance_thumb_path), ink);
   p.pop();
   if (on) ui_.add_hit(this, slider, Balance);
 }

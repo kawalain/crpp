@@ -31,10 +31,20 @@ class UiHarness {
     return true;
   }
 
-  void render() {
+  // False if Direct2D refused the frame, as it does for a resource of another factory.
+  bool render() {
     target_->BeginDraw();
     app.paint(target_.get(), width_, height_);
-    (void)target_->EndDraw();
+    return SUCCEEDED(target_->EndDraw());
+  }
+
+  // What the window does while hidden: the target goes, then whatever it was made with.
+  void drop_target() { target_.reset(); }
+  bool make_target() {
+    const auto props = D2D1::RenderTargetProperties(D2D1_RENDER_TARGET_TYPE_SOFTWARE,
+                                                    D2D1::PixelFormat(DXGI_FORMAT_B8G8R8A8_UNORM, D2D1_ALPHA_MODE_PREMULTIPLIED),
+                                                    96, 96);
+    return SUCCEEDED(app.factory()->CreateWicBitmapRenderTarget(bitmap_.get(), props, target_.put()));
   }
 
   // True if the surface has this hit on screen now.

@@ -42,7 +42,8 @@ class Ui {
   std::optional<EmojiCache> emoji;
   std::vector<std::string> emoji_ids;  // what the picker offers, when it can show them
   Theme theme = make_theme(ThemeId::Cloudroom);
-  ComPtr<ID2D1PathGeometry> cloud;
+
+  [[nodiscard]] ID2D1PathGeometry* cloud() const { return gfx.path(cloud_path_data); }
 
   // Never null once App exists.
   Prefs* prefs = nullptr;

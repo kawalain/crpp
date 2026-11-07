@@ -87,8 +87,18 @@ class PathReader {
 
 }  // namespace
 
+ID2D1Factory* Gfx::d2d() const {
+  if (!d2d_ && FAILED(D2D1CreateFactory(D2D1_FACTORY_TYPE_SINGLE_THREADED, d2d_.put()))) d2d_.reset();
+  return d2d_.get();
+}
+
+void Gfx::release_factory() {
+  paths_.clear();
+  d2d_.reset();
+}
+
 bool Gfx::init(const std::filesystem::path& font_file) {
-  if (FAILED(D2D1CreateFactory(D2D1_FACTORY_TYPE_SINGLE_THREADED, d2d_.put()))) return false;
+  if (!d2d()) return false;
   if (FAILED(DWriteCreateFactory(DWRITE_FACTORY_TYPE_SHARED, __uuidof(IDWriteFactory),
                                  reinterpret_cast<IUnknown**>(dwrite_.put())))) {
     return false;
@@ -144,9 +154,17 @@ void Gfx::load_font(const std::filesystem::path& font_file) {
   }
 }
 
+ID2D1PathGeometry* Gfx::path(std::string_view d) const {
+  if (const auto found = paths_.find(d); found != paths_.end()) return found->second.get();
+  auto geometry = parse_path(d);
+  if (!geometry) return nullptr;
+  return paths_.emplace(std::string(d), std::move(geometry)).first->second.get();
+}
+
 ComPtr<ID2D1PathGeometry> Gfx::parse_path(std::string_view d) const {
   ComPtr<ID2D1PathGeometry> geometry;
-  if (FAILED(d2d_->CreatePathGeometry(geometry.put()))) return {};
+  ID2D1Factory* const factory = d2d();
+  if (!factory || FAILED(factory->CreatePathGeometry(geometry.put()))) return {};
   ComPtr<ID2D1GeometrySink> sink;
   if (FAILED(geometry->Open(sink.put()))) return {};
 
@@ -353,6 +371,12 @@ void Painter::push_opacity(float opacity) {
   rt_->PushLayer(params, nullptr);
 }
 
+void Painter::push_opacity(float opacity, Rect bounds) {
+  D2D1_LAYER_PARAMETERS params = D2D1::LayerParameters(D2D1::RectF(bounds.x, bounds.y, bounds.right(), bounds.bottom()));
+  params.opacity = opacity;
+  rt_->PushLayer(params, nullptr);
+}
+
 void Painter::push(const D2D1_MATRIX_3X2_F& m) { rt_->SetTransform(m * base_); }
 
 void Painter::clear(Color c) { rt_->Clear(to_d2d(c)); }
@@ -436,7 +460,8 @@ void Painter::emoji(std::wstring_view glyph, Rect r, float opacity) {
   DWRITE_TEXT_METRICS m{};
   if (!layout || FAILED(layout->GetMetrics(&m))) return;
   const bool translucent = opacity < 1;
-  if (translucent) push_opacity(opacity);
+  // A glyph may overhang its box a little.
+  if (translucent) push_opacity(opacity, {r.x - r.w / 2, r.y - r.h / 2, r.w * 2, r.h * 2});
   brush_->SetColor(D2D1::ColorF(0, 0, 0, 1));
   rt_->DrawTextLayout(D2D1::Point2F(r.x + (r.w - m.width) / 2, r.y + (r.h - m.height) / 2), layout.get(), brush_.get(),
                       D2D1_DRAW_TEXT_OPTIONS_ENABLE_COLOR_FONT);

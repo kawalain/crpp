@@ -126,7 +126,9 @@ against a real `server/` yet; do that once a local build of it is available.
   animations" setting; there is no toggle of its own.
 - The app is named Cloudroom++, and its data stays in the same folders as upstream's.
 - The changelog comes from GitHub release notes, so an empty one says it could not be
-  loaded, and a first run ever does not open it.
+  loaded, and a first run ever does not open it. A new version's notes open when the app
+  first notices it, not after the update, and not again once it is installed. They are
+  the release's most important changes, then its commits by kind.
 
 ## Build
 

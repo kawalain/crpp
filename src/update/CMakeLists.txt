@@ -15,6 +15,11 @@ crpp_update_test(update)
 crpp_update_test(notes)
 
 # What the build decides: the version, whether this is a release, and the key.
+find_program(CRPP_PWSH pwsh)
+if(CRPP_PWSH)
+  add_test(NAME update.release_notes COMMAND ${CRPP_PWSH} -NoProfile -File ${PROJECT_SOURCE_DIR}/.github/scripts/release-notes-test.ps1)
+endif()
+
 set(CRPP_VERSION "0.0.0" CACHE STRING "The version this build reports; the release workflow sets it from the tag")
 option(CRPP_OFFICIAL_BUILD "A build for release: asks GitHub for updates and needs the real public key" OFF)
 set(CRPP_UPDATE_TEST_KEY "" CACHE STRING "A throwaway public key for trying the update flow; refused in an official build")

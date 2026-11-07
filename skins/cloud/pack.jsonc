@@ -41,6 +41,7 @@
       "hint_ink": "#94b8ca",
       "volume_tip": "#75ccff",
       "black": "#000000",
+      "switch_off": "#cfe3ef",
       "version_ink": "#8a94a0",
       "tip_shadow": "#2e648c",
       "panel_cloud": "#f7fcff",
@@ -74,6 +75,7 @@
       "hint_ink": "#a0b4c9",
       "volume_tip": "#75ccff",
       "black": "#000000",
+      "switch_off": "#cfe3ef",
       "version_ink": "#8a94a0",
       "tip_shadow": "#2e648c",
       "panel_cloud": "#f7fcff",
@@ -107,6 +109,7 @@
       "hint_ink": "#94b8ca",
       "volume_tip": "#75ccff",
       "black": "#000000",
+      "switch_off": "#cfe3ef",
       "version_ink": "#8a94a0",
       "tip_shadow": "#2e648c",
       "panel_cloud": "#f7fcff",
@@ -149,6 +152,15 @@
     "version": {"size": 14, "line_height": 20, "align": "right"},
     "version_tip": {"size": 15, "weight": 700, "line_height": 32, "align": "center"},
     "droplet_tip": {"size": 16, "weight": 700, "line_height": 32, "align": "center"},
+    "heading": {"size": 26, "weight": 700, "line_height": 32},
+    "row_label": {"size": 18, "line_height": 26},
+    "row": {"size": 18, "line_height": 36},
+    "slider_value": {"size": 15, "line_height": 26, "align": "center"},
+    "slider_value_measure": {"size": 15, "line_height": 20},
+    "balance_title": {"size": 16, "line_height": 24},
+    "balance_word": {"size": 16, "weight": 700, "line_height": 24, "align": "right"},
+    "balance_hint": {"size": 14, "line_height": 20},
+    "person_me": {"size": 16, "weight": 700, "line_height": 20, "align": "center"},
     "modal_button_measure": {"size": 16, "weight": 700, "line_height": 0}
   },
   "parts": {
@@ -271,6 +283,36 @@
           {"if": "active", "text": "@label", "style": "settings_tab_active", "color": "mix($on_accent, $hl_text_soft, lit*100)", "x": 10, "w": "W-20"},
           {"if": "!active", "text": "@label", "style": "settings_tab", "color": "mix($on_accent, $hl_text_soft, lit*100)", "x": 10, "w": "W-20"}
         ]}
+      ]
+    },
+    "switch": {
+      "args": {"on": 0, "off": 0},
+      "draw": [
+        {"let": "a", "value": "off ? 0.5 : 1"},
+        {"let": "at", "to": "on", "first": "jump", "ms": 160},
+        {"let": "track", "value": "on ? $hl : (dark ? $hl_pale2 : $switch_off)"},
+        {"fill": "alpha(hot && !off ? mix($black, track, 5) : track, a)", "radius": 14},
+        {"fill": "alpha(dark ? (on ? $on_accent : $hl_text_soft) : $surface, a)", "ellipse": true, "x": "3+(W-H)*at", "y": 3, "w": "H-6", "h": "H-6"}
+      ]
+    },
+    "slider": {
+      "args": {"at": 0},
+      "draw": [
+        {"let": "pos", "value": "slider_thumb/2+(W-slider_thumb)*at"},
+        {"fill": "$hl_pale2", "radius": 3, "y": "H/2-3", "h": 6},
+        {"fill": "$hl", "radius": 3, "y": "H/2-3", "w": "pos", "h": 6},
+        {"fill": "$hl", "ellipse": true, "x": "pos-slider_thumb/2", "y": "H/2-slider_thumb/2", "w": "slider_thumb", "h": "slider_thumb"},
+        {"fill": "dark ? $hl_text_dark : $surface", "ellipse": true, "x": "pos-slider_thumb/2+2", "y": "H/2-slider_thumb/2+2", "w": "slider_thumb-4", "h": "slider_thumb-4"}
+      ]
+    },
+    // .person: a head and a body, in its box of 46 by 62.
+    "person": {
+      "args": {"a": 1, "marked": 0},
+      "draw": [
+        {"let": "ink", "value": "alpha($hl, a)"},
+        {"fill": "ink", "ellipse": true, "x": 9, "w": 28, "h": 28},
+        {"path": "M0 23A23 23 0 0 1 46 23V33A4 4 0 0 1 42 37H4A4 4 0 0 1 0 33Z", "color": "ink", "y": 25},
+        {"if": "marked", "text": "#sound_me", "style": "person_me", "color": "alpha($on_accent, a)", "y": 36, "h": 20}
       ]
     },
     // li: padding 9 12, 20 tall.

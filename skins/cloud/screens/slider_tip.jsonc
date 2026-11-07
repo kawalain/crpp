@@ -1,0 +1,16 @@
+{
+  "$schema": "../../schema/screen.slider_tip.schema.json",
+  "draw": [
+    // .volume-tooltip, over the thumb.
+    {"let": "shown", "to": "@on", "ms": 120},
+    {"if": "shown>0", "group": [
+      {"let": "box_w", "value": "textw('slider_value_measure', '@text', 200)+18"},
+      {"let": "middle", "value": "@track_x+slider_thumb/2+@percent/100*(244-slider_thumb)"},
+      {"x": "middle-box_w/2", "y": "@track_y+3.5-26-11", "w": "box_w", "h": 26, "group": [
+        {"shadow": "alpha($tip_shadow, 0.2*shown)", "radius": 13, "blur": 8, "dy": 2},
+        {"fill": "alpha($volume_tip, shown)", "radius": 13},
+        {"text": "@text", "style": "slider_value", "color": "alpha($white, shown)"}
+      ]}
+    ]}
+  ]
+}

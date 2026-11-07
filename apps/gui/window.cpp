@@ -46,10 +46,10 @@ void update_region(Shell& s, HWND hwnd) {
 
 // Makes the window the size of what is on screen, if that has changed. The top left stays,
 // unless that would leave the window off its monitor.
-void fit_window(Shell& s, HWND hwnd) {
+void fit_window(Shell& s, HWND hwnd, bool save_last = true) {
   const ScreenSize screen = s.app.screen_size();
   if (s.fitted_screen == screen.key) return;
-  save_screen_size(s, hwnd);
+  if (save_last) save_screen_size(s, hwnd);
   s.fitted_screen = std::string(screen.key);
   const auto scaled = [&](std::int64_t dips) { return MulDiv(static_cast<int>(dips), static_cast<int>(s.dpi), 96); };
   RECT rc;
@@ -430,7 +430,8 @@ LRESULT CALLBACK wnd_proc(HWND hwnd, UINT msg, WPARAM wp, LPARAM lp) {
 
 void frame_changed(Shell& s) {
   const bool own = s.app.own_frame();
-  if (own != s.own_frame) {
+  const bool frame_differs = own != s.own_frame;
+  if (frame_differs) {
     if (own) save_window_size(s, s.hwnd);
     else save_screen_size(s, s.hwnd);
     s.own_frame = own;
@@ -438,7 +439,7 @@ void frame_changed(Shell& s) {
     // The frame is measured again now, which WM_NCCALCSIZE answers.
     SetWindowPos(s.hwnd, nullptr, 0, 0, 0, 0, SWP_NOMOVE | SWP_NOSIZE | SWP_NOZORDER | SWP_NOACTIVATE | SWP_FRAMECHANGED);
   }
-  fit_window(s, s.hwnd);
+  fit_window(s, s.hwnd, !frame_differs);  // saved already, and the client area is another now
   invalidate_panes(s);
   request_pane_sync(s);
 }

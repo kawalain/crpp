@@ -1,5 +1,7 @@
 # Assets come through jsDelivr, and none of them is required
 
+ADR 0007 makes one exception: a Skin Pack is required, and has a second source.
+
 This replaces the source and the failure handling in ADR 0002; its reasons for fetching at first run still hold.
 
 Twemoji and the font are third-party files that were copied into this repository only to be served from it, and they were 85% of what a first run fetched. They now come from their own repositories (`cmake/remote_assets.txt` pins them by size and SHA-256), and the rest from this repository, all through `cdn.jsdelivr.net/gh/`. A commit-pinned URL there is cached for good and needs no direct connection to GitHub. Pretendard is pinned by tag, because jsDelivr answers 403 for that large repository by commit; the hash pins it all the same. unpkg has the font but no current Twemoji SVGs, so it would be a fallback for part of the set only, and jsDelivr already fronts several CDNs, so there is one source and no fallback host.

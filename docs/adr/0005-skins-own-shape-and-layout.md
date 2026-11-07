@@ -1,5 +1,7 @@
 # A Skin owns shape and layout, not only colours
 
+ADR 0007 replaces how a Skin is made: data in a Skin Pack, not C++. What a Skin owns stays as written here.
+
 A Theme used to be colours only, with radii, shadows and layout written at each call site. Close imitation of Windows XP's Luna needs what data cannot describe: buttons of several rings, tabs, scrollbars with arrows, an own-drawn window frame, and controls of a fixed size that reflow with the window, where the Cloud Skin scales a fixed 951x692 stage. So drawing and layout go behind a Skin, with Cloud and Luna as its two implementations, and a Theme is one Skin with one Palette. Screens keep one set of state, hit ids and callbacks whatever the Skin.
 
 ## Considered options

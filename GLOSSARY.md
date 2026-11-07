@@ -38,7 +38,9 @@
 
 **Theme** (테마): what a user picks in the display settings. A Theme is one Skin with one Palette, for example 먹구름 or 메신저 다크.
 
-**Skin**: how the program is built on screen: the shape of its controls, the layout of its screens, its window frame and its motion. Features and behaviour do not depend on the Skin. There are two: Cloud and Luna.
+**Skin**: how the program is built on screen: the shape of its controls, the layout of its screens, its window frame, its cursors and its motion. Features and behaviour do not depend on the Skin. There are two: Cloud and Luna.
+
+**Skin Pack** (스킨 팩): what is downloaded to get a Skin: all of the above with its Themes, fonts, pictures and notification sounds. It stands on its own and holds no code. Sound packs are not part of one, because another member's pack must be heard whichever Skin is in use.
 
 **Palette**: the colours of one Theme within a Skin. A dark Theme has the same shapes as a light one of its Skin and differs only in its Palette.
 

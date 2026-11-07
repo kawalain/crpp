@@ -41,11 +41,8 @@ ThemeId effective_theme(const Prefs& prefs, bool system_dark) {
 }
 
 DisplayTab::DisplayTab(Ui& ui) : SettingsTab(ui) {
-  theme_.options = {"구름", "먹구름", "파스텔"};
   theme_.id_base = ThemeList;
-  light_.options = {"구름", "파스텔"};
   light_.id_base = LightList;
-  dark_.options = {"먹구름"};
   dark_.id_base = DarkList;
 }
 
@@ -72,8 +69,11 @@ void DisplayTab::paint(Painter& p, Rect area) {
   const Theme& t = ui_.theme;
   const Prefs& prefs = *ui_.prefs;
   const bool sync = prefs.get(pref::system_theme);
-  paint_heading(p, t, area, 25, "테마");
-  paint_toggle(ui_, this, p, area, row_top, "시스템 연동", sync, SystemTheme, system_anim_);
+  theme_.options = {tr().theme_cloud, tr().theme_dark_cloud, tr().theme_pastel};
+  light_.options = {tr().theme_cloud, tr().theme_pastel};
+  dark_.options = {tr().theme_dark_cloud};
+  paint_heading(p, t, area, 25, tr().display_theme);
+  paint_toggle(ui_, this, p, area, row_top, tr().display_sync, sync, SystemTheme, system_anim_);
 
   const auto row = [&](Dropdown& dropdown, std::string_view label, float top, int selected, Rect& rect) {
     dropdown.selected = selected;
@@ -83,14 +83,14 @@ void DisplayTab::paint(Painter& p, Rect area) {
   };
   const float first = row_top + row_step_theme;
   if (sync) {
-    row(light_, "라이트 테마", first, index_of(light_ids, prefs.get(pref::light_theme)), list_rect_[1]);
-    row(dark_, "다크 테마", first + row_step_theme, index_of(dark_ids, prefs.get(pref::dark_theme)), list_rect_[2]);
+    row(light_, tr().display_light, first, index_of(light_ids, prefs.get(pref::light_theme)), list_rect_[1]);
+    row(dark_, tr().display_dark, first + row_step_theme, index_of(dark_ids, prefs.get(pref::dark_theme)), list_rect_[2]);
   } else {
-    row(theme_, "일반 테마", first, index_of(theme_ids, prefs.get(pref::theme)), list_rect_[0]);
+    row(theme_, tr().display_general, first, index_of(theme_ids, prefs.get(pref::theme)), list_rect_[0]);
   }
 
   const float top = chat_top();
-  paint_heading(p, t, area, top - (row_top - 25), "채팅");
+  paint_heading(p, t, area, top - (row_top - 25), tr().room_word_chat);
 
   // The sample cancels the stage's scale: it shows what the chat, which is not
   // scaled with the window, will really look like.
@@ -101,7 +101,7 @@ void DisplayTab::paint(Painter& p, Rect area) {
   paint_sample(p, box, static_cast<float>(percent) / 100);
 
   const float label_y = top + box.h + 14;
-  paint_row_label(p, t, area, label_y, "채팅 메시지 크기");
+  paint_row_label(p, t, area, label_y, tr().display_chat_size);
   slider_ = {area.x + 16, area.y + label_y + 26 + 8, 244, 14};
   paint_slider(p, t, slider_, percent, scale_min, scale_max);
   ui_.add_hit(this, {slider_.x, slider_.y - 4, slider_.w, slider_.h + 8}, ScaleSlider);
@@ -131,10 +131,10 @@ void DisplayTab::paint_sample(Painter& p, Rect box, float zoom) {
   draw_svg(p, ui_.emoji_image(sample_emoji_), {x, y, 25, 25});
   const std::string time = chat_clock_text(wall_clock_seconds() * 1000, ui_.prefs->get(pref::use_24h));
   const D2D1_SIZE_F time_size = p.text(time, {x, y + 2.5f, inner_w, 20}, {.size = 14, .line_height = 20, .align = Align::Right}, t.hl_text);
-  p.text(sample_nick_.empty() ? std::string_view("게스트") : std::string_view(sample_nick_),
+  p.text(sample_nick_.empty() ? std::string_view(tr().guest) : std::string_view(sample_nick_),
          {x + 25 + 7, y + 2.5f, std::max(20.0f, inner_w - 25 - 7 - time_size.width - 7), 20},
          {.size = 15, .line_height = 20, .ellipsis = true}, t.hl_text);
-  p.text("채팅 메시지는 이런 크기로 보여요...", {x, y + 25 + 2, 2000, 19}, {.size = 17, .line_height = 19}, t.hl_text);
+  p.text(tr().display_chat_sample, {x, y + 25 + 2, 2000, 19}, {.size = 17, .line_height = 19}, t.hl_text);
 
   p.set_base(stage);
   p.rt()->PopAxisAlignedClip();

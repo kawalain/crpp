@@ -222,7 +222,7 @@ void ChangelogView::paint(Painter& p) {
   scroll_.advance(ui_);
 
   if (entries_.empty()) {
-    p.text("변경사항을 불러오지 못했어요.", {card.x + pad_x, card.y + (card.h - 27) / 2, card.w - 2 * pad_x, 27},
+    p.text(tr().changelog_failed, {card.x + pad_x, card.y + (card.h - 27) / 2, card.w - 2 * pad_x, 27},
            {.size = 18, .weight = 700, .line_height = 27, .align = Align::Center}, ink);
   }
 
@@ -263,8 +263,8 @@ void ChangelogView::paint(Painter& p) {
     const float progress = transition(ui_, hint_changed_at_, hint_fade_ms);
     const float a = hint_ != 0 ? progress : 1 - progress;
     if (a > 0) {
-      const std::string_view text = hint_shown_ < 0 ? "위로 더 올리면\n최신 변경사항을 표시합니다."
-                                                    : "아래로 더 내리면\n이전 변경사항을 표시합니다.";
+      const std::string_view text = hint_shown_ < 0 ? tr().changelog_newer_hint
+                                                    : tr().changelog_older_hint;
       const TextStyle style{.size = 15, .weight = 700, .line_height = 22, .align = Align::Center, .wrap = true};
       DWRITE_TEXT_METRICS m{};
       if (const auto layout = ui_.gfx.layout(widen(text), style, card.w)) layout->GetMetrics(&m);

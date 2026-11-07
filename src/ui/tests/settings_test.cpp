@@ -151,12 +151,6 @@ void test_system_rows() {
   CHECK(prefs.get(pref::start_with_system));
   CHECK(h.click(tab, SystemTab::Tray));
   CHECK(!prefs.get(pref::minimize_to_tray));
-  // Written line by line: wrapped any further, it would run over the next heading.
-  const auto hint = h.app.ui().gfx.layout(widen(SystemTab::detail_hint), {.size = 14, .line_height = 20, .wrap = true}, 439, 10000);
-  CHECK(hint.get() != nullptr);
-  DWRITE_TEXT_METRICS metrics{};
-  if (hint) hint->GetMetrics(&metrics);
-  CHECK(metrics.lineCount == 3);
   CHECK(!prefs.get(pref::input_detail));  // Presence mode is the default
   CHECK(h.click(tab, SystemTab::Detail));
   CHECK(prefs.get(pref::input_detail));
@@ -174,6 +168,37 @@ void test_system_rows() {
   h.render();
   CHECK(h.click(tab, SystemTab::OpenLogs));
   CHECK(opened == 1);
+}
+
+void test_language_dropdown_saves_the_locale() {
+  UiHarness h;
+  CHECK(h.start());
+  open(h, SettingsPage::System);
+  SystemTab& tab = h.app.settings().system();
+  Prefs& prefs = *h.app.ui().prefs;
+  h.app.settings().scroll_to(300);
+  h.render();
+  CHECK(prefs.get(pref::language).empty());  // follows the OS until someone chooses
+  CHECK(h.click(tab, SystemTab::LanguageList));
+  CHECK(h.click(tab, SystemTab::LanguageList + 3));  // Dropdown ids: button, then options
+  CHECK(prefs.get(pref::language) == "en");
+  h.render();
+  CHECK(h.click(tab, SystemTab::LanguageList));
+  CHECK(h.click(tab, SystemTab::LanguageList + 1));
+  CHECK(prefs.get(pref::language).empty());
+}
+
+// Written line by line: wrapped any further, it would run over the next heading.
+void test_the_detail_hint_keeps_three_lines_in_every_locale() {
+  UiHarness h;
+  CHECK(h.start());
+  for (const auto& locale : crpp::locale::all_locales()) {
+    const auto hint = h.app.ui().gfx.layout(widen(locale.strings->system_detail_hint), {.size = 14, .line_height = 20, .wrap = true}, 439, 10000);
+    CHECK(hint.get() != nullptr);
+    DWRITE_TEXT_METRICS metrics{};
+    if (hint) hint->GetMetrics(&metrics);
+    CHECK(metrics.lineCount == 3);
+  }
 }
 
 void test_idle_dropdown_saves_minutes() {
@@ -313,6 +338,8 @@ int main() {
   test_notification_ids();
   test_notify_toggles_and_preview();
   test_system_rows();
+  test_language_dropdown_saves_the_locale();
+  test_the_detail_hint_keeps_three_lines_in_every_locale();
   test_idle_dropdown_saves_minutes();
   test_reset_goes_through_its_dialog();
   test_scrollbar_shows_on_scrolling_and_hides_after_a_pause();

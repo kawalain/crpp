@@ -9,6 +9,8 @@ and developer communities, not from memory.
 
 - UI is native Win32 + Direct2D/DirectWrite. No WebView2.
 - Protocol: `cloudroom-v2` only. The v1 subprotocol is not implemented.
+- Wording lives in `src/locale`, one table per Locale, compiled in; see
+  `docs/adr/0006-locales-compiled-into-the-exe.md`. Korean and English ship.
 - Language baseline is C++23. Do not depend on C++26 (the DIS ballot was
   reported as failed; contracts, reflection and `std::execution` are not
   portable yet). Errors use `std::expected`, not exceptions.
@@ -141,6 +143,9 @@ against a real `server/` yet; do that once a local build of it is available.
   areas fade at the edge they cut, by up to 27 px. All of it follows the system's "Show
   animations" setting; there is no toggle of its own.
 - The app is named Cloudroom++, and its data stays in the same folders as upstream's.
+- English besides Korean, chosen in the system tab; it follows the OS language until then.
+  Other words for the same things: 구름 is "Room", 사용자명 is "handle". The system tab has a
+  section for it, which moves what is below it down.
 - The changelog comes from GitHub release notes, so an empty one says it could not be
   loaded, and a first run ever does not open it. A new version's notes open when the app
   first notices it, not after the update, and not again once it is installed. They are
@@ -157,9 +162,13 @@ The script sets up the developer environment (vcvars); `cl` is not on PATH by de
 The app is a Windows-subsystem program with no console: PowerShell does not wait for it,
 so wait with `Start-Process -Wait`, and read `--smoke`'s result from the exit code.
 
-Options are read from the end of the command line: `crpp --shot <png> <size> <ms> <scene>
+Options are read from the end of the command line: `crpp --shot <png> <size> <hour> <scene>
 --data <dir>`. Put first, `--data` is ignored and the real app opens on the user's desktop
-with their data.
+with their data. A shot is in Korean unless `--locale <id>` says otherwise.
+
+A change that must leave the screen as it was can prove it: `tests/shots/render.ps1` renders
+every scene in `scenes.txt` on a hidden desktop, before and after, and `compare.ps1` compares
+the folders by hash. A shot holds the clock, so the same scene always gives the same file.
 
 `crpp --data <dir>` keeps a run's data out of the user's folders, and with no
 `serverUrl` in it skips the startup `/health`, so scripted runs stay off the default
@@ -177,6 +186,9 @@ desktop: drive a Room with a windowless second member instead of injected keys.
 Logic modules are pure and I/O-free; a seam exists only where two adapters
 exist (real + test).
 
+- `locale`: `tr()` is the table of the current Locale, plain `const char*` fields; `fill` puts
+  values into `{0}` and so on. A Locale also decides its line breaks and word lists. To add one,
+  copy `en.cpp` and list it in `locale.cpp`; a test finds what is missing. Pure.
 - `wire`: parse/encode server and client messages and input frames. Pure.
   Frames are at most 1024 bytes and at most 32 input events; use fixed buffers.
 - `session`: pure state machine `step(Event) -> Actions` (connect order,

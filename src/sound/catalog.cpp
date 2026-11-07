@@ -43,12 +43,14 @@ std::vector<std::string_view> matching(const std::vector<std::string>& files, co
 
 std::string lower_name(std::string_view name) { return lower(std::string(name)); }
 
-// The Korean name in a pack.json ({"name": {"ko": "...", "en": "..."}}); these files
-// come with the app and hold nothing else, so this is no JSON parser.
-std::string pack_name(const fs::path& json, std::string fallback) {
+// The name in a pack.json ({"name": {"ko": "...", "en": "..."}}) in this language, or else
+// the Korean one; these files come with the app and hold nothing else, so this is no JSON
+// parser.
+std::string pack_name(const fs::path& json, std::string fallback, std::string_view language) {
   std::ifstream in(json, std::ios::binary);
   const std::string text{std::istreambuf_iterator<char>(in), std::istreambuf_iterator<char>()};
-  auto at = text.find("\"ko\"");
+  auto at = text.find("\"" + std::string(language) + "\"");
+  if (at == std::string::npos) at = text.find("\"ko\"");
   if (at == std::string::npos || (at = text.find(':', at)) == std::string::npos ||
       (at = text.find('"', at)) == std::string::npos) {
     return fallback;
@@ -119,7 +121,7 @@ Device device_of(wire::Kind kind) noexcept {
   return Device::Pen;
 }
 
-Catalog Catalog::scan(const fs::path& root, std::span<const std::string> expected) {
+Catalog Catalog::scan(const fs::path& root, std::span<const std::string> expected, std::string_view language) {
   Catalog catalog;
   const std::array<std::pair<const char*, Device>, 3> folders{
       {{"keyboard", Device::Keyboard}, {"mouse", Device::Mouse}, {"pen", Device::Pen}}};
@@ -142,7 +144,7 @@ Catalog Catalog::scan(const fs::path& root, std::span<const std::string> expecte
     }
     for (auto& [id, files] : packs) {
       const fs::path dir = root / folder / id;
-      std::string name = pack_name(dir / "pack.json", id);
+      std::string name = pack_name(dir / "pack.json", id, language);
       catalog.packs_.push_back({device, id, std::move(name), dir, {files.begin(), files.end()}});
     }
   }

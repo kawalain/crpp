@@ -93,9 +93,7 @@ int run_shot(Shell& s, int argc, char** argv, float dpi) {
   s.app.home().set_nickname("크롬이");
   if (argc >= 6) (void)apply_scene(s, argv[5]);
   if (std::string(argv[argc - 1]) == "notice") {
-    s.app.notice().set(Notice{"기존 Cloudroom의 설정 파일을 함께 쓰고 있어요. 이 파일에는 로그인 정보가 암호화되지 않은 채 "
-                              "저장돼요.",
-                              "안전한 저장소로 옮기기", "닫기"});
+    s.app.notice().set(Notice{tr().notice_shared, tr().notice_move, tr().notice_close});
   }
   return save_png(s.app, widen(argv[2]), w, h, dpi) ? 0 : 1;
 }

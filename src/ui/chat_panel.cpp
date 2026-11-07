@@ -23,20 +23,15 @@ std::string chat_clock_text(long long ms, bool use_24h) {
     copy.tm_hour = copy.tm_min = copy.tm_sec = 0;
     return static_cast<long long>(std::mktime(&copy)) / 86400;
   };
-  char clock[32];
-  if (use_24h) {
-    std::snprintf(clock, sizeof clock, "%02d:%02d", tm.tm_hour, tm.tm_min);
-  } else {
-    std::snprintf(clock, sizeof clock, "%s %d:%02d", tm.tm_hour < 12 ? "오전" : "오후",
-                  tm.tm_hour % 12 == 0 ? 12 : tm.tm_hour % 12, tm.tm_min);
-  }
+  const std::string clock = locale::format_clock(tm.tm_hour, tm.tm_min, use_24h);
   const long long days = day_index(today) - day_index(tm);
   if (days <= 0) return clock;
-  if (days == 1) return std::string("어제 ") + clock;
-  if (days == 2) return std::string("그저께 ") + clock;
-  char date[16];
-  std::snprintf(date, sizeof date, "%02d.%02d ", tm.tm_mon + 1, tm.tm_mday);
-  return std::string(date) + clock;
+  if (days == 1) return locale::fill(tr().chat_yesterday, {clock});
+  if (days == 2) return locale::fill(tr().chat_two_days_ago, {clock});
+  char month[4], day[4];
+  std::snprintf(month, sizeof month, "%02d", tm.tm_mon + 1);
+  std::snprintf(day, sizeof day, "%02d", tm.tm_mday);
+  return locale::fill(tr().chat_earlier, {month, day, clock});
 }
 
 namespace {
@@ -130,7 +125,7 @@ void ChatPanel::send() {
   }
   last_sent_ = message;
   if (on_send && !on_send(std::move(message))) {
-    if (ui_.toasts) ui_.toasts->toast("메시지를 보내지 못했어요.");
+    if (ui_.toasts) ui_.toasts->toast(tr().chat_send_failed);
     return;
   }
   input_.clear();
@@ -301,7 +296,7 @@ void ChatPanel::paint(Painter& p, Rect panel) {
       if (row.time) p.draw_layout(row.time.get(), x, row.y_head + 2.5f + rise, ink);
       if (!row.nick) {
         const TextStyle nick_style{.size = 15, .line_height = 20, .ellipsis = true};
-        row.nick = ui_.gfx.layout(widen(e.nick.empty() ? std::string_view("게스트") : std::string_view(e.nick)), nick_style,
+        row.nick = ui_.gfx.layout(widen(e.nick.empty() ? std::string_view(tr().guest) : std::string_view(e.nick)), nick_style,
                                   std::max(20.0f, list_w - 25 - 7 - row.time_w - 7), 20);
       }
       if (row.nick) p.draw_layout(row.nick.get(), x + 25 + 7, row.y_head + 2.5f + rise, ink);
@@ -333,7 +328,7 @@ void ChatPanel::paint(Painter& p, Rect panel) {
       }
       layout->SetUnderline(ui_.hot(this, id), {link.start, link.length});
       if (ui_.hot(this, id)) {
-        tip.text = "링크 연결";
+        tip.text = tr().chat_link_tip;
         tip.anchor = bounds;
         tip.gap = 6;
         tip.slide = 0;
@@ -360,7 +355,7 @@ void ChatPanel::paint(Painter& p, Rect panel) {
   const Color ink = t.dark ? t.hl_text : t.on_accent;
   const Rect box{compose.x + 17, compose.y + 10, text_w, input_h - 20};
   const bool focused = ui_.focus == &input_;
-  const Rect caret = input_.paint(p, box, input_style, ink, L"메시지 입력...", input_style, with_alpha(ink, 0.85f), ink,
+  const Rect caret = input_.paint(p, box, input_style, ink, widen(tr().chat_placeholder), input_style, with_alpha(ink, 0.85f), ink,
                                   with_alpha(t.hl, 0.4f), focused, ui_.caret_on);
   if (focused) ui_.caret = caret;
   ui_.add_hit_window(this, compose, Input);
@@ -445,7 +440,7 @@ void ChatPanel::click(int id, float, float, bool) {
     const std::vector<LinkSpan> links = find_links(text);
     if (link >= links.size()) return;
     const std::string url = narrow(text.substr(links[link].start, links[link].length));
-    if (on_open_link && !on_open_link(url) && ui_.toasts) ui_.toasts->toast("링크를 열지 못했어요.");
+    if (on_open_link && !on_open_link(url) && ui_.toasts) ui_.toasts->toast(tr().chat_link_failed);
     return;
   }
   if (id != Input && id != Send) return;

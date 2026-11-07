@@ -64,7 +64,7 @@ class Host final : public AccountHost {
     leaving_ = true;
   }
 
-  [[nodiscard]] std::string random_nickname() override { return gui::random_nickname(s_.assets_dir / "words"); }
+  [[nodiscard]] std::string random_nickname() override { return gui::random_nickname(s_.assets_dir / locale::current().words_folder); }
 
   [[nodiscard]] std::string emoji() const override { return s_.store->string_or("emoji", ""); }
 
@@ -151,7 +151,7 @@ bool scene(Shell& s, std::string_view name) {
   } else if (name == "prompt-nickname") {
     show(api::Step::Nickname, account, "크롬이", "");
   } else if (name == "prompt-error") {
-    show(api::Step::Login, {}, "wrong", "비밀번호가 올바르지 않습니다. (2/5)");
+    show(api::Step::Login, {}, "wrong", locale::fill(tr().account_wrong_password, {"2", "5"}));
   } else if (name == "prompt-locked") {
     show(api::Step::Login, {}, "", "");
     s.app.prompt().lock(600);

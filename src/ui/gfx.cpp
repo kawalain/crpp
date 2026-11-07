@@ -324,7 +324,7 @@ ComPtr<IDWriteTextLayout> Gfx::layout(std::wstring_view text, const TextStyle& s
   ComPtr<IDWriteTextFormat> format;
   if (FAILED(dwrite_->CreateTextFormat(family_.c_str(), fonts_.get(), static_cast<DWRITE_FONT_WEIGHT>(style.weight),
                                        DWRITE_FONT_STYLE_NORMAL, DWRITE_FONT_STRETCH_NORMAL, style.size,
-                                       L"ko-kr", format.put()))) {
+                                       language_.c_str(), format.put()))) {
     return {};
   }
   format->SetWordWrapping(style.wrap ? DWRITE_WORD_WRAPPING_WRAP : DWRITE_WORD_WRAPPING_NO_WRAP);

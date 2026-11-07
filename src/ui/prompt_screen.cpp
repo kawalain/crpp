@@ -206,7 +206,7 @@ void PromptScreen::paint(Painter& p) {
   };
   if (has_actions) {
     y += 14;
-    if (prompt_.cancelable) button("← 돌아가기", left, y, Back);
+    if (prompt_.cancelable) button(tr().prompt_back, left, y, Back);
     if (!prompt_.extra.empty()) {
       float x = left + inner;
       if (!prompt_.extra2.empty()) {

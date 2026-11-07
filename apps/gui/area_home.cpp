@@ -93,11 +93,11 @@ bool scene(Shell& s, std::string_view name) {
     return true;
   }
   if (name == "toast") {
-    s.app.toasts().toast("서버 연결이 종료되었습니다.");
+    s.app.toasts().toast(tr().lost_server);
     return true;
   }
   if (name == "dialog") {
-    s.app.dialogs().show({"설정에서 변경한 모든 값을\n초기화 할까요?", "초기화", "취소", false, nullptr, nullptr});
+    s.app.dialogs().show({tr().system_reset_question, tr().system_reset_confirm, tr().cancel, false, nullptr, nullptr});
     return true;
   }
   if (name == "home-bubble") {  // the real path of a code that is too short
@@ -106,7 +106,7 @@ bool scene(Shell& s, std::string_view name) {
   }
   if (name == "home-bubble-find") {
     s.app.home().click(HomeScreen::Find, 0, 0, false);
-    s.app.home().show_error("공개된 구름을 찾을 수 없어요.");
+    s.app.home().show_error(tr().join_no_public);
     return true;
   }
   return name == "home";

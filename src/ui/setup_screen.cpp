@@ -12,7 +12,7 @@ void SetupScreen::paint(Painter& p) {
   const float y = ui_.height / 2 - 60;
   const Color ink = t.dark ? t.hl_text_dark : rgb(0x2e5f80);
   const TextStyle message{.size = 18, .weight = 700, .line_height = 26, .align = Align::Center, .wrap = true};
-  p.text(std::string_view("처음 실행에 필요한 파일을 받고 있어요"), {x, y, w, 26}, message, ink);
+  p.text(std::string_view(tr().setup_message), {x, y, w, 26}, message, ink);
   const Rect track{x, y + 46, w, 8};
   // The accent color is the sky's, so both parts are drawn in the surface color.
   p.fill_round(track, 4, with_alpha(t.surface, 0.35f));

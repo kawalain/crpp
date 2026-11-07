@@ -71,7 +71,7 @@ std::vector<ChangelogEntry> to_entries(const std::vector<up::Release>& releases)
   for (const up::Release& release : releases) {
     // A release named after its tag has no tagline of its own.
     const bool named = !release.name.empty() && release.name != release.tag();
-    entries.push_back({named ? release.name : std::string{}, up::korean_date(release.published_at),
+    entries.push_back({named ? release.name : std::string{}, locale::format_release_date(release.published_at),
                        up::to_string(release.version), up::parse_notes(release.body)});
   }
   return entries;
@@ -181,7 +181,7 @@ void start_check(Shell& s) {
 
 void update_failed(Shell& s, up::Error error) {
   s.app.update_popup().show_failed();
-  s.app.toasts().toast("업데이트에 실패했습니다. (" + std::string(up::error_name(error)) + ")");
+  s.app.toasts().toast(locale::fill(tr().update_failed, {up::error_name(error)}));
 }
 
 void start_update(Shell& s) {
@@ -202,7 +202,7 @@ void start_update(Shell& s) {
       return Done([&s] {
         state().available.reset();
         s.app.update_popup().hide();
-        s.app.toasts().toast("이미 최신 버전이에요.");
+        s.app.toasts().toast(tr().update_latest);
       });
     }
     if (!latest || !latest->update) {
@@ -323,7 +323,7 @@ bool scene(Shell& s, std::string_view name) {
     s.app.update_popup().show_progress(42);
   } else if (name == "update-failed") {
     s.app.update_popup().show_failed();
-    s.app.toasts().toast("업데이트에 실패했습니다. (network)");
+    s.app.toasts().toast(locale::fill(tr().update_failed, {"network"}));
   } else if (name == "changelog") {
     s.app.changelog().open(sample_entries(), 1);
   } else {

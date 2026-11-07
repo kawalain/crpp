@@ -31,15 +31,15 @@ void UpdatePopup::paint(Painter& p) {
   std::string label;
   switch (state_) {
     case State::Busy:
-      text = percent_ >= 100 ? "설치하고 다시 시작하는 중..." : "업데이트 받는 중... " + std::to_string(percent_) + "%";
+      text = percent_ >= 100 ? std::string(tr().update_installing) : locale::fill(tr().update_downloading, {std::to_string(percent_)});
       break;
     case State::Failed:
-      text = "업데이트에 실패했어요.";
-      label = "다시 시도";
+      text = tr().update_failed_short;
+      label = tr().update_retry;
       break;
     default:
-      text = "새로운 버전을 사용할 수 있어요.";
-      label = "업데이트";
+      text = tr().update_available;
+      label = tr().update_button;
       break;
   }
 

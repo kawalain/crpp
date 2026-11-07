@@ -63,6 +63,8 @@ inline constexpr Int idle_minutes{"idleMinutes", 30};
 inline constexpr Bool log_enabled{"logEnabled", false};
 // Not upstream's: see docs/adr/0003-presence-mode-by-default.md.
 inline constexpr Bool input_detail{"inputDetail", false};
+// Not upstream's: a Locale's id, empty to follow the OS.
+inline constexpr Text language{"language", ""};
 
 // --- room: which defaults are pinned and which notices were answered ---
 inline constexpr Bool pin_public{"pinPublic", false};
@@ -78,7 +80,8 @@ inline constexpr std::array all_bool{mute_others,       listen_self,       other
                                      log_enabled,       input_detail};
 inline constexpr std::array all_int{volume, keyboard_volume, mouse_volume, pen_volume, channel_balance, chat_scale, idle_minutes};
 inline constexpr std::array all_text{speaker_device, speaker_device_name, keyboard_sound, mouse_sound, pen_sound,
-                                     reverb,         theme,               light_theme,    dark_theme};
+                                     reverb,         theme,               light_theme,    dark_theme,
+                                     language};
 
 // The key of a sound in notificationSounds: its file name stem without the order
 // prefix, lower case ("01_Cloud_Chat" -> "cloud_chat"), as upstream derives it.

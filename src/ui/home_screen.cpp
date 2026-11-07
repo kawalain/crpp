@@ -36,21 +36,21 @@ void HomeScreen::paint(Painter& p) {
   create_hover_.aim(ui_.hot(this, Create), now, animate);
   p.push(scale_about(182, 260, 1 + 0.03f * create_hover_.value(now)));
   p.cloud(ui_.cloud(), cloud_x, cloud_y, 1, 0.06f, 3.742f, t);
-  p.text("구름 띄우기", {0, 318, 458, 110}, {.size = 44, .line_height = 110, .align = Align::Center}, t.hl_text);
+  p.text(tr().home_create, {0, 318, 458, 110}, {.size = 44, .line_height = 110, .align = Align::Center}, t.hl_text);
   p.pop();
   ui_.add_hit(this, {-66, 100, 500, 330}, Create);
 
   // Greeting.
-  const char* hello = hour_ >= 5 && hour_ < 12    ? "좋은 아침이에요"
-                      : hour_ >= 12 && hour_ < 18 ? "좋은 오후예요"
-                      : hour_ >= 18 && hour_ < 22 ? "좋은 저녁이에요"
-                                                  : "좋은 밤이에요";
+  const char* hello = hour_ >= 5 && hour_ < 12    ? tr().home_morning
+                      : hour_ >= 12 && hour_ < 18 ? tr().home_afternoon
+                      : hour_ >= 18 && hour_ < 22 ? tr().home_evening
+                                                  : tr().home_night;
   const TextStyle greeting{.size = 44, .line_height = 44, .align = Align::Center};
   p.text(hello, {440, 108, 420, 44}, greeting, t.dark ? t.hl_text_dark : rgb(0xFFFFFF));
-  p.text(nickname_ + " 님!", {440, 108 + 44 + 13, 420, 44}, greeting, t.dark ? t.hl_text_dark : rgb(0xFFFFFF));
+  p.text(locale::fill(tr().home_hello, {nickname_}), {440, 108 + 44 + 13, 420, 44}, greeting, t.dark ? t.hl_text_dark : rgb(0xFFFFFF));
 
   // Find a cloud.
-  p.text("구름 찾기", {470, 452, 400, 60}, {.size = 40, .line_height = 60}, t.hl_text);
+  p.text(tr().home_find, {470, 452, 400, 60}, {.size = 40, .line_height = 60}, t.hl_text);
 
   const Rect entry{469, 522, 279, 80};
   const bool focused = ui_.focus == &code_;
@@ -61,7 +61,7 @@ void HomeScreen::paint(Painter& p) {
   const Color faint = with_alpha(t.dark ? t.hl_text_soft : rgb(0xFFFFFF), t.dark ? 1.0f : 0.85f);
   const Color input_text = t.dark ? t.hl_text : t.on_accent;
   const Rect field{entry.x + 18, entry.y + 10, 205, 60};
-  ui_.caret = ui_.to_window(code_.paint(p, field, code_style, input_text, L"코드 입력", {.size = 26, .line_height = 60},
+  ui_.caret = ui_.to_window(code_.paint(p, field, code_style, input_text, widen(tr().home_code_placeholder), {.size = 26, .line_height = 60},
                                         faint, input_text, with_alpha(t.hl, 0.4f), focused, ui_.caret_on));
 
   // Enter arrow.
@@ -107,7 +107,7 @@ void HomeScreen::paint(Painter& p) {
   }
   if (const float shown = search_tip_.value(now); shown > 0) {
     // The label is the button's child, so it scales with it.
-    constexpr const char* label = "공개된 구름 찾기";
+    const char* label = tr().home_find_public;
     const float w = tip_width(ui_, label), h = tip_height();
     p.push(button_scale);
     paint_tip(p, {search.x + (search.w - w) / 2, search.y - 8 - h + 4 * (1 - shown), w, h}, label, t.hl, t.on_accent, shown);
@@ -120,9 +120,9 @@ bool HomeScreen::tip_wanted(unsigned long long now) const { return ui_.hot(this,
 
 void HomeScreen::paint_return(Painter& p) {
   if (!return_open_) return;
-  constexpr const char* question = "이전에 참가했던 구름으로\n돌아갈까요?";
-  constexpr const char* confirm = "돌아가기";
-  constexpr const char* random = "무작위 참가";
+  const char* question = tr().home_return_question;
+  const char* confirm = tr().home_return;
+  const char* random = tr().home_random;
   // .modal-card p, .modal-card button: a button grows past its minimum with its label.
   constexpr float pad_top = 24, pad_x = 25, pad_bottom = 20, gap = 20, button_h = 38, button_gap = 10;
   const TextStyle body{.size = 18, .weight = 700, .line_height = 27, .align = Align::Center, .wrap = true};
@@ -169,7 +169,7 @@ void HomeScreen::join() {
   last_action_ = Join;
   const auto code = home::normalize_code(code_.text());
   if (!code) {
-    show_error(home::code_length_error);
+    show_error(tr().home_code_length);
     return;
   }
   if (on_join) on_join(narrow(*code));

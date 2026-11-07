@@ -24,8 +24,6 @@ constexpr float cloud_dy = 33;  // main.js SESSION_CLOUD_DY
 constexpr float fab_size = 42;
 constexpr const char* muted_emoji = "1f507";  // shown only to whoever muted them
 
-constexpr const char* pin_tip_blocked = "우클릭하여 기본값 고정 해제 후\n조작할 수 있습니다.";
-constexpr const char* chat_tip_locked = "이 구름에서는 이제 채팅을\n비활성화 할 수 없습니다.";
 
 // @keyframes tip-shake, over 320 ms.
 constexpr std::pair<float, float> tip_shake[] = {{0.0f, 0.0f}, {0.2f, -7.0f}, {0.4f, 7.0f}, {0.6f, -4.0f}, {0.8f, 3.0f}, {1.0f, 0.0f}};
@@ -371,7 +369,7 @@ void RoomScreen::paint_members(Painter& p, const Layout& l) {
              m.offline ? 0.55f : 1.0f, mute_level);
     Color name = t.hl_text;
     if (m.offline) name = with_alpha(t.hl_text, 0.5f);
-    p.text(m.nick.empty() ? "게스트" : m.nick, {x + 58, y + (47 - 26) / 2.0f, col_w - 58 - 12, 26},
+    p.text(m.nick.empty() ? std::string(tr().guest) : m.nick, {x + 58, y + (47 - 26) / 2.0f, col_w - 58 - 12, 26},
            {.size = 21, .weight = 700, .line_height = 26, .ellipsis = true}, name);
     ui_.add_hit_window(this, box, id);
     member_rects_.emplace_back(m.slot, box);
@@ -451,7 +449,7 @@ void RoomScreen::paint_options_popup(Painter& p) {
   const TextStyle label{.size = 20, .weight = 700, .line_height = 41};
   float y = r.y + 24;
   // Room code.
-  p.text("구름 코드", {r.x + 25, y, 150, 41}, label, t.hl_text);
+  p.text(tr().room_code, {r.x + 25, y, 150, 41}, label, t.hl_text);
   const Rect code_rect{r.x + w - 25 - 90, y, 90, 41};
   p.text(room_code_, code_rect, {.size = 20, .weight = 700, .line_height = 41, .align = Align::Right, .letter_spacing = 0.4f},
          ui_.hot(this, OptCode) ? t.hl_text_dark : t.hl_text);
@@ -462,14 +460,14 @@ void RoomScreen::paint_options_popup(Painter& p) {
   y += 2 + 5;
   const bool host = is_host();
   const Color ink = host ? t.hl_text : with_alpha(t.hl_text, 0.5f);
-  p.text("공개 구름", {r.x + 25, y, 150, 41}, label, ink);
+  p.text(tr().room_public, {r.x + 25, y, 150, 41}, label, ink);
   const Rect pub{r.x + 25 + 201 - 6 - 51, y + (41 - 27) / 2.0f, 51, 27};
   paint_switch(p, t, pub, public_, !host, ui_.hot(this, OptPublic));
   if (ui_.prefs->get(pref::pin_public)) paint_pin(p, pub, public_, !host);
   ui_.add_hit_window(this, pub, OptPublic);
   public_rect_ = pub;
   y += 41;
-  p.text("채팅", {r.x + 25, y, 150, 41}, label, ink);
+  p.text(tr().room_word_chat, {r.x + 25, y, 150, 41}, label, ink);
   const Rect chat{r.x + 25 + 201 - 6 - 51, y + (41 - 27) / 2.0f, 51, 27};
   const bool chat_disabled = !host || chat_locked();
   paint_switch(p, t, chat, chat_, chat_disabled, ui_.hot(this, OptChat));
@@ -503,18 +501,18 @@ std::optional<HoverTip::Spec> RoomScreen::tip_for_hover() const {
   const int id = ui_.hover_id;
   HoverTip::Spec spec;
   if (id == Leave && controls_shown_) {
-    spec.text = "구름에서 떠나기";
+    spec.text = tr().room_tip_leave;
     spec.anchor = fab_rects_[0];
     spec.place = HoverTip::Place::Left;
   } else if (id == Mute && controls_shown_ && !mute_popup_open_) {
-    spec.text = ui_.prefs->get(pref::mute_others) ? "음소거 해제" : "음소거";
+    spec.text = ui_.prefs->get(pref::mute_others) ? tr().unmute : tr().mute;
     spec.anchor = fab_rects_[1];
   } else if (id == More && controls_shown_ && !options_open_) {
-    spec.text = "더보기";
+    spec.text = tr().room_tip_more;
     spec.anchor = fab_rects_[2];
     spec.place = HoverTip::Place::Right;
   } else if (id == OptCode && options_open_ && hint_muted_until_ == 0) {
-    spec.text = "클릭해 복사";
+    spec.text = tr().room_tip_copy;
     spec.anchor = code_rect_;
     spec.place = HoverTip::Place::Right;
   } else if ((id == OptPublic || id == OptChat) && options_open_) {
@@ -522,7 +520,7 @@ std::optional<HoverTip::Spec> RoomScreen::tip_for_hover() const {
     spec.place = HoverTip::Place::Right;
     if (!is_host()) {
       // Above the whole row (.host-tip).
-      spec.text = "호스트만 조작할 수 있습니다.";
+      spec.text = tr().room_tip_host_only;
       spec.size = 15;
       spec.anchor = {sw.x, sw.y - 7, sw.w, sw.h + 14};
       return spec;
@@ -536,19 +534,19 @@ std::optional<HoverTip::Spec> RoomScreen::tip_for_hover() const {
         spec.dx = keyframes(static_cast<float>(ui_.now_ms - std::min(ui_.now_ms, blocked_at_)) / tip_shake_ms, tip_shake);
       }
     } else if (id == OptChat && chat_locked()) {
-      spec.text = chat_tip_locked;
+      spec.text = tr().room_tip_chat_locked;
     } else {
       spec.text = ui_.prefs->get(id == OptPublic ? pref::pin_public : pref::pin_chat)
-                      ? "우클릭해 기본값 고정을 해제합니다."
-                      : "우클릭해 활성화 상태를\n기본값으로 고정합니다.";
+                      ? tr().room_tip_unpin
+                      : tr().room_tip_pin;
     }
   } else if (id >= MemberBase) {
     const auto slot = static_cast<std::uint32_t>(id - MemberBase);
     const auto member = std::ranges::find(members_, slot, &MemberView::slot);
     const auto rect = std::ranges::find(member_rects_, slot, [](const auto& r) { return r.first; });
     if (member == members_.end() || rect == member_rects_.end()) return std::nullopt;
-    if (host_ && *host_ == slot) spec.text = "이 구름의 호스트에요.";
-    if (member->offline) spec.text += spec.text.empty() ? "오프라인" : " · 오프라인";
+    if (host_ && *host_ == slot) spec.text = tr().room_tip_host;
+    if (member->offline) spec.text += (spec.text.empty() ? std::string{} : " · ") + std::string(tr().room_tip_offline);
     if (spec.text.empty()) return std::nullopt;
     // .member > .tip: 6 from the left, its bottom 2 inside the row.
     spec.anchor = {rect->second.x + 6, rect->second.y, rect->second.w, rect->second.h};
@@ -584,7 +582,7 @@ void RoomScreen::set_volume_from(float x) {
 
 void RoomScreen::copy_code() {
   const bool copied = on_copy && on_copy(room_code_);
-  copy_text_ = copied ? "복사 완료 !" : "복사 실패";
+  copy_text_ = copied ? tr().room_copied : tr().room_copy_failed;
   const auto now = clock_ms();
   copy_until_ = now + 1000;
   // Right after copying the hint stays away, even under the cursor.
@@ -609,7 +607,7 @@ void RoomScreen::ask_leave() {
   // A leaving Host hands the Room to someone, if anyone else is there.
   const bool others = std::ranges::any_of(members_, [&](const MemberView& m) { return m.slot != me_; });
   const bool delegates = is_host() && others;
-  ask({delegates ? "이 구름에서 떠날까요?\n호스트를 무작위로 다른 사람에게 위임합니다." : "이 구름에서 떠날까요?", "떠나기", "취소",
+  ask({delegates ? tr().room_leave_delegates : tr().room_leave_question, tr().room_leave, tr().cancel,
        delegates,
        [this] {
          if (on_leave) on_leave();
@@ -623,7 +621,7 @@ void RoomScreen::notice_answered(pref::Bool seen) {
   ui_.prefs->set(seen, true);
   if (ui_.prefs->get(pref::pin_tip_seen)) return;
   ui_.prefs->set(pref::pin_tip_seen, true);
-  ask({"공개 구름 및 채팅 토글 스위치를\n우클릭하여 구름을 띄울 때\n기본값으로 고정할 수 있습니다.", "확인", "", false, nullptr, nullptr});
+  ask({tr().room_pin_notice, tr().ok, "", false, nullptr, nullptr});
 }
 
 void RoomScreen::block_switch(int id, const char* text) {
@@ -635,11 +633,11 @@ void RoomScreen::block_switch(int id, const char* text) {
 void RoomScreen::toggle_public() {
   if (!is_host()) return;
   if (public_ && ui_.prefs->get(pref::pin_public)) {
-    block_switch(OptPublic, pin_tip_blocked);
+    block_switch(OptPublic, tr().room_tip_pin_blocked);
     return;
   }
   if (!public_ && !ui_.prefs->get(pref::public_notice_seen)) {
-    ask({"이 구름을 공개 구름으로 전환합니다.\n메인 메뉴에서 누구나 이 구름에\n코드 없이 참여할 수 있습니다.", "전환", "취소", false,
+    ask({tr().room_public_notice, tr().room_public_confirm, tr().cancel, false,
          [this] {
            notice_answered(pref::public_notice_seen);
            if (on_set_public) on_set_public(true);
@@ -653,16 +651,16 @@ void RoomScreen::toggle_public() {
 void RoomScreen::toggle_chat() {
   if (!is_host()) return;
   if (chat_locked()) {
-    block_switch(OptChat, chat_tip_locked);
+    block_switch(OptChat, tr().room_tip_chat_locked);
     return;
   }
   if (chat_ && ui_.prefs->get(pref::pin_chat)) {
-    block_switch(OptChat, pin_tip_blocked);
+    block_switch(OptChat, tr().room_tip_pin_blocked);
     return;
   }
   if (!chat_ && !ui_.prefs->get(pref::chat_notice_seen)) {
-    ask({"이 구름에서 채팅 기능을 활성화하려 합니다.\n서버는 채팅 기록을 기록하지 않습니다.\n채팅 기능 활성화 후 5분이 지나면\n다시 비활성화 할 수 없습니다.",
-         "활성화", "취소", true,
+    ask({tr().room_chat_notice,
+         tr().room_chat_confirm, tr().cancel, true,
          [this] {
            notice_answered(pref::chat_notice_seen);
            if (on_set_chat) on_set_chat(true);

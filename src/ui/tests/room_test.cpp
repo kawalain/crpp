@@ -699,16 +699,16 @@ void test_picker_thumb_scrolls_and_fades_on_a_wake_up() {
 ProfileView profile_of(std::uint32_t slot) { return {slot, "사람", "", std::nullopt, std::nullopt, 3900, 12345}; }
 
 void test_stay_and_count_read_like_upstream() {
-  CHECK(format_stay(0) == "1분 미만");
-  CHECK(format_stay(59) == "1분 미만");
-  CHECK(format_stay(60) == "1분");
-  CHECK(format_stay(3900) == "1시간 5분");
-  CHECK(format_stay(3600) == "1시간");
-  CHECK(format_stay((525600 + 43200 + 60) * 60LL) == "1년 1개월 1시간");
-  CHECK(format_count(0) == "0회");
-  CHECK(format_count(999) == "999회");
-  CHECK(format_count(1000) == "1,000회");
-  CHECK(format_count(1234567) == "1,234,567회");
+  CHECK(crpp::locale::format_stay(0) == "1분 미만");
+  CHECK(crpp::locale::format_stay(59) == "1분 미만");
+  CHECK(crpp::locale::format_stay(60) == "1분");
+  CHECK(crpp::locale::format_stay(3900) == "1시간 5분");
+  CHECK(crpp::locale::format_stay(3600) == "1시간");
+  CHECK(crpp::locale::format_stay((525600 + 43200 + 60) * 60LL) == "1년 1개월 1시간");
+  CHECK(crpp::locale::format_times(0) == "0회");
+  CHECK(crpp::locale::format_times(999) == "999회");
+  CHECK(crpp::locale::format_times(1000) == "1,000회");
+  CHECK(crpp::locale::format_times(1234567) == "1,234,567회");
 }
 
 void test_clicking_a_member_asks_and_the_answer_opens_the_card() {

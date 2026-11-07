@@ -9,7 +9,6 @@
 namespace crpp::ui {
 
 namespace {
-constexpr const char* message = "서버와 연결이 끊겼습니다.\n재연결 시도 중";
 }
 
 void OfflinePopup::show() {
@@ -33,11 +32,11 @@ void OfflinePopup::paint(Painter& p) {
   const TextStyle body{.size = 18, .weight = 700, .line_height = 27, .align = Align::Center, .wrap = true};
   const float text_w = w - 2 * pad_x;
   DWRITE_TEXT_METRICS size{};
-  if (const auto layout = ui_.gfx.layout(widen(message), body, text_w)) layout->GetMetrics(&size);
+  if (const auto layout = ui_.gfx.layout(widen(tr().offline_message), body, text_w)) layout->GetMetrics(&size);
 
   const float shown = transition(ui_, opened_at_, modal_pop_ms);
   const Rect card = paint_modal(ui_, this, p, w, pad_top + size.height + pad_bottom, shown, Backdrop, Card);
-  p.text(message, {card.x + pad_x, card.y + pad_top, text_w, size.height}, body, with_alpha(ui_.theme.hl_text, shown));
+  p.text(tr().offline_message, {card.x + pad_x, card.y + pad_top, text_w, size.height}, body, with_alpha(ui_.theme.hl_text, shown));
   // The settings droplet is drawn next, on the stage.
   p.set_base(D2D1::Matrix3x2F::Scale(ui_.scale, ui_.scale) * D2D1::Matrix3x2F::Translation(ui_.ox, ui_.oy));
 }

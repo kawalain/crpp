@@ -50,7 +50,7 @@ struct StepText {
   bool lowercase;   // typed letters become lowercase
   bool identifier;  // only a-z, 0-9, '_' and '.' can be typed
 };
-[[nodiscard]] const StepText& step_text(Step step);
+[[nodiscard]] StepText step_text(Step step);
 
 class Flow {
  public:

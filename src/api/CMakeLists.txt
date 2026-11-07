@@ -1,6 +1,6 @@
 add_library(crpp_api STATIC api.cpp flow.cpp worker.cpp)
 target_include_directories(crpp_api PUBLIC include)
-target_link_libraries(crpp_api PUBLIC crpp_store Threads::Threads)
+target_link_libraries(crpp_api PUBLIC crpp_store crpp_locale Threads::Threads)
 crpp_target_defaults(crpp_api)
 
 function(crpp_api_test name)

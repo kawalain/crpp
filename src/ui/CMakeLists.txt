@@ -7,7 +7,7 @@ if(WIN32)
     settings_account_tab.cpp tip.cpp profile_card.cpp member_menu.cpp chat_logic.cpp
     update_popup.cpp changelog_view.cpp)
   target_include_directories(crpp_ui PUBLIC include)
-  target_link_libraries(crpp_ui PUBLIC crpp_session crpp_update d2d1 dwrite windowscodecs ole32 user32 gdi32)
+  target_link_libraries(crpp_ui PUBLIC crpp_session crpp_update crpp_locale d2d1 dwrite windowscodecs ole32 user32 gdi32)
   target_compile_definitions(crpp_ui PUBLIC NOMINMAX WIN32_LEAN_AND_MEAN)
   crpp_target_defaults(crpp_ui)
 

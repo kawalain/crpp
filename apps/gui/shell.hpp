@@ -29,6 +29,8 @@
 
 namespace crpp::gui {
 
+using locale::tr;
+
 namespace area::sound {
 struct State;
 }

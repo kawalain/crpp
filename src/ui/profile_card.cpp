@@ -28,36 +28,6 @@ std::string format_date(std::int64_t seconds) {
 
 }  // namespace
 
-std::string format_stay(std::int64_t seconds) {
-  std::int64_t minutes = std::max<std::int64_t>(0, seconds / 60);
-  const std::int64_t years = minutes / 525600;
-  minutes %= 525600;
-  const std::int64_t months = minutes / 43200;
-  minutes %= 43200;
-  const std::int64_t hours = minutes / 60;
-  minutes %= 60;
-  std::string out;
-  const auto part = [&](std::int64_t value, const char* unit) {
-    if (value == 0) return;
-    if (!out.empty()) out += ' ';
-    out += std::to_string(value) + unit;
-  };
-  part(years, "년");
-  part(months, "개월");
-  part(hours, "시간");
-  part(minutes, "분");
-  return out.empty() ? "1분 미만" : out;
-}
-
-std::string format_count(std::uint64_t count) {
-  std::string digits = std::to_string(count);
-  for (std::size_t at = digits.size(); at > 3;) {
-    at -= 3;
-    digits.insert(at, 1, ',');
-  }
-  return digits + "회";
-}
-
 void ProfileCard::request(std::uint32_t slot) {
   pending_ = slot;
   give_up_at_ = clock_ms() + answer_timeout_ms;
@@ -103,7 +73,7 @@ void ProfileCard::paint(Painter& p) {
   draw_svg(p, ui_.emoji_image(profile_.emoji), {cx - emoji / 2, cy - emoji / 2, emoji, emoji}, shown);
   if (mine_) ui_.add_hit_window(this, icon, Icon);
 
-  const std::string nick = profile_.nick.empty() ? "게스트" : profile_.nick;
+  const std::string nick = profile_.nick.empty() ? tr().guest : profile_.nick;
   const float names_x = icon.right() + head_gap;
   const float names_w = card.right() - pad_x - names_x;
   const Color ink = with_alpha(t.hl_text, shown);
@@ -124,12 +94,12 @@ void ProfileCard::paint(Painter& p) {
     p.text(text, {card.x + pad_x, y, w - 2 * pad_x, stat_line}, stat, ink);
     y += stat_line;
   };
-  if (profile_.created) row("가입 시기: " + format_date(*profile_.created));
-  row("이 구름에서 머무른 시간: " + format_stay(profile_.stayed));
-  row("이 구름에서 입력한 횟수: " + format_count(profile_.events));
+  if (profile_.created) row(locale::fill(tr().profile_joined, {format_date(*profile_.created)}));
+  row(locale::fill(tr().profile_stayed, {locale::format_stay(profile_.stayed)}));
+  row(locale::fill(tr().profile_inputs, {locale::format_times(profile_.events)}));
 
   HoverTip::Spec spec;
-  spec.text = "아이콘 변경";
+  spec.text = tr().profile_change_icon;
   spec.anchor = icon;
   tip_.paint(ui_, p, hot ? &spec : nullptr);
 }
@@ -155,7 +125,7 @@ bool ProfileCard::tick(unsigned long long now_ms) {
   }
   if (pending_ && now_ms >= give_up_at_) {
     pending_.reset();
-    if (ui_.toasts) ui_.toasts->toast("프로필을 불러오지 못했어요.");
+    if (ui_.toasts) ui_.toasts->toast(tr().profile_load_failed);
     changed = true;
   }
   if (open_ && now_ms >= refresh_at_) {

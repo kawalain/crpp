@@ -58,12 +58,12 @@ void MemberMenu::paint(Painter& p) {
   };
 
   float y = r.y + pad;
-  item({r.x + pad, y, w - 2 * pad, item_h}, "프로필", Profile, false, false);
+  item({r.x + pad, y, w - 2 * pad, item_h}, tr().member_profile, Profile, false, false);
   y += item_h;
   HoverTip::Spec tip;
   bool show_tip = false;
   if (!self_) {
-    p.text("사용자 음량", {r.x + pad + 12, y + 6, w - 2 * pad - 24, 22}, label, t.hl_text);
+    p.text(tr().member_volume, {r.x + pad + 12, y + 6, w - 2 * pad - 24, 22}, label, t.hl_text);
     track_ = {r.x + pad + 12, y + 6 + 22 + 8, w - 2 * pad - 24, 14};
     paint_slider(p, t, track_, volume_, 0, 100);
     ui_.add_hit_window(this, track_, Slider);
@@ -89,7 +89,7 @@ void MemberMenu::paint(Painter& p) {
     }
   }
   const bool muted_now = muted();
-  item({r.x + pad, y, w - 2 * pad, item_h}, muted_now ? "음소거 해제" : "음소거", Mute, muted_now, self_);
+  item({r.x + pad, y, w - 2 * pad, item_h}, muted_now ? tr().unmute : tr().mute, Mute, muted_now, self_);
   tooltip_.paint(ui_, p, show_tip ? &tip : nullptr);
 }
 

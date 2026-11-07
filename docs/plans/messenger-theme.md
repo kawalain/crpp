@@ -35,8 +35,8 @@ whole set must pass the same test first. Baselines depend on this machine and ar
 - Move about 260 lines of literals out of `ui`, `api`, `update` and `apps/gui`, including tray, window
   and message box text. Existing tests keep pinning the Korean table.
 - `locale` setting, a key of this client's own; empty follows the OS language. A list in the system tab.
-- Remove hard line breaks in strings and fixed label widths; wrap and measure. The language tag at
-  `gfx.cpp:327` comes from the Locale.
+- A Locale decides its own line breaks, so they stay in the tables; what overflows in English is fixed
+  by its wording and seen in the shots. The language tag of text layout comes from the Locale.
 - Add English.
 
 Done: Korean scenes are identical to the baseline; a test proves every Locale has every key and the same

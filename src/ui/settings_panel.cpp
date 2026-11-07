@@ -14,11 +14,15 @@ constexpr Rect scroll_track{835, 187, 8, 403};  // .settings-scrollbar
 constexpr unsigned long long scrollbar_pause_ms = 2000;
 
 struct TabButton {
-  const char* name;
+  const char* locale::Strings::*name;
   float y;
 };
 constexpr std::array<TabButton, 5> tab_buttons{
-    {{"소리", 309.5f}, {"디스플레이", 355.5f}, {"알림", 401.5f}, {"시스템", 447.5f}, {"계정", 493.5f}}};
+    {{&locale::Strings::tab_sound, 309.5f},
+     {&locale::Strings::tab_display, 355.5f},
+     {&locale::Strings::tab_notify, 401.5f},
+     {&locale::Strings::tab_system, 447.5f},
+     {&locale::Strings::tab_account, 493.5f}}};
 
 }  // namespace
 
@@ -113,7 +117,7 @@ void SettingsPanel::paint_tabs(Painter& p) {
     const float lit = std::max(a, h);
     if (g > 0) p.push(scale_about(r.x + r.w / 2, r.y + r.h / 2, 1 + 0.04f * g));
     if (lit > 0) p.fill_round(r, 9, with_alpha(mix(t.hl, t.hl_soft, a * 100), lit));
-    p.text(tab_buttons[i].name, {r.x + 10, r.y, r.w - 20, r.h}, {.size = 20, .weight = active ? 700 : 400, .line_height = r.h},
+    p.text(tr().*tab_buttons[i].name, {r.x + 10, r.y, r.w - 20, r.h}, {.size = 20, .weight = active ? 700 : 400, .line_height = r.h},
            mix(t.on_accent, t.hl_text_soft, lit * 100));
     if (g > 0) p.pop();
     ui_.add_hit(this, r, id);
@@ -214,7 +218,7 @@ void SettingsPanel::paint_version(Painter& p) {
   version_tip_.set(ui_, ui_.hot(this, Version), 150);
   // .version .tip: over the button's right edge, 15 px, rising 4 px as it appears.
   if (const float shown = version_tip_.value(ui_); shown > 0) {
-    constexpr const char* tip = "변경사항 확인";
+    const char* tip = tr().tip_changelog;
     const TextStyle style{.size = 15, .weight = 700, .line_height = 22};
     const float w = text_width(p, tip, style) + 30;
     paint_bubble(p, tip, {r.right() - w, r.y - 8 - 32 + 4 * (1 - shown), w, 32}, style, 11, t.hl, t.on_accent, shown);
@@ -243,7 +247,7 @@ void SettingsPanel::paint_droplet(Painter& p) {
   // scales with the droplet.
   droplet_tip_.set(ui_, hot && !open_, 150);
   if (const float shown = droplet_tip_.value(ui_); shown > 0 && !open_) {
-    constexpr const char* tip = "설정";
+    const char* tip = tr().tip_settings;
     const TextStyle style{.size = 16, .weight = 700, .line_height = 22};
     const float w = text_width(p, tip, style) + 30;
     const Rect box{drop.right() - w, drop.bottom() + 8 - 4 * (1 - shown), w, 32};

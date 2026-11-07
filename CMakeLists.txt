@@ -14,6 +14,7 @@ include(cmake/warnings.cmake)
 find_package(Threads REQUIRED)
 
 enable_testing()
+add_subdirectory(src/locale)
 add_subdirectory(src/wire)
 add_subdirectory(src/session)
 add_subdirectory(src/transport)

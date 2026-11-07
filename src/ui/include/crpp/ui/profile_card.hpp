@@ -20,10 +20,6 @@ struct ProfileView {
   std::uint64_t events = 0;
 };
 
-// "1시간 5분"; "1분 미만" under a minute.
-[[nodiscard]] std::string format_stay(std::int64_t seconds);
-// "12,345회".
-[[nodiscard]] std::string format_count(std::uint64_t count);
 
 class ProfileCard final : public Surface {
  public:

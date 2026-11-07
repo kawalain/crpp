@@ -13,7 +13,7 @@ constexpr Rect logout_rect{550 - 16 - 154, 440, 154, 38};
 
 void AccountTab::paint(Painter& p, Rect area) {
   const Theme& t = ui_.theme;
-  p.text("계정", {area.x + 9, area.y + 25, 400, 32}, {.size = 26, .weight = 700, .line_height = 32}, t.hl_text);
+  p.text(tr().account_heading, {area.x + 9, area.y + 25, 400, 32}, {.size = 26, .weight = 700, .line_height = 32}, t.hl_text);
 
   // .profile: the icon and the names beside it.
   const Rect icon{area.x + 16, area.y + 76, 72, 72};
@@ -28,7 +28,7 @@ void AccountTab::paint(Painter& p, Rect area) {
     constexpr float tip_w = 112, tip_h = 32;
     const Rect r{cx - tip_w / 2, icon.y - 8 - tip_h, tip_w, tip_h};
     p.fill_round(r, 11, t.hl);
-    p.text("아이콘 변경", {r.x, r.y + 5, r.w, 22}, {.size = 16, .weight = 700, .line_height = 22, .align = Align::Center}, t.on_accent);
+    p.text(tr().profile_change_icon, {r.x, r.y + 5, r.w, 22}, {.size = 16, .weight = 700, .line_height = 22, .align = Align::Center}, t.on_accent);
   }
 
   const float names_x = icon.right() + 18;
@@ -50,9 +50,9 @@ void AccountTab::paint(Painter& p, Rect area) {
     ui_.add_hit(this, r, id);
   };
   // .account-buttons
-  button({area.x + 16, area.y + 165, 154, 38}, "별명 변경", Nickname);
-  if (profile_.has_account) button({area.x + 16 + 154 + 12, area.y + 165, 154, 38}, "사용자명 변경", Handle);
-  button({area.x + logout_rect.x, area.y + logout_rect.y, logout_rect.w, logout_rect.h}, "로그아웃", Logout);
+  button({area.x + 16, area.y + 165, 154, 38}, tr().account_change_nickname, Nickname);
+  if (profile_.has_account) button({area.x + 16 + 154 + 12, area.y + 165, 154, 38}, tr().account_change_handle, Handle);
+  button({area.x + logout_rect.x, area.y + logout_rect.y, logout_rect.w, logout_rect.h}, tr().account_logout, Logout);
 }
 
 float AccountTab::content_height() const { return logout_rect.bottom() + bottom_pad; }

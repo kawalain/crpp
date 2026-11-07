@@ -50,30 +50,30 @@ constexpr const char* balance_thumb_path =
 constexpr float thumb_view_x = 9.8f, thumb_view_w = 349.8f;
 
 struct VolumeRow {
-  const char* label;
+  const char* locale::Strings::*label;
   pref::Int key;
   float label_top, slider_top, dropdown_top;
 };
 constexpr std::array<VolumeRow, 4> volume_rows{{
-    {"스피커 음량", pref::volume, 81 - 13, 109 - 7, 94 - 19},
-    {"키보드 음량", pref::keyboard_volume, 227 - 13, 256 - 7, 239.5f - 19},
-    {"마우스 음량", pref::mouse_volume, 296 - 13, 325 - 7, 309 - 19},
-    {"타블렛 음량", pref::pen_volume, 365 - 13, 394 - 7, 379 - 19},
+    {&locale::Strings::sound_speaker_volume, pref::volume, 81 - 13, 109 - 7, 94 - 19},
+    {&locale::Strings::sound_keyboard_volume, pref::keyboard_volume, 227 - 13, 256 - 7, 239.5f - 19},
+    {&locale::Strings::sound_mouse_volume, pref::mouse_volume, 296 - 13, 325 - 7, 309 - 19},
+    {&locale::Strings::sound_pen_volume, pref::pen_volume, 365 - 13, 394 - 7, 379 - 19},
 }};
 
 struct ToggleRow {
   SoundTab::Id id;
-  const char* label;
+  const char* locale::Strings::*label;
   pref::Bool key;
   float top;
 };
 constexpr std::array<ToggleRow, 6> toggle_rows{{
-    {SoundTab::ListenSelf, "내 입력 소리 듣기", pref::listen_self, 424 - pen_shift},
-    {SoundTab::OthersUseMine, "다른 사용자의 소리도 내가 선택한 소리로 듣기", pref::others_use_my_sounds, 476 - pen_shift},
-    {SoundTab::MuteNotifications, "음소거 시 알림 소리도 끄기", pref::mute_notifications_on_mute, 528 - pen_shift},
-    {SoundTab::MuteOnIdle, "자리비움 상태일 때 음소거 전환", pref::mute_on_idle, 580 - pen_shift},
-    {SoundTab::Spatial, "가상 서라운드", pref::spatial_audio, 581 + effects_shift},
-    {SoundTab::BalanceEnabled, "자리에 따라 좌우로 듣기", pref::channel_balance_enabled, 633 + effects_shift},
+    {SoundTab::ListenSelf, &locale::Strings::sound_listen_self, pref::listen_self, 424 - pen_shift},
+    {SoundTab::OthersUseMine, &locale::Strings::sound_others_use_mine, pref::others_use_my_sounds, 476 - pen_shift},
+    {SoundTab::MuteNotifications, &locale::Strings::sound_mute_notifications, pref::mute_notifications_on_mute, 528 - pen_shift},
+    {SoundTab::MuteOnIdle, &locale::Strings::sound_mute_on_idle, pref::mute_on_idle, 580 - pen_shift},
+    {SoundTab::Spatial, &locale::Strings::sound_spatial, pref::spatial_audio, 581 + effects_shift},
+    {SoundTab::BalanceEnabled, &locale::Strings::sound_balance_enabled, pref::channel_balance_enabled, 633 + effects_shift},
 }};
 
 constexpr bool row_shown(std::size_t row) { return show_pen || row < 3; }
@@ -81,8 +81,8 @@ constexpr bool row_shown(std::size_t row) { return show_pen || row < 3; }
 }  // namespace
 
 std::string_view balance_word(int value) {
-  if (value <= 65) return "약함";
-  return value <= 78 ? "보통" : "강함";
+  if (value <= 65) return tr().sound_balance_weak;
+  return value <= 78 ? tr().sound_balance_medium : tr().sound_balance_strong;
 }
 
 SoundTab::SoundTab(Ui& ui) : SettingsTab(ui) {
@@ -92,7 +92,6 @@ SoundTab::SoundTab(Ui& ui) : SettingsTab(ui) {
   packs_[2].box.id_base = PenList;
   reverb_.box.id_base = ReverbList;
   reverb_.ids = {"off", "office", "large"};
-  reverb_.box.options = {"끔", "사무실", "넓은 공간"};
   refresh_speakers();
 }
 
@@ -119,12 +118,12 @@ void SoundTab::set_packs(SoundDevice device, std::vector<SoundChoice> packs) {
 void SoundTab::refresh_speakers() {
   const std::string current = ui_.prefs ? ui_.prefs->get(pref::speaker_device) : std::string{};
   speaker_.ids = {""};
-  speaker_.box.options = {"기본 출력 장치"};
+  speaker_.box.options = {tr().sound_default_output};
   // A saved device that is away stays on the list, so the choice can be seen.
   if (!current.empty() && std::ranges::none_of(speakers_, [&](const SoundChoice& c) { return c.id == current; })) {
     const std::string name = ui_.prefs->get(pref::speaker_device_name);
     speaker_.ids.push_back(current);
-    speaker_.box.options.push_back(name.empty() ? "현재 선택된 출력 장치" : name);
+    speaker_.box.options.push_back(name.empty() ? std::string(tr().sound_current_output) : name);
   }
   for (const SoundChoice& speaker : speakers_) {
     speaker_.ids.push_back(speaker.id);
@@ -194,7 +193,7 @@ void SoundTab::paint_person(Painter& p, float x, float y, Color c, bool marked) 
   p.fill_geometry(ui_.gfx.path(person_body_path), c);
   p.pop();
   if (marked) {
-    p.text("나", {x, y + person_h - 37 + 11, person_w, 20}, {.size = 16, .weight = 700, .line_height = 20, .align = Align::Center},
+    p.text(tr().sound_me, {x, y + person_h - 37 + 11, person_w, 20}, {.size = 16, .weight = 700, .line_height = 20, .align = Align::Center},
            with_alpha(ui_.theme.on_accent, c.a));
   }
 }
@@ -207,10 +206,10 @@ void SoundTab::paint_balance(Painter& p, Rect area) {
   const int value = std::clamp(ui_.prefs->get(pref::channel_balance), balance_min, balance_max);
 
   const Rect title{area.x + 16, area.y + 687 + effects_shift, row_w, 24};
-  p.text("좌우 차이", title, {.size = 16, .line_height = 24}, with_alpha(t.hl_text, a));
-  p.text(on ? balance_word(value) : std::string_view("사용 안 함"), title,
+  p.text(tr().sound_balance, title, {.size = 16, .line_height = 24}, with_alpha(t.hl_text, a));
+  p.text(on ? balance_word(value) : std::string_view(tr().sound_balance_off), title,
          {.size = 16, .weight = 700, .line_height = 24, .align = Align::Right}, with_alpha(t.hl_text, a));
-  p.text("옆자리 소리가 가까운 귀 쪽으로 치우치는 정도예요.", {title.x, title.y + 24, row_w, 20}, {.size = 14, .line_height = 20},
+  p.text(tr().sound_balance_hint, {title.x, title.y + 24, row_w, 20}, {.size = 14, .line_height = 20},
          with_alpha(t.hl_text, a * 0.75f));
 
   const float top = area.y + balance_top;
@@ -233,6 +232,8 @@ void SoundTab::paint_balance(Painter& p, Rect area) {
 }
 
 void SoundTab::paint(Painter& p, Rect area) {
+  reverb_.box.options = {tr().sound_reverb_off, tr().sound_reverb_office, tr().sound_reverb_large};
+  speaker_.box.options[0] = tr().sound_default_output;
   const Theme& t = ui_.theme;
   last_area_ = area;
   sync_selection();
@@ -240,14 +241,14 @@ void SoundTab::paint(Painter& p, Rect area) {
   const auto heading = [&](const char* text, float top) {
     p.text(text, {area.x + 9, area.y + top, 500, 32}, {.size = 26, .weight = 700, .line_height = 32}, t.hl_text);
   };
-  heading("스피커", 25);
-  heading("장치", 167);
-  heading("효과", 535 + effects_shift);
+  heading(tr().sound_speaker, 25);
+  heading(tr().sound_devices, 167);
+  heading(tr().sound_effects, 535 + effects_shift);
 
   for (std::size_t i = 0; i < volume_rows.size(); ++i) {
     if (!row_shown(i)) continue;
     const VolumeRow& row = volume_rows[i];
-    p.text(row.label, {area.x + slider_x, area.y + row.label_top, 300, 26}, {.size = 18, .line_height = 26}, t.hl_text);
+    p.text(tr().*row.label, {area.x + slider_x, area.y + row.label_top, 300, 26}, {.size = 18, .line_height = 26}, t.hl_text);
     const Rect slider{area.x + slider_x, area.y + row.slider_top + 7 - slider_hit_h / 2, slider_w, slider_hit_h};
     paint_slider(p, t, slider, ui_.prefs->get(row.key), 0, 100);
     ui_.add_hit(this, slider, SpeakerVolume + static_cast<int>(i));
@@ -258,7 +259,7 @@ void SoundTab::paint(Painter& p, Rect area) {
   for (const ToggleRow& row : toggle_rows) {
     const float y = area.y + row.top;
     const bool locked = row.id == BalanceEnabled && !ui_.prefs->get(pref::spatial_audio);
-    p.text(row.label, {area.x + row_x, y, row_w - switch_w - 10, row_h}, {.size = 18, .line_height = row_h},
+    p.text(tr().*row.label, {area.x + row_x, y, row_w - switch_w - 10, row_h}, {.size = 18, .line_height = row_h},
            with_alpha(t.hl_text, locked ? off_alpha : 1));
     const Rect r{area.x + row_x + row_w - switch_w, y + (row_h - switch_h) / 2, switch_w, switch_h};
     const bool on = ui_.prefs->get(row.key);
@@ -272,7 +273,7 @@ void SoundTab::paint(Painter& p, Rect area) {
   }
 
   paint_balance(p, area);
-  p.text("울림", {area.x + row_x, area.y + reverb_top, row_w, row_h}, {.size = 18, .line_height = row_h}, t.hl_text);
+  p.text(tr().sound_reverb, {area.x + row_x, area.y + reverb_top, row_w, row_h}, {.size = 18, .line_height = row_h}, t.hl_text);
   reverb_.box.paint_button(ui_, this, p, {area.x + dropdown_x, area.y + reverb_dropdown_top, dropdown_w, dropdown_h});
   paint_tip(p, area);
 }

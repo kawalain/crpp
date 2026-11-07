@@ -9,7 +9,6 @@ using api::Step;
 
 namespace {
 
-constexpr const char* expired_message = "로그인이 만료되었어요. 다시 로그인해주세요.";
 
 }  // namespace
 
@@ -31,7 +30,7 @@ Prompt prompt_for(const Flow& flow) {
   p.lowercase = text.lowercase;
   p.identifier = text.identifier;
   p.cancelable = flow.cancelable();
-  if (step == Step::Nickname && !flow.identity().handle.empty()) p.extra2 = "사용자명 사용";
+  if (step == Step::Nickname && !flow.identity().handle.empty()) p.extra2 = tr().account_use_handle;
   p.valid = [step](std::string_view value) { return api::step_valid(step, value); };
   if (step == Step::Nickname) p.hint_for = [](std::string_view value) { return api::nickname_length_hint(value); };
   p.lock_hint = [](long long seconds) { return api::lock_hint(seconds); };
@@ -97,7 +96,7 @@ void AccountController::refresh_profile() {
 void AccountController::token_rejected() {
   if (host_.identity().token.empty()) return;
   sign_out_locally();
-  start(Step::Username, {}, expired_message, false, false);
+  start(Step::Username, {}, tr().account_expired, false, false);
 }
 
 void AccountController::update_tab() {
@@ -160,7 +159,7 @@ void AccountController::link() {
     apply(flow_.restart());
     return;
   }
-  app_.dialogs().show({"계정 없이도 사용할 수 있지만 일부 기능 사용에 제약이 있을 수 있습니다.", "확인", "취소", false,
+  app_.dialogs().show({tr().account_skip_question, tr().ok, tr().cancel, false,
                        [this] { apply(flow_.continue_as_guest()); }, nullptr});
 }
 
@@ -175,7 +174,7 @@ void AccountController::random_nickname() {
 void AccountController::logout() {
   // A difference from upstream: it leaves the Room without saying so.
   const bool in_room = app_.base_view() == View::Session;
-  app_.dialogs().show({in_room ? "로그아웃하면 구름에서 떠나요.\n정말 로그아웃 할까요?" : "정말 로그아웃 할까요?", "로그아웃", "취소", false,
+  app_.dialogs().show({in_room ? tr().account_logout_in_room : tr().account_logout_question, tr().account_logout, tr().cancel, false,
                        [this, in_room] {
                          if (in_room) host_.leave_room();
                          // Best effort: the token is forgotten here either way.

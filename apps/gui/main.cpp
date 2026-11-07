@@ -8,6 +8,7 @@
 //   crpp --shot out.png WxH hour motion-<name> --at <ms>
 //                                 a moment of a motion, <ms> after it starts; shot.cpp
 //                                 names them
+//   ... --locale <id>             (with --shot) in this Locale; otherwise Korean
 //   ... --dpi <n>                 (with --shot) render at that DPI; WxH stay in
 //                                 DIPs, so the image grows with it
 //   ... --asset-url <url>         fetch assets from <url>, not the published
@@ -126,6 +127,11 @@ int main(int argc, char** argv) {
     shell.asset_manifest.sources = {};  // everything under its own path there
     argc -= 2;
   }
+  const locale::Locale* shot_locale = locale::find_locale("ko");
+  if (argc >= 3 && std::string(argv[argc - 2]) == "--locale") {
+    if (const locale::Locale* named = locale::find_locale(argv[argc - 1])) shot_locale = named;
+    argc -= 2;
+  }
   float shot_dpi = 96;
   if (argc >= 3 && std::string(argv[argc - 2]) == "--dpi") {
     shot_dpi = static_cast<float>(std::atof(argv[argc - 1]));
@@ -146,7 +152,7 @@ int main(int argc, char** argv) {
   const bool font_pending = std::ranges::any_of(absent, [](const assets::Entry* entry) { return entry->path.ends_with(".ttf"); });
   if (!shell.app.init(first_install ? std::filesystem::path{} : assets, !font_pending)) {
     // There is no console to report to, and the app has no way to draw yet.
-    MessageBoxW(nullptr, L"화면을 준비하지 못해 프로그램을 시작할 수 없어요.", L"Cloudroom++", MB_OK | MB_ICONERROR);
+    MessageBoxW(nullptr, ui::widen(locale::tr().start_failed).c_str(), L"Cloudroom++", MB_OK | MB_ICONERROR);
     return 1;
   }
   for (const std::string_view id : assets::picker_emoji()) shell.app.ui().emoji_ids.emplace_back(id);
@@ -155,7 +161,11 @@ int main(int argc, char** argv) {
   localtime_s(&local, &now);
   shell.app.home().set_hour(local.tm_hour);
 
-  if (argc >= 3 && std::string(argv[1]) == "--shot") return run_shot(shell, argc, argv, shot_dpi);
+  if (argc >= 3 && std::string(argv[1]) == "--shot") {
+    locale::set_current(*shot_locale);
+    shell.app.ui().gfx.set_language(ui::widen(shot_locale->tag));
+    return run_shot(shell, argc, argv, shot_dpi);
+  }
   if (updated_from != 0) area::update::took_over(updated_from);
   if (data_dir.empty() && another_instance_running()) return 0;
 
@@ -164,6 +174,7 @@ int main(int argc, char** argv) {
   store::Store& data = *shell.store;
   shell.prefs.emplace(data);
   shell.app.set_prefs(*shell.prefs);
+  area::preferences::apply_language(shell);
   shell.log.set_path(locations->protected_dir / "logs" / "crpp.log");
 
   shell.audio = load_audio_settings(data);

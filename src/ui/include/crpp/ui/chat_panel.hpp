@@ -38,6 +38,8 @@ class ChatPanel final : public Surface {
 
   // chatScale, percent: the whole list zooms, the compose box does not (.chat-list).
   void set_scale(int percent) { zoom_ = static_cast<float>(percent) / 100; }
+  // The rows hold their times and names, laid out.
+  void locale_changed() { dirty_ = true; }
   void set_use_24h(bool on) {
     if (on != use_24h_) dirty_ = true;  // the rows hold their times, laid out
     use_24h_ = on;

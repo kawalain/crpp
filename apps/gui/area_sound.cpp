@@ -96,7 +96,7 @@ void sync_idle(Shell& s) {
 // False if there were none, as before the assets are in place.
 bool list_packs(Shell& s) {
   using crpp::sound::Device;
-  const auto catalog = crpp::sound::Catalog::scan(s.assets_dir / "sounds", s.expected_sounds);
+  const auto catalog = crpp::sound::Catalog::scan(s.assets_dir / "sounds", s.expected_sounds, locale::current().id);
   SoundTab& tab = s.app.settings().sound();
   const auto set = [&](SoundDevice to, Device from) {
     std::vector<SoundChoice> choices;
@@ -138,6 +138,8 @@ void tab_shown(Shell& s) {
 
 }  // namespace
 
+void language_changed(Shell& s) { s.sound_state->packs_listed = false; }
+
 void wire(Shell& s) {
   Shell* sp = &s;
   s.sound_state = std::make_shared<State>();
@@ -158,7 +160,7 @@ void wire(Shell& s) {
   tab.on_shown = [sp] { tab_shown(*sp); };
   tab.on_speaker_picked = [sp] { sp->engine->check_device(); };
   s.engine->set_on_open_failed([sp] {
-    sp->tasks.post([sp] { sp->app.toasts().toast("선택한 출력 장치로 소리를 내보내지 못했습니다."); });
+    sp->tasks.post([sp] { sp->app.toasts().toast(tr().sound_output_failed); });
   });
 
   s.bridge->on_member_ids = [sp](const std::vector<MemberIds>& members) {

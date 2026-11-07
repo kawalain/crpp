@@ -101,8 +101,14 @@ against a real `server/` yet; do that once a local build of it is available.
   the GPU driver's memory; see `docs/research/memory-floor.md`.
 - Escape closes every dialog that has a cancel action.
 - The channel balance is explained: "자리에 따라 좌우로 듣기" and "좌우 차이", in words
-  instead of a ratio that only holds for a seat straight to the side, and locked while
-  virtual surround is off, when it changes nothing. Its settings keys are upstream's.
+  instead of a ratio, and locked while virtual surround is off, when it changes nothing.
+  Its settings keys are upstream's, but a value means more: straight to the side, 60 is 6 dB
+  between the ears and 90 is 19 dB, so the default can be heard. The same value sounds weaker in
+  upstream.
+- The sound is built for working side by side, on panning rather than echo. Members sit
+  far apart left to right while Desks are free, not at random. Reverb is a list of its own,
+  "울림": 끔, 사무실 (the default, short and quiet), 넓은 공간 (the old one). It is kept under a
+  key of this client's own and does not depend on virtual surround.
 - Logging out inside a Room says it leaves the Room, then does so. Nickname and
   handle can be changed without leaving.
 - The first-run prompt shows only to someone with no stored identity: a saved
@@ -264,7 +270,8 @@ exist (real + test).
   full idle period in a real Room. It ends on a key or click, not on mouse movement
   alone: Raw Input only reports Input kinds.
 - The sound of spatial audio and reverb needs ears: run
-  `crpp_soundtest assets/sounds`, which walks every seat. `--synth` plays the generated
+  `crpp_soundtest assets/sounds`, which walks every Desk; `--balance` and `--reverb` compare
+  values. The left-right difference and Office's level and decay are starting points until then. `--synth` plays the generated
   stand-ins instead, which also need ears.
 - Following the OS theme: `WM_SETTINGCHANGE` was only posted in a scripted run.
   Flipping the real Windows setting and seeing the dark title bar are unverified.

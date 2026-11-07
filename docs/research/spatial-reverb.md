@@ -12,7 +12,7 @@ feed one shared stereo Freeverb-style reverb bus through a distance-dependent
 send. Optional early reflections are precomputed per seat pair. FTZ/DAZ is set
 once on the audio thread; the output is a float sum followed by a soft limiter.
 
-The listener sits at a fixed seat of a 4x4 grid, so only about 15 relative
+The listener sits in the middle of a 4x4 grid of Desks, so only 16 relative
 positions exist: precompute per-position coefficients (gains, delays, filter
 coefficients, send levels) instead of convolving an HRTF per voice
 (128-tap HRIR per ear x 48 voices is ~590 MMAC/s, estimate).
@@ -65,6 +65,24 @@ coefficients, send levels) instead of convolving an HRTF per voice
   regardless of the fade.
 - Sum in float, apply headroom gain, then a soft limiter with its ceiling just
   below full scale; `tanh` alone is not a limiter.
+
+## What the mixer does now
+
+Stereo cues come first; the reverb is apart from them and is chosen on its own: off, Office
+or Large.
+
+- Left-right difference: straight to the side, 6 dB at the slider's 60 and 19 dB at 90.
+  These are starting points to tune by ear. No source was found that maps a level difference
+  to a perceived place on headphones, or that sets a limit on separation (searched
+  2026-11-07; Shaw's tables, Bauer 1961 and Brown and Stecker were not readable).
+- Front and back are not rendered: rows differ only in distance. Wenzel et al. (1993, JASA
+  94:111-123) report many subjects with high front-back confusion, rising for virtual sources;
+  no percentage was read.
+- Comb feedback g gives `T60 = -3 * 0.031 s / log10(g)`, as the combs average 31 ms: Large
+  (g = 0.784) 0.88 s, Office (g = 0.49) 0.30 s. Measured from the wet level just after a click
+  to 60 dB below it: Large 1.03 s, Office 0.39 s, and Office's start 7 dB lower.
+- Cost in one thread of an MSVC Release build, 10 voices at once on one PC: off 0.26% of a
+  core, Office and Large 0.37%. Nothing at all once silent.
 
 ## Not established
 

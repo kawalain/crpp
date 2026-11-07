@@ -153,7 +153,7 @@ void opens_closes_and_keeps_nothing() {
   h.render();
   h.app.mouse_move(5, 5);  // the backdrop, outside the card
   h.app.mouse_down(5, 5, false);
-  h.app.mouse_up();
+  h.app.mouse_up(5, 5);
   CHECK(!view.is_open());
 }
 

@@ -432,6 +432,12 @@ void SoundTab::pick(Picker& picker, int id) {
   }
 }
 
+bool SoundTab::acts_on_press(int id) const {
+  if ((id >= SpeakerVolume && id <= PenVolume) || id == Balance) return true;
+  if (id == speaker_.box.id_base || id == reverb_.box.id_base) return true;
+  return std::ranges::any_of(packs_, [id](const Picker& picker) { return id == picker.box.id_base; });
+}
+
 void SoundTab::click(int id, float x, float, bool) {
   if ((id >= SpeakerVolume && id <= PenVolume) || id == Balance) {
     held_ = id;

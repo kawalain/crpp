@@ -169,6 +169,14 @@ void DisplayTab::before_click(const Surface* owner, int id) {
   }
 }
 
+bool DisplayTab::acts_on_press(int id) const {
+  if (id == ScaleSlider) return true;
+  for (const Dropdown* d : {&theme_, &light_, &dark_, &skin_list_, &skin_theme_, &dark_mode_}) {
+    if (id == d->id_base) return true;
+  }
+  return false;
+}
+
 void DisplayTab::click(int id, float x, float, bool) {
   Prefs& prefs = *ui_.prefs;
   if (id == SystemTheme) {

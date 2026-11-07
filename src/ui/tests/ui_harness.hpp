@@ -81,7 +81,7 @@ class UiHarness {
     const float x = hit->rect.x + hit->rect.w / 2, y = hit->rect.y + hit->rect.h / 2;
     app.mouse_move(x, y);
     app.mouse_down(x, y, false);
-    app.mouse_up();
+    app.mouse_up(x, y);
     render();
     return true;
   }

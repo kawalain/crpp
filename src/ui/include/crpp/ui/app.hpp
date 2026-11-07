@@ -162,7 +162,9 @@ class App {
   bool mouse_move(float x, float y);
   bool mouse_leave();
   bool mouse_down(float x, float y, bool shift);
-  bool mouse_up();
+  bool mouse_up(float x, float y);
+  // The button will not come up here: the window lost the mouse.
+  bool mouse_cancel();
   bool right_click(float x, float y);
   bool wheel(float x, float y, float delta);  // delta in notches (+ = up)
   bool char_input(wchar_t c, bool shift);

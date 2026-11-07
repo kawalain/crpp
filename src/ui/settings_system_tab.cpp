@@ -106,6 +106,8 @@ void SystemTab::before_click(const Surface* owner, int id) {
   if (owner != this || !language_.owns(id)) language_.open = false;
 }
 
+bool SystemTab::acts_on_press(int id) const { return id == idle_.id_base || id == language_.id_base; }
+
 void SystemTab::click(int id, float, float, bool) {
   Prefs& prefs = *ui_.prefs;
   const auto flip = [&](pref::Bool key) { prefs.set(key, !prefs.get(key)); };

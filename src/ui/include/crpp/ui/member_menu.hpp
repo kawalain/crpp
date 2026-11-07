@@ -30,6 +30,7 @@ class MemberMenu final : public Surface {
   void paint(Painter& p);
   void before_click(const Surface* owner, int id) override;
   void click(int id, float x, float y, bool shift) override;
+  [[nodiscard]] bool acts_on_press(int id) const override { return id == Slider; }
   void drag(float x, float y) override;
   bool escape() override;
   [[nodiscard]] Cursor cursor(int id) const override;

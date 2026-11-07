@@ -36,6 +36,7 @@ class EmojiPicker final : public Surface {
   [[nodiscard]] D2D1_SIZE_F content_size() const;
   void paint(Painter& p);
   void click(int id, float x, float y, bool shift) override;
+  [[nodiscard]] bool acts_on_press(int id) const override { return id == Track || id == Thumb; }
   void drag(float x, float y) override;
   void release() override;
   bool wheel(float x, float y, float delta) override;

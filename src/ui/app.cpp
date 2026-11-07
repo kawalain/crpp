@@ -631,9 +631,22 @@ bool App::mouse_leave() {
   return true;
 }
 
-bool App::mouse_up() {
+bool App::mouse_up(float x, float y) {
+  Surface* const owner = ui_.pressed_owner;
+  const int id = ui_.pressed_id;
+  const bool waiting = ui_.pressed_waits;
+  const bool changed = mouse_cancel();
+  if (!owner || !waiting) return changed;
+  const Ui::Hit* hit = ui_.hit_at(x, y);
+  // Only a field wants shift, and a field acts on the press.
+  if (hit && hit->owner == owner && hit->id == id) owner->click(id, x, y, false);
+  return true;
+}
+
+bool App::mouse_cancel() {
   const bool was_pressed = ui_.pressed_owner != nullptr;
   ui_.pressed_owner = nullptr;
+  ui_.pressed_waits = false;
   if (!ui_.capture) return was_pressed;
   ui_.capture->release();
   ui_.capture = nullptr;
@@ -655,11 +668,11 @@ bool App::mouse_down(float x, float y, bool shift) {
   ui_.set_focus(nullptr, nullptr);
   ui_.caret_on = true;
   for (Surface* s : layers()) s->before_click(owner, id);
-  if (!ui_.skin().moves()) {
-    ui_.pressed_owner = owner;
-    ui_.pressed_id = id;
-  }
-  if (owner) owner->click(id, x, y, shift);
+  // What is under the button is what the look and the release go by, even if the last move saw something else.
+  ui_.hover_owner = ui_.pressed_owner = owner;
+  ui_.hover_id = ui_.pressed_id = id;
+  ui_.pressed_waits = owner && !owner->acts_on_press(id);
+  if (owner && !ui_.pressed_waits) owner->click(id, x, y, shift);
   return true;
 }
 

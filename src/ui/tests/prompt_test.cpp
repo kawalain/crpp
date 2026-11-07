@@ -155,7 +155,7 @@ void test_dragging_selects_and_typing_replaces() {
   h.app.mouse_move(hit->rect.x + 2, y);
   h.app.mouse_down(hit->rect.x + 2, y, false);
   h.app.mouse_move(hit->rect.right() - 2, y);
-  h.app.mouse_up();
+  h.app.mouse_up(hit->rect.right() - 2, y);
   h.render();
   CHECK(h.app.ime_composition(L"", L"x"));
   CHECK(s.value() == "x");

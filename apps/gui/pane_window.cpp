@@ -148,9 +148,16 @@ LRESULT CALLBACK pane_proc(HWND hwnd, UINT msg, WPARAM wp, LPARAM lp) {
       changed(s.app.mouse_down(dips(GET_X_LPARAM(lp)), dips(GET_Y_LPARAM(lp)), (wp & MK_SHIFT) != 0));
       sync_pane_blink(*w);
       return 0;
-    case WM_LBUTTONUP:
+    case WM_LBUTTONUP: {
+      // Before the capture goes, since losing it calls off a press.
+      const bool did = s.app.mouse_up(dips(GET_X_LPARAM(lp)), dips(GET_Y_LPARAM(lp)));
       ReleaseCapture();
-      changed(s.app.mouse_up());
+      changed(did);
+      sync_pane_blink(*w);
+      return 0;
+    }
+    case WM_CAPTURECHANGED:
+      changed(s.app.mouse_cancel());
       return 0;
     case WM_RBUTTONDOWN:
       changed(s.app.right_click(dips(GET_X_LPARAM(lp)), dips(GET_Y_LPARAM(lp))));

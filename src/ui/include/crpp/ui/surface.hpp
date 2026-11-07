@@ -76,7 +76,7 @@ struct WindowState {
   bool caret_on = true;
   Rect caret;  // window coordinates, for IME placement
 
-  // A surface that set this in click() gets drag() until the button goes up.
+  // A surface that set this in click(), on a hit that acts on the press, gets drag() until the button goes up.
   Surface* capture = nullptr;
 
   // Where a screen and a modal go: the whole window, or what a Skin's own frame leaves.
@@ -86,9 +86,10 @@ struct WindowState {
   // Where a settings list has room to open.
   Rect dropdown_view{296, 137, 566, 504};
 
-  // What the button went down on, for a Skin that shows it.
+  // What the button went down on, and whether it acts when the button comes up there.
   Surface* pressed_owner = nullptr;
   int pressed_id = 0;
+  bool pressed_waits = false;
 
   Surface* hover_owner = nullptr;
   int hover_id = 0;
@@ -148,7 +149,8 @@ class Ui : public WindowState {
   // Off while drawing what is on its way out: only what stays takes clicks.
   bool hits_enabled = true;
 
-  [[nodiscard]] bool pressed(const Surface* owner, int id) const { return pressed_owner == owner && pressed_id == id; }
+  // It looks pressed while the pointer is on it, or while it is being dragged.
+  [[nodiscard]] bool pressed(const Surface* owner, int id) const { return pressed_owner == owner && pressed_id == id && (capture || hot(owner, id)); }
 
   void begin_frame(float window_w, float window_h, unsigned long long now);
   void set_focus(Surface* owner, TextField* field) {
@@ -201,7 +203,11 @@ class Surface {
   // Before any click is dispatched, to every surface on screen; owner is null when
   // nothing was hit. Popups close here when the click is outside them.
   virtual void before_click(const Surface* /*owner*/, int /*id*/) {}
+  // When the button comes up on the hit it went down on, or at once where acts_on_press says so.
   virtual void click(int /*id*/, float /*x*/, float /*y*/, bool /*shift*/) {}
+  // True for what cannot wait for the button to come up: what is dragged or scrolled by
+  // holding it, a text field, and what opens a list.
+  [[nodiscard]] virtual bool acts_on_press(int /*id*/) const { return false; }
   virtual bool right_click(int /*id*/, float /*x*/, float /*y*/) { return false; }
   virtual void drag(float /*x*/, float /*y*/) {}
   virtual void release() {}

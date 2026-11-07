@@ -81,6 +81,7 @@ void test_busy_buttons_do_nothing() {
   CHECK(h.click(home, HomeScreen::Join));
   CHECK(h.click(home, HomeScreen::Find));
   h.app.mouse_down(180, 260, false);  // the create cloud
+  h.app.mouse_up(180, 260);
   CHECK(calls == 0);
 }
 
@@ -141,6 +142,7 @@ void test_escape_and_backdrop_only_cancel() {
   CHECK(!home.asking_return());
   CHECK(r.ask());
   r.h.app.mouse_down(5, 5, false);
+  r.h.app.mouse_up(5, 5);
   r.h.render();
   CHECK(!home.asking_return());
   CHECK(r.found == 0 && r.returned == 0);
@@ -154,6 +156,7 @@ void test_question_covers_the_droplet_and_the_card_keeps_it_open() {
   const Ui::Hit* drop = r.h.app.ui().find_hit(&r.h.app.settings(), SettingsPanel::Droplet);
   CHECK(drop != nullptr);
   r.h.app.mouse_down(drop->rect.x + 5, drop->rect.y + 20, false);
+  r.h.app.mouse_up(drop->rect.x + 5, drop->rect.y + 20);
   r.h.render();
   CHECK(!r.h.app.settings().is_open());
   CHECK(!home.asking_return());
@@ -272,6 +275,7 @@ void test_focus_and_droplet_animate_then_go_idle() {
   CHECK(h.click(h.app.home(), HomeScreen::Code));
   settle(h);
   h.app.mouse_down(5, 5, false);  // focus leaves
+  h.app.mouse_up(5, 5);
   CHECK(h.app.animating());
   h.render();
   settle(h);

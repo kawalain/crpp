@@ -133,6 +133,7 @@ void the_popup_blocks_what_is_under_it() {
   r.go_offline();
   r.h.render();
   r.h.app.mouse_down(180, 260, false);  // the create cloud
+  r.h.app.mouse_up(180, 260);
   CHECK(created == 0);
 }
 

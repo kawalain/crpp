@@ -51,6 +51,7 @@ class WindowFrame final : public Surface {
   void paint_menu(Painter& p);
   void before_click(const Surface* owner, int id) override;
   void click(int id, float x, float y, bool shift) override;
+  [[nodiscard]] bool acts_on_press(int id) const override { return id >= MenuBase && id < ItemBase; }
   bool escape() override;
   [[nodiscard]] Cursor cursor(int /*id*/) const override { return Cursor::Arrow; }
 

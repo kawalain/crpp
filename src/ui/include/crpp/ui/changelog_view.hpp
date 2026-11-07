@@ -61,6 +61,7 @@ class ChangelogView final : public Surface {
 
   void paint(Painter& p);
   void click(int id, float x, float y, bool shift) override;
+  [[nodiscard]] bool acts_on_press(int id) const override { return id == BarTrack || id == BarThumb; }
   void drag(float x, float y) override;
   bool wheel(float x, float y, float delta) override;
   bool escape() override;

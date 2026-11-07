@@ -227,7 +227,7 @@ void test_settings_flow_and_scroll() {
   const float x = track->rect.x + 2, bottom = track->rect.bottom() - 2;
   h.app.mouse_move(x, bottom);
   h.app.mouse_down(x, bottom, false);
-  h.app.mouse_up();
+  h.app.mouse_up(x, bottom);
   h.render();
   CHECK(settings.scroll_offset() == 20);
   CHECK(h.app.wheel(track->rect.x - 100, track->rect.y + 50, -1));

@@ -346,9 +346,16 @@ LRESULT CALLBACK wnd_proc(HWND hwnd, UINT msg, WPARAM wp, LPARAM lp) {
       repaint(s->app.mouse_down(dips(GET_X_LPARAM(lp)), dips(GET_Y_LPARAM(lp)), (wp & MK_SHIFT) != 0));
       sync_blink(*s, hwnd);
       return 0;
-    case WM_LBUTTONUP:
+    case WM_LBUTTONUP: {
+      // Before the capture goes, since losing it calls off a press.
+      const bool changed = s->app.mouse_up(dips(GET_X_LPARAM(lp)), dips(GET_Y_LPARAM(lp)));
       ReleaseCapture();
-      repaint(s->app.mouse_up());
+      repaint(changed);
+      sync_blink(*s, hwnd);
+      return 0;
+    }
+    case WM_CAPTURECHANGED:
+      repaint(s->app.mouse_cancel());
       return 0;
     case WM_MOUSEWHEEL: {
       POINT pt{GET_X_LPARAM(lp), GET_Y_LPARAM(lp)};

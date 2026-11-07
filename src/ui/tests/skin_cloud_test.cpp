@@ -300,17 +300,14 @@ void test_clicks_in_the_tabs_do_what_they_do_on_the_code() {
     h.render();
     SoundTab& sound = panel.sound();
     CHECK(h.click(sound, SoundTab::KeyboardVolume));
-    h.app.mouse_up();
     CHECK(h.click(sound, SoundTab::ListenSelf));
     panel.scroll_to(10000);
     h.render();
     CHECK(panel.scroll_offset() > 0);
     CHECK(h.click(sound, SoundTab::Balance));
-    h.app.mouse_up();
     panel.open(SettingsPage::Display);
     h.render();
     CHECK(h.click(panel.display(), DisplayTab::ScaleSlider));
-    h.app.mouse_up();
     const Prefs& prefs = *h.app.ui().prefs;
     return std::vector<int>{prefs.get(pref::keyboard_volume), prefs.get(pref::listen_self) ? 1 : 0, prefs.get(pref::channel_balance), prefs.get(pref::chat_scale)};
   };

@@ -676,6 +676,7 @@ void test_picker_closes_without_picking() {
   CHECK(h.click(picker, EmojiPicker::Card));  // inside, between the emoji: stays
   CHECK(picker.is_open());
   h.app.mouse_down(5, 5, false);  // the backdrop
+  h.app.mouse_up(5, 5);
   CHECK(!picker.is_open());
   CHECK(picks == 0);
 }
@@ -741,6 +742,7 @@ void test_a_late_refresh_does_not_reopen_the_card() {
   h.render();
   CHECK(room.profile_card().is_open());
   h.app.mouse_down(3, 3, false);  // the backdrop closes it
+  h.app.mouse_up(3, 3);
   CHECK(!room.profile_card().is_open());
   room.show_profile(profile_of(1));
   CHECK(!room.profile_card().is_open());
@@ -813,7 +815,10 @@ void test_the_card_covers_the_settings_droplet() {
   h.render();
   const Ui::Hit* droplet = h.app.ui().find_hit(&h.app.settings(), SettingsPanel::Droplet);
   CHECK(droplet != nullptr);
-  if (droplet) h.app.mouse_down(droplet->rect.x + 5, droplet->rect.y + 5, false);
+  if (droplet) {
+    h.app.mouse_down(droplet->rect.x + 5, droplet->rect.y + 5, false);
+    h.app.mouse_up(droplet->rect.x + 5, droplet->rect.y + 5);
+  }
   CHECK(!h.app.settings().is_open());
 }
 
@@ -885,6 +890,7 @@ void test_member_menu_for_someone_else() {
   CHECK(menu.volume() == 50);
   CHECK(mutes.size() == 2);
   h.app.mouse_down(3, 3, false);
+  h.app.mouse_up(3, 3);
   CHECK(!menu.is_open());
   CHECK(right_click(h, room, RoomScreen::MemberBase + 1));
   CHECK(menu.volume() == 50);

@@ -103,7 +103,7 @@ void test_slider_changes_the_chat_scale_within_its_range() {
   CHECK(h.app.ui().prefs->get(pref::chat_scale) == 150);
   h.app.mouse_move(left - 500, y);
   CHECK(h.app.ui().prefs->get(pref::chat_scale) == 80);
-  h.app.mouse_up();
+  h.app.mouse_up(left - 500, y);
   CHECK(h.app.ui().capture == nullptr);
 }
 

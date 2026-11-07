@@ -93,6 +93,7 @@ class SoundTab final : public SettingsTab {
   void shown() override;
   void before_click(const Surface* owner, int id) override;
   void click(int id, float x, float y, bool shift) override;
+  [[nodiscard]] bool acts_on_press(int id) const override;
   void drag(float x, float y) override;
   void release() override;
   bool wheel(float x, float y, float delta) override;
@@ -153,6 +154,7 @@ class DisplayTab final : public SettingsTab {
   void shown() override;
   void before_click(const Surface* owner, int id) override;
   void click(int id, float x, float y, bool shift) override;
+  [[nodiscard]] bool acts_on_press(int id) const override;
   void drag(float x, float y) override;
   bool wheel(float x, float y, float delta) override;
   bool escape() override;
@@ -224,6 +226,7 @@ class SystemTab final : public SettingsTab {
   [[nodiscard]] float content_height() const override;
   void before_click(const Surface* owner, int id) override;
   void click(int id, float x, float y, bool shift) override;
+  [[nodiscard]] bool acts_on_press(int id) const override;
   bool wheel(float x, float y, float delta) override;
   bool escape() override;
   [[nodiscard]] bool animating() const override;

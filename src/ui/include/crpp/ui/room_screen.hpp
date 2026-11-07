@@ -89,6 +89,7 @@ class RoomScreen final : public Surface {
   void paint_overlay(Painter& p);
   void before_click(const Surface* owner, int id) override;
   void click(int id, float x, float y, bool shift) override;
+  [[nodiscard]] bool acts_on_press(int id) const override { return id == MembersBar || id == VolumeSlider; }
   bool right_click(int id, float x, float y) override;
   void drag(float x, float y) override;
   void release() override { members_held_ = false; }

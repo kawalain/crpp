@@ -37,7 +37,7 @@ struct Fixture {
     h.app.mouse_move(left + 1, y);
     h.app.mouse_down(left + 1, y, false);
     h.app.mouse_move(left + width * fraction, y);
-    h.app.mouse_up();
+    h.app.mouse_up(left + width * fraction, y);
     h.render();
   }
 };
@@ -81,7 +81,7 @@ void a_slider_shows_its_tip_on_hover_and_while_dragged() {
   f.h.render();
   CHECK(f.tab.tip_shown());
   CHECK(f.prefs.get(pref::volume) == 100);
-  f.h.app.mouse_up();
+  f.h.app.mouse_up(x + 400, y + 300);
   f.h.app.mouse_move(5, 5);
   f.h.render();
   CHECK(!f.tab.tip_shown());

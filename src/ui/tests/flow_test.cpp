@@ -47,6 +47,7 @@ void test_dialog_blocks_what_is_under_it() {
   h.app.dialogs().show({"질문", "네", "아니요", false, nullptr, nullptr});
   h.render();
   h.app.mouse_down(180, 260, false);  // the create cloud
+  h.app.mouse_up(180, 260);
   CHECK(created == 0);
   CHECK(h.app.dialogs().is_open());
 }
@@ -75,6 +76,7 @@ void test_settings_hide_room_controls() {
   h.app.settings().open(SettingsPage::Sound);
   h.render();
   h.app.mouse_down(39, 692 - 39, false);  // where the leave button is otherwise
+  h.app.mouse_up(39, 692 - 39);
   CHECK(left == 0);
 }
 

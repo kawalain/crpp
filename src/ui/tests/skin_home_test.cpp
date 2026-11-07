@@ -101,6 +101,104 @@ void test_clicks_on_the_pack_do_what_they_do_on_the_code() {
   CHECK(found == 1);
 }
 
+// The same for every Skin, whether drawn by a pack or by the C++ layouts.
+struct Look {
+  const char* pack;
+  const char* theme;
+};
+
+void start_with(UiHarness& h, Look look) {
+  CHECK(h.start());
+  if (look.pack) CHECK(h.app.load_skin_dir(look.pack).has_value());
+  h.app.set_theme(look.theme);
+  h.app.show_home();
+  h.app.home().set_nickname("Me");
+}
+
+void test_a_button_acts_when_the_button_comes_up_on_it(Look look) {
+  UiHarness h;
+  start_with(h, look);
+  HomeScreen& home = h.app.home();
+  int found = 0;
+  home.on_find_public = [&] { ++found; };
+  h.render();
+  const Ui::Hit* hit = h.app.ui().find_hit(&home, HomeScreen::Find);
+  CHECK(hit != nullptr);
+  if (!hit) return;
+  const float x = hit->rect.x + hit->rect.w / 2, y = hit->rect.y + hit->rect.h / 2;
+  const auto looks_pressed = [&] { return h.app.ui().pressed(&home, HomeScreen::Find); };
+
+  h.app.mouse_move(x, y);
+  h.app.mouse_down(x, y, false);
+  CHECK(found == 0);
+  CHECK(looks_pressed());
+  h.app.mouse_up(x, y);
+  CHECK(found == 1);
+  CHECK(!looks_pressed());
+
+  // Off it the look goes, and back on it the look returns; only there does it act.
+  h.app.mouse_down(x, y, false);
+  h.app.mouse_move(1, 1);
+  CHECK(!looks_pressed());
+  h.app.mouse_move(x, y);
+  CHECK(looks_pressed());
+  h.app.mouse_move(1, 1);
+  h.app.mouse_up(1, 1);
+  CHECK(found == 1);
+
+  // Coming up on it after going down elsewhere is no click either.
+  h.app.mouse_down(1, 1, false);
+  h.app.mouse_move(x, y);
+  CHECK(!looks_pressed());
+  h.app.mouse_up(x, y);
+  CHECK(found == 1);
+
+  // A window that loses the mouse never sees the button come up.
+  h.app.mouse_move(x, y);
+  h.app.mouse_down(x, y, false);
+  CHECK(h.app.mouse_cancel());
+  CHECK(!looks_pressed());
+  h.app.mouse_up(x, y);
+  CHECK(found == 1);
+}
+
+void test_what_cannot_wait_acts_on_the_press(Look look) {
+  UiHarness h;
+  start_with(h, look);
+  HomeScreen& home = h.app.home();
+  h.render();
+  const auto down_on = [&](const Surface& owner, int id) {
+    const Ui::Hit* hit = h.app.ui().find_hit(&owner, id);
+    CHECK(hit != nullptr);
+    if (hit) h.app.mouse_down(hit->rect.x + hit->rect.w / 2, hit->rect.y + hit->rect.h / 2, false);
+  };
+
+  // A field takes the focus at once, and holds on to the drag.
+  down_on(home, HomeScreen::Code);
+  CHECK(h.app.ui().focus != nullptr);
+  CHECK(h.app.ui().capture == &home);
+  h.app.mouse_cancel();
+
+  // A list opens at once, and an option is picked when the button comes up on it.
+  SettingsPanel& panel = h.app.settings();
+  panel.open(SettingsPage::System);
+  if (std::ranges::contains(h.app.open_panes(), Pane::Options)) h.on_pane(Pane::Options);
+  h.render();
+  SystemTab& system = panel.system();
+  std::string before = std::string(h.app.ui().prefs->get(pref::language));
+  down_on(system, SystemTab::LanguageList);
+  h.app.mouse_cancel();
+  h.render();
+  const Ui::Hit* option = h.app.ui().find_hit(&system, SystemTab::LanguageList + 3);
+  CHECK(option != nullptr);
+  if (!option) return;
+  const float x = option->rect.x + 2, y = option->rect.y + 2;
+  h.app.mouse_down(x, y, false);
+  CHECK(h.app.ui().prefs->get(pref::language) == before);
+  h.app.mouse_up(x, y);
+  CHECK(h.app.ui().prefs->get(pref::language) != before);
+}
+
 void test_a_click_in_the_field_lands_in_the_text() {
   UiHarness h;
   start_on_home(h);
@@ -119,7 +217,7 @@ void test_a_click_in_the_field_lands_in_the_text() {
   const float x = field->rect.x + 1, y = field->rect.y + field->rect.h / 2;
   h.app.mouse_move(x, y);
   h.app.mouse_down(x, y, false);
-  h.app.mouse_up();
+  h.app.mouse_up(x, y);
   h.render();
   CHECK(h.app.ui().caret.x < caret_after_typing.x);
 }
@@ -313,7 +411,6 @@ void test_the_panels_from_the_pack_do_what_they_do_on_the_code() {
   h.render();
   CHECK(h.click(menu, MemberMenu::Slider));
   CHECK(volume >= 45 && volume <= 55);  // the slider's middle
-  h.app.mouse_up();
   CHECK(h.click(menu, MemberMenu::Mute));
   CHECK(volume == 0);
   menu.close();
@@ -678,6 +775,10 @@ void test_a_folder_without_a_pack_is_refused_and_changes_nothing() {
 int main() {
   test_the_pack_puts_everything_where_the_code_does();
   test_clicks_on_the_pack_do_what_they_do_on_the_code();
+  for (const Look look : {Look{nullptr, "cloud"}, Look{nullptr, "luna_blue"}, Look{retro_pack, "classic"}, Look{CRPP_TEST_SKINS "/cloud", "cloud"}}) {
+    test_a_button_acts_when_the_button_comes_up_on_it(look);
+    test_what_cannot_wait_acts_on_the_press(look);
+  }
   test_a_click_in_the_field_lands_in_the_text();
   test_a_theme_outside_the_pack_is_drawn_as_before();
   test_graphics_can_be_let_go_with_a_pack_drawn();

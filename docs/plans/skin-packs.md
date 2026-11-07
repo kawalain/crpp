@@ -115,7 +115,6 @@ wheel posted about 60 times a second and reversing every 20 notches, seven round
 
 Reported by the user on 2026-11-08 after trying the build. None is fixed yet:
 
-- Under Retro, a button acts as soon as the button goes down. It should act when it comes up in the same place.
 - Under Retro, a scrollbar's buttons show no pressed look.
 - Retro's cursors, the hand above all, differ somewhat from the real ones.
 

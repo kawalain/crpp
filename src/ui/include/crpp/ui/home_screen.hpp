@@ -52,6 +52,7 @@ class HomeScreen final : public Surface {
   void paint_return(Painter& p);
   [[nodiscard]] bool accepts(int id, float x, float y) const override;
   void click(int id, float x, float y, bool shift) override;
+  [[nodiscard]] bool acts_on_press(int id) const override { return id == Code; }
   void drag(float x, float y) override;
   void enter(bool shift) override;
   bool escape() override;

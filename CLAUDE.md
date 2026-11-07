@@ -285,7 +285,9 @@ exist (real + test).
   flow, build with `-DCRPP_UPDATE_TEST_KEY=<hex>` and run with `--update-url`; never
   start an official build in a test, as it asks GitHub.
 - `ui`: every part of the screen is a `Surface` with its own file, hit ids, state
-  and callbacks; `App` only routes input through the layers on screen. `controls.hpp`
+  and callbacks; `App` only routes input through the layers on screen. A click runs when the button
+  comes up on the hit it went down on; `Surface::acts_on_press` names what cannot wait: what is dragged
+  or scrolled by holding, a field and what opens a list. `controls.hpp`
   has the shared controls, `Dialogs` the modal question, `Toasts` the messages that
   expire, `Prefs` the typed settings keys. `src/ui/tests/ui_harness.hpp` drives an
   `App` without a window. `apps/gui/area_*.cpp` is the shell's side of each feature:

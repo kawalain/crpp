@@ -237,6 +237,10 @@ void SoundTab::paint_balance(Painter& p, Rect area) {
 }
 
 void SoundTab::paint(Painter& p, Rect area) {
+  if (const skin::Screen* screen = ui_.pack_screen("settings_sound")) {
+    paint_pack(p, *screen, area);
+    return;
+  }
   if (!ui_.skin().scales_stage()) {
     paint_luna(p, area);
     return;

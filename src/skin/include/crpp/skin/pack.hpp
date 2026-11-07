@@ -15,7 +15,8 @@
 //   path    SVG path data, drawn from x, y, with color, scale, and a width to stroke it instead of
 //           filling, with caps "round" (the default) or "flat", and soft: true for smooth edges
 //           under a Skin whose edges are whole pixels
-//   text    a text: #locale_key, @bound, or the words themselves, in a style and a color
+//   text    a text: #locale_key, @bound, or the words themselves, in a style and a color, and
+//           size and line_height to change the style's where it depends on the screen
 //   picture a picture the screen supplies, with opacity and gray
 //   field   a text field the screen owns, with style, color, placeholder, placeholder_color,
 //           caret and selection
@@ -95,6 +96,7 @@ struct Node {
   bool round_caps = true;   // Path
   bool soft = false;        // Path
   bool has_note_by = false;
+  bool has_size = false, has_line_height = false;  // Text
   bool has_alpha = false;
   bool has_down_to = false;  // Fill
   std::uint16_t slot = no_slot;  // where id's box goes, or a let's value
@@ -110,6 +112,7 @@ struct Node {
   Expr width;  // Stroke, Line, Path. Fill: down_to. Picture: gray
   Expr extra2;  // Line: y2
   Expr after, hit_index, live, hit_if, alpha, note_by;
+  Expr size, line_height;  // Text
 };
 
 struct Style {

@@ -62,6 +62,10 @@ float DisplayTab::content_height() const {
 }
 
 void DisplayTab::paint(Painter& p, Rect area) {
+  if (const skin::Screen* screen = ui_.pack_screen("settings_display")) {
+    paint_pack(p, *screen, area);
+    return;
+  }
   if (!ui_.skin().scales_stage()) {
     paint_luna(p, area);
     return;

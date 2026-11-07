@@ -21,6 +21,9 @@ class SettingsPanel final : public Surface {
 
   enum Id : int { Droplet, Overlay, Thumb, Version, Track, TabBase = 100 };
 
+  // What a Skin Pack can name on this panel.
+  [[nodiscard]] static skin::ScreenSchema schema();
+
   // The version button, which opens the changelog.
   std::function<void()> on_version;
   void set_version(std::string version) { version_ = std::move(version); }
@@ -62,6 +65,7 @@ class SettingsPanel final : public Surface {
   [[nodiscard]] SettingsTab& tab_of(SettingsPage page);
   [[nodiscard]] const SettingsTab& tab() const { return const_cast<SettingsPanel*>(this)->tab(); }
   void paint_luna(Painter& p);
+  void paint_pack(Painter& p, const skin::Screen& screen);
   [[nodiscard]] static const char* locale::Strings::*tab_name(std::size_t index);
   void paint_panel(Painter& p);
   void paint_tabs(Painter& p);

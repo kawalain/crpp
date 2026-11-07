@@ -165,7 +165,13 @@ class Walker final : public Env {
       case NodeKind::Stroke: canvas_.stroke_round(box, value(n.extra), color_of(n), value(n.width)); break;
       case NodeKind::Line: canvas_.line(box.x, box.y, vars[VarX] + value(n.extra), vars[VarY] + value(n.extra2), color_of(n.paint), value(n.width)); break;
       case NodeKind::Path: canvas_.path(std::string_view(pack_.literals).substr(n.text, n.count), box.x, box.y, value(n.extra), color_of(n.paint), value(n.width), n.round_caps, n.soft); break;
-      case NodeKind::Text: canvas_.text(text_of(n.text), box, look_of(n.style), color_of(n)); break;
+      case NodeKind::Text: {
+        TextLook look = look_of(n.style);
+        if (n.has_size) look.size = value(n.size);
+        if (n.has_line_height) look.line_height = value(n.line_height);
+        canvas_.text(text_of(n.text), box, look, color_of(n));
+        break;
+      }
       case NodeKind::Picture: source_.picture(n.bound, static_cast<int>(vars[VarI]), box, value(n.extra), value(n.width)); break;
       case NodeKind::Field: field(n, box); break;
       case NodeKind::Slot: slot(n, box); break;

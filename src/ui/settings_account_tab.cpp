@@ -12,6 +12,10 @@ constexpr Rect logout_rect{550 - 16 - 154, 440, 154, 38};
 }  // namespace
 
 void AccountTab::paint(Painter& p, Rect area) {
+  if (const skin::Screen* screen = ui_.pack_screen("settings_account")) {
+    paint_pack(p, *screen, area);
+    return;
+  }
   if (!ui_.skin().scales_stage()) {
     paint_luna(p, area);
     return;

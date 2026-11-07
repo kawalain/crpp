@@ -1,0 +1,25 @@
+{
+  "draw": [
+    {"id": "form", "y": 10, "column": [
+      {"use": "form_group", "text": "#system_heading", "draw": [
+        {"use": "form_check", "text": "#system_autostart", "hit": "autostart", "args": {"on": "@autostart"}},
+        {"use": "form_check", "text": "#system_tray", "hit": "tray", "args": {"on": "@tray"}},
+        {"use": "form_check", "text": "#system_detail", "hit": "detail", "args": {"on": "@detail"}},
+        {"use": "form_hint", "text": "#system_detail_hint", "x": 18, "w": "W-18", "after": 4}
+      ]},
+      {"use": "form_group", "text": "#system_time", "draw": [
+        {"use": "form_check", "text": "#system_24h", "hit": "use_24h", "args": {"on": "@use_24h"}},
+        {"use": "form_combo", "text": "#system_idle", "after": 4, "draw": [{"slot": "idle_list"}]}
+      ]},
+      {"use": "form_group", "text": "#system_language", "draw": [
+        {"use": "form_combo", "text": "#system_language_row", "after": 4, "draw": [{"slot": "language_list"}]}
+      ]},
+      {"use": "form_group", "text": "#system_advanced", "draw": [
+        {"use": "form_check", "text": "#system_logging", "hit": "logging", "args": {"on": "@logging"}},
+        {"if": "@logging", "use": "button", "text": "#system_open_logs", "hit": "open_logs", "right": "W", "after": 6},
+        {"use": "button", "text": "#system_reset", "hit": "reset", "right": "W", "after": 6}
+      ]}
+    ]},
+    {"report": "height", "value": "form.bottom"}
+  ]
+}

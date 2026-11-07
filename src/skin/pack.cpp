@@ -52,7 +52,7 @@ constexpr std::string_view kind_keys[] = {"fill", "frame", "stroke", "line", "pa
     case NodeKind::Stroke: return among({"radius", "width"});
     case NodeKind::Line: return among({"x2", "y2", "width"});
     case NodeKind::Path: return among({"color", "scale", "width", "caps", "soft"});
-    case NodeKind::Text: return among({"style", "color"});
+    case NodeKind::Text: return among({"style", "color", "size", "line_height"});
     case NodeKind::Picture: return among({"opacity", "gray"});
     case NodeKind::Field: return among({"style", "color", "placeholder", "placeholder_color", "caret", "selection"});
     case NodeKind::Slot: return among({"numbers", "styles", "colors"});
@@ -671,6 +671,7 @@ class Loader final : public Names {
       }
       case NodeKind::Text:
         if (!text_of(json, "text", out.text) || !style_of(json, out) || !expr_of(json, "color", out.paint)) return false;
+        if (!optional_expr(json, "size", out.size, &out.has_size) || !optional_expr(json, "line_height", out.line_height, &out.has_line_height)) return false;
         break;
       case NodeKind::Picture:
         if (!bound_of(json, "picture", schema_ ? schema_->pictures : std::span<const Name>{}, out.bound)) return false;

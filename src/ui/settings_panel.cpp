@@ -84,6 +84,10 @@ void SettingsPanel::scroll_to(float offset) {
 const char* locale::Strings::*SettingsPanel::tab_name(std::size_t index) { return tab_buttons[index].name; }
 
 void SettingsPanel::paint(Painter& p) {
+  if (const skin::Screen* screen = ui_.pack_screen("settings")) {
+    paint_pack(p, *screen);
+    return;
+  }
   if (!ui_.skin().scales_stage()) {
     paint_luna(p);
     return;

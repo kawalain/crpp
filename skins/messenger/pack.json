@@ -203,6 +203,7 @@
     "button": {"size": "font_size", "line_height": "h", "align": "center", "ellipsis": true, "exact": true},
     "paragraph": {"size": "font_size", "line_height": "font_size+4", "wrap": true, "exact": true, "keep_words": true},
     "chat_text": {"size": "font_size", "line_height": "font_size+4", "wrap": true, "exact": true},
+    "sample": {"size": "font_size", "line_height": "font_size+4", "ellipsis": true, "exact": true},
     "caption": {"size": 13, "weight": 700, "line_height": "h", "ellipsis": true, "exact": true, "role": "caption"}
   },
   "parts": {
@@ -447,6 +448,55 @@
       {"fill": "$edge_dark", "x": "W-2*u", "y": "u", "w": "u", "h": "H-2*u"}
     ]},
     "panel_info": {"draw": [{"fill": "$info"}, {"frame": "$info_line"}]},
+    "form_group": {
+      "height": "rows.bottom+20",
+      "draw": [
+        {"id": "rows", "x": 12, "y": 14, "w": "W-24", "column": [{"content": true}]},
+        {"use": "group_box", "text": "@label", "x": 2, "w": "W-4", "h": "rows.bottom+6"}
+      ]
+    },
+    "form_check": {
+      "h": "row_h",
+      "args": {"on": 0, "off": 0},
+      "draw": [
+        {"use": "check_box", "y": 3, "args": {"on": "on", "off": "off"}},
+        {"text": "@label", "style": "body", "color": "off ? $off_ink : $ink", "x": 18, "w": "W-18"}
+      ]
+    },
+    "form_text": {
+      "h": "texth('paragraph', '@label', W)",
+      "draw": [{"text": "@label", "style": "paragraph", "color": "$ink_soft"}]
+    },
+    "form_hint": {
+      "h": "texth('paragraph', '@label', W-18)",
+      "draw": [{"text": "@label", "style": "paragraph", "color": "$ink_soft"}]
+    },
+    "form_combo": {
+      "h": "field_h",
+      "draw": [
+        {"let": "list_w", "value": "min(170, floor(W*0.55))"},
+        {"text": "@label", "style": "body", "color": "$ink", "w": "W-list_w-6"},
+        {"x": "W-list_w", "w": "list_w", "group": [{"content": true}]}
+      ]
+    },
+    "form_slider": {
+      "h": "18+field_h",
+      "args": {"at": 0, "list": 0, "own": -1, "where": -1},
+      "draw": [
+        {"text": "@label", "style": "body", "color": "$ink", "h": 16},
+        {"let": "list_w", "value": "list ? floor(W*0.52) : 0"},
+        {"use": "slider", "hit_by": "own", "note_by": "where", "y": 18, "w": "W-(list ? list_w+8 : 0)", "h": "field_h", "args": {"at": "at"}},
+        {"if": "list", "x": "W-list_w", "y": 18, "w": "list_w", "h": "field_h", "group": [{"content": true}]}
+      ]
+    },
+    "options_tab": {
+      "args": {"active": 0},
+      "draw": [
+        {"if": "active", "fill": "$select"},
+        {"if": "!active && hot", "fill": "$hl_pale2"},
+        {"text": "@label", "style": "body", "color": "active ? $select_ink : $ink", "x": 6, "w": "W-12"}
+      ]
+    },
     "frame_ring": {
       "args": {"at": 0, "thick": 0, "top": 0, "left": 0, "right": 0, "bottom": 0},
       "draw": [

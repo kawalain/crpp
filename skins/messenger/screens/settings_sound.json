@@ -1,0 +1,29 @@
+{
+  "draw": [
+    {"id": "form", "y": 10, "column": [
+      {"use": "form_group", "text": "#sound_speaker", "draw": [
+        {"use": "form_slider", "text": "#sound_speaker_volume", "after": 6, "args": {"at": "@speaker_volume/100", "list": 1, "own": "hit('speaker_volume')", "where": "note('slider_0')"}, "draw": [{"slot": "speaker_list"}]}
+      ]},
+      {"use": "form_group", "text": "#sound_devices", "draw": [
+        {"use": "form_slider", "text": "#sound_keyboard_volume", "after": 6, "args": {"at": "@keyboard_volume/100", "list": 1, "own": "hit('keyboard_volume')", "where": "note('slider_1')"}, "draw": [{"slot": "keyboard_list"}]},
+        {"use": "form_slider", "text": "#sound_mouse_volume", "after": 6, "args": {"at": "@mouse_volume/100", "list": 1, "own": "hit('mouse_volume')", "where": "note('slider_2')"}, "draw": [{"slot": "mouse_list"}]},
+        {"if": "@show_pen", "use": "form_slider", "text": "#sound_pen_volume", "after": 6, "args": {"at": "@pen_volume/100", "list": 1, "own": "hit('pen_volume')", "where": "note('slider_3')"}, "draw": [{"slot": "pen_list"}]},
+        {"use": "form_check", "text": "#sound_listen_self", "hit": "listen_self", "args": {"on": "@listen_self"}},
+        {"use": "form_check", "text": "#sound_others_use_mine", "hit": "others_use_mine", "args": {"on": "@others_use_mine"}},
+        {"use": "form_check", "text": "#sound_mute_notifications", "hit": "mute_notifications", "args": {"on": "@mute_notifications"}},
+        {"use": "form_check", "text": "#sound_mute_on_idle", "hit": "mute_on_idle", "args": {"on": "@mute_on_idle"}}
+      ]},
+      {"use": "form_group", "text": "#sound_effects", "draw": [
+        {"use": "form_check", "text": "#sound_spatial", "hit": "spatial", "args": {"on": "@spatial"}},
+        {"use": "form_check", "text": "#sound_balance_enabled", "hit": "balance_enabled", "live": "@spatial", "hit_if": "@spatial", "args": {"on": "@balance_enabled", "off": "!@spatial"}},
+        {"h": "18+field_h", "after": 6, "group": [
+          {"use": "form_slider", "text": "#sound_balance", "args": {"at": "(@balance-55)/35", "own": "@balance_on ? hit('balance') : -1", "where": "note('balance')"}},
+          {"text": "@balance_word", "style": "body_right", "color": "$ink_soft", "h": 16}
+        ]},
+        {"use": "form_text", "text": "#sound_balance_hint", "after": 4},
+        {"use": "form_combo", "text": "#sound_reverb", "after": 4, "draw": [{"slot": "reverb_list"}]}
+      ]}
+    ]},
+    {"report": "height", "value": "form.bottom"}
+  ]
+}

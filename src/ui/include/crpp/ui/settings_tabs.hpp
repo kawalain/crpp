@@ -6,6 +6,7 @@
 #include <string_view>
 #include <vector>
 
+#include "crpp/skin/pack.hpp"
 #include "crpp/ui/controls.hpp"
 #include "crpp/ui/prefs.hpp"
 #include "crpp/ui/settings_rows.hpp"
@@ -47,6 +48,9 @@ enum class SoundDevice : std::uint8_t { Keyboard, Mouse, Pen };
 class SoundTab final : public SettingsTab {
  public:
   explicit SoundTab(Ui& ui);
+
+  // What a Skin Pack can name on this tab.
+  [[nodiscard]] static skin::ScreenSchema schema();
 
   enum Id : int {
     SpeakerVolume,
@@ -104,6 +108,7 @@ class SoundTab final : public SettingsTab {
   void pick(Picker& picker, int id);
   [[nodiscard]] Picker* picker_of_row(std::size_t row);
   void paint_luna(Painter& p, Rect area);
+  void paint_pack(Painter& p, const skin::Screen& screen, Rect area);
   void paint_tip(Painter& p, Rect area);
   void paint_tip_luna(Painter& p, int row);
   void paint_balance(Painter& p, Rect area);
@@ -132,6 +137,7 @@ class SoundTab final : public SettingsTab {
 class DisplayTab final : public SettingsTab {
  public:
   explicit DisplayTab(Ui& ui);
+  [[nodiscard]] static skin::ScreenSchema schema();
   enum Id : int { SystemTheme = 1, ScaleSlider, ThemeList = 100, LightList = 110, DarkList = 120 };
 
   // Asked whenever the tab comes on screen, for who the chat sample shows.
@@ -152,6 +158,7 @@ class DisplayTab final : public SettingsTab {
 
  private:
   void paint_luna(Painter& p, Rect area);
+  void paint_pack(Painter& p, const skin::Screen& screen, Rect area);
   void paint_sample(Painter& p, Rect box, float zoom);
   [[nodiscard]] float chat_top() const;
 
@@ -171,6 +178,7 @@ struct NotifySound {
 class NotifyTab final : public SettingsTab {
  public:
   using SettingsTab::SettingsTab;
+  [[nodiscard]] static skin::ScreenSchema schema();
   enum Id : int { TrayToggle = 1, FlashToggle, SoundBase = 100, PreviewBase = 300 };
 
   // Asked whenever the tab comes on screen, as the sounds may arrive after startup.
@@ -186,6 +194,7 @@ class NotifyTab final : public SettingsTab {
 
  private:
   void paint_luna(Painter& p, Rect area);
+  void paint_pack(Painter& p, const skin::Screen& screen, Rect area);
   struct Row {
     ToggleAnim toggle;
     Fade grow, tip;
@@ -198,6 +207,7 @@ class NotifyTab final : public SettingsTab {
 class SystemTab final : public SettingsTab {
  public:
   explicit SystemTab(Ui& ui);
+  [[nodiscard]] static skin::ScreenSchema schema();
   enum Id : int { Autostart = 1, Tray, Detail, Use24h, Logging, OpenLogs, Reset, IdleList = 100, LanguageList = 200 };
 
   std::function<void()> on_open_logs;
@@ -213,6 +223,7 @@ class SystemTab final : public SettingsTab {
 
  private:
   void paint_luna(Painter& p, Rect area);
+  void paint_pack(Painter& p, const skin::Screen& screen, Rect area);
   void sync_idle();
   void sync_language();
   Dropdown idle_, language_;
@@ -224,6 +235,7 @@ class SystemTab final : public SettingsTab {
 class AccountTab final : public SettingsTab {
  public:
   using SettingsTab::SettingsTab;
+  [[nodiscard]] static skin::ScreenSchema schema();
   enum Id : int { Emoji, Nickname, Handle, Logout };
 
   struct Profile {
@@ -243,6 +255,7 @@ class AccountTab final : public SettingsTab {
 
  private:
   void paint_luna(Painter& p, Rect area);
+  void paint_pack(Painter& p, const skin::Screen& screen, Rect area);
   Profile profile_;
 };
 

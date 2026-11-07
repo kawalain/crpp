@@ -197,6 +197,10 @@ void a_part_takes_its_hit_and_note_from_the_screen() {
   CHECK(!load(R"J({"fill":"$face","x":"note('nothing')"})J"));
 }
 
+void a_text_can_set_its_size() {
+  CHECK(walk(R"J({"text":"x","style":"body","color":"$face","h":10,"size":"h+5","line_height":"h+9"})J") == "text x 100,200,300,10 15/19/400 1/0/0/1\n");
+}
+
 void a_set_changes_a_name_from_further_in() {
   CHECK(walk(R"J({"let":"widest","value":1},{"repeat":3,"draw":[{"set":"widest","value":"max(widest, i*10)"}]},{"fill":"$face","x":"widest"})J") == "fill 120,200,300,400 1/0/0/1\n");
   CHECK(walk(R"({"let":"a","value":1},{"if":"0","set":"a","value":5},{"fill":"$face","x":"a"})") == "fill 101,200,300,400 1/0/0/1\n");
@@ -466,6 +470,7 @@ int main() {
   siblings_read_each_others_boxes();
   a_let_is_read_further_on_and_inside();
   a_set_changes_a_name_from_further_in();
+  a_text_can_set_its_size();
   a_part_takes_its_hit_and_note_from_the_screen();
   conditions_skip_what_they_guard();
   palettes_choose_colours_and_gradients();

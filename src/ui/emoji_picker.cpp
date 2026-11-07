@@ -12,12 +12,13 @@ namespace crpp::ui {
 
 namespace {
 
-enum NumberId : int { Count, Offset, Drawn, Overflow, Selected };
-enum ReportId : int { View, Content, First, Width, Height };
-constexpr skin::Name number_names[] = {{"count", Count}, {"offset", Offset}, {"scroll", Drawn}, {"overflow", Overflow}, {"selected", Selected}};
+enum NumberId : int { Count, Offset, Drawn, Overflow, Selected, Open, FadeTop, FadeBottom, ThumbOn, ThumbOver, ThumbY, ThumbH };
+enum ReportId : int { View, Content, First, Width, Height, ShownReport };
+constexpr skin::Name number_names[] = {{"count", Count}, {"offset", Offset}, {"scroll", Drawn}, {"overflow", Overflow}, {"selected", Selected}, {"open", Open},
+                                       {"fade_top", FadeTop}, {"fade_bottom", FadeBottom}, {"thumb_on", ThumbOn}, {"thumb_over", ThumbOver}, {"thumb_y", ThumbY}, {"thumb_h", ThumbH}};
 constexpr skin::Name picture_names[] = {{"cell", 0}};
 constexpr skin::Name hit_names[] = {{"backdrop", EmojiPicker::Backdrop}, {"card", EmojiPicker::Card}, {"track", EmojiPicker::Track}, {"thumb", EmojiPicker::Thumb}, {"cell", EmojiPicker::CellBase}};
-constexpr skin::Name report_names[] = {{"view", View}, {"content", Content}, {"first", First}, {"width", Width}, {"height", Height}};
+constexpr skin::Name report_names[] = {{"view", View}, {"content", Content}, {"first", First}, {"width", Width}, {"height", Height}, {"shown", ShownReport}};
 constexpr skin::Name note_names[] = {{"track", 0}};
 
 constexpr int columns = 8;
@@ -56,6 +57,13 @@ void EmojiPicker::paint_pack(Painter& p, const skin::Screen& screen) {
         case Offset: return e_.scroll_.offset;
         case Drawn: return e_.scroll_.drawn();
         case Overflow: return e_.scroll_.max_offset() > 0 ? 1.0f : 0.0f;
+        case Open: return e_.open_ ? 1.0f : 0.0f;
+        case FadeTop: return e_.scroll_.fade_top();
+        case FadeBottom: return e_.scroll_.fade_bottom();
+        case ThumbOn: return e_.thumb_on_ ? 1.0f : 0.0f;
+        case ThumbOver: return e_.ui_.hot(&e_, Track) || e_.ui_.hot(&e_, Thumb) || e_.ui_.capture == &e_ ? 1.0f : 0.0f;
+        case ThumbY: return e_.scroll_.thumb(e_.track_).y;
+        case ThumbH: return e_.scroll_.thumb(e_.track_).h;
         default: return e_.ids_[first_ + static_cast<std::size_t>(index)] == e_.current_ ? 1.0f : 0.0f;
       }
     }
@@ -71,6 +79,8 @@ void EmojiPicker::paint_pack(Painter& p, const skin::Screen& screen) {
         e_.scroll_.advance(e_.ui_);
       } else if (id == First) {
         first_ = static_cast<std::size_t>(value);
+      } else if (id == ShownReport) {
+        e_.shown_left_ = value;
       }
     }
     void note(int, int, skin::Box box) override { e_.track_ = rect_of(box); }
@@ -80,7 +90,9 @@ void EmojiPicker::paint_pack(Painter& p, const skin::Screen& screen) {
     Painter& p_;
     std::size_t first_ = 0;
   } shown(*this, p);
-  draw_screen(ui_, p, this, screen, ui_.content, shown);
+  if ((ui_.hot(this, Track) || ui_.hot(this, Thumb) || ui_.capture == this) && !thumb_on_) reveal_thumb();
+  shown_left_ = 0;
+  draw_layer(ui_, p, this, screen, ui_.content, shown);
 }
 
 void EmojiPicker::show(std::string current, std::function<void(std::string id)> on_pick) {
@@ -131,6 +143,14 @@ void EmojiPicker::reveal_thumb() {
 
 void EmojiPicker::paint(Painter& p) {
   if (!open_ && closed_at_ == 0) return;
+  if (const skin::Screen* screen = ui_.pack_screen("emoji")) {
+    p.set_base(D2D1::Matrix3x2F::Identity());
+    ui_.hits_enabled = open_;
+    paint_pack(p, *screen);
+    ui_.hits_enabled = true;
+    if (!open_ && shown_left_ <= 0) release_shown();
+    return;
+  }
   const float shown = open_ ? transition(ui_, opened_at_, modal_pop_ms) : 1 - transition(ui_, closed_at_, modal_pop_ms);
   if (!open_ && shown <= 0) {
     release_shown();
@@ -154,10 +174,6 @@ void EmojiPicker::paint(Painter& p) {
 void EmojiPicker::paint_shown(Painter& p) {
   const Theme& t = ui_.theme;
   p.set_base(D2D1::Matrix3x2F::Identity());
-  if (const skin::Screen* screen = ui_.pack_screen("emoji")) {
-    paint_pack(p, *screen);
-    return;
-  }
   const Rect window{0, 0, ui_.width, ui_.height};
   if (ui_.skin().moves()) p.fill_rect(window, rgb(0x365669, 0.28f));
   ui_.add_hit_window(this, ui_.modal_area, Backdrop);
@@ -257,6 +273,7 @@ Cursor EmojiPicker::cursor(int id) const {
 }
 
 bool EmojiPicker::animating() const {
+  if (ui_.pack_screen("emoji")) return false;  // what its screen moves asks for itself
   if (!open_ || !ui_.animations || thumb_since_ == 0) return false;
   const float elapsed = static_cast<float>(ui_.now_ms - std::min(ui_.now_ms, thumb_since_));
   return elapsed < (thumb_on_ ? thumb_in_ms : thumb_out_ms);

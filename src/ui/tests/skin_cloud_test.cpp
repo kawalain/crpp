@@ -561,6 +561,24 @@ void test_a_refused_switch_shakes_its_tip_longer_than_the_tip_fades() {
   settled(h, moving);
 }
 
+void test_the_picker_comes_and_goes_and_lets_go() {
+  UiHarness h;
+  room_from_the_pack(h, false);
+  Moving moving(h);
+  settled(h, moving);
+  EmojiPicker& picker = h.app.emoji_picker();
+  picker.show("1f600", nullptr);
+  CHECK(moving.after(0));
+  CHECK(h.drawn(picker, EmojiPicker::Backdrop));
+  CHECK(moving.after(80));
+  settled(h, moving);
+  picker.close();
+  CHECK(moving.after(0));
+  CHECK(!h.drawn(picker, EmojiPicker::Backdrop));  // going, it is only a picture
+  settled(h, moving);
+  CHECK(!h.drawn(picker, EmojiPicker::Backdrop));
+}
+
 void test_a_path_can_fill_where_its_shapes_overlap() {
   UiHarness h;
   CHECK(h.start(100, 100));
@@ -594,6 +612,7 @@ int main() {
   test_the_chat_shakes_calms_and_ends();
   test_the_send_button_moves_out_for_a_second_line();
   test_a_refused_switch_shakes_its_tip_longer_than_the_tip_fades();
+  test_the_picker_comes_and_goes_and_lets_go();
   test_a_path_can_fill_where_its_shapes_overlap();
   test_every_tab_stands_where_the_code_puts_it();
   test_clicks_in_the_tabs_do_what_they_do_on_the_code();

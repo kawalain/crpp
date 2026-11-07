@@ -53,6 +53,7 @@ class EmojiPicker final : public Surface {
 
   bool open_ = false;
   unsigned long long opened_at_ = 0, closed_at_ = 0;  // closed_at_: fading out since then
+  float shown_left_ = 0;  // what a pack's screen said of its fade
   std::string current_;
   std::function<void(std::string id)> on_pick_;
   std::vector<std::string> ids_;

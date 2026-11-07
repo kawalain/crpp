@@ -1,7 +1,7 @@
 {
   "$schema": "http://json-schema.org/draft-07/schema#",
   "title": "The screen emoji of a Skin Pack",
-  "description": "A screen of a Skin Pack, as {\"draw\": [nodes]}. With no file for a screen, the program draws it itself.\nNumbers: @count, @offset, @scroll, @overflow, @selected.\nTexts: none.\nHits: backdrop, card, track, thumb, cell.\nPictures: cell.\nFields: none.\nSlots: none.\nReports: view, content, first, width, height.\nNotes: track.",
+  "description": "A screen of a Skin Pack, as {\"draw\": [nodes]}. With no file for a screen, the program draws it itself.\nNumbers: @count, @offset, @scroll, @overflow, @selected, @open, @fade_top, @fade_bottom, @thumb_on, @thumb_over, @thumb_y, @thumb_h.\nTexts: none.\nHits: backdrop, card, track, thumb, cell.\nPictures: cell.\nFields: none.\nSlots: none.\nReports: view, content, first, width, height, shown.\nNotes: track.",
   "allowComments": true,
   "allowTrailingCommas": true,
   "type": "object",
@@ -65,7 +65,8 @@
             "content",
             "first",
             "width",
-            "height"
+            "height",
+            "shown"
           ]
         },
         "text": {

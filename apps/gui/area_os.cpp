@@ -51,7 +51,7 @@ constexpr UINT_PTR graphics_timer = 102;  // WM_TIMER goes to its own procedure,
 
 // A shown window that nothing has happened on this long gives its pages back to the system.
 constexpr UINT quiet_trim_ms = 10000;
-constexpr UINT_PTR quiet_timer = 103;
+constexpr UINT_PTR quiet_timer = 103, unused_timer = 104;
 
 // Freed memory stays in the working set until asked for, and a heap keeps blocks it freed for
 // the next allocation. What is still in use comes back on the next touch, at the price of one
@@ -74,10 +74,28 @@ void CALLBACK release_graphics(HWND hwnd, UINT, UINT_PTR id, DWORD) {
 
 [[nodiscard]] bool in_room(const Shell& s) { return s.app.view() == View::Session; }
 
+[[nodiscard]] bool foreground_is_ours() {
+  DWORD pid = 0;
+  GetWindowThreadProcessId(GetForegroundWindow(), &pid);
+  return pid == GetCurrentProcessId();
+}
+
 void CALLBACK trim_when_quiet(HWND hwnd, UINT, UINT_PTR id, DWORD) {
   KillTimer(hwnd, id);
   const Shell& s = *state.shell;
   if (os_policy::trims_when_quiet(in_room(s), s.hidden)) give_back_pages();
+}
+
+// The window stays on screen as it was last presented; the next paint makes a device again.
+void CALLBACK release_when_unused(HWND hwnd, UINT, UINT_PTR id, DWORD) {
+  KillTimer(hwnd, id);
+  Shell& s = *state.shell;
+  if (!s.target || !os_policy::releases_when_unused(in_room(s), s.hidden, foreground_is_ours())) return;
+  s.target.reset();
+  drop_pane_targets(s);
+  s.app.ui().forget_render_target();
+  s.app.release_graphics();
+  give_back_pages();
 }
 
 [[nodiscard]] bool tray_wanted(const Shell& s) { return s.prefs->get(pref::minimize_to_tray); }
@@ -319,6 +337,7 @@ void first_show(Shell& s, bool minimized) {
 void painted(Shell& s) {
   if (s.hidden || in_room(s)) return;
   SetTimer(s.hwnd, quiet_timer, quiet_trim_ms, trim_when_quiet);
+  if (s.unused_release_ms) SetTimer(s.hwnd, unused_timer, s.unused_release_ms, release_when_unused);
 }
 
 bool on_message(Shell& s, UINT msg, WPARAM wp, LPARAM lp, LRESULT& result) {
@@ -353,9 +372,17 @@ bool on_message(Shell& s, UINT msg, WPARAM wp, LPARAM lp, LRESULT& result) {
     case WM_ACTIVATE:
       if (LOWORD(wp) != WA_INACTIVE) {
         on_seen(s);
-      } else if (s.app.room().member_menu().is_open()) {
-        s.app.room().member_menu().close();  // window.addEventListener("blur", closeMemberMenu)
-        InvalidateRect(s.hwnd, nullptr, FALSE);
+        // A device let go of comes back now, before the pointer asks for a frame.
+        if (!s.target && !s.hidden) {
+          InvalidateRect(s.hwnd, nullptr, FALSE);
+          invalidate_panes(s);
+        }
+      } else {
+        if (s.app.room().member_menu().is_open()) {
+          s.app.room().member_menu().close();  // window.addEventListener("blur", closeMemberMenu)
+          InvalidateRect(s.hwnd, nullptr, FALSE);
+        }
+        painted(s);  // the clock to letting go starts from here too
       }
       return false;
     case WM_DESTROY:

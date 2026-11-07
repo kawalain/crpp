@@ -63,6 +63,13 @@ void a_quiet_window_gives_back_its_pages_outside_a_room() {
   CHECK(!trims_when_quiet(false, true));  // hiding has done it already
 }
 
+void an_unused_window_lets_go_of_its_device_only_in_the_background() {
+  CHECK(releases_when_unused(false, false, false));
+  CHECK(!releases_when_unused(false, false, true));
+  CHECK(!releases_when_unused(true, false, false));
+  CHECK(!releases_when_unused(false, true, false));
+}
+
 void chat_on_a_focused_window_only_sounds() {
   const auto r = chat_reaction({.hidden = false, .focused = true});
   CHECK(r.sound);
@@ -193,6 +200,7 @@ int main() {
   hint_appears_once_in_a_room();
   hidden_means_not_on_screen();
   a_quiet_window_gives_back_its_pages_outside_a_room();
+  an_unused_window_lets_go_of_its_device_only_in_the_background();
   chat_on_a_focused_window_only_sounds();
   chat_while_away();
   chat_settings_are_honored();

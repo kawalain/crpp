@@ -17,6 +17,9 @@
 //   ... --update-url <url>        (not in official builds) look for updates at <url>,
 //                                 which must be signed with the key built in
 //   ... --updated-from <pid>      started by the update of process <pid>
+//   ... --release-unused <s>      let go of the graphics device after <s> seconds with
+//                                 nothing on the window and another program in front;
+//                                 off without it, until seen on a real desktop
 //   ... --data <dir>              (last) keep data in <dir>, not the user's
 //                                 folders; other instances are then allowed
 // A development build always allows other instances, and without --data keeps its data in
@@ -133,6 +136,10 @@ int main(int argc, char** argv) {
   }
   if (argc >= 3 && std::string(argv[argc - 2]) == "--updated-from") {
     updated_from = std::strtoul(argv[argc - 1], nullptr, 10);
+    argc -= 2;
+  }
+  if (argc >= 3 && std::string(argv[argc - 2]) == "--release-unused") {
+    shell.unused_release_ms = static_cast<UINT>(std::min(std::strtoul(argv[argc - 1], nullptr, 10), 86400ul) * 1000);
     argc -= 2;
   }
   shell.asset_manifest = assets::built_in_manifest();

@@ -150,6 +150,9 @@ struct Shell {
   unsigned long long last_frame_ms = 0;
   bool blink_timer_on = false;
   bool hidden = true;       // hidden or minimized: no render resources, no frames
+  // --release-unused: a shown window lets go of the graphics device after this long with
+  // nothing on it and another program in front. 0, off, until seen on a real desktop.
+  UINT unused_release_ms = 0;
   UINT dpi = USER_DEFAULT_SCREEN_DPI;
   bool own_frame = false;     // the window as it was last set up for the Skin
   std::string fitted_screen;  // which screen's size the window has; empty: the one size of all

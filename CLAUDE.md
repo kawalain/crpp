@@ -336,7 +336,8 @@ exist (real + test).
   takes about 10 times the CPU to scroll. Findings: `docs/research/memory-floor.md`.
 - Outside a Room a shown window gives its pages back 10 s after its last still frame: Task
   Manager's Memory falls from about 17 MB to under 1 MB, and a hover brings about 6 back. Commit
-  stays.
+  stays. `--release-unused <s>` also lets the device go (commit 65 to 12 MB); it is off until
+  verified, and meant to run at 180 s.
 - Frames have no cap of their own. Measured with an MSVC Release build at 125% on a hidden
   desktop, settings open: idle 0.0% of one core and about 47 MB working set; wheel
   scrolling without pause 0.6-1.9% at about 73 frames/s (a counter confirmed the frames),
@@ -385,6 +386,9 @@ exist (real + test).
 - Partial frames (a speaking disc over a retained frame) were measured on a hidden desktop,
   where one person typing went from 16.7% GPU to 0.0% and five at once from 17.5% to 10.7%.
   A real display adds composition, and Intel and AMD drivers have not run them.
+- `--release-unused`: whether a shown window keeps its picture after its device goes, how long its
+  first frame then takes, and Alt+Tab back to it, on a real desktop. Once seen, it runs at 180 s by
+  default. The trim when quiet has not run under memory pressure, where its pages may come back from disk.
 - Coming back from a hidden window that gave up its graphics has only run on a hidden
   desktop, on one NVIDIA card. See it on a real desktop, and on Intel and AMD drivers. The
   same goes for a chat notification drawn in that state.

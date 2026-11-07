@@ -43,6 +43,11 @@ namespace crpp::gui::os_policy {
 // come back one fault at a time.
 [[nodiscard]] constexpr bool trims_when_quiet(bool in_room, bool hidden) { return !in_room && !hidden; }
 
+// After longer, and while another program has the foreground, the graphics device goes too.
+[[nodiscard]] constexpr bool releases_when_unused(bool in_room, bool hidden, bool foreground) {
+  return trims_when_quiet(in_room, hidden) && !foreground;
+}
+
 struct ChatFacts {
   bool mine = false;
   bool muted = false;  // the sender, by this user's member volume

@@ -208,7 +208,8 @@ exist (real + test).
 
 - `locale`: `tr()` is the table of the current Locale, plain `const char*` fields; `fill` puts
   values into `{0}` and so on. A Locale also decides its line breaks and word lists. To add one,
-  copy `en.cpp` and list it in `locale.cpp`; a test finds what is missing. Pure.
+  copy `en.cpp` and list it in `locale.cpp`; a test finds what is missing. A new field also needs
+  a line in `keys.cpp`, the names a Skin Pack refers to wording by; the build says so. Pure.
 - `wire`: parse/encode server and client messages and input frames. Pure.
   Frames are at most 1024 bytes and at most 32 input events; use fixed buffers.
 - `session`: pure state machine `step(Event) -> Actions` (connect order,

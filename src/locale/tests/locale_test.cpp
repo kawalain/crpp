@@ -2,6 +2,7 @@
 #include <cstdio>
 #include <set>
 #include <string>
+#include <vector>
 
 #include "check.hpp"
 #include "crpp/locale/locale.hpp"
@@ -110,6 +111,20 @@ void test_english_formats() {
 
 }  // namespace
 
+void keys_name_every_field_once() {
+  std::vector<std::string_view> names;
+  const auto fields = strings_as_array(tr());
+  for (std::size_t i = 0; i < strings_count; ++i) {
+    const std::string_view name = key_name(i);
+    CHECK(key_index(name) == i);
+    CHECK(key_text(i) == fields[i]);  // the same order as the struct
+    names.push_back(name);
+  }
+  std::ranges::sort(names);
+  CHECK(std::ranges::adjacent_find(names) == names.end());
+  CHECK(!key_index("no_such_key").has_value());
+}
+
 int main() {
   test_every_locale_has_every_text();
   test_a_text_has_the_same_placeholders_in_every_locale();
@@ -118,5 +133,6 @@ int main() {
   test_fill_replaces_what_it_can();
   test_korean_formats();
   test_english_formats();
+  keys_name_every_field_once();
   return crpp_test_result();
 }

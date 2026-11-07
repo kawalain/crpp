@@ -1,4 +1,4 @@
-add_library(crpp_locale STATIC locale.cpp ko.cpp en.cpp)
+add_library(crpp_locale STATIC locale.cpp keys.cpp ko.cpp en.cpp)
 target_include_directories(crpp_locale PUBLIC include)
 crpp_target_defaults(crpp_locale)
 

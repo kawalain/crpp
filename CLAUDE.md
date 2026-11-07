@@ -188,6 +188,10 @@ A scene that opens a panel with a window of its own renders that window.
 draws the rest until `docs/plans/skin-packs.md` is done. `crpp_ui_skin_bench`, not part of a normal
 build, measures a pack against the C++ layout.
 
+Nothing may wait for a person in a scripted run. On a desktop nobody sees the app shows no dialog: when
+it cannot start, as when it refuses a pack, it exits with 3 and leaves the reason in `<png>.error`, or
+in `start-failure.txt` under `--data`. `render.ps1` stops there and at the first scene that takes 30 s.
+
 A change that must leave the screen as it was can prove it: `tests/shots/render.ps1` renders
 every scene in `scenes.txt` on a hidden desktop, before and after, and `compare.ps1` compares
 the folders by hash. A shot holds the clock, so the same scene always gives the same file.

@@ -40,8 +40,10 @@ public static class CrppHiddenDesktop {
     var si = new STARTUPINFO(); si.cb = Marshal.SizeOf(si); si.lpDesktop = desktop;
     PROCESS_INFORMATION pi;
     if (!CreateProcessW(exe, "\"" + exe + "\" " + args, IntPtr.Zero, IntPtr.Zero, false, 0, IntPtr.Zero, cwd, ref si, out pi)) return -2;
-    if (WaitForSingleObject(pi.hProcess, 30000) != 0) TerminateProcess(pi.hProcess, 1);
+    bool hung = WaitForSingleObject(pi.hProcess, 30000) != 0;
+    if (hung) TerminateProcess(pi.hProcess, 1);
     uint code; GetExitCodeProcess(pi.hProcess, out code);
+    if (hung) code = unchecked((uint)-3);
     CloseHandle(pi.hProcess); CloseHandle(pi.hThread);
     return (int)code;
   }
@@ -68,6 +70,9 @@ try {
     $options += $Extra
     $command = @('--shot', "`"$png`"", $Size, $Hour) + $words + $options + @('--data', "`"$data`"")
     $code = [CrppHiddenDesktop]::Run($desktop, $Exe, ($command -join ' '), (Split-Path $Exe))
+    # Either of these would be the same for every scene left, so going on only costs time.
+    if ($code -eq -3) { throw "$line did not finish in 30 s" }
+    if ($code -eq 3) { throw "$line could not start: $(Get-Content -Raw "$png.error" -ErrorAction SilentlyContinue)" }
     if ($code -ne 0) { Write-Output "FAILED $line -> $code"; $failed++ }
   }
 } finally {

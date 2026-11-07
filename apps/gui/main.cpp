@@ -23,6 +23,7 @@
 #include <cstdlib>
 #include <ctime>
 #include <expected>
+#include <fstream>
 
 #include "areas.hpp"
 #include "crpp/assets/built_in.hpp"
@@ -34,6 +35,14 @@ using namespace crpp;
 using namespace crpp::gui;
 
 namespace {
+
+// The exit code when a start failed where nobody could be told.
+constexpr int scripted_start_failure = 3;
+
+bool on_a_desktop_someone_sees() {
+  wchar_t name[64]{};
+  return GetUserObjectInformationW(GetThreadDesktop(GetCurrentThreadId()), UOI_NAME, name, sizeof name, nullptr) && std::wstring_view(name) == L"Default";
+}
 
 std::filesystem::path exe_dir() {
   wchar_t buf[MAX_PATH];
@@ -161,16 +170,22 @@ int main(int argc, char** argv) {
   const auto& assets = shell.assets_dir;
   // Windows refuses to replace an open font file, so one about to change stays closed.
   const bool font_pending = std::ranges::any_of(absent, [](const assets::Entry* entry) { return entry->path.ends_with(".ttf"); });
-  if (!shell.app.init(first_install ? std::filesystem::path{} : assets, !font_pending)) {
-    // There is no console to report to, and the app has no way to draw yet.
-    MessageBoxW(nullptr, ui::widen(locale::tr().start_failed).c_str(), L"Cloudroom++", MB_OK | MB_ICONERROR);
-    return 1;
-  }
-  if (!skin_dir.empty()) {
-    if (const auto loaded = shell.app.load_skin_dir(skin_dir); !loaded) {
-      MessageBoxW(nullptr, ui::widen(loaded.error()).c_str(), L"Cloudroom++", MB_OK | MB_ICONERROR);
+  const auto failed_to_start = [&](const std::string& reason) {
+    if (on_a_desktop_someone_sees()) {
+      // There is no console to report to, and the app has no way to draw yet.
+      MessageBoxW(nullptr, ui::widen(reason).c_str(), L"Cloudroom++", MB_OK | MB_ICONERROR);
       return 1;
     }
+    // Nobody could press a button there, so a dialog would hold a scripted run until it is killed.
+    std::filesystem::path report;
+    if (argc >= 3 && std::string(argv[1]) == "--shot") report = ui::widen(std::string(argv[2]) + ".error");
+    else if (!data_dir.empty()) report = data_dir / "start-failure.txt";
+    if (!report.empty()) std::ofstream(report, std::ios::binary) << reason;
+    return scripted_start_failure;
+  };
+  if (!shell.app.init(first_install ? std::filesystem::path{} : assets, !font_pending)) return failed_to_start(locale::tr().start_failed);
+  if (!skin_dir.empty()) {
+    if (const auto loaded = shell.app.load_skin_dir(skin_dir); !loaded) return failed_to_start(loaded.error());
   }
   for (const std::string_view id : assets::picker_emoji()) shell.app.ui().emoji_ids.emplace_back(id);
   std::time_t now = std::time(nullptr);

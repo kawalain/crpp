@@ -33,6 +33,8 @@ jobs:
           git merge-base --is-ancestor HEAD origin/main
           if ($LASTEXITCODE -ne 0) { throw 'the tag is not on main' }
           .github/scripts/release-notes.ps1 -Tag $env:TAG -Out dist/release-notes.md
+          # The build's version says so if the tree differs from the tag.
+          if (git status --porcelain) { throw "the tree is not clean: $(git status --porcelain)" }
           if ((Get-Content -Raw src/update/release_public_key.txt).Trim() -eq 'PLACEHOLDER') {
             throw 'src/update/release_public_key.txt still holds the placeholder; see docs/signing-key.md'
           }

@@ -12,6 +12,8 @@ namespace crpp::ui {
 [[nodiscard]] float ease(float t);
 // How far a transition that began at `start` has come, eased; 1 when animations are off.
 [[nodiscard]] float transition(const Ui& ui, unsigned long long start, float duration_ms);
+// CSS's `ease`, for t from 0 to 1.
+[[nodiscard]] float ease(float t);
 
 // A toggle (.switch, .toggle-row input). The knob is inset 3 from the track's edges.
 void paint_switch(Painter& p, const Theme& t, Rect r, bool on, bool disabled, bool hot);

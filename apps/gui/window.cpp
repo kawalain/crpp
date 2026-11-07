@@ -2,6 +2,7 @@
 #include <windowsx.h>
 
 #include <algorithm>
+#include <cmath>
 
 #include "areas.hpp"
 #include "crpp/ui/png.hpp"
@@ -11,6 +12,9 @@
 using namespace crpp::ui;
 
 namespace crpp::gui {
+
+// What the next frame has to draw: only the avatars, when nothing else moves.
+void invalidate_frame(Shell& s);
 
 namespace {
 
@@ -32,8 +36,10 @@ void ensure_target(Shell& s, HWND hwnd) {
   GetClientRect(hwnd, &rc);
   const auto dpi = static_cast<float>(s.dpi);
   const auto props = D2D1::RenderTargetProperties(D2D1_RENDER_TARGET_TYPE_DEFAULT, D2D1::PixelFormat(), dpi, dpi);
+  // Retained, as a frame may draw only part of the window.
   const auto hwnd_props = D2D1::HwndRenderTargetProperties(
-      hwnd, D2D1::SizeU(static_cast<UINT32>(rc.right - rc.left), static_cast<UINT32>(rc.bottom - rc.top)));
+      hwnd, D2D1::SizeU(static_cast<UINT32>(rc.right - rc.left), static_cast<UINT32>(rc.bottom - rc.top)),
+      D2D1_PRESENT_OPTIONS_RETAIN_CONTENTS);
   if (ID2D1Factory* const factory = s.app.factory()) factory->CreateHwndRenderTarget(props, hwnd_props, s.target.put());
 }
 
@@ -127,11 +133,23 @@ LRESULT CALLBACK wnd_proc(HWND hwnd, UINT msg, WPARAM wp, LPARAM lp) {
       PAINTSTRUCT ps;
       BeginPaint(hwnd, &ps);
       if (s->frame_running) s->app.tick(clock_ms());
+      const bool new_target = !s->target;
       ensure_target(*s, hwnd);
       if (s->target) {
         const D2D1_SIZE_F size = s->target->GetSize();  // in DIPs
         s->target->BeginDraw();
+        // The whole frame is walked, as hits and layout come from painting, but the GPU only
+        // touches what asked to be drawn. The rest is still there from the last frame.
+        const bool part = !new_target && !s->app.wants_full_frame() && (ps.rcPaint.right - ps.rcPaint.left < static_cast<LONG>(size.width * static_cast<float>(s->dpi) / 96) ||
+                                          ps.rcPaint.bottom - ps.rcPaint.top < static_cast<LONG>(size.height * static_cast<float>(s->dpi) / 96));
+        if (part) {
+          const auto to_dips = [&](LONG pixels) { return static_cast<float>(pixels) * 96 / static_cast<float>(s->dpi); };
+          s->target->SetTransform(D2D1::Matrix3x2F::Identity());
+          s->target->PushAxisAlignedClip(D2D1::RectF(to_dips(ps.rcPaint.left), to_dips(ps.rcPaint.top), to_dips(ps.rcPaint.right), to_dips(ps.rcPaint.bottom)),
+                                         D2D1_ANTIALIAS_MODE_ALIASED);
+        }
         s->app.paint(s->target.get(), size.width, size.height);
+        if (part) s->target->PopAxisAlignedClip();
         if (s->target->EndDraw() == D2DERR_RECREATE_TARGET) {
           s->target.reset();
           s->app.ui().forget_render_target();
@@ -146,8 +164,7 @@ LRESULT CALLBACK wnd_proc(HWND hwnd, UINT msg, WPARAM wp, LPARAM lp) {
       return 0;
     }
     case wm_ui_task:
-      s->tasks.run_all();
-      InvalidateRect(hwnd, nullptr, FALSE);
+      if (s->tasks.run_all()) InvalidateRect(hwnd, nullptr, FALSE);
       sync_blink(*s, hwnd);
       sync_frames(*s);
       if (s->store && s->store->has_unsaved() && !s->save_timer_on) {
@@ -246,11 +263,12 @@ LRESULT CALLBACK wnd_proc(HWND hwnd, UINT msg, WPARAM wp, LPARAM lp) {
         repaint(s->app.blink());
       } else if (wp == wake_timer) {
         KillTimer(hwnd, wake_timer);
-        repaint(s->app.tick(clock_ms()));
+        if (s->app.tick(clock_ms())) invalidate_frame(*s);
+        sync_frames(*s);
       } else if (wp == frame_timer) {
         KillTimer(hwnd, frame_timer);
         s->frame_timer_on = false;
-        InvalidateRect(hwnd, nullptr, FALSE);
+        invalidate_frame(*s);
       }
       return 0;
     default:
@@ -260,6 +278,18 @@ LRESULT CALLBACK wnd_proc(HWND hwnd, UINT msg, WPARAM wp, LPARAM lp) {
 }
 
 }  // namespace
+
+void invalidate_frame(Shell& s) {
+  if (const auto area = s.app.only_moving_area()) {
+    const auto pixels = [&](float dips, double round) {
+      return static_cast<LONG>(std::floor(static_cast<double>(dips) * s.dpi / 96 + round));
+    };
+    const RECT rc{pixels(area->x, 0), pixels(area->y, 0), pixels(area->right(), 1), pixels(area->bottom(), 1)};
+    InvalidateRect(s.hwnd, &rc, FALSE);
+  } else {
+    InvalidateRect(s.hwnd, nullptr, FALSE);
+  }
+}
 
 void sync_frames(Shell& s) {
   // While something moves, each frame asks for the next. Presenting waits for the display,
@@ -273,14 +303,14 @@ void sync_frames(Shell& s) {
   } else if (s.app.animating()) {
     s.frame_running = true;
     if (clock_ms() - s.last_frame_ms >= shortest_frame_ms) {
-      InvalidateRect(s.hwnd, nullptr, FALSE);
+      invalidate_frame(s);
     } else if (!s.frame_timer_on) {
       SetTimer(s.hwnd, frame_timer, static_cast<UINT>(shortest_frame_ms), nullptr);
       s.frame_timer_on = true;
     }
   } else if (s.frame_running) {
     s.frame_running = false;
-    if (s.app.tick(clock_ms())) InvalidateRect(s.hwnd, nullptr, FALSE);  // the last frame shows the end state
+    if (s.app.tick(clock_ms())) invalidate_frame(s);  // the last frame shows the end state
   }
   if (const auto at = s.app.wake_at()) {
     const auto now = clock_ms();

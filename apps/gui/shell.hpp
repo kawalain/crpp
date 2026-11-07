@@ -58,19 +58,34 @@ class UiTasks {
     }
     if (hwnd_) PostMessageW(hwnd_, wm_ui_task, 0, 0);
   }
-  void run_all() {
+  // For a task that asks for what it needs drawn itself, so it costs no full repaint.
+  void post_quiet(std::function<void()> f) {
+    {
+      std::lock_guard lock(m_);
+      q_.push_back(std::move(f));
+      ++quiet_;
+    }
+    if (hwnd_) PostMessageW(hwnd_, wm_ui_task, 0, 0);
+  }
+  // True if any of them may have changed what is on screen.
+  bool run_all() {
     std::deque<std::function<void()>> batch;
+    bool loud = false;
     {
       std::lock_guard lock(m_);
       batch.swap(q_);
+      loud = batch.size() > quiet_;
+      quiet_ = 0;
     }
     for (auto& f : batch) f();
+    return loud;
   }
 
  private:
   HWND hwnd_ = nullptr;
   std::mutex m_;
   std::deque<std::function<void()>> q_;
+  std::size_t quiet_ = 0;
 };
 
 // Every input goes to the server and, if the user wants, to their own speakers.

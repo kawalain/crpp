@@ -112,22 +112,66 @@ void RoomScreen::set_room(std::vector<MemberView> members, std::uint32_t me, std
   lock_pending_ = chat && chat_lock_ms > 0;
 }
 
-void RoomScreen::pulse(std::uint32_t slot) {
-  const auto until = clock_ms() + 140;
-  for (auto& p : pulses_) {
-    if (p.first == slot) {
-      p.second = until;
-      return;
-    }
-  }
-  pulses_.emplace_back(slot, until);
+float RoomScreen::Pulse::level(unsigned long long now, bool animations) const {
+  if (!animations) return now < until ? 1.0f : 0.0f;
+  const auto risen = [&](unsigned long long at) {
+    return rise_from + (1 - rise_from) * ease(static_cast<float>(at - std::min(at, start)) / speaking_fade_ms);
+  };
+  if (now < until) return risen(now);
+  return risen(until) * (1 - ease(static_cast<float>(now - until) / speaking_fade_ms));
 }
 
-bool RoomScreen::speaking(std::uint32_t slot) const {
-  for (const auto& p : pulses_) {
-    if (p.first == slot && p.second > ui_.now_ms) return true;
+bool RoomScreen::Pulse::moving(unsigned long long now, bool animations) const {
+  if (!animations) return false;
+  return now < start + static_cast<unsigned long long>(speaking_fade_ms) || now >= until;
+}
+
+void RoomScreen::pulse(std::uint32_t slot) {
+  // Nothing shows for someone muted (.mute-others .on::before), so nothing has to be drawn.
+  if (ui_.prefs && ui_.prefs->get(pref::mute_others)) return;
+  const auto member = std::ranges::find(members_, slot, &MemberView::slot);
+  if (member != members_.end() && slot != me_ && member_volume(member->cid) == 0) return;
+  const auto now = clock_ms();
+  const auto until = now + speaking_hold_ms;
+  for (auto& p : pulses_) {
+    if (p.slot != slot) continue;
+    // Still up, it stays up with nothing to draw; on its way down, it turns back.
+    if (now < p.until) p.until = until;
+    else p = {slot, p.level(now, ui_.animations), now, until};
+    return;
   }
-  return false;
+  pulses_.push_back({slot, 0, now, until});
+}
+
+float RoomScreen::speaking_level(std::uint32_t slot) const {
+  for (const auto& p : pulses_) {
+    if (p.slot == slot) return p.level(ui_.now_ms, ui_.animations);
+  }
+  return 0;
+}
+
+void RoomScreen::add_area(Rect& area, std::uint32_t slot) const {
+  for (const auto& [member, box] : member_rects_) {
+    if (member != slot) continue;
+    const Rect avatar{box.x + 6, box.y + 1.5f, 44, 44};
+    if (area.w <= 0) {
+      area = avatar;
+    } else {
+      const float right = std::max(area.right(), avatar.right()), bottom = std::max(area.bottom(), avatar.bottom());
+      area.x = std::min(area.x, avatar.x);
+      area.y = std::min(area.y, avatar.y);
+      area.w = right - area.x;
+      area.h = bottom - area.y;
+    }
+  }
+}
+
+std::optional<Rect> RoomScreen::only_moving_area() const {
+  if (needs_full_ || others_moving()) return std::nullopt;
+  Rect area = ended_area_;
+  for (const auto& p : pulses_) add_area(area, p.slot);
+  if (area.w <= 0) return std::nullopt;
+  return area;
 }
 
 void RoomScreen::show_profile(ProfileView profile) {
@@ -164,15 +208,32 @@ bool RoomScreen::shaking() const {
   return ui_.animations && blocked_id_ >= 0 && static_cast<float>(ui_.now_ms - std::min(ui_.now_ms, blocked_at_)) < tip_shake_ms;
 }
 
-bool RoomScreen::animating() const {
-  return !pulses_.empty() || tip_.animating(ui_) || copy_tip_.animating(ui_) || shaking() || profile_.animating() ||
+bool RoomScreen::others_moving() const {
+  return !arrivals_.empty() || tip_.animating(ui_) || copy_tip_.animating(ui_) || shaking() || profile_.animating() ||
          menu_.animating() || chat_panel_.animating();
 }
 
+bool RoomScreen::animating() const {
+  return others_moving() || std::ranges::any_of(pulses_, [&](const Pulse& p) { return p.moving(ui_.now_ms, ui_.animations); });
+}
+
 bool RoomScreen::tick(unsigned long long now_ms) {
-  const auto before = pulses_.size();
-  std::erase_if(pulses_, [&](const auto& p) { return p.second <= now_ms; });
-  bool changed = pulses_.size() != before;
+  // These change only the avatars, so they do not ask for the whole window.
+  bool pulse_moved = false;
+  std::erase_if(pulses_, [&](Pulse& p) {
+    const auto end = p.until + (ui_.animations ? static_cast<unsigned long long>(speaking_fade_ms) : 0);
+    if (now_ms >= end) {
+      add_area(ended_area_, p.slot);
+      pulse_moved = true;
+      return true;
+    }
+    // Reaching full strength and starting to fall both still need a frame.
+    const bool moving = p.moving(now_ms, ui_.animations);
+    if (moving || p.was_moving) pulse_moved = true;
+    p.was_moving = moving;
+    return false;
+  });
+  bool changed = false;
   if (tip_.animating(ui_) || copy_tip_.animating(ui_) || shaking() || menu_.animating()) changed = true;
   changed = profile_.tick(now_ms) || changed;
   changed = chat_panel_.tick(now_ms) || changed;
@@ -190,7 +251,8 @@ bool RoomScreen::tick(unsigned long long now_ms) {
     hint_muted_until_ = 0;
     changed = true;
   }
-  return changed;
+  needs_full_ = needs_full_ || changed;
+  return changed || pulse_moved;
 }
 
 unsigned long long RoomScreen::wake_at() const {
@@ -198,6 +260,10 @@ unsigned long long RoomScreen::wake_at() const {
   for (const auto wake : {copy_until_, hint_muted_until_, lock_pending_ ? chat_lock_at_ : 0ULL, profile_.wake_at(),
                           chat_panel_.wake_at()}) {
     if (wake != 0 && (at == 0 || wake < at)) at = wake;
+  }
+  // A held disc draws nothing until its fall begins.
+  for (const auto& p : pulses_) {
+    if (at == 0 || p.until < at) at = p.until;
   }
   return at;
 }
@@ -221,6 +287,8 @@ RoomScreen::Layout RoomScreen::layout() const {
 
 void RoomScreen::paint(Painter& p) {
   const Theme& t = ui_.theme;
+  needs_full_ = false;
+  ended_area_ = {};
   // The cloud, pushed down by cloud_dy.
   if (!cloud_) make_cloud();
   p.push(D2D1::Matrix3x2F::Translation(0, cloud_dy));
@@ -283,8 +351,13 @@ void RoomScreen::paint_members(Painter& p, const Layout& l) {
     if (ui_.hot(this, id)) p.fill_round(box, 14, with_alpha(t.hl, 0.2f));
     const float cx = x + 6 + 22, cy = y + 1.5f + 22;
     const bool muted_here = m.slot != me_ && member_volume(m.cid) == 0;
-    if (speaking(m.slot) && !muted_here) p.fill_ellipse(cx, cy, 22, 22, t.hl);
-    draw_svg(p, ui_.emoji_image(muted_here ? muted_emoji : m.emoji), {cx - 18, cy - 18, 36, 36}, m.offline ? 0.55f : 1.0f);
+    // .emoji-ring::before fades in and grows from .82.
+    if (const float level = speaking_level(m.slot); level > 0 && !muted_here) {
+      const float radius = 22 * (0.82f + 0.18f * level);
+      p.fill_ellipse(cx, cy, radius, radius, with_alpha(t.hl, t.hl.a * level));
+    }
+    draw_svg(p, ui_.emoji_image(muted_here ? muted_emoji : m.emoji), {cx - 18, cy - 18, 36, 36},
+             m.offline ? 0.55f : 1.0f);
     Color name = t.hl_text;
     if (m.offline) name = with_alpha(t.hl_text, 0.5f);
     p.text(m.nick.empty() ? "게스트" : m.nick, {x + 58, y + (47 - 26) / 2.0f, col_w - 58 - 12, 26},

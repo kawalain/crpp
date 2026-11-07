@@ -65,6 +65,11 @@ class RoomScreen final : public Surface {
   void show_profile(ProfileView profile);
   // A member made a sound: their emoji ring lights up briefly.
   void pulse(std::uint32_t slot);
+  // How strongly a member's speaking disc shows, from 0 to 1.
+  [[nodiscard]] float speaking_level(std::uint32_t slot) const;
+  // When only speaking discs move: all that the next frame has to draw.
+  [[nodiscard]] std::optional<Rect> only_moving_area() const;
+  [[nodiscard]] bool needs_full() const { return needs_full_; }
   void pulse_me() { pulse(me_); }
   void set_volume(int percent) { volume_ = percent; }
   // The buttons are not drawn under the settings panel.
@@ -121,7 +126,20 @@ class RoomScreen final : public Surface {
   [[nodiscard]] int member_volume(const std::string& cid) const;
   void set_volume_from(float x);
   [[nodiscard]] bool is_host() const { return host_ && *host_ == me_; }
-  [[nodiscard]] bool speaking(std::uint32_t slot) const;
+  // main.js SPEAKING_MS and .emoji-ring::before's transition. While held at full strength,
+  // renewing it needs no frame.
+  static constexpr unsigned long long speaking_hold_ms = 160;
+  static constexpr float speaking_fade_ms = 100;
+  struct Pulse {
+    std::uint32_t slot = 0;
+    float rise_from = 0;
+    unsigned long long start = 0, until = 0;
+    bool was_moving = true;
+    [[nodiscard]] float level(unsigned long long now, bool animations) const;
+    [[nodiscard]] bool moving(unsigned long long now, bool animations) const;
+  };
+  [[nodiscard]] bool others_moving() const;
+  void add_area(Rect& area, std::uint32_t slot) const;
 
   ChatPanel chat_panel_;
   ProfileCard profile_;
@@ -139,7 +157,9 @@ class RoomScreen final : public Surface {
   bool controls_shown_ = true;
   int volume_ = 30;
   Rect volume_track_;
-  std::vector<std::pair<std::uint32_t, unsigned long long>> pulses_;  // slot, expiry (ms)
+  std::vector<Pulse> pulses_;
+  Rect ended_area_;  // of pulses gone since the last frame, which still has to clear them
+  bool needs_full_ = false;
   Scroll members_scroll_;
   std::vector<std::pair<std::uint32_t, unsigned long long>> arrivals_;  // slot, when it arrived
   Rect members_area_;  // window coordinates

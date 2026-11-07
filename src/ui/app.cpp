@@ -106,6 +106,7 @@ std::vector<Surface*> App::layers() {
 }
 
 void App::paint(ID2D1RenderTarget* rt, float width, float height) {
+  full_frame_ = false;
   ui_.begin_frame(width, height, clock_ms());
   ui_.more_frames = false;
   Painter p(ui_.gfx, rt);
@@ -264,10 +265,24 @@ bool App::animating() {
   return false;
 }
 
+bool App::wants_full_frame() const { return full_frame_ || room_.needs_full(); }
+
+std::optional<Rect> App::only_moving_area() {
+  if (ui_.more_frames || view_ != View::Session || wants_full_frame()) return std::nullopt;
+  for (Surface* s : layers()) {
+    if (s != &room_ && s->animating()) return std::nullopt;
+  }
+  return room_.only_moving_area();
+}
+
 bool App::tick(unsigned long long now_ms) {
   ui_.now_ms = now_ms;
   bool changed = false;
-  for (Surface* s : layers()) changed = s->tick(now_ms) || changed;
+  for (Surface* s : layers()) {
+    const bool it_changed = s->tick(now_ms);
+    if (it_changed && s != &room_) full_frame_ = true;
+    changed = it_changed || changed;
+  }
   return changed;
 }
 

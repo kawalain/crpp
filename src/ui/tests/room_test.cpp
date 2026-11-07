@@ -51,6 +51,72 @@ void test_shadow_layers_follow_css() {
   for (std::size_t i = 0; i < shadow_steps; ++i) CHECK(shadow_layers()[i] > 0);
 }
 
+void test_a_speaking_disc_fades_in_holds_and_fades_out() {
+  UiHarness h;
+  CHECK(h.start());
+  enter(h);
+  Ui& ui = h.app.ui();
+  ui.animations = true;
+  RoomScreen& room = h.app.room();
+  const auto start = clock_ms();
+  room.pulse(1);
+  CHECK(room.only_moving_area().has_value());  // only the avatar has to be drawn
+  const auto at = [&](unsigned long long ms) {
+    (void)h.app.tick(start + ms);
+    return room.speaking_level(1);
+  };
+  const float rising = at(50);
+  CHECK(rising > 0 && rising < 1);
+  CHECK(room.animating());
+  // Past the rise it stays up with no frames at all, until the fall.
+  CHECK(at(110) > 0.99f);
+  CHECK(!room.animating());
+  CHECK(room.wake_at() >= start + 160);
+  room.pulse(1);  // someone keeps typing: nothing to draw
+  CHECK(!room.animating());
+  (void)at(110);
+  const auto end_of_hold = clock_ms() + 160;
+  CHECK(room.wake_at() <= end_of_hold);
+  const float falling = room.speaking_level(1);
+  CHECK(falling > 0.99f);
+  (void)h.app.tick(end_of_hold + 50);
+  const float low = room.speaking_level(1);
+  CHECK(low > 0 && low < 1);
+  CHECK(room.animating());
+  (void)h.app.tick(end_of_hold + 120);
+  CHECK(room.speaking_level(1) == 0);
+  CHECK(!room.animating());
+  // The last frame still clears it.
+  CHECK(room.only_moving_area().has_value());
+  h.render();
+  CHECK(!room.only_moving_area().has_value());
+}
+
+void test_nothing_is_drawn_for_someone_muted() {
+  UiHarness h;
+  CHECK(h.start());
+  enter(h);
+  RoomScreen& room = h.app.room();
+  h.app.ui().prefs->set(pref::mute_others, true);
+  room.pulse(1);
+  CHECK(!room.animating());
+  CHECK(room.wake_at() == 0);
+  h.app.ui().prefs->set(pref::mute_others, false);
+  room.pulse(1);
+  CHECK(room.wake_at() != 0);
+}
+
+void test_another_surface_changing_asks_for_the_whole_window() {
+  UiHarness h;
+  CHECK(h.start());
+  enter(h);
+  h.app.ui().animations = true;
+  h.app.room().pulse(1);
+  CHECK(h.app.only_moving_area().has_value());
+  h.app.toasts().toast("안녕");
+  CHECK(!h.app.only_moving_area().has_value());
+}
+
 void test_button_tips_follow_the_hover() {
   UiHarness h;
   CHECK(h.start());
@@ -1120,6 +1186,9 @@ void test_clearing_the_chat_starts_over() {
 
 int main() {
   test_shadow_layers_follow_css();
+  test_a_speaking_disc_fades_in_holds_and_fades_out();
+  test_nothing_is_drawn_for_someone_muted();
+  test_another_surface_changing_asks_for_the_whole_window();
   test_two_lines_move_the_send_button_out_of_the_box();
   test_mute_is_a_saved_setting();
   test_links_are_https_with_punctuation_left_out();

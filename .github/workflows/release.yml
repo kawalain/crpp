@@ -1,11 +1,12 @@
-# A tag v0.y.z on main becomes a published release: one exe and its signed manifest. Every
-# check comes before anything is published, and a failed run publishes nothing.
+# Publishes an existing tag v0.y.z on main: one exe and its signed manifest. Every check
+# comes before anything is published, and a failed run publishes nothing.
+# Releases are normally made with .github/scripts/release.ps1 on a developer's machine. This
+# runs only by hand, as Actions minutes are limited: gh workflow run release.yml --ref v0.y.z
 # See docs/signing-key.md for the key and docs/releases/README.md for the notes.
 name: Release
 
 on:
-  push:
-    tags: ['v0.*']
+  workflow_dispatch:
 
 permissions:
   contents: write
@@ -73,13 +74,4 @@ jobs:
           GH_TOKEN: ${{ github.token }}
           TAG: ${{ github.ref_name }}
         run: |
-          $ErrorActionPreference = 'Stop'
-          $lines = Get-Content -Encoding utf8 dist/release-notes.md
-          $title = $env:TAG
-          if ($lines.Count -gt 0 -and $lines[0] -match '^# (.+)$') {
-            $title = $Matches[1]
-            $lines = $lines | Select-Object -Skip 1
-          }
-          $lines | Set-Content -Encoding utf8NoBOM dist/notes.md
-          gh release create $env:TAG dist/crpp.exe dist/crpp-update.manifest --verify-tag --latest --title $title --notes-file dist/notes.md
-          if ($LASTEXITCODE -ne 0) { throw 'publishing failed' }
+          .github/scripts/publish-release.ps1 -Tag $env:TAG

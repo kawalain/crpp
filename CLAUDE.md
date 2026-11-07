@@ -21,7 +21,8 @@ and developer communities, not from memory.
   `input`, `AudioDevice`, `ui`, tray/notification). macOS/Linux adapters are
   added later without touching pure modules.
 - Windows builds use MSVC from Build Tools 2022 (`/std:c++latest` via CMake), locally
-  too. GCC on Linux builds and tests the pure modules in CI to keep them portable.
+  too. GCC on Linux builds and tests the pure modules in CI, run by hand with
+  `gh workflow run ci.yml`, to keep them portable.
 - Build is CMake + Ninja only; no package manager. Third-party code, if ever
   needed, is vendored in `third_party/` at a pinned version.
 - Tests use CTest with the tiny `tests/support/check.hpp`; no framework.
@@ -52,8 +53,10 @@ and developer communities, not from memory.
 - Every UI element is vector data (paths, SVG); no bitmaps. Animations follow
   upstream CSS durations and easings; where upstream has none (scrolling, screens, tabs,
   chat rows) the durations are ours, listed under Differences from upstream. App font: Pretendard GOV Variable.
-- Distribution differs from upstream: GitHub Actions builds, the app checks the
-  latest GitHub Release, and release notes are shown as the changelog. A release
+- Distribution differs from upstream: releases are built and published from a developer's
+  machine (`docs/releases/README.md`), the app checks the
+  latest GitHub Release, and release notes are shown as the changelog. GitHub Actions runs
+  only by hand, to save its limited minutes. A release
   is one exe plus a manifest signed with ECDSA P-256 (key in GitHub Secrets,
   public key in the app, verified with BCrypt). The app replaces itself and
   restarts; keep the apply step replaceable so an installer can take over later.

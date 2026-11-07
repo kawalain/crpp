@@ -143,6 +143,16 @@ void the_balance_is_locked_without_the_surround() {
   CHECK(f.h.drawn(f.tab, SoundTab::BalanceEnabled));
 }
 
+void a_tab_fading_out_keeps_its_edge_fades() {
+  Fixture f;
+  f.h.app.ui().animations = true;
+  f.show_end();
+  f.h.app.settings().select(SettingsPage::Display);
+  CHECK(f.h.app.settings().scroll_offset() == 0);  // the new tab starts at its top, without a fade there
+  CHECK(f.h.app.settings().left_fade_top() == edge_fade_px);
+  f.h.render();
+}
+
 void a_pack_is_picked_from_its_list() {
   Fixture f;
   CHECK(!f.h.drawn(f.tab, SoundTab::KeyboardList + 1));
@@ -253,6 +263,7 @@ int main() {
   a_slider_shows_its_tip_on_hover_and_while_dragged();
   every_toggle_flips_its_setting();
   the_balance_runs_from_55_to_90_and_can_be_off();
+  a_tab_fading_out_keeps_its_edge_fades();
   the_balance_is_said_in_words();
   the_balance_is_locked_without_the_surround();
   a_pack_is_picked_from_its_list();

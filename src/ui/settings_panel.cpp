@@ -61,6 +61,8 @@ void SettingsPanel::select(SettingsPage page) {
   if (open_ && page != page_ && ui_.animations) {
     left_page_ = page_;
     left_scroll_ = scroll_.drawn();
+    left_fade_top_ = scroll_.fade_top();
+    left_fade_bottom_ = scroll_.fade_bottom();
     left_at_ = clock_ms();
   }
   page_ = page;
@@ -144,7 +146,12 @@ void SettingsPanel::paint_panel(Painter& p) {
   ui_.push_hit_clip(ui_.to_window(content_area));
   p.rt()->PushAxisAlignedClip(D2D1::RectF(content_area.x, content_area.y, content_area.right(), content_area.bottom()),
                               D2D1_ANTIALIAS_MODE_PER_PRIMITIVE);
-  const bool fade = push_edge_fade(ui_, p, content_area, scroll_.fade_top(), scroll_.fade_bottom());
+  // Each tab has its own scroll, so each keeps the edge fades of where it stands.
+  const auto paint_tab = [&](SettingsTab& shown_tab, Rect at, float top, float bottom) {
+    const bool fade = push_edge_fade(ui_, p, content_area, top, bottom);
+    shown_tab.paint(p, at);
+    pop_edge_fade(p, fade);
+  };
   constexpr float tab_fade_ms = 140;
   const float change = left_at_ != 0 ? transition(ui_, left_at_, tab_fade_ms) : 1;
   if (change < 1) {
@@ -153,17 +160,16 @@ void SettingsPanel::paint_panel(Painter& p) {
     const bool hits = ui_.hits_enabled;
     ui_.hits_enabled = false;
     p.push_opacity(1 - change, content_area);
-    left.paint(p, {content_area.x, content_area.y - left_scroll_, 550, left.content_height()});
+    paint_tab(left, {content_area.x, content_area.y - left_scroll_, 550, left.content_height()}, left_fade_top_, left_fade_bottom_);
     p.pop_opacity();
     ui_.hits_enabled = hits;
     p.push_opacity(change, content_area);
-    current.paint(p, area);
+    paint_tab(current, area, scroll_.fade_top(), scroll_.fade_bottom());
     p.pop_opacity();
   } else {
     left_at_ = 0;
-    current.paint(p, area);
+    paint_tab(current, area, scroll_.fade_top(), scroll_.fade_bottom());
   }
-  pop_edge_fade(p, fade);
   p.rt()->PopAxisAlignedClip();
   ui_.pop_hit_clip();
 

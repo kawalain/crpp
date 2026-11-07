@@ -38,12 +38,16 @@
 // to whole pixels). A part knows no screen, so it takes hit_by and note_by: a
 // number, which a screen gives it as an argument with hit('name') or note('name'), and less than 0 for none.
 //
+// cursors names, for all seven of cursor_names, a part that draws it in a box of 32 by 32, and its hot
+// point there. A pack without them leaves the pointer to the system.
+//
 // Some constants are read by the program too: see required_constants. Fonts are installed ones, the
 // first of each list that this system has: korean for Korean and for every Hangul letter, other for
 // the other languages, caption for a style of role caption, with the size that font_size then is.
 //
 // A part may give w and h for a use that says none, and height: worked out after it has drawn,
 // from its own names, it is the height it took in a column.
+#include <array>
 #include <cstdint>
 #include <expected>
 #include <functional>
@@ -176,6 +180,16 @@ struct Paint {
   std::uint32_t first_stop = 0, stops = 0;
 };
 
+enum class CursorKind : std::uint8_t { Arrow, Hand, IBeam, SizeWE, SizeNS, SizeNWSE, SizeNESW };
+inline constexpr std::array<std::string_view, 7> cursor_names = {"arrow", "hand", "ibeam", "size_we", "size_ns", "size_nwse", "size_nesw"};
+// The box a cursor's part draws in.
+inline constexpr float cursor_box = 32;
+
+struct PackCursor {
+  std::uint32_t part = 0;
+  float hot_x = 0, hot_y = 0;
+};
+
 struct PackFonts {
   std::vector<std::string> korean, other, caption;
   float korean_size = 0, other_size = 0;
@@ -184,6 +198,7 @@ struct PackFonts {
 struct Pack {
   std::string id;
   std::optional<PackFonts> fonts;
+  std::optional<std::array<PackCursor, cursor_names.size()>> cursors;
   std::vector<Node> nodes;
   std::vector<Instr> code;
   std::vector<Style> styles;

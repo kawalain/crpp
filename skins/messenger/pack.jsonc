@@ -112,7 +112,9 @@
       "matte_idle": {"mix": ["edge_dark", "gray", 50]},
       "frame_idle": {"mix": ["frame_in", "edge_light", 70]},
       "close_down": "#b8351a",
-      "minimize_down": "#1740a8"
+      "minimize_down": "#1740a8",
+      "cursor_face": "#ffffff",
+      "cursor_line": "#000000"
     },
     "messengerdark": {
       "caption": [[0, "#4a6491"], [0.08, "#1d2f52"], [0.4, "#1d2f52"], [0.88, "#253a63"], [0.93, "#253a63"], [0.95, "#1d2f52"], [0.96, "#142440"], [1, "#142440"]],
@@ -204,7 +206,9 @@
       "matte_idle": {"mix": ["edge_dark", "gray", 50]},
       "frame_idle": {"mix": ["frame_in", "edge_light", 70]},
       "close_down": "#b8351a",
-      "minimize_down": "#1740a8"
+      "minimize_down": "#1740a8",
+      "cursor_face": "#ffffff",
+      "cursor_line": "#000000"
     }
   },
   "styles": {
@@ -543,6 +547,23 @@
         {"if": "close", "line": "$caption_ink", "x": "W-W*0.3", "y": "W*0.3", "x2": "W*0.3", "y2": "H-W*0.3", "width": 2},
         {"if": "!close", "fill": "$caption_ink", "x": "W*0.25", "y": "H-H*0.34", "w": "W*0.38", "h": 3}
       ]
-    }
+    },
+    // The pointer, made here after the white arrow of the time. Both Palettes have the same two colours.
+    "cursor_arrow": {"draw": [{"path": "M1.5 1.5 V18.5 L5.6 14.6 L8.6 21.5 L11.5 20.2 L8.5 13.5 H14 Z", "color": "$cursor_face", "soft": true}, {"path": "M1.5 1.5 V18.5 L5.6 14.6 L8.6 21.5 L11.5 20.2 L8.5 13.5 H14 Z", "color": "$cursor_line", "width": 1, "caps": "flat", "soft": true}]},
+    "cursor_hand": {"draw": [{"path": "M9 1.5 C10 1.5 10.5 2.2 10.5 3 V8.5 C11.5 8 13 8 13.5 9.5 C14.5 8.5 16 8.5 16.5 10 C17.5 9.2 19.5 9.5 19.5 11.5 V16 C19.5 18 18.5 19.5 18.5 21.5 H10.5 C10 19.5 7 17 4.8 14 C4 12.8 5.4 11.2 7.5 13.5 V3 C7.5 2.2 8 1.5 9 1.5 Z", "color": "$cursor_face", "soft": true}, {"path": "M9 1.5 C10 1.5 10.5 2.2 10.5 3 V8.5 C11.5 8 13 8 13.5 9.5 C14.5 8.5 16 8.5 16.5 10 C17.5 9.2 19.5 9.5 19.5 11.5 V16 C19.5 18 18.5 19.5 18.5 21.5 H10.5 C10 19.5 7 17 4.8 14 C4 12.8 5.4 11.2 7.5 13.5 V3 C7.5 2.2 8 1.5 9 1.5 Z", "color": "$cursor_line", "width": 1, "caps": "flat", "soft": true}, {"path": "M10.5 9 V14 M13.5 10 V14 M16.5 10.5 V14", "color": "$cursor_line", "width": 1, "caps": "flat", "soft": true}]},
+    "cursor_ibeam": {"draw": [{"path": "M13 7.5 H15 L16.5 9 L18 7.5 H20 M16.5 9 V24 M13 25.5 H15 L16.5 24 L18 25.5 H20", "color": "$cursor_face", "width": 3, "caps": "flat", "soft": true}, {"path": "M13 7.5 H15 L16.5 9 L18 7.5 H20 M16.5 9 V24 M13 25.5 H15 L16.5 24 L18 25.5 H20", "color": "$cursor_line", "width": 1, "caps": "flat", "soft": true}]},
+    "cursor_size_we": {"draw": [{"path": "M6 16 L11 11 V15 H21 V11 L26 16 L21 21 V17 H11 V21 Z", "color": "$cursor_face", "width": 2, "caps": "flat", "soft": true}, {"path": "M6 16 L11 11 V15 H21 V11 L26 16 L21 21 V17 H11 V21 Z", "color": "$cursor_line", "soft": true}]},
+    "cursor_size_ns": {"draw": [{"path": "M16 6 L21 11 H17 V21 H21 L16 26 L11 21 H15 V11 H11 Z", "color": "$cursor_face", "width": 2, "caps": "flat", "soft": true}, {"path": "M16 6 L21 11 H17 V21 H21 L16 26 L11 21 H15 V11 H11 Z", "color": "$cursor_line", "soft": true}]},
+    "cursor_size_nwse": {"draw": [{"path": "M8 8 H14.4 L12.2 10.2 L21.8 19.8 L24 17.6 V24 H17.6 L19.8 21.8 L10.2 12.2 L8 14.4 Z", "color": "$cursor_face", "width": 2, "caps": "flat", "soft": true}, {"path": "M8 8 H14.4 L12.2 10.2 L21.8 19.8 L24 17.6 V24 H17.6 L19.8 21.8 L10.2 12.2 L8 14.4 Z", "color": "$cursor_line", "soft": true}]},
+    "cursor_size_nesw": {"draw": [{"path": "M24 8 H17.6 L19.8 10.2 L10.2 19.8 L8 17.6 V24 H14.4 L12.2 21.8 L21.8 12.2 L24 14.4 Z", "color": "$cursor_face", "width": 2, "caps": "flat", "soft": true}, {"path": "M24 8 H17.6 L19.8 10.2 L10.2 19.8 L8 17.6 V24 H14.4 L12.2 21.8 L21.8 12.2 L24 14.4 Z", "color": "$cursor_line", "soft": true}]}
+  },
+  "cursors": {
+    "arrow": {"part": "cursor_arrow", "hot": [1, 1]},
+    "hand": {"part": "cursor_hand", "hot": [9, 1]},
+    "ibeam": {"part": "cursor_ibeam", "hot": [16, 16]},
+    "size_we": {"part": "cursor_size_we", "hot": [16, 16]},
+    "size_ns": {"part": "cursor_size_ns", "hot": [16, 16]},
+    "size_nwse": {"part": "cursor_size_nwse", "hot": [16, 16]},
+    "size_nesw": {"part": "cursor_size_nesw", "hot": [16, 16]}
   }
 }

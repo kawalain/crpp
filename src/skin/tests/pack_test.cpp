@@ -1,3 +1,4 @@
+#include <map>
 #include "crpp/skin/pack.hpp"
 
 #include <cmath>
@@ -476,6 +477,33 @@ void a_walk_ends_however_parts_multiply() {
 
 }  // namespace
 
+void test_cursors_are_all_there_or_refused() {
+  const auto with = [](std::string cursors) {
+    const std::map<std::string, std::string> files = {{"pack.jsonc", R"J({"format":1,"id":"t","palettes":{"a":{"ink":"#000000"}},"styles":{},"parts":{"p":{"draw":[{"fill":"$ink"}]}},"cursors":)J" + std::move(cursors) + "}"}};
+    return load_pack([files](std::string_view path) -> std::optional<std::string> {
+      const auto found = files.find(std::string(path));
+      if (found == files.end()) return std::nullopt;
+      return found->second;
+    }, {});
+  };
+  std::string all = "{";
+  for (const std::string_view name : cursor_names) all += '"' + std::string(name) + R"(":{"part":"p","hot":[2,3]},)";
+  all.back() = '}';
+  const auto good = with(all);
+  CHECK(good.has_value());
+  if (good) {
+    CHECK(good->cursors.has_value());
+    CHECK((*good->cursors)[static_cast<std::size_t>(CursorKind::IBeam)].hot_y == 3);
+  }
+  CHECK(!with(R"({"arrow":{"part":"p","hot":[2,3]}})").has_value());
+  std::string no_part = all;
+  no_part.replace(no_part.find("\"p\""), 3, "\"nobody\"");
+  CHECK(!with(no_part).has_value());
+  std::string outside = all;
+  outside.replace(outside.find("[2,3]"), 5, "[2,33]");
+  CHECK(!with(outside).has_value());
+}
+
 int main() {
   boxes_are_measured_from_the_box_around_them();
   siblings_read_each_others_boxes();
@@ -508,5 +536,6 @@ int main() {
   a_screen_without_a_file_is_left_out();
   sizes_are_limited();
   a_walk_ends_however_parts_multiply();
+  test_cursors_are_all_there_or_refused();
   return crpp_test_result();
 }

@@ -180,6 +180,7 @@
             "#theme_messenger_dark",
             "#display_theme",
             "#display_sync",
+            "#display_theme_cursor",
             "#display_light",
             "#display_dark",
             "#display_general",

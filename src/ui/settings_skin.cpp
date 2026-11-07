@@ -38,12 +38,12 @@ constexpr skin::Name sound_hits[] = {{"speaker_volume", SoundTab::SpeakerVolume}
 
 // --- display ---
 enum DisplayText : int { SampleSays, PercentText };
-enum DisplayNumber : int { Sync, Percent };
+enum DisplayNumber : int { Sync, Percent, HasCursors, ThemeCursorOn };
 constexpr skin::Name display_texts[] = {{"sample_says", SampleSays}, {"percent_text", PercentText}};
-constexpr skin::Name display_numbers[] = {{"sync", Sync}, {"percent", Percent}};
+constexpr skin::Name display_numbers[] = {{"sync", Sync}, {"percent", Percent}, {"has_cursors", HasCursors}, {"theme_cursor", ThemeCursorOn}};
 constexpr skin::Name display_slots[] = {{"theme_list", 0}, {"light_list", 1}, {"dark_list", 2}};
 constexpr skin::Name display_notes[] = {{"slider", 0}};
-constexpr skin::Name display_hits[] = {{"system_theme", DisplayTab::SystemTheme}, {"scale_slider", DisplayTab::ScaleSlider}};
+constexpr skin::Name display_hits[] = {{"system_theme", DisplayTab::SystemTheme}, {"scale_slider", DisplayTab::ScaleSlider}, {"theme_cursor", DisplayTab::ThemeCursor}};
 
 // --- notifications ---
 enum NotifyNumber : int { TrayN, FlashN, Sounds, SoundOn };
@@ -228,7 +228,14 @@ void DisplayTab::paint_pack(Painter& p, const skin::Screen& screen, Rect area) {
     }
 
     std::string_view text(int id, int) override { return id == SampleSays ? says_ : percent_text_; }
-    float number(int id, int) override { return id == Sync ? yes(s_.ui_.prefs->get(pref::system_theme)) : static_cast<float>(percent_); }
+    float number(int id, int) override {
+      switch (id) {
+        case Sync: return yes(s_.ui_.prefs->get(pref::system_theme));
+        case HasCursors: return yes(s_.ui_.pack->cursors.has_value());
+        case ThemeCursorOn: return yes(s_.ui_.prefs->get(pref::theme_cursor));
+        default: return static_cast<float>(percent_);
+      }
+    }
 
     void slot(int id, int, skin::Box box, const skin::SlotValues&) override {
       const Rect r = rect_of(box);

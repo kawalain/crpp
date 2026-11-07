@@ -19,6 +19,10 @@ bool apply_scene(Shell& s, std::string_view name) {
     s.app.show_controls_sheet();
     return true;
   }
+  if (name == "cursors") {
+    s.app.show_cursor_sheet();
+    return true;
+  }
   return area::connection::scene(s, name) || area::home::scene(s, name) || area::room::scene(s, name) ||
          area::sound::scene(s, name) || area::preferences::scene(s, name) || area::os::scene(s, name) ||
          area::account::scene(s, name) || area::update::scene(s, name);

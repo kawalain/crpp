@@ -21,6 +21,7 @@ bool system_prefers_dark() {
 }
 
 void apply_theme(Shell& s) {
+  forget_cursors(s);
   s.app.set_theme(effective_theme(*s.app.ui().prefs, system_prefers_dark()).id);
   area::sound::theme_changed(s);
   if (!s.hwnd) return;
@@ -233,6 +234,8 @@ void pref_changed(Shell& s, std::string_view key) {
   } else if (key == "chatScale" || key == "use24h") {
     apply_chat(s);
     InvalidateRect(s.hwnd, nullptr, FALSE);
+  } else if (key == pref::theme_cursor.name) {
+    reapply_cursor(s);
   } else if (key == "inputDetail") {
     s.input->set_privacy(s.app.ui().prefs->get(pref::input_detail) ? input::Privacy::Detail : input::Privacy::Presence);
   } else if (key == "logEnabled") {

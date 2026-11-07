@@ -168,6 +168,9 @@ against a real `server/` yet; do that once a local build of it is available.
   - Only links show the hand cursor, and none of the motion listed above runs.
   - Text is Gulim and Tahoma, the fonts of the time on this system, not Pretendard.
   - A message and someone entering sound as bells made in `synth`, not the pack's recordings.
+  - The pointer is drawn here too, and only in the app's windows: seven vector cursors of the Skin Pack, made into
+    system cursors when first needed. "테마 커서 사용" in the display tab, on by default and shown only for a Theme
+    with cursors, gives the system's back (`themeCursor`, a key of this client's own).
 
 ## Build
 
@@ -184,7 +187,8 @@ Options are read from the end of the command line: `crpp --shot <png> <size> <ho
 --data <dir>`. Put first, `--data` is ignored and the real app opens on the user's desktop
 with their data. A shot is in Korean and in the Theme of its scene unless `--locale <id>` or
 `--theme <id>` says otherwise. `auto` for the size renders the window size of the Skin's screen.
-A scene that opens a panel with a window of its own renders that window.
+A scene that opens a panel with a window of its own renders that window. Under `--skin-dir`, the scene `cursors`, which
+is not in `scenes.txt`, is a sheet of the pack's cursors.
 
 `--skin-dir <dir>` draws from the unsigned Skin Pack in that folder what it has, and the C++ layout
 draws the rest until `docs/plans/skin-packs.md` is done. `crpp_ui_skin_bench`, not part of a normal
@@ -249,6 +253,8 @@ exist (real + test).
   running one allocates nothing. Pure. A screen says what a pack can name in a `ScreenSchema`, keeps
   its state, hit ids and callbacks, and `SkinCanvas` in `ui` draws on a `Painter`. `skins/` holds the packs, and how to write one in its README.
   `keys.hpp` lists what a node may have, for the loader and for the JSON Schemas in `skins/schema`, which `crpp_skin_schema` writes and a test compares.
+  A panel with a window of its own reports its size, and `measure_screen` walks the screen without drawing to learn it. What the
+  program itself must know of a look, as a frame's sizes and each window's, is in constants that `required_constants` lists; fonts and cursors have sections of their own.
 - `assets`: fetch and verify files against the manifest CMake builds into the
   exe from `assets/` and `cmake/remote_assets.txt`. This repository's files are pinned
   to the commit that last changed `assets/`, which must be on GitHub before a release
@@ -369,6 +375,10 @@ exist (real + test).
 - Following the OS theme with a Theme of another Skin on the other side has only run in tests: the
   frame and window size should change with it.
 - The Messenger Themes' bells need ears: `crpp_soundtest --chimes`.
+- The pack's cursors have only been drawn into bitmaps, with `DrawIconEx` for the blending. See on a real desktop: their edges,
+  whether a resize keeps them during the drag, and whether the system puts its pointer shadow on them; Microsoft does not say,
+  so they draw none. `CursorBaseSize` for "Pointer size" is undocumented and taken from what Qt does; try other sizes, and whether
+  changing it sends `WM_SETTINGCHANGE`. Microsoft's sample calls a cursor's pixels premultiplied, while `DrawIconEx` blends them as straight.
 - Dead-peer detection (network cut) is untested.
 - Shared store compatibility is tested against upstream's format as read from
   its source, not yet against the upstream client itself.

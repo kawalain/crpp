@@ -182,6 +182,7 @@ constexpr Key keys[] = {
     KEY(theme_messenger_dark),
     KEY(display_theme),
     KEY(display_sync),
+    KEY(display_theme_cursor),
     KEY(display_light),
     KEY(display_dark),
     KEY(display_general),

@@ -29,6 +29,13 @@ A screen's schema lists what the program offers there: `@numbers` and `@texts` t
 pictures, fields, slots, reports and notes. A screen with no file is drawn by the program itself, so a pack can grow
 one screen at a time. The node language is described at the top of `src/skin/include/crpp/skin/pack.hpp`.
 
+## What the program reads
+
+`constants` are names for numbers anywhere in the pack, and the program reads some itself: `pack.schema.json` lists them. `own_frame`
+says the pack draws its window frame and gives every panel a window, which takes the frame's sizes and each window's too. `fonts` names
+installed fonts, the first this system has. `cursors` names a part for each of the seven, drawn in a box of 32 by 32, with the point that
+clicks: look at them with the scene `cursors`. Without `cursors`, the pointer is the system's.
+
 ## Trying a pack
 
 Check it, which says what is refused and where, then render it. Both stay on this machine. Build first with

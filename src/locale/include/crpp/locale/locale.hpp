@@ -200,6 +200,7 @@ struct Strings {
   const char* theme_messenger_dark;
   const char* display_theme;
   const char* display_sync;
+  const char* display_theme_cursor;
   const char* display_light;
   const char* display_dark;
   const char* display_general;

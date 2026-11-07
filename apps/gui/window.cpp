@@ -192,6 +192,7 @@ LRESULT CALLBACK wnd_proc(HWND hwnd, UINT msg, WPARAM wp, LPARAM lp) {
       return 0;
     }
     case WM_SETTINGCHANGE:
+      forget_cursors(*s);  // the next one takes the pointer's size as it is then
       area::preferences::system_settings_changed(*s);
       return 0;
     case WM_SETFOCUS:
@@ -357,11 +358,7 @@ LRESULT CALLBACK wnd_proc(HWND hwnd, UINT msg, WPARAM wp, LPARAM lp) {
       repaint(s->app.right_click(dips(GET_X_LPARAM(lp)), dips(GET_Y_LPARAM(lp))));
       return 0;
     case WM_SETCURSOR:
-      if (LOWORD(lp) == HTCLIENT) {
-        const Cursor c = s->app.cursor();
-        SetCursor(LoadCursorW(nullptr, MAKEINTRESOURCEW(c == Cursor::Hand ? 32649 : c == Cursor::IBeam ? 32513 : 32512)));
-        return TRUE;
-      }
+      if (apply_cursor(*s, LOWORD(lp), s->dpi)) return TRUE;
       break;
     case WM_CHAR:
       repaint(s->app.char_input(static_cast<wchar_t>(wp), (GetKeyState(VK_SHIFT) & 0x8000) != 0));

@@ -284,6 +284,28 @@ std::string pack_json_schema() {
   font_properties.set("other_size", with_doc(typed("number"), "font_size in the other languages."));
   fonts.set("properties", std::move(font_properties));
   properties.set("fonts", with_doc(std::move(fonts), "The fonts of the time, fitted to whole pixels. Without this the program uses its own font."));
+  Json cursor = typed("object");
+  cursor.set("required", strings({"part", "hot"}));
+  cursor.set("additionalProperties", Json(false));
+  Json cursor_properties = Json::object();
+  cursor_properties.set("part", with_doc(typed("string"), "A part that draws it in a box of 32 by 32."));
+  Json hot = typed("array");
+  hot.set("items", typed("number"));
+  hot.set("minItems", Json(2));
+  hot.set("maxItems", Json(2));
+  cursor_properties.set("hot", with_doc(std::move(hot), "The point that clicks, in that box."));
+  cursor.set("properties", std::move(cursor_properties));
+  Json cursors = typed("object");
+  Json cursor_names_json = Json::object();
+  Json::Array required_cursors;
+  for (const std::string_view name : cursor_names) {
+    cursor_names_json.set(std::string(name), cursor);
+    required_cursors.push_back(text_json(name));
+  }
+  cursors.set("properties", std::move(cursor_names_json));
+  cursors.set("required", Json(std::move(required_cursors)));
+  cursors.set("additionalProperties", Json(false));
+  properties.set("cursors", with_doc(std::move(cursors), "The pointer in this pack's windows, all of it or none. Without this it is the system's."));
   properties.set("palettes", with_doc(map_of(ref_to("#/definitions/palette")), "One per Theme id. All have the same entries."));
   properties.set("styles", with_doc(map_of(ref_to("#/definitions/style")), "Text styles."));
   properties.set("parts", with_doc(map_of(ref_to("#/definitions/part")), "Controls that screens use. A part can only use parts above it, and knows nothing of screens."));

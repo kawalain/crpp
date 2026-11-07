@@ -78,6 +78,183 @@
       },
       "description": "The fonts of the time, fitted to whole pixels. Without this the program uses its own font."
     },
+    "cursors": {
+      "type": "object",
+      "properties": {
+        "arrow": {
+          "type": "object",
+          "required": [
+            "part",
+            "hot"
+          ],
+          "additionalProperties": false,
+          "properties": {
+            "part": {
+              "type": "string",
+              "description": "A part that draws it in a box of 32 by 32."
+            },
+            "hot": {
+              "type": "array",
+              "items": {
+                "type": "number"
+              },
+              "minItems": 2,
+              "maxItems": 2,
+              "description": "The point that clicks, in that box."
+            }
+          }
+        },
+        "hand": {
+          "type": "object",
+          "required": [
+            "part",
+            "hot"
+          ],
+          "additionalProperties": false,
+          "properties": {
+            "part": {
+              "type": "string",
+              "description": "A part that draws it in a box of 32 by 32."
+            },
+            "hot": {
+              "type": "array",
+              "items": {
+                "type": "number"
+              },
+              "minItems": 2,
+              "maxItems": 2,
+              "description": "The point that clicks, in that box."
+            }
+          }
+        },
+        "ibeam": {
+          "type": "object",
+          "required": [
+            "part",
+            "hot"
+          ],
+          "additionalProperties": false,
+          "properties": {
+            "part": {
+              "type": "string",
+              "description": "A part that draws it in a box of 32 by 32."
+            },
+            "hot": {
+              "type": "array",
+              "items": {
+                "type": "number"
+              },
+              "minItems": 2,
+              "maxItems": 2,
+              "description": "The point that clicks, in that box."
+            }
+          }
+        },
+        "size_we": {
+          "type": "object",
+          "required": [
+            "part",
+            "hot"
+          ],
+          "additionalProperties": false,
+          "properties": {
+            "part": {
+              "type": "string",
+              "description": "A part that draws it in a box of 32 by 32."
+            },
+            "hot": {
+              "type": "array",
+              "items": {
+                "type": "number"
+              },
+              "minItems": 2,
+              "maxItems": 2,
+              "description": "The point that clicks, in that box."
+            }
+          }
+        },
+        "size_ns": {
+          "type": "object",
+          "required": [
+            "part",
+            "hot"
+          ],
+          "additionalProperties": false,
+          "properties": {
+            "part": {
+              "type": "string",
+              "description": "A part that draws it in a box of 32 by 32."
+            },
+            "hot": {
+              "type": "array",
+              "items": {
+                "type": "number"
+              },
+              "minItems": 2,
+              "maxItems": 2,
+              "description": "The point that clicks, in that box."
+            }
+          }
+        },
+        "size_nwse": {
+          "type": "object",
+          "required": [
+            "part",
+            "hot"
+          ],
+          "additionalProperties": false,
+          "properties": {
+            "part": {
+              "type": "string",
+              "description": "A part that draws it in a box of 32 by 32."
+            },
+            "hot": {
+              "type": "array",
+              "items": {
+                "type": "number"
+              },
+              "minItems": 2,
+              "maxItems": 2,
+              "description": "The point that clicks, in that box."
+            }
+          }
+        },
+        "size_nesw": {
+          "type": "object",
+          "required": [
+            "part",
+            "hot"
+          ],
+          "additionalProperties": false,
+          "properties": {
+            "part": {
+              "type": "string",
+              "description": "A part that draws it in a box of 32 by 32."
+            },
+            "hot": {
+              "type": "array",
+              "items": {
+                "type": "number"
+              },
+              "minItems": 2,
+              "maxItems": 2,
+              "description": "The point that clicks, in that box."
+            }
+          }
+        }
+      },
+      "required": [
+        "arrow",
+        "hand",
+        "ibeam",
+        "size_we",
+        "size_ns",
+        "size_nwse",
+        "size_nesw"
+      ],
+      "additionalProperties": false,
+      "description": "The pointer in this pack's windows, all of it or none. Without this it is the system's."
+    },
     "palettes": {
       "type": "object",
       "additionalProperties": {

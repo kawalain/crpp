@@ -130,8 +130,16 @@ struct PaneWindow {
   float fitted_w = 0, fitted_h = 0;
 };
 
+// A system cursor made from the pack, for one size.
+struct MadeCursor {
+  skin::CursorKind kind;
+  int size;
+  HCURSOR cursor;
+};
+
 struct Shell {
   ui::App app;
+  std::vector<MadeCursor> cursors;
   UiTasks tasks;
   HWND hwnd = nullptr;
   ui::ComPtr<ID2D1HwndRenderTarget> target;
@@ -197,6 +205,12 @@ void sync_frames(Shell& s);
 // For the other windows of a Skin's own frame.
 [[nodiscard]] std::string saved_size_key(std::string_view screen, std::string_view side);
 void set_frame_region(HWND hwnd, UINT dpi, float radius_dips);
+// Answers WM_SETCURSOR for this hit test. False: the system's default is right.
+[[nodiscard]] bool apply_cursor(Shell& s, UINT hit, UINT dpi);
+// The setting changed: whatever is under the pointer shows it now.
+void reapply_cursor(Shell& s);
+// The look or the system's pointer settings changed.
+void forget_cursors(Shell& s);
 [[nodiscard]] LRESULT frame_hit_code(ui::WindowFrame::Zone zone);
 void place_ime(Shell& s, HWND hwnd, UINT dpi);
 [[nodiscard]] std::wstring ime_string(HIMC imc, DWORD kind);

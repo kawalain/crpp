@@ -1,5 +1,6 @@
 // Home drawn from the Messenger pack in skins/: the same places to click as the C++ layout, and
 // the same results. Their pixels are compared with tests/shots while both forms exist.
+#include <algorithm>
 #include <cmath>
 #include <filesystem>
 #include <fstream>
@@ -10,6 +11,7 @@
 #include <vector>
 
 #include "check.hpp"
+#include "crpp/ui/cursor_image.hpp"
 #include "ui_harness.hpp"
 
 using namespace crpp::ui;
@@ -504,6 +506,96 @@ void test_the_pack_says_how_windows_are_measured() {
   std::filesystem::remove_all(std::filesystem::temp_directory_path() / "crpp_skin_changed_pack", ignored);
 }
 
+// What a system cursor looks like at a point, drawn over a colour.
+std::uint32_t drawn_over(HCURSOR cursor, int size, std::uint32_t background, int x, int y) {
+  BITMAPINFO info{};
+  info.bmiHeader.biSize = sizeof info.bmiHeader;
+  info.bmiHeader.biWidth = size;
+  info.bmiHeader.biHeight = -size;
+  info.bmiHeader.biPlanes = 1;
+  info.bmiHeader.biBitCount = 32;
+  info.bmiHeader.biCompression = BI_RGB;
+  void* bits = nullptr;
+  HDC dc = CreateCompatibleDC(nullptr);
+  HBITMAP bitmap = CreateDIBSection(dc, &info, DIB_RGB_COLORS, &bits, nullptr, 0);
+  HGDIOBJ old = SelectObject(dc, bitmap);
+  auto* const pixels = static_cast<std::uint32_t*>(bits);
+  std::fill_n(pixels, size * size, background);
+  DrawIconEx(dc, 0, 0, cursor, size, size, 0, nullptr, DI_NORMAL);
+  GdiFlush();
+  const std::uint32_t found = pixels[y * size + x] & 0xFFFFFF;
+  SelectObject(dc, old);
+  DeleteObject(bitmap);
+  DeleteDC(dc);
+  return found;
+}
+
+void test_the_cursors_of_the_pack_become_system_cursors() {
+  UiHarness h;
+  CHECK(h.start(640, 500));
+  h.app.set_theme("messenger");
+  CHECK(!make_cursor_image(h.app.ui(), crpp::skin::CursorKind::Arrow, 32).has_value());
+  CHECK(!h.app.theme_cursors());
+  CHECK(h.app.load_skin_dir(messenger_pack).has_value());
+  CHECK(h.app.theme_cursors());
+
+  for (std::size_t i = 0; i < crpp::skin::cursor_names.size(); ++i) {
+    const auto image = make_cursor_image(h.app.ui(), static_cast<crpp::skin::CursorKind>(i), 32);
+    CHECK(image.has_value());
+    if (!image) continue;
+    CHECK(std::ranges::any_of(image->pixels, [](std::uint32_t pixel) { return (pixel >> 24) == 255; }));
+    CHECK(std::ranges::any_of(image->pixels, [](std::uint32_t pixel) { return pixel == 0; }));
+    HCURSOR cursor = make_system_cursor(*image);
+    CHECK(cursor != nullptr);
+    if (!cursor) continue;
+    ICONINFO icon{};
+    CHECK(GetIconInfo(cursor, &icon));
+    CHECK(!icon.fIcon);
+    CHECK(static_cast<int>(icon.xHotspot) == image->hot_x && static_cast<int>(icon.yHotspot) == image->hot_y);
+    DeleteObject(icon.hbmMask);
+    DeleteObject(icon.hbmColor);
+    DestroyCursor(cursor);
+  }
+
+  // The white arrow, black at its edge, and nothing around it, whatever is behind.
+  const auto arrow = make_cursor_image(h.app.ui(), crpp::skin::CursorKind::Arrow, 32);
+  CHECK(arrow.has_value());
+  if (arrow) {
+    CHECK(arrow->hot_x == 1 && arrow->hot_y == 1);
+    HCURSOR cursor = make_system_cursor(*arrow);
+    CHECK(drawn_over(cursor, 32, 0x000000, 4, 10) == 0xFFFFFF);
+    CHECK(drawn_over(cursor, 32, 0xFFFFFF, 4, 10) == 0xFFFFFF);
+    CHECK(drawn_over(cursor, 32, 0x123456, 30, 30) == 0x123456);
+    // A pixel the edge covers only partly comes out as it was drawn: its colour is not darkened twice.
+    for (int x = 0; x < 32; ++x) {
+      for (int y = 0; y < 32; ++y) {
+        const std::uint32_t pixel = arrow->pixels[static_cast<std::size_t>(y * 32 + x)];
+        const std::uint32_t alpha = pixel >> 24, blue = pixel & 255;
+        if (alpha == 0 || alpha == 255) continue;
+        CHECK(blue <= alpha);
+        const std::uint32_t over_black = drawn_over(cursor, 32, 0x000000, x, y) & 255;
+        CHECK(over_black + 2 >= blue && over_black <= blue + 2);
+      }
+    }
+    DestroyCursor(cursor);
+  }
+  const auto larger = make_cursor_image(h.app.ui(), crpp::skin::CursorKind::IBeam, 48);
+  CHECK(larger.has_value());
+  if (larger) CHECK(larger->size == 48 && larger->hot_x == 24 && larger->hot_y == 24);
+
+  // The check in the display tab, for a Theme with cursors.
+  h.app.show_home();
+  h.app.settings().open(SettingsPage::Display);
+  h.on_pane(Pane::Options);
+  DisplayTab& display = h.app.settings().display();
+  CHECK(h.click(display, DisplayTab::ThemeCursor));
+  CHECK(!h.app.theme_cursors());
+  CHECK(h.click(display, DisplayTab::ThemeCursor));
+  CHECK(h.app.theme_cursors());
+  h.app.settings().close();
+  h.on_pane(Pane::Main);
+}
+
 void test_a_folder_without_a_pack_is_refused_and_changes_nothing() {
   UiHarness h;
   start_on_home(h);
@@ -529,6 +621,7 @@ int main() {
   test_the_emoji_from_the_pack_walk_only_what_is_in_view();
   test_a_list_from_the_pack_picks_and_the_notes_scroll();
   test_the_pack_says_how_windows_are_measured();
+  test_the_cursors_of_the_pack_become_system_cursors();
   test_a_folder_without_a_pack_is_refused_and_changes_nothing();
   return crpp_test_result();
 }

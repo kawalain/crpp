@@ -35,7 +35,8 @@ A smaller exe and less memory are not goals.
   stop at the app's windows. Seven: arrow, hand, I-beam and four for resizing. Cloud's pack has none and uses the
   system's. Both Messenger Themes share one set, modelled on the white arrow of the time and drawn here, with an
   I-beam that has a white edge to show on any field. They scale with the window's DPI and follow Windows' pointer
-  size and shadow settings. A "테마 커서 사용" check in the display tab, on by default and shown only for a Theme
+  size. The shadow is left to the system, as no source says whether it adds one to such a cursor and drawing one could
+  double it. A "테마 커서 사용" check in the display tab, on by default and shown only for a Theme
   with cursors, turns them off (`themeCursor`, a key of this client's own). OS menus and IME windows stay the
   system's. Whether resizing keeps them during the drag needs a real desktop.
 

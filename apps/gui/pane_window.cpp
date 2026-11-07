@@ -162,11 +162,7 @@ LRESULT CALLBACK pane_proc(HWND hwnd, UINT msg, WPARAM wp, LPARAM lp) {
       return 0;
     }
     case WM_SETCURSOR:
-      if (LOWORD(lp) == HTCLIENT) {
-        const Cursor c = s.app.cursor();
-        SetCursor(LoadCursorW(nullptr, MAKEINTRESOURCEW(c == Cursor::Hand ? 32649 : c == Cursor::IBeam ? 32513 : 32512)));
-        return TRUE;
-      }
+      if (apply_cursor(s, LOWORD(lp), w->dpi)) return TRUE;
       break;
     case WM_CHAR:
       changed(s.app.char_input(static_cast<wchar_t>(wp), (GetKeyState(VK_SHIFT) & 0x8000) != 0));

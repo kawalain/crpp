@@ -101,6 +101,8 @@ class App {
   [[nodiscard]] bool own_frame() const { return !ui_.skin().scales_stage(); }
   [[nodiscard]] ScreenSize screen_size() const;
   [[nodiscard]] FrameMetrics frame_metrics() const;
+  // Is the pointer in these windows the pack's? Otherwise it is the system's.
+  [[nodiscard]] bool theme_cursors() const;
   // The settings surfaces read and change; in memory until the shell sets its own.
   void set_prefs(Prefs& prefs) { ui_.prefs = &prefs; }
 
@@ -127,6 +129,7 @@ class App {
 
   // For --shot luna-controls: nothing but the page of controls.
   void show_controls_sheet() { controls_sheet_ = true; }
+  void show_cursor_sheet() { cursor_sheet_ = true; }
 
   // --- windows ---
   // Which panels should have a window now, in the order to make them.
@@ -184,6 +187,7 @@ class App {
   void paint_screen(Painter& p, View view);
   void paint_screens(Painter& p);
   void paint_controls_sheet(Painter& p);
+  void paint_cursor_sheet(Painter& p);
   void paint_layers(Painter& p);
 
   Ui ui_;
@@ -219,7 +223,7 @@ class App {
   bool room_leaving_ = false;
   bool full_frame_ = false;
   bool animations_wanted_ = true;
-  bool controls_sheet_ = false;
+  bool controls_sheet_ = false, cursor_sheet_ = false;
 };
 
 // While this lives, the app is on this window. A window's messages run in one, as what they

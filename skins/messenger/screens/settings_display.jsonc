@@ -6,7 +6,8 @@
         {"use": "form_check", "text": "#display_sync", "hit": "system_theme", "args": {"on": "@sync"}},
         {"if": "@sync", "use": "form_combo", "text": "#display_light", "after": 4, "draw": [{"slot": "light_list"}]},
         {"if": "@sync", "use": "form_combo", "text": "#display_dark", "after": 4, "draw": [{"slot": "dark_list"}]},
-        {"if": "!@sync", "use": "form_combo", "text": "#display_general", "after": 4, "draw": [{"slot": "theme_list"}]}
+        {"if": "!@sync", "use": "form_combo", "text": "#display_general", "after": 4, "draw": [{"slot": "theme_list"}]},
+        {"if": "@has_cursors", "use": "form_check", "text": "#display_theme_cursor", "hit": "theme_cursor", "args": {"on": "@theme_cursor"}}
       ]},
       {"use": "form_group", "text": "#room_word_chat", "draw": [
         {"let": "size", "value": "round(font_size*@percent/100)"},

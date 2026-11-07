@@ -139,7 +139,7 @@ class DisplayTab final : public SettingsTab {
  public:
   explicit DisplayTab(Ui& ui);
   [[nodiscard]] static skin::ScreenSchema schema();
-  enum Id : int { SystemTheme = 1, ScaleSlider, ThemeList = 100, LightList = 110, DarkList = 120 };
+  enum Id : int { SystemTheme = 1, ScaleSlider, ThemeCursor, ThemeList = 100, LightList = 110, DarkList = 120 };
 
   // Asked whenever the tab comes on screen, for who the chat sample shows.
   std::function<void()> on_shown;

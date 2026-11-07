@@ -47,6 +47,7 @@ inline constexpr Text reverb{"reverb", "office"};
 // --- display tab ---
 inline constexpr Text theme{"theme", "cloudroom"};
 inline constexpr Bool system_theme{"systemTheme", false};
+inline constexpr Bool theme_cursor{"themeCursor", true};  // a key of this client's own
 inline constexpr Text light_theme{"lightTheme", "cloudroom"};
 inline constexpr Text dark_theme{"darkTheme", "darkcloud"};
 inline constexpr Int chat_scale{"chatScale", 100};
@@ -75,7 +76,7 @@ inline constexpr Bool pin_tip_seen{"pinTipSeen", false};
 
 // What "설정 초기화" puts back. Account and Room values are not settings.
 inline constexpr std::array all_bool{mute_others,       listen_self,       others_use_my_sounds, mute_on_idle,    mute_notifications_on_mute,
-                                     spatial_audio,     channel_balance_enabled, system_theme, chat_tray_notify,
+                                     spatial_audio,     channel_balance_enabled, system_theme, theme_cursor, chat_tray_notify,
                                      chat_taskbar_flash, start_with_system,   minimize_to_tray, use_24h,
                                      log_enabled,       input_detail};
 inline constexpr std::array all_int{volume, keyboard_volume, mouse_volume, pen_volume, channel_balance, chat_scale, idle_minutes};

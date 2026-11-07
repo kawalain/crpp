@@ -164,6 +164,8 @@ void DisplayTab::click(int id, float x, float, bool) {
   Prefs& prefs = *ui_.prefs;
   if (id == SystemTheme) {
     prefs.set(pref::system_theme, !prefs.get(pref::system_theme));
+  } else if (id == ThemeCursor) {
+    prefs.set(pref::theme_cursor, !prefs.get(pref::theme_cursor));
   } else if (id == ScaleSlider) {
     ui_.capture = this;
     drag(x, 0);

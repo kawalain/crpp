@@ -114,6 +114,8 @@ void App::set_theme(std::string_view id) {
   skin_changed();
 }
 
+bool App::theme_cursors() const { return ui_.theme.from_pack && pack_->cursors && ui_.prefs && ui_.prefs->get(pref::theme_cursor); }
+
 FrameMetrics App::frame_metrics() const {
   if (!ui_.theme.from_pack || !own_frame()) return {};
   const skin::Pack& k = *pack_;
@@ -410,6 +412,10 @@ void App::paint(ID2D1RenderTarget* rt, float width, float height) {
   p.clear(ui_.theme.sky);
   if (controls_sheet_) {
     paint_controls_sheet(p);
+    return;
+  }
+  if (cursor_sheet_) {
+    paint_cursor_sheet(p);
     return;
   }
   const bool own = own_frame();

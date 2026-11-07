@@ -77,6 +77,7 @@ class Loader final : public Names {
     if (const Json* constants = root->find("constants"); constants && !load_constants(*constants)) return false;
     if (const Json* fonts = root->find("fonts"); fonts && !load_fonts(*fonts)) return false;
     if (!load_palettes(root->find("palettes")) || !load_styles(root->find("styles")) || !load_parts(root->find("parts"))) return false;
+    if (const Json* cursors = root->find("cursors"); cursors && !load_cursors(*cursors)) return false;
     for (const ScreenSchema& schema : schemas) {
       if (!load_screen(schema)) return false;
     }
@@ -229,6 +230,29 @@ class Loader final : public Names {
     if (!names("korean", fonts.korean) || !names("other", fonts.other) || !names("caption", fonts.caption)) return false;
     if (!size("korean_size", fonts.korean_size) || !size("other_size", fonts.other_size)) return false;
     pack_.fonts = std::move(fonts);
+    return true;
+  }
+
+  bool load_cursors(const Json& json) {
+    const Json::Object* all = json.as_object();
+    if (!all) return fail("cursors is not an object");
+    if (all->size() != cursor_names.size()) return fail("cursors has to name all of them");
+    std::array<PackCursor, cursor_names.size()> cursors;
+    for (std::size_t i = 0; i < cursor_names.size(); ++i) {
+      const std::string name(cursor_names[i]);
+      const Json* entry = json.find(name);
+      if (!entry) return fail("cursors has no \"" + name + "\"");
+      const Json* part = entry->find("part");
+      const auto found = part && part->as_string() ? std::ranges::find(pack_.parts, *part->as_string(), &Part::name) : pack_.parts.end();
+      if (found == pack_.parts.end()) return fail("the cursor \"" + name + "\" names no part");
+      const Json* hot = entry->find("hot");
+      const Json::Array* point = hot ? hot->as_array() : nullptr;
+      if (!point || point->size() != 2) return fail("the cursor \"" + name + "\" has no hot point");
+      const auto x = as_float((*point)[0]), y = as_float((*point)[1]);
+      if (!x || !y || *x < 0 || *y < 0 || *x >= cursor_box || *y >= cursor_box) return fail("the hot point of the cursor \"" + name + "\" is outside it");
+      cursors[i] = {static_cast<std::uint32_t>(found - pack_.parts.begin()), *x, *y};
+    }
+    pack_.cursors = cursors;
     return true;
   }
 

@@ -354,6 +354,135 @@ void test_scrolling_settles_and_the_bar_goes_away() {
   CHECK(!moving.after(1000));
 }
 
+void enter(UiHarness& h, bool chat) {
+  h.app.show_session("ABC234");
+  h.app.room().set_room({{0, "Me", "", false, "c0"}, {1, "Other", "", false, "c1"}, {2, "Third", "", true, "c2"}}, 0, 0, false, chat);
+}
+
+void test_a_room_stands_where_the_code_puts_it() {
+  for (const bool chat : {false, true}) {
+    UiHarness h;
+    CHECK(h.start(1200, 900));
+    enter(h, chat);
+    RoomScreen& room = h.app.room();
+    room.chat().add({0, "c0", "Me", "", "Hello", 1700000000000});
+    std::vector<Place> places = {{&room, RoomScreen::Leave}, {&room, RoomScreen::Mute}, {&room, RoomScreen::More}, {&room, RoomScreen::MemberBase}, {&room, RoomScreen::MemberBase + 1}, {&room, RoomScreen::MemberBase + 2}};
+    if (chat) {
+      const Surface* panel = &room.chat();
+      places.insert(places.end(), {{panel, ChatPanel::Area}, {panel, ChatPanel::Input}, {panel, ChatPanel::Send}});
+    }
+    h.render();
+    room.click(RoomScreen::More, 0, 0, false);
+    for (const int id : {RoomScreen::Popup, RoomScreen::OptCode, RoomScreen::OptPublic, RoomScreen::OptChat}) places.push_back({&room, id});
+    same_places(h, places);
+  }
+}
+
+void test_the_volume_popup_stands_where_the_code_puts_it() {
+  UiHarness h;
+  CHECK(h.start(1200, 900));
+  enter(h, false);
+  RoomScreen& room = h.app.room();
+  h.render();
+  CHECK(room.right_click(RoomScreen::Mute, 0, 0));
+  same_places(h, {{&room, RoomScreen::Popup}, {&room, RoomScreen::VolumeSlider}});
+}
+
+void settled(UiHarness& h, Moving& moving) {
+  for (int i = 0; i < 400 && moving.after(16); ++i) {
+  }
+  CHECK(!moving.after(0));
+  CHECK(!h.app.ui().more_frames);
+  CHECK(!moving.after(5000));
+  CHECK(!h.app.ui().more_frames);
+}
+
+void room_from_the_pack(UiHarness& h, bool chat) {
+  CHECK(h.start(1200, 900));
+  enter(h, chat);
+  CHECK(h.app.load_skin_dir(cloud_pack).has_value());
+  h.render();
+}
+
+void test_a_room_at_rest_asks_for_no_frames() {
+  for (const bool chat : {false, true}) {
+    UiHarness h;
+    room_from_the_pack(h, chat);
+    RoomScreen& room = h.app.room();
+    if (chat) room.chat().add({1, "c1", "Other", "", "A message", 1700000000000});
+    h.render();
+    Moving moving(h);
+    settled(h, moving);
+    CHECK(!room.only_moving_area().has_value());
+    h.app.settings().open(SettingsPage::Sound);
+    settled(h, moving);
+    h.app.settings().close();
+    settled(h, moving);
+  }
+}
+
+void test_someone_arrives_once_and_a_first_list_does_not() {
+  UiHarness h;
+  CHECK(h.start(1200, 900));
+  CHECK(h.app.load_skin_dir(cloud_pack).has_value());
+  Moving moving(h);
+  h.app.show_session("ABC234");
+  RoomScreen& room = h.app.room();
+  room.set_room({{0, "Me", "", false, "c0"}, {1, "Other", "", false, "c1"}}, 0, 0, false, false);
+  settled(h, moving);
+  const std::vector<MemberView> three = {{0, "Me", "", false, "c0"}, {1, "Other", "", false, "c1"}, {2, "Third", "", false, "c2"}};
+  room.set_room(three, 0, 0, false, false);
+  CHECK(moving.after(0));
+  const Ui::Hit* hit = h.app.ui().find_hit(&room, RoomScreen::MemberBase + 2);
+  CHECK(hit != nullptr);
+  const float risen_from = hit ? hit->rect.y : 0;
+  CHECK(moving.after(150));
+  settled(h, moving);
+  hit = h.app.ui().find_hit(&room, RoomScreen::MemberBase + 2);
+  CHECK(hit != nullptr);
+  if (hit) CHECK(std::abs(risen_from - hit->rect.y - 8) < 2);
+  // Someone leaving moves them up the list, which is no arrival.
+  room.set_room({{0, "Me", "", false, "c0"}, {2, "Third", "", false, "c2"}}, 0, 0, false, false);
+  CHECK(!moving.after(0));
+  CHECK(!h.app.ui().more_frames);
+}
+
+void test_quieting_everyone_fades_and_ends() {
+  UiHarness h;
+  room_from_the_pack(h, false);
+  Moving moving(h);
+  settled(h, moving);
+  h.app.ui().prefs->set(pref::mute_others, true);
+  CHECK(moving.after(0));
+  CHECK(moving.after(100));
+  CHECK(!moving.after(100));
+  settled(h, moving);
+}
+
+void test_a_refused_switch_shakes_its_tip_longer_than_the_tip_fades() {
+  UiHarness h;
+  CHECK(h.start(1200, 900));
+  h.app.show_session("ABC234");
+  RoomScreen& room = h.app.room();
+  room.set_room({{0, "Me", "", false, "c0"}, {1, "Other", "", false, "c1"}}, 0, 0, true, false);
+  h.app.ui().prefs->set(pref::pin_public, true);
+  CHECK(h.app.load_skin_dir(cloud_pack).has_value());
+  h.render();
+  Moving moving(h);
+  settled(h, moving);
+  CHECK(h.click(room, RoomScreen::More));
+  settled(h, moving);
+  const Ui::Hit* hit = h.app.ui().find_hit(&room, RoomScreen::OptPublic);
+  CHECK(hit != nullptr);
+  if (hit) h.app.mouse_move(hit->rect.x + 1, hit->rect.y + 1);
+  CHECK(moving.after(0));  // its tip comes up
+  settled(h, moving);
+  CHECK(h.click(room, RoomScreen::OptPublic));
+  CHECK(moving.after(0));
+  CHECK(moving.after(200));  // past the fade of 150, still shaking
+  settled(h, moving);
+}
+
 void test_a_path_can_fill_where_its_shapes_overlap() {
   UiHarness h;
   CHECK(h.start(100, 100));
@@ -377,6 +506,12 @@ int main() {
   test_a_toast_comes_goes_and_is_gone();
   test_a_tip_fades_out_before_it_lets_go_of_its_text();
   test_the_offline_popup_rises_once();
+  test_a_room_stands_where_the_code_puts_it();
+  test_the_volume_popup_stands_where_the_code_puts_it();
+  test_a_room_at_rest_asks_for_no_frames();
+  test_someone_arrives_once_and_a_first_list_does_not();
+  test_quieting_everyone_fades_and_ends();
+  test_a_refused_switch_shakes_its_tip_longer_than_the_tip_fades();
   test_a_path_can_fill_where_its_shapes_overlap();
   test_every_tab_stands_where_the_code_puts_it();
   test_clicks_in_the_tabs_do_what_they_do_on_the_code();

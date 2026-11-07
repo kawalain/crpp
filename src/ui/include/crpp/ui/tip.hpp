@@ -32,6 +32,7 @@ class HoverTip {
     int weight = 700;
     std::optional<Color> fill, ink;  // default: the accent color
     float dx = 0;                    // an added shift, for a shake
+    unsigned shakes = 0;             // a new value shakes it, under a pack
   };
 
   [[nodiscard]] static skin::ScreenSchema schema();

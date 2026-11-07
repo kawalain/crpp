@@ -1,7 +1,7 @@
 {
   "$schema": "http://json-schema.org/draft-07/schema#",
   "title": "The screen tip of a Skin Pack",
-  "description": "A screen of a Skin Pack, as {\"draw\": [nodes]}. With no file for a screen, the program draws it itself.\nNumbers: @anchor_x, @anchor_y, @anchor_w, @place, @gap, @dx, @look, @on, @again.\nTexts: @text.\nHits: none.\nPictures: none.\nFields: none.\nSlots: none.\nReports: shown.\nNotes: none.",
+  "description": "A screen of a Skin Pack, as {\"draw\": [nodes]}. With no file for a screen, the program draws it itself.\nNumbers: @anchor_x, @anchor_y, @anchor_w, @place, @gap, @dx, @look, @on, @again, @shakes.\nTexts: @text.\nHits: none.\nPictures: none.\nFields: none.\nSlots: none.\nReports: shown.\nNotes: none.",
   "allowComments": true,
   "allowTrailingCommas": true,
   "type": "object",

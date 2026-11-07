@@ -70,6 +70,7 @@ void RoomScreen::enter_room(std::string room_code) {
 void RoomScreen::reset() {
   members_.clear();
   arrivals_.clear();
+  came_later_.clear();
   members_scroll_ = {};
   chat_panel_.clear();
   options_open_ = mute_popup_open_ = false;
@@ -98,10 +99,18 @@ void RoomScreen::set_room(std::vector<MemberView> members, std::uint32_t me, std
     const auto now = clock_ms();
     for (const MemberView& member : members) {
       const auto same = [&](const MemberView& known) { return known.slot == member.slot && known.cid == member.cid; };
-      if (std::ranges::none_of(members_, same)) arrivals_.emplace_back(member.slot, now);
+      if (std::ranges::none_of(members_, same)) {
+        if (ui_.pack_screen("room")) {
+          std::erase_if(came_later_, [&](const auto& c) { return c.first == member.slot; });
+          came_later_.emplace_back(member.slot, ++arrivals_counted_);
+        } else {
+          arrivals_.emplace_back(member.slot, now);
+        }
+      }
     }
   }
   members_ = std::move(members);
+  std::erase_if(came_later_, [&](const auto& c) { return std::ranges::find(members_, c.first, &MemberView::slot) == members_.end(); });
   me_ = me;
   host_ = host;
   public_ = is_public;
@@ -215,6 +224,7 @@ void RoomScreen::set_member_volume(std::uint32_t slot, int percent) {
 bool RoomScreen::chat_locked() const { return chat_ && clock_ms() >= chat_lock_at_; }
 
 bool RoomScreen::shaking() const {
+  if (ui_.pack_screen("tip")) return false;
   return ui_.animations && blocked_id_ >= 0 && static_cast<float>(ui_.now_ms - std::min(ui_.now_ms, blocked_at_)) < tip_shake_ms;
 }
 
@@ -515,6 +525,7 @@ std::optional<HoverTip::Spec> RoomScreen::tip_for_hover() const {
   const int id = ui_.hover_id;
   if ((id == Mute || id == More) && !ui_.skin().scales_stage()) return std::nullopt;  // they say it themselves
   HoverTip::Spec spec;
+  spec.shakes = blocked_times_;
   if (id == Leave && controls_shown_) {
     spec.text = tr().room_tip_leave;
     spec.anchor = fab_rects_[0];
@@ -646,6 +657,7 @@ void RoomScreen::block_switch(int id, const char* text) {
   blocked_id_ = id;
   blocked_text_ = text;
   blocked_at_ = clock_ms();
+  ++blocked_times_;
 }
 
 void RoomScreen::toggle_public() {

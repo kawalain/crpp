@@ -34,6 +34,10 @@
       "ink_strong": "#2e5f80",
       "cloud_base": "#f3f9ff",
       "cloud_gradient": [[0, "#ffffff"], [1, "#eff8ff"]],
+      "room_cloud": [[0, "#ffffff"], [0.42, "#f3f8fe"], [0.8, "#f1f8ff"], [1, "#e0eefb"]],
+      "room_cloud_shadow": "#2f6f99",
+      "fab_shadow": "#2e6498",
+      "alarm": "#fa5462",
       "cloud_shadow": "#4f7b99",
       "backdrop": "#365669",
       "panel_shadow": "#2e78aa",
@@ -70,6 +74,10 @@
       "ink_strong": "#ecf3fa",
       "cloud_base": "#27374c",
       "cloud_gradient": [[0, "#27374c"], [1, "#27374c"]],
+      "room_cloud": [[0, "#27374c"], [1, "#27374c"]],
+      "room_cloud_shadow": "#2f6f99",
+      "fab_shadow": "#2e6498",
+      "alarm": "#fa5462",
       "cloud_shadow": "#000000",
       "backdrop": "#365669",
       "panel_shadow": "#000000",
@@ -106,6 +114,10 @@
       "ink_strong": "#2e5f80",
       "cloud_base": "#f3f9ff",
       "cloud_gradient": [[0, "#ffffff"], [1, "#eff8ff"]],
+      "room_cloud": [[0, "#ffffff"], [0.42, "#f3f8fe"], [0.8, "#f1f8ff"], [1, "#e0eefb"]],
+      "room_cloud_shadow": "#2f6f99",
+      "fab_shadow": "#2e6498",
+      "alarm": "#fa5462",
       "cloud_shadow": "#4f7b99",
       "backdrop": "#365669",
       "panel_shadow": "#2e78aa",
@@ -181,6 +193,10 @@
     "account_display": {"size": 28, "weight": 700, "line_height": 34, "ellipsis": true},
     "account_tip": {"size": 16, "weight": 700, "line_height": 22, "align": "center"},
     "modal_button_measure": {"size": 16, "weight": 700, "line_height": 0},
+    "member_name": {"size": 21, "weight": 700, "line_height": 26, "ellipsis": true},
+    "room_label": {"size": 20, "weight": 700, "line_height": 41},
+    "room_code": {"size": 20, "weight": 700, "line_height": 41, "align": "right", "letter_spacing": 0.4},
+    "volume_text": {"size": 16, "weight": 700, "line_height": 22},
   },
   "parts": {
     // Upstream's cloud, set at this box's corner, with a soft shadow in the light Themes.
@@ -369,6 +385,17 @@
         {"fill": "ink", "ellipse": true, "x": 9, "w": 28, "h": 28},
         {"path": "M0 23A23 23 0 0 1 46 23V33A4 4 0 0 1 42 37H4A4 4 0 0 1 0 33Z", "color": "ink", "y": 25},
         {"if": "marked", "text": "#sound_me", "style": "person_me", "color": "alpha($on_accent, a)", "y": 36, "h": 20}
+      ]
+    },
+    // .fab, and what is in it in the middle of its box of 42.
+    "fab": {
+      "args": {"alarm": 0},
+      "draw": [
+        {"scale": "hot ? 1.08 : 1", "group": [
+          {"shadow": "alpha($fab_shadow, 0.16)", "radius": 21, "blur": 8, "dy": 2},
+          {"fill": "alarm ? $alarm : dark ? $cloud_base : $surface", "radius": 21},
+          {"content": true}
+        ]}
       ]
     },
     // li: padding 9 12, 20 tall.

@@ -6,6 +6,9 @@
     {"let": "small", "value": "@look==1 || @look==5"},
     {"let": "shown", "to": "@on", "again": "@again", "ms": "volume ? 120 : 150", "ms_off": "volume ? 120 : @look==2 ? 350 : 150"},
     {"report": "shown", "value": "shown"},
+    // @keyframes tip-shake, when a switch refuses.
+    {"let": "shake", "to": 1, "first": "jump", "again": "@shakes", "curve": "linear", "ms": 320},
+    {"let": "shake_dx", "value": "shake<0.2 ? -7*ease(shake/0.2) : shake<0.4 ? -7+14*ease((shake-0.2)/0.2) : shake<0.6 ? 7-11*ease((shake-0.4)/0.2) : shake<0.8 ? -4+7*ease((shake-0.6)/0.2) : 3-3*ease((shake-0.8)/0.2)"},
     {"if": "shown>0", "group": [
       {"let": "pad_x", "value": "volume ? 9 : 15"},
       {"let": "pad_y", "value": "volume ? 3 : 5"},
@@ -17,7 +20,7 @@
       {"let": "box_h", "value": "line_h+2*pad_y"},
       // Lines up with the middle, the left or the right of what it is about.
       {"let": "wanted", "value": "@place==2 ? @anchor_x+@anchor_w-box_w : @place==1 ? @anchor_x : @anchor_x+(@anchor_w-box_w)/2"},
-      {"x": "max(4, min(wanted, W-box_w-4))+@dx", "y": "@anchor_y-gap-box_h+slide*(1-shown)", "w": "box_w", "h": "box_h", "group": [
+      {"x": "max(4, min(wanted, W-box_w-4))+shake_dx", "y": "@anchor_y-gap-box_h+slide*(1-shown)", "w": "box_w", "h": "box_h", "group": [
         {"fill": "alpha(volume ? $volume_tip : $hl, shown)", "radius": "volume ? 13 : 11"},
         {"if": "volume", "text": "@text", "style": "tip_volume_text", "color": "alpha($white, shown)", "x": "pad_x", "y": "pad_y", "w": "W-2*pad_x", "h": "H-2*pad_y"},
         {"if": "!volume && small", "text": "@text", "style": "tip_small_text", "color": "alpha($on_accent, shown)", "x": "pad_x", "y": "pad_y", "w": "W-2*pad_x", "h": "H-2*pad_y"},

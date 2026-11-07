@@ -14,23 +14,25 @@ namespace {
 enum TextId : int { Contacts, MuteLabel, Status, Code, VolumeText, MemberName };
 enum NumberId : int {
   Muted, OptionsOpen, MutePopupOpen, ControlsShown, HasChat, Public, PublicOff, ChatOff, PinPublic, PinChat, Volume,
-  Members, MemberSlot, MemberLevel, MemberMuted, MemberOffline, MutedAll, MembersScroll, MembersOffset, MembersOverflow
+  Members, MemberSlot, MemberLevel, MemberMuted, MemberOffline, MutedAll, MembersScroll, MembersOffset, MembersOverflow,
+  Scale, StageX, StageY, MembersFadeTop, MembersFadeBottom, MemberNew, MemberKey
 };
 enum PictureId : int { MemberPicture, MutedPicture };
 enum ReportId : int { MembersView, MembersContent };
-enum NoteId : int { MembersArea, FabMute, FabMore, CodeNote, PublicNote, ChatNote, VolumeNote, MemberNote, MemberDisc, MembersTrack };
+enum NoteId : int { MembersArea, FabLeave, FabMute, FabMore, CodeNote, PublicNote, ChatNote, VolumeNote, MemberNote, MemberDisc, MembersTrack };
 
 constexpr skin::Name text_names[] = {{"contacts", Contacts}, {"mute_label", MuteLabel}, {"status", Status}, {"code", Code}, {"volume_text", VolumeText}, {"member_name", MemberName}};
 constexpr skin::Name number_names[] = {{"muted", Muted}, {"options_open", OptionsOpen}, {"mute_popup_open", MutePopupOpen}, {"controls_shown", ControlsShown}, {"chat", HasChat}, {"public", Public},
                                        {"public_off", PublicOff}, {"chat_off", ChatOff}, {"pin_public", PinPublic}, {"pin_chat", PinChat}, {"volume", Volume}, {"members", Members},
                                        {"member_slot", MemberSlot}, {"member_level", MemberLevel}, {"member_muted", MemberMuted}, {"member_offline", MemberOffline}, {"muted_all", MutedAll},
-                                       {"members_scroll", MembersScroll}, {"members_offset", MembersOffset}, {"members_overflow", MembersOverflow}};
+                                       {"members_scroll", MembersScroll}, {"members_offset", MembersOffset}, {"members_overflow", MembersOverflow}, {"scale", Scale}, {"stage_x", StageX}, {"stage_y", StageY},
+                                       {"members_fade_top", MembersFadeTop}, {"members_fade_bottom", MembersFadeBottom}, {"member_new", MemberNew}, {"member_key", MemberKey}};
 constexpr skin::Name picture_names[] = {{"member", MemberPicture}, {"muted", MutedPicture}};
 constexpr skin::Name slot_names[] = {{"chat", 0}};
 constexpr skin::Name report_names[] = {{"members_view", MembersView}, {"members_content", MembersContent}};
-constexpr skin::Name note_names[] = {{"members_area", MembersArea}, {"fab_mute", FabMute}, {"fab_more", FabMore}, {"code", CodeNote}, {"public", PublicNote}, {"chat", ChatNote},
+constexpr skin::Name note_names[] = {{"members_area", MembersArea}, {"fab_leave", FabLeave}, {"fab_mute", FabMute}, {"fab_more", FabMore}, {"code", CodeNote}, {"public", PublicNote}, {"chat", ChatNote},
                                      {"volume", VolumeNote}, {"member", MemberNote}, {"member_disc", MemberDisc}, {"members_track", MembersTrack}};
-constexpr skin::Name hit_names[] = {{"mute", RoomScreen::Mute}, {"more", RoomScreen::More}, {"opt_code", RoomScreen::OptCode}, {"opt_public", RoomScreen::OptPublic}, {"opt_chat", RoomScreen::OptChat},
+constexpr skin::Name hit_names[] = {{"leave", RoomScreen::Leave}, {"mute", RoomScreen::Mute}, {"more", RoomScreen::More}, {"opt_code", RoomScreen::OptCode}, {"opt_public", RoomScreen::OptPublic}, {"opt_chat", RoomScreen::OptChat},
                                     {"volume", RoomScreen::VolumeSlider}, {"popup", RoomScreen::Popup}, {"members_bar", RoomScreen::MembersBar}, {"member", RoomScreen::MemberBase}};
 
 constexpr const char* muted_emoji = "1f507";
@@ -104,6 +106,17 @@ void RoomScreen::paint_pack(Painter& p, const skin::Screen& screen) {
         case MembersScroll: return s_.members_scroll_.drawn();
         case MembersOffset: return s_.members_scroll_.offset;
         case MembersOverflow: return yes(s_.members_scroll_.max_offset() > 0);
+        case Scale: return s_.ui_.scale;
+        case StageX: return s_.ui_.ox;
+        case StageY: return s_.ui_.oy;
+        case MembersFadeTop: return s_.members_scroll_.fade_top();
+        case MembersFadeBottom: return s_.members_scroll_.fade_bottom();
+        case MemberNew:
+        case MemberKey: {
+          const auto came = std::ranges::find(s_.came_later_, member(index).slot, [](const auto& c) { return c.first; });
+          if (id == MemberNew) return yes(came != s_.came_later_.end());
+          return came != s_.came_later_.end() ? static_cast<float>(came->second) : 0;
+        }
         default: return 0;
       }
     }
@@ -128,6 +141,7 @@ void RoomScreen::paint_pack(Painter& p, const skin::Screen& screen) {
       const Rect r = rect_of(box);
       switch (id) {
         case MembersArea: s_.members_area_ = r; break;
+        case FabLeave: s_.fab_rects_[0] = r; break;
         case FabMute: s_.fab_rects_[1] = r; break;
         case FabMore: s_.fab_rects_[2] = r; break;
         case CodeNote: s_.code_rect_ = r; break;
@@ -151,6 +165,7 @@ void RoomScreen::paint_pack(Painter& p, const skin::Screen& screen) {
   } shown(*this, p);
 
   SkinCanvas canvas(ui_, p, this);
+  canvas.in_window_coordinates();
   const Rect c = ui_.content;
   skin::draw(*ui_.pack, screen, ui_.palette, {c.x, c.y, c.w, c.h}, canvas, shown);
   paint_tips(p);

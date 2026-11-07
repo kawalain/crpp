@@ -1,0 +1,105 @@
+{
+  "$schema": "../../schema/screen.room.schema.json",
+  "draw": [
+    // The cloud, four circles and a rectangle, on the stage. Everything else keeps its size in the window.
+    {"x": "@stage_x", "y": "@stage_y", "w": 951, "h": 692, "scale": "@scale", "origin": true, "group": [
+      {"if": "!dark", "path": "F1 M461 190A169 169 0 0 1 292 359A169 169 0 0 1 123 190A169 169 0 0 1 292 21A169 169 0 0 1 461 190Z M860 160A250 250 0 0 1 610 410A250 250 0 0 1 360 160A250 250 0 0 1 610 -90A250 250 0 0 1 860 160Z M1045 400A185 185 0 0 1 860 585A185 185 0 0 1 675 400A185 185 0 0 1 860 215A185 185 0 0 1 1045 400Z M330 405A180 180 0 0 1 150 585A180 180 0 0 1 -30 405A180 180 0 0 1 150 225A180 180 0 0 1 330 405Z M150 300H860V585H150Z", "color": "alpha($room_cloud_shadow, 0.14)", "y": 33, "blur": 18, "dy": 6},
+      {"path": "F1 M461 190A169 169 0 0 1 292 359A169 169 0 0 1 123 190A169 169 0 0 1 292 21A169 169 0 0 1 461 190Z M860 160A250 250 0 0 1 610 410A250 250 0 0 1 360 160A250 250 0 0 1 610 -90A250 250 0 0 1 860 160Z M1045 400A185 185 0 0 1 860 585A185 185 0 0 1 675 400A185 185 0 0 1 860 215A185 185 0 0 1 1045 400Z M330 405A180 180 0 0 1 150 585A180 180 0 0 1 -30 405A180 180 0 0 1 150 225A180 180 0 0 1 330 405Z M150 300H860V585H150Z", "color": "$room_cloud", "y": 33, "from_y": 0, "to_y": 585}
+    ]},
+
+    // What of the stage the window shows, and where the members and the chat go in it.
+    {"let": "k", "value": "@scale"},
+    {"let": "vis_w", "value": "W/k"},
+    {"let": "vis_h", "value": "H/k"},
+    {"let": "vis_left", "value": "951/2-vis_w/2"},
+    {"let": "vis_right", "value": "951/2+vis_w/2"},
+    {"let": "vis_top", "value": "692/2-vis_h/2"},
+    {"let": "vis_bottom", "value": "692/2+vis_h/2"},
+    {"let": "top", "value": "max(74+33, vis_top+20)"},
+    {"let": "bottom", "value": "max(top+140/k, min(537+33, vis_bottom-74/k))"},
+    {"let": "left", "value": "max(190, vis_left+20)"},
+    {"let": "right", "value": "max(left+(219+250)/k, min(825, vis_right-20))"},
+    {"let": "stage_left", "value": "@chat ? left-16/k : (left+min(762, right))/2-286/k"},
+    {"let": "col_w", "value": "@chat ? 227 : 274"},
+    {"let": "cols", "value": "@chat ? 1 : 2"},
+    {"let": "rows", "value": "ceil(@members/cols)"},
+    {"let": "members_h", "value": "(bottom-top)*k"},
+    {"let": "pad", "value": "max(0, (members_h-min(rows, 8)*49)/2)"},
+    {"report": "members_view", "value": "members_h"},
+    {"report": "members_content", "value": "2*pad+rows*49"},
+
+    // .emoji-ring under .mute-others.
+    {"let": "quiet", "to": "@muted_all", "first": "jump", "ms": 200},
+    {"note": "members_area", "x": "@stage_x+stage_left*k", "y": "@stage_y+top*k", "w": "cols*col_w+(cols-1)*24", "h": "members_h", "clip": true, "soft_clip": true, "fade_top": "@members_fade_top", "fade_bottom": "@members_fade_bottom", "group": [
+      {"repeat": "@members", "draw": [
+        // .member.entering: someone who came after the first list rises and fades in.
+        {"let": "came", "value": 1},
+        {"if": "@member_new", "group": [
+          {"let": "rising", "to": 1, "key": "@member_key", "ms": 300},
+          {"set": "came", "value": "rising"}
+        ]},
+        {"let": "row_y", "value": "pad+floor(i/cols)*49+1-@members_scroll+8*(1-came)"},
+        {"if": "row_y+47>0 && row_y<H", "hit": "member", "hit_index": "@member_slot", "note": "member", "x": "(i-floor(i/cols)*cols)*(col_w+24)", "y": "row_y", "w": "col_w", "h": 47, "opacity": "came", "group": [
+          {"if": "hot", "fill": "alpha($hl, 0.2)", "radius": 14},
+          // Only this much changes while someone types.
+          {"note": "member_disc", "x": 6, "y": 1.5, "w": 44, "h": 44, "group": []},
+          {"let": "size", "value": "36*(1+(0.8-1)*quiet)"},
+          // .emoji-ring::before fades in and grows from .82.
+          {"if": "@member_level>0", "let": "ring", "value": "22*(0.82+0.18*@member_level)"},
+          {"if": "@member_level>0", "fill": "alpha($hl, @member_level)", "ellipse": true, "x": "28-ring", "y": "23.5-ring", "w": "2*ring", "h": "2*ring"},
+          {"if": "@member_muted", "picture": "muted", "x": "28-size/2", "y": "23.5-size/2", "w": "size", "h": "size", "opacity": "@member_offline ? 0.55 : 1", "gray": "quiet"},
+          {"if": "!@member_muted", "picture": "member", "x": "28-size/2", "y": "23.5-size/2", "w": "size", "h": "size", "opacity": "@member_offline ? 0.55 : 1", "gray": "quiet"},
+          {"text": "@member_name", "style": "member_name", "color": "@member_offline ? alpha($hl_text, 0.5) : $hl_text", "x": 58, "y": 10.5, "w": "W-58-12", "h": 26}
+        ]}
+      ]}
+    ]},
+
+    {"if": "@chat", "slot": "chat", "x": "@stage_x+(left+219/k)*k", "y": "@stage_y+(top+7)*k", "w": "max(250, (right-left)*k-219)", "h": "(bottom-top-7)*k"},
+
+    {"if": "@controls_shown", "group": [
+      {"use": "fab", "hit": "leave", "note": "fab_leave", "x": 18, "y": "H-18-42", "w": 42, "h": 42, "draw": [
+        {"path": "M19 12H5M11 6l-6 6 6 6", "color": "hot ? $hl_text : $hl_text_soft", "x": 10, "y": 10, "scale": "22/24", "width": 3}
+      ]},
+      // The speaker: shifted so that it stays in the middle, however many waves it has.
+      {"use": "fab", "hit": "mute", "note": "fab_mute", "x": "W-68-42", "y": "H-18-42", "w": 42, "h": 42, "args": {"alarm": "@muted"}, "draw": [
+        {"let": "ink", "value": "@muted ? $white : hot ? $hl_text : $hl_text_soft"},
+        {"let": "level", "value": "@volume<=0 ? 0 : @volume<34 ? 1 : @volume<67 ? 2 : 3"},
+        {"let": "at", "value": "9+(@muted ? 0 : level<=1 ? 3.05 : level==2 ? 1.1 : -1.4)"},
+        {"path": "M2.6,9 H5.6 L10.3,5.1 C10.9,4.6 11.8,5 11.8,5.8 V18.2 C11.8,19 10.9,19.4 10.3,18.9 L5.6,15 H2.6 C2,15 1.5,14.5 1.5,13.9 V10.1 C1.5,9.5 2,9 2.6,9 Z", "color": "ink", "x": "at+(@muted ? 2.5 : 0)", "y": 9},
+        {"if": "@muted", "path": "M3.2,4.6 L17,18.6", "color": "ink", "x": "at+2.5", "y": 9, "width": 2.1},
+        {"if": "!@muted && level>0", "path": "M14.6,9.2 C15.6,10.9 15.6,13.1 14.6,14.8", "color": "ink", "x": "at", "y": 9, "width": 2.1},
+        {"if": "!@muted && level>1", "path": "M17.6,6.6 C19.8,9.9 19.8,14.1 17.6,17.4", "color": "ink", "x": "at", "y": 9, "width": 2.1},
+        {"if": "!@muted && level>2", "path": "M21.3,4.2 C24.3,8.8 24.3,15.2 21.3,19.8", "color": "ink", "x": "at", "y": 9, "width": 2.1}
+      ]},
+      {"use": "fab", "hit": "more", "note": "fab_more", "x": "W-18-42", "y": "H-18-42", "w": 42, "h": 42, "draw": [
+        {"repeat": 3, "draw": [
+          {"fill": "hot ? $hl_text : $hl_text_soft", "ellipse": true, "x": "21+(i-1)*10-3", "y": 18, "w": 6, "h": 6}
+        ]}
+      ]},
+
+      {"if": "@options_open", "x": "W-12-251", "y": "H-72-183", "w": 251, "h": 183, "group": [
+        {"use": "panel_info"},
+        {"hit": "popup", "group": []},
+        {"text": "#room_code", "style": "room_label", "color": "$hl_text", "x": 25, "y": 24, "w": 150, "h": 41},
+        {"hit": "opt_code", "note": "code", "x": "W-25-90", "y": 24, "w": 90, "h": 41, "group": [
+          {"text": "@code", "style": "room_code", "color": "hot ? $hl_text_dark : $hl_text"}
+        ]},
+        {"fill": "$hl_pale2", "radius": 1, "x": 25, "y": 70, "w": "W-50", "h": 2},
+        {"text": "#room_public", "style": "room_label", "color": "@public_off ? alpha($hl_text, 0.5) : $hl_text", "x": 25, "y": 77, "w": 150, "h": 41},
+        {"use": "switch", "hit": "opt_public", "note": "public", "x": 169, "y": 84, "w": 51, "h": 27, "args": {"on": "@public", "off": "@public_off", "ms": 0}},
+        // .switch.pinned: a small bar across the knob.
+        {"if": "@pin_public", "fill": "alpha($hl_mid, @public_off ? 0.5 : 1)", "radius": 1.5, "x": "169+(@public ? 37.5 : 13.5)-5.5", "y": "84+13.5-1.5", "w": 11, "h": 3},
+        {"text": "#room_word_chat", "style": "room_label", "color": "@public_off ? alpha($hl_text, 0.5) : $hl_text", "x": 25, "y": 118, "w": 150, "h": 41},
+        {"use": "switch", "hit": "opt_chat", "note": "chat", "x": 169, "y": 125, "w": 51, "h": 27, "args": {"on": "@chat", "off": "@chat_off", "ms": 0}},
+        {"if": "@pin_chat", "fill": "alpha($hl_mid, @chat_off ? 0.5 : 1)", "radius": 1.5, "x": "169+(@chat ? 37.5 : 13.5)-5.5", "y": "125+13.5-1.5", "w": 11, "h": 3}
+      ]},
+
+      {"if": "@mute_popup_open", "x": "W-12-200", "y": "H-72-50", "w": 200, "h": 50, "group": [
+        {"use": "panel_info"},
+        {"hit": "popup", "group": []},
+        {"text": "@volume_text", "style": "volume_text", "color": "$hl_text", "x": 14, "y": 14, "w": 42, "h": 22},
+        {"use": "slider", "hit": "volume", "note": "volume", "x": 64, "y": 14, "w": 122, "h": 22, "args": {"at": "@volume/100"}}
+      ]}
+    ]}
+  ]
+}

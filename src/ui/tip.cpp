@@ -9,9 +9,9 @@ namespace crpp::ui {
 
 namespace {
 
-enum NumberId : int { AnchorX, AnchorY, AnchorW, PlaceOf, Gap, Shift, LookOf, On, Again };
+enum NumberId : int { AnchorX, AnchorY, AnchorW, PlaceOf, Gap, Shift, LookOf, On, Again, Shakes };
 constexpr skin::Name text_names[] = {{"text", 0}};
-constexpr skin::Name number_names[] = {{"anchor_x", AnchorX}, {"anchor_y", AnchorY}, {"anchor_w", AnchorW}, {"place", PlaceOf}, {"gap", Gap}, {"dx", Shift}, {"look", LookOf}, {"on", On}, {"again", Again}};
+constexpr skin::Name number_names[] = {{"anchor_x", AnchorX}, {"anchor_y", AnchorY}, {"anchor_w", AnchorW}, {"place", PlaceOf}, {"gap", Gap}, {"dx", Shift}, {"look", LookOf}, {"on", On}, {"again", Again}, {"shakes", Shakes}};
 constexpr skin::Name report_names[] = {{"shown", 0}};
 
 }  // namespace
@@ -60,6 +60,7 @@ void HoverTip::paint(Ui& ui, Painter& p, const Spec* want) {
           case LookOf: return static_cast<float>(s_.look);
           case On: return on_ ? 1.0f : 0.0f;
           case Again: return static_cast<float>(again_);
+          case Shakes: return static_cast<float>(s_.shakes);
           default: return s_.dx;
         }
       }
@@ -119,6 +120,7 @@ void HoverTip::paint(Ui& ui, Painter& p, const Spec* want) {
 bool HoverTip::animating(const Ui& ui) const {
   if (!ui.animations) return false;
   if (ui.hover_owner != seen_owner_ || ui.hover_id != seen_id_) return true;
+  if (ui.pack_screen("tip")) return false;  // its own fade asks for what it needs
   return static_cast<float>(ui.now_ms - std::min(ui.now_ms, since_)) < (shown_ ? spec_.in_ms : spec_.out_ms) && !spec_.text.empty();
 }
 

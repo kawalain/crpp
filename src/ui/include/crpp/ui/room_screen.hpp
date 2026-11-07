@@ -178,6 +178,8 @@ class RoomScreen final : public Surface {
   Fade mute_fade_;
   Scroll members_scroll_;
   std::vector<std::pair<std::uint32_t, unsigned long long>> arrivals_;  // slot, when it arrived
+  std::vector<std::pair<std::uint32_t, unsigned>> came_later_;  // under a pack: slot, and which arrival this was
+  unsigned arrivals_counted_ = 0;
   Rect members_area_;  // window coordinates
   Rect members_track_;
   bool members_held_ = false;
@@ -195,6 +197,7 @@ class RoomScreen final : public Surface {
   int blocked_id_ = -1;       // the switch showing why it did not move
   std::string blocked_text_;
   unsigned long long blocked_at_ = 0;
+  unsigned blocked_times_ = 0;
 };
 
 }  // namespace crpp::ui

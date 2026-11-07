@@ -388,6 +388,45 @@ void test_the_volume_popup_stands_where_the_code_puts_it() {
   same_places(h, {{&room, RoomScreen::Popup}, {&room, RoomScreen::VolumeSlider}});
 }
 
+void test_what_opens_from_a_room_stands_where_the_code_puts_it() {
+  {
+    UiHarness h;
+    CHECK(h.start(1200, 900));
+    enter(h, false);
+    MemberMenu& menu = h.app.room().member_menu();
+    menu.open(1, false, 70, 300, 320);
+    same_places(h, {{&menu, MemberMenu::Card}, {&menu, MemberMenu::Profile}, {&menu, MemberMenu::Slider}, {&menu, MemberMenu::Mute}});
+  }
+  {
+    UiHarness h;
+    CHECK(h.start(1200, 900));
+    enter(h, false);
+    RoomScreen& room = h.app.room();
+    room.profile_card().request(0);
+    room.show_profile({0, "Me", "1f600", "me", 1700000000, 3900, 12345});
+    const ProfileCard& card = room.profile_card();
+    same_places(h, {{&card, ProfileCard::Backdrop}, {&card, ProfileCard::Card}, {&card, ProfileCard::Icon}});
+  }
+  {
+    UiHarness h;
+    CHECK(h.start(1200, 900));
+    enter(h, false);
+    EmojiPicker& picker = h.app.emoji_picker();
+    picker.show("1f600", nullptr);
+    same_places(h, {{&picker, EmojiPicker::Backdrop}, {&picker, EmojiPicker::Card}});
+  }
+  {
+    UiHarness h;
+    CHECK(h.start(1200, 900));
+    h.app.show_home();
+    ChangelogView& view = h.app.changelog();
+    view.open({}, 0);
+    same_places(h, {{&view, ChangelogView::Backdrop}, {&view, ChangelogView::Card}, {&view, ChangelogView::Close}});
+    CHECK(h.click(view, ChangelogView::Close));
+    CHECK(!view.is_open());
+  }
+}
+
 void settled(UiHarness& h, Moving& moving) {
   for (int i = 0; i < 400 && moving.after(16); ++i) {
   }
@@ -579,6 +618,29 @@ void test_the_picker_comes_and_goes_and_lets_go() {
   CHECK(!h.drawn(picker, EmojiPicker::Backdrop));
 }
 
+void test_a_card_and_the_changelog_rise_and_end() {
+  UiHarness h;
+  room_from_the_pack(h, false);
+  Moving moving(h);
+  settled(h, moving);
+  RoomScreen& room = h.app.room();
+  room.profile_card().request(0);
+  room.show_profile({0, "Me", "", std::nullopt, std::nullopt, 3900, 12345});
+  (void)h.app.tick(0);
+  CHECK(moving.after(0));
+  CHECK(moving.after(80));
+  settled(h, moving);
+  room.close_member_popups();
+  settled(h, moving);
+  ChangelogView& view = h.app.changelog();
+  view.open({}, 0);
+  CHECK(moving.after(0));
+  CHECK(moving.after(80));
+  settled(h, moving);
+  view.close();
+  settled(h, moving);
+}
+
 void test_a_path_can_fill_where_its_shapes_overlap() {
   UiHarness h;
   CHECK(h.start(100, 100));
@@ -604,6 +666,7 @@ int main() {
   test_the_offline_popup_rises_once();
   test_a_room_stands_where_the_code_puts_it();
   test_the_volume_popup_stands_where_the_code_puts_it();
+  test_what_opens_from_a_room_stands_where_the_code_puts_it();
   test_a_room_at_rest_asks_for_no_frames();
   test_a_disc_draws_only_itself_and_held_up_it_costs_nothing();
   test_someone_arrives_once_and_a_first_list_does_not();
@@ -613,6 +676,7 @@ int main() {
   test_the_send_button_moves_out_for_a_second_line();
   test_a_refused_switch_shakes_its_tip_longer_than_the_tip_fades();
   test_the_picker_comes_and_goes_and_lets_go();
+  test_a_card_and_the_changelog_rise_and_end();
   test_a_path_can_fill_where_its_shapes_overlap();
   test_every_tab_stands_where_the_code_puts_it();
   test_clicks_in_the_tabs_do_what_they_do_on_the_code();

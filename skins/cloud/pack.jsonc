@@ -27,7 +27,6 @@
       "hl_mid": {"mix": ["hl", "white", 55]},
       "surface": "#ffffff",
       "on_accent": "#ffffff",
-      "tooltip_ink": "#ffffff",
       "droplet": "#ffffff",
       "entry": "#bbe1fd",
       "error_text": "#df7373",
@@ -67,7 +66,6 @@
       "sky": "#101925",
       "surface": "#233145",
       "on_accent": "#eef5fb",
-      "tooltip_ink": "#eef5fb",
       "droplet": "#27374c",
       "error_text": "#f39b9b",
       "entry": "#344a63",
@@ -107,7 +105,6 @@
       "hl_mid": {"mix": ["hl", "white", 55]},
       "surface": "#ffffff",
       "on_accent": "#ffffff",
-      "tooltip_ink": "#ffffff",
       "droplet": "#ffffff",
       "entry": "#bbe1fd",
       "error_text": "#df7373",
@@ -204,6 +201,13 @@
     "chat_time": {"size": 14, "line_height": 20, "align": "right"},
     "chat_nick": {"size": 15, "line_height": 20, "ellipsis": true},
     "calm": {"size": 34, "weight": 800, "line_height": "34*1.35"},
+    "note_title": {"size": 28, "weight": 800, "line_height": 36, "wrap": true},
+    "note_date": {"size": 17, "line_height": 24, "wrap": true},
+    "note_version": {"size": 14, "line_height": 20},
+    "note_heading": {"size": 18, "weight": 800, "line_height": 26, "wrap": true},
+    "note_item": {"size": 16, "line_height": 24.8, "wrap": true},
+    "note_failed": {"size": 18, "weight": 700, "line_height": 27, "align": "center"},
+    "note_hint": {"size": 15, "weight": 700, "line_height": 22, "align": "center", "wrap": true}
   },
   "parts": {
     // Upstream's cloud, set at this box's corner, with a soft shadow in the light Themes.
@@ -249,10 +253,6 @@
         {"shadow": "alpha($panel_shadow, (dark ? 0.33 : 0.22)*shown)", "radius": 14, "blur": "dark ? 38 : 16", "dy": "dark ? 12 : 4"},
         {"fill": "alpha($surface, shown)", "radius": 14}
       ]
-    },
-    "panel_modal": {
-      "args": {"shown": 1},
-      "draw": [{"use": "panel_list", "args": {"shown": "shown"}}]
     },
     // A message that floats over a screen.
     "bubble": {

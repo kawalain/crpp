@@ -61,8 +61,10 @@ std::span<const skin::ScreenSchema> screen_schemas() {
   return schemas;
 }
 
-std::expected<void, std::string> App::load_skin_dir(const std::filesystem::path& dir) {
-  const auto read = [&dir](std::string_view path) -> std::optional<std::string> {
+namespace {
+
+skin::ReadFile files_of(std::filesystem::path dir) {
+  return [dir = std::move(dir)](std::string_view path) -> std::optional<std::string> {
     std::error_code error;
     const std::filesystem::path file = dir / std::filesystem::path(path);
     const auto size = std::filesystem::file_size(file, error);
@@ -74,15 +76,51 @@ std::expected<void, std::string> App::load_skin_dir(const std::filesystem::path&
     if (!in.read(text.data(), static_cast<std::streamsize>(size))) return std::nullopt;
     return text;
   };
-  auto pack = skin::load_pack(read, screen_schemas());
+}
+
+}  // namespace
+
+std::expected<void, std::string> App::read_pack(const std::string& overlay) {
+  skin::LoadOptions options;
+  options.overlay = overlay;
+  // What a pack extends is a folder beside it.
+  options.parent = [folders = pack_dir_.parent_path()](std::string_view id) -> std::optional<skin::ReadFile> {
+    const std::filesystem::path dir = folders / std::filesystem::path(id);
+    std::error_code error;
+    if (!std::filesystem::is_regular_file(dir / "pack.jsonc", error)) return std::nullopt;
+    return files_of(dir);
+  };
+  auto pack = skin::load_pack(files_of(pack_dir_), screen_schemas(), options);
   if (!pack) return std::unexpected(std::move(pack.error()));
-  ui_.forget_render_target();  // brushes are kept by the address of their stops
   if (const auto missing = skin::missing_constant(*pack)) return std::unexpected("pack.jsonc: no constant \"" + std::string(*missing) + "\"");
+  ui_.forget_render_target();  // brushes are kept by the address of their stops
   pack_ = std::move(*pack);
   ui_.pack = &*pack_;
   pack_skin_ = make_pack_skin(ui_);
+  return {};
+}
+
+void App::point_at_palette() {
   ui_.palette = pack_->palette_of(theme_id_).value_or(-1);
   ui_.theme.from_pack = ui_.palette >= 0 ? pack_skin_.get() : nullptr;
+}
+
+std::expected<void, std::string> App::load_skin_dir(const std::filesystem::path& dir) {
+  std::filesystem::path whole = std::filesystem::absolute(dir).lexically_normal();
+  if (!whole.has_filename()) whole = whole.parent_path();
+  const std::filesystem::path before = pack_dir_;
+  pack_dir_ = whole;
+  auto read = read_pack({});
+  // Which overlay a Theme needs is known once the pack has been read.
+  if (read) {
+    const skin::PackTheme* theme = pack_->theme_of_palette(theme_id_);
+    if (theme && !theme->overlay.empty()) read = read_pack(theme->overlay);
+  }
+  if (!read) {
+    pack_dir_ = before;
+    return read;
+  }
+  point_at_palette();
   skin_changed();
   return {};
 }
@@ -108,8 +146,10 @@ void App::set_theme(std::string_view id) {
   ui_.theme = theme_named(id).theme;
   theme_id_ = theme_named(id).id;
   if (pack_) {
-    ui_.palette = pack_->palette_of(theme_id_).value_or(-1);
-    ui_.theme.from_pack = ui_.palette >= 0 ? pack_skin_.get() : nullptr;
+    // Read earlier and found good, so a failure now is a pack changed under the app: it draws as if it had no such Theme.
+    const skin::PackTheme* theme = pack_->theme_of_palette(theme_id_);
+    if (theme && theme->overlay != pack_->overlay) (void)read_pack(theme->overlay);
+    point_at_palette();
   }
   skin_changed();
 }

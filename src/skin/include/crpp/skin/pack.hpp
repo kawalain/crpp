@@ -48,6 +48,16 @@
 //
 // A part may give w and h for a use that says none, and height: worked out after it has drawn,
 // from its own names, it is the height it took in a column.
+//
+// A pack may say "extends": an id, its parent. It then gets all of the parent's, and what it names itself replaces
+// what the parent has by that name: a constant, style, part, Palette, Theme, screen, or fonts or cursors as a whole.
+// Nothing inside a part or screen is patched. An overlay is the same thing inside a pack: overlays/<name>/pack.jsonc
+// and its screens/, put over the pack when a Theme asks for it.
+//
+// themes lists what a user can pick: names by locale, its palette (its id when it says none), its dark variant if it
+// has one, and its overlay if it needs one. A pack is read for one overlay at a time, and holds only the Palettes of the
+// Themes of that overlay; a pack without themes holds all it has. default_theme is the Theme to go to.
+// A Palette may say "extends": another Palette, whose entries it starts from.
 #include <array>
 #include <cstdint>
 #include <expected>
@@ -79,6 +89,8 @@ inline constexpr int max_repeat = 4096;
 inline constexpr int max_walk = 200000;
 inline constexpr int max_walk_depth = 64;
 inline constexpr std::size_t max_slot_values = 8;
+inline constexpr int max_pack_levels = 4;
+inline constexpr int max_palette_levels = 8;
 
 // What a screen offers a pack, under the names it may use. The ids are the screen's own.
 struct Name {
@@ -196,8 +208,16 @@ struct PackFonts {
   float korean_size = 0, other_size = 0;
 };
 
+struct PackTheme {
+  std::string id, palette, dark, overlay;  // dark and overlay are empty when it has none
+  std::vector<std::pair<std::string, std::string>> names;  // by locale id
+};
+
 struct Pack {
   std::string id;
+  std::string overlay;  // the one this was read for, or empty
+  std::vector<PackTheme> themes;
+  std::string default_theme;
   std::optional<PackFonts> fonts;
   std::optional<std::array<PackCursor, cursor_names.size()>> cursors;
   bool cursors_hard = false;
@@ -221,6 +241,8 @@ struct Pack {
   std::uint32_t paint_names = 0;
 
   [[nodiscard]] std::optional<int> palette_of(std::string_view theme_id) const;
+  // The Theme a Palette belongs to, as itself or as its dark variant.
+  [[nodiscard]] const PackTheme* theme_of_palette(std::string_view palette) const;
   [[nodiscard]] const Screen* screen(std::string_view name) const;
   [[nodiscard]] const Part* part(std::string_view name) const;
   [[nodiscard]] const Paint* paint(int palette, float value) const;
@@ -232,8 +254,13 @@ struct Pack {
 // Reads a file of the pack by its path inside it. Empty when there is none.
 using ReadFile = std::function<std::optional<std::string>(std::string_view path)>;
 
+struct LoadOptions {
+  std::string overlay;  // to read the pack with
+  std::function<std::optional<ReadFile>(std::string_view id)> parent;  // finds the pack a pack extends
+};
+
 // A screen with no file is left out, and that screen can tell from Pack::screen.
-[[nodiscard]] std::expected<Pack, std::string> load_pack(const ReadFile& read, std::span<const ScreenSchema> schemas);
+[[nodiscard]] std::expected<Pack, std::string> load_pack(const ReadFile& read, std::span<const ScreenSchema> schemas, const LoadOptions& options = {});
 
 // The constants the program reads, as a pack that is to be used must have them. A pack whose
 // own_frame is not 0 draws its own window frame, and also needs own_frame_constants.

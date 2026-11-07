@@ -511,7 +511,151 @@ void test_cursors_are_all_there_or_refused() {
   CHECK(!with(outside).has_value());
 }
 
+using Files = std::map<std::string, std::string, std::less<>>;
+
+ReadFile from(Files files) {
+  return [files = std::move(files)](std::string_view path) -> std::optional<std::string> {
+    const auto found = files.find(path);
+    if (found == files.end()) return std::nullopt;
+    return found->second;
+  };
+}
+
+// Packs by id, for what extends them.
+LoadOptions parents(std::map<std::string, Files, std::less<>> packs, std::string overlay = {}) {
+  LoadOptions options;
+  options.overlay = std::move(overlay);
+  options.parent = [packs = std::move(packs)](std::string_view id) -> std::optional<ReadFile> {
+    const auto found = packs.find(id);
+    if (found == packs.end()) return std::nullopt;
+    return from(found->second);
+  };
+  return options;
+}
+
+const char* const parent_pack = R"J({
+  "format": 1, "id": "base",
+  "constants": {"gap": 1, "only_base": 7},
+  "palettes": {"one": {"face": "#ff0000", "ink": "#000000"}, "one_dark": {"extends": "one", "face": "#110000"}},
+  "themes": {"one": {"names": {"ko": "하나", "en": "One"}, "dark": "one_dark"}},
+  "default_theme": "one",
+  "styles": {"body": {"size": "font_size", "line_height": "h"}},
+  "parts": {"a": {"draw": [{"fill": "$face"}]}, "b": {"draw": [{"use": "a"}]}}
+})J";
+
+void a_child_replaces_by_name_and_keeps_the_rest() {
+  const Files child = {{"pack.jsonc", R"J({
+    "format": 1, "id": "child", "extends": "base",
+    "constants": {"gap": 2},
+    "palettes": {"two": {"extends": "one", "ink": "#00ff00"}},
+    "themes": {"two": {"names": {"ko": "둘"}}},
+    "parts": {"a": {"draw": [{"use": "new_one"}]}, "new_one": {"draw": [{"fill": "$ink"}]}}
+  })J"}};
+  const Files base = {{"pack.jsonc", parent_pack}, {"screens/home.jsonc", fill_list(R"({"use":"b"})")}};
+  const auto pack = load_pack(from(child), std::span(&test_schema, 1), parents({{"base", base}}));
+  CHECK(pack.has_value());
+  if (!pack) return;
+  CHECK(pack->id == "child");
+  CHECK(pack->constant("gap") == 2 && pack->constant("only_base") == 7);
+  CHECK(pack->screen("home") != nullptr);  // from the parent
+  CHECK(pack->themes.size() == 2 && pack->default_theme == "one");
+  CHECK(pack->palette_of("one").has_value() && pack->palette_of("one_dark").has_value() && pack->palette_of("two").has_value());
+  const auto dark = pack->palette_of("one_dark");
+  const Paint* face = pack->paint_named(*dark, "face");
+  const Paint* ink = pack->paint_named(*dark, "ink");
+  CHECK(face && face->color.r < 0.1f);   // its own
+  CHECK(ink && ink->color.g == 0);       // from what it extends
+  const Paint* two = pack->paint_named(*pack->palette_of("two"), "ink");
+  CHECK(two && two->color.g == 1);
+  // A part replaced in place can use one that came after it.
+  const auto used = std::ranges::find(pack->parts, "new_one", &Part::name);
+  const auto user = std::ranges::find(pack->parts, "a", &Part::name);
+  CHECK(used < user);
+  CHECK(pack->theme_of_palette("one_dark") && pack->theme_of_palette("one_dark")->id == "one");
+}
+
+void a_child_takes_a_screen_of_its_own() {
+  const Files child = {{"pack.jsonc", R"J({"format":1,"id":"child","extends":"base"})J"}, {"screens/home.jsonc", fill_list(R"({"fill":"$ink"})")}};
+  const Files base = {{"pack.jsonc", parent_pack}, {"screens/home.jsonc", fill_list(R"({"use":"b"})")}};
+  const auto pack = load_pack(from(child), std::span(&test_schema, 1), parents({{"base", base}}));
+  CHECK(pack.has_value());
+  if (!pack) return;
+  const Screen* home = pack->screen("home");
+  CHECK(home && pack->nodes[home->first].kind == NodeKind::Fill);
+}
+
+void extending_is_refused_where_it_cannot_work() {
+  const auto pack_named = [](std::string id, std::string parent) {
+    return Files{{"pack.jsonc", R"J({"format":1,"id":")J" + id + R"J(","extends":")J" + parent + R"J("})J"}};
+  };
+  const Files base = {{"pack.jsonc", parent_pack}};
+  CHECK(!load_pack(from(pack_named("child", "base")), {}));  // nothing finds parents
+  CHECK(!load_pack(from(pack_named("child", "nobody")), {}, parents({{"base", base}})));
+  // Around in a circle.
+  CHECK(!load_pack(from(pack_named("a", "b")), {}, parents({{"b", pack_named("b", "a")}, {"a", pack_named("a", "b")}})));
+  // Three between it and the parent is the limit of four levels.
+  const auto chain = parents({{"l1", pack_named("l1", "l2")}, {"l2", pack_named("l2", "base")}, {"base", base}});
+  CHECK(load_pack(from(pack_named("top", "l1")), {}, chain).has_value());
+  const auto longer = parents({{"l0", pack_named("l0", "l1")}, {"l1", pack_named("l1", "l2")}, {"l2", pack_named("l2", "base")}, {"base", base}});
+  CHECK(!load_pack(from(pack_named("top", "l0")), {}, longer));
+  // Another format.
+  const Files other = {{"pack.jsonc", R"J({"format":99,"id":"base","palettes":{},"styles":{},"parts":{}})J"}};
+  CHECK(!load_pack(from(pack_named("child", "base")), {}, parents({{"base", other}})));
+  // Parts that use each other.
+  const Files circle = {{"pack.jsonc", R"J({"format":1,"id":"c","extends":"base","parts":{"a":{"draw":[{"use":"b"}]}}})J"}};
+  CHECK(!load_pack(from(circle), {}, parents({{"base", base}})));
+  // A Palette extending what is not there, and a Theme naming a Palette that is not there.
+  CHECK(!load_pack(from({{"pack.jsonc", R"J({"format":1,"id":"c","extends":"base","palettes":{"x":{"extends":"nobody"}}})J"}}), {}, parents({{"base", base}})));
+  CHECK(!load_pack(from({{"pack.jsonc", R"J({"format":1,"id":"c","extends":"base","themes":{"x":{"names":{"ko":"x"}}}})J"}}), {}, parents({{"base", base}})));
+  CHECK(!load_pack(from({{"pack.jsonc", R"J({"format":1,"id":"c","extends":"base","default_theme":"nobody"})J"}}), {}, parents({{"base", base}})));
+}
+
+void an_overlay_lies_on_top_for_its_own_themes() {
+  const Files files = {
+      {"pack.jsonc", R"J({
+        "format": 1, "id": "base",
+        "constants": {"gap": 1},
+        "palettes": {"plain": {"face": "#ff0000"}},
+        "themes": {"plain": {"names": {"ko": "보통"}}, "fancy": {"names": {"ko": "멋"}, "overlay": "shiny", "dark": "fancy_dark"}},
+        "default_theme": "plain",
+        "styles": {},
+        "parts": {"a": {"draw": [{"fill": "$face"}]}}
+      })J"},
+      {"screens/home.jsonc", fill_list(R"({"use":"a"})")},
+      {"overlays/shiny/pack.jsonc", R"J({
+        "format": 1, "id": "shiny",
+        "constants": {"gap": 2},
+        "palettes": {"fancy": {"face": "#00ff00", "extra": "#0000ff"}, "fancy_dark": {"extends": "fancy", "face": "#001100"}},
+        "parts": {"a": {"draw": [{"fill": "$extra"}]}}
+      })J"},
+  };
+  const auto plain = load_pack(from(files), std::span(&test_schema, 1));
+  CHECK(plain.has_value());
+  if (plain) {
+    CHECK(plain->constant("gap") == 1 && plain->overlay.empty());
+    CHECK(plain->palette_of("plain").has_value() && !plain->palette_of("fancy").has_value());
+    CHECK(plain->theme_of_palette("fancy_dark") && plain->theme_of_palette("fancy_dark")->overlay == "shiny");  // known either way
+  }
+  LoadOptions shiny;
+  shiny.overlay = "shiny";
+  const auto fancy = load_pack(from(files), std::span(&test_schema, 1), shiny);
+  CHECK(fancy.has_value());
+  if (fancy) {
+    CHECK(fancy->constant("gap") == 2 && fancy->overlay == "shiny" && fancy->id == "base");
+    CHECK(!fancy->palette_of("plain").has_value());  // it has not the entries the other has
+    CHECK(fancy->palette_of("fancy").has_value() && fancy->palette_of("fancy_dark").has_value());
+    CHECK(fancy->screen("home") != nullptr);
+  }
+  LoadOptions nobody;
+  nobody.overlay = "nobody";
+  CHECK(!load_pack(from(files), std::span(&test_schema, 1), nobody));
+}
+
 int main() {
+  a_child_replaces_by_name_and_keeps_the_rest();
+  a_child_takes_a_screen_of_its_own();
+  extending_is_refused_where_it_cannot_work();
+  an_overlay_lies_on_top_for_its_own_themes();
   boxes_are_measured_from_the_box_around_them();
   siblings_read_each_others_boxes();
   a_let_is_read_further_on_and_inside();

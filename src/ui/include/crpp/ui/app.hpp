@@ -191,6 +191,9 @@ class App {
   void paint_layers(Painter& p);
 
   Ui ui_;
+  [[nodiscard]] std::expected<void, std::string> read_pack(const std::string& overlay);
+  void point_at_palette();
+  std::filesystem::path pack_dir_;
   std::optional<skin::Pack> pack_;
   std::unique_ptr<Skin> pack_skin_;
   std::string theme_id_;

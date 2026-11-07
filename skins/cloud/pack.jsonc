@@ -27,6 +27,7 @@
       "hl_mid": {"mix": ["hl", "white", 55]},
       "surface": "#ffffff",
       "on_accent": "#ffffff",
+      "tooltip_ink": "#ffffff",
       "droplet": "#ffffff",
       "entry": "#bbe1fd",
       "error_text": "#df7373",
@@ -55,6 +56,7 @@
       "sky": "#101925",
       "surface": "#233145",
       "on_accent": "#eef5fb",
+      "tooltip_ink": "#eef5fb",
       "droplet": "#27374c",
       "error_text": "#f39b9b",
       "entry": "#344a63",
@@ -83,6 +85,7 @@
       "hl_mid": {"mix": ["hl", "white", 55]},
       "surface": "#ffffff",
       "on_accent": "#ffffff",
+      "tooltip_ink": "#ffffff",
       "droplet": "#ffffff",
       "entry": "#bbe1fd",
       "error_text": "#df7373",
@@ -149,11 +152,16 @@
         {"text": "@label", "style": "tip", "color": "alpha($on_accent, shown)", "x": 15, "y": 5, "w": "W-29", "h": 22}
       ]
     },
+    // .modal-backdrop's fade is a little shorter than the card's rise.
+    "backdrop": {
+      "args": {"shown": 1},
+      "draw": [{"fill": "alpha($backdrop, 0.34*min(1, shown*160/140))"}]
+    },
     // .modal-backdrop and .modal-card, in the window. What is in it goes in its box, and it rises 6 px.
     "modal": {
       "args": {"card_w": 320, "card_h": 100, "shown": 1, "backdrop": -1, "card": -1},
       "draw": [
-        {"fill": "alpha($backdrop, 0.34*min(1, shown*160/140))"},
+        {"use": "backdrop", "args": {"shown": "shown"}},
         {"hit_by": "backdrop", "group": []},
         {"let": "left", "value": "(W-card_w)/2"},
         {"let": "top", "value": "(H-card_h)/2+6*(1-shown)"},
@@ -170,6 +178,15 @@
         {"shadow": "alpha($panel_shadow, (dark ? 0.33 : 0.22)*shown)", "radius": 14, "blur": "dark ? 38 : 16", "dy": "dark ? 12 : 4"},
         {"fill": "alpha($surface, shown)", "radius": 14}
       ]
+    },
+    "panel_modal": {
+      "args": {"shown": 1},
+      "draw": [{"use": "panel_list", "args": {"shown": "shown"}}]
+    },
+    // A message that floats over a screen.
+    "bubble": {
+      "args": {"shown": 1},
+      "draw": [{"fill": "alpha($hl, shown)", "radius": 11}]
     },
     // One that keeps the light Theme's shadow in the dark one.
     "panel_info": {

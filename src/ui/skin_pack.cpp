@@ -18,20 +18,21 @@ class PackSkin final : public Skin {
   [[nodiscard]] bool scales_stage() const override { return pack_.constant("own_frame") == 0; }
   [[nodiscard]] bool moves() const override { return pack_.constant("moves") != 0; }
 
-  void panel(Painter& p, const Theme&, Rect r, PanelKind kind, float) const override {
+  void panel(Painter& p, const Theme&, Rect r, PanelKind kind, float shown) const override {
+    const Args args{{"shown", shown}};
     switch (kind) {
-      case PanelKind::Modal: part(p, "panel_modal", r); break;
-      case PanelKind::List: part(p, "panel_list", r); break;
-      case PanelKind::Menu: part(p, "panel_menu", r); break;
+      case PanelKind::Modal: part(p, "panel_modal", r, {}, false, false, args); break;
+      case PanelKind::List: part(p, "panel_list", r, {}, false, false, args); break;
+      case PanelKind::Menu: part(p, "panel_menu", r, {}, false, false, args); break;
       case PanelKind::Popup:
-      case PanelKind::Picker: part(p, "panel_popup", r); break;
+      case PanelKind::Picker: part(p, "panel_popup", r, {}, false, false, args); break;
       case PanelKind::Update:
       case PanelKind::Notice:
-      case PanelKind::Toast: part(p, "panel_info", r); break;
+      case PanelKind::Toast: part(p, "panel_info", r, {}, false, false, args); break;
     }
   }
 
-  void backdrop(Painter&, const Theme&, Rect, float) const override {}
+  void backdrop(Painter& p, const Theme&, Rect window, float shown) const override { part(p, "backdrop", window, {}, false, false, {{"shown", shown}}); }
 
   void button(Painter& p, const Theme&, Rect r, std::string_view label, const ButtonLook& b) const override {
     part(p, "button", r, label, b.hot, b.pressed, {{"primary", b.primary ? 1.0f : 0.0f}});
@@ -57,10 +58,10 @@ class PackSkin final : public Skin {
 
   void scrollbar(Painter& p, const Theme&, Rect thumb, float, float) const override { part(p, "plain_thumb", thumb); }
 
-  [[nodiscard]] Color bubble(Painter& p, const Theme&, Rect r, float, Color, Color, float) const override {
-    part(p, "bubble", r);
+  [[nodiscard]] Color bubble(Painter& p, const Theme&, Rect r, float, Color, Color, float shown) const override {
+    part(p, "bubble", r, {}, false, false, {{"shown", shown}});
     const skin::Paint* ink = pack_.paint_named(ui_.palette, "tooltip_ink");
-    return ink ? ink->color : Color{};
+    return ink ? with_alpha(ink->color, ink->color.a * shown) : Color{};
   }
 
   void cell(Painter& p, const Theme&, Rect r, bool selected, bool hot) const override {

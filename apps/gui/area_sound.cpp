@@ -35,7 +35,7 @@ void apply(Shell& s) {
   read_sound_settings(*s.prefs, s.audio);
   s.audio.muted = s.prefs->get(pref::mute_others);
   s.audio.idle_muted = s.sound_state->idle.idle() && s.prefs->get(pref::mute_on_idle);
-  s.audio.chimes = s.app.ui().theme.skin == SkinId::Luna;
+  s.audio.chimes = s.app.notification_style() == 2 ? crpp::sound::ChimeStyle::Plain : s.app.notification_style() == 1 ? crpp::sound::ChimeStyle::Bells : crpp::sound::ChimeStyle::None;
   s.engine->set_settings(s.audio);
 }
 

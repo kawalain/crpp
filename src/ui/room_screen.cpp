@@ -122,15 +122,15 @@ void RoomScreen::set_room(std::vector<MemberView> members, std::uint32_t me, std
 float RoomScreen::Pulse::level(unsigned long long now, bool animations) const {
   if (!animations) return now < until ? 1.0f : 0.0f;
   const auto risen = [&](unsigned long long at) {
-    return rise_from + (1 - rise_from) * ease(static_cast<float>(at - std::min(at, start)) / speaking_fade_ms);
+    return rise_from + (1 - rise_from) * ease(static_cast<float>(at - std::min(at, start)) / fade_ms);
   };
   if (now < until) return risen(now);
-  return risen(until) * (1 - ease(static_cast<float>(now - until) / speaking_fade_ms));
+  return risen(until) * (1 - ease(static_cast<float>(now - until) / fade_ms));
 }
 
 bool RoomScreen::Pulse::moving(unsigned long long now, bool animations) const {
   if (!animations) return false;
-  return now < start + static_cast<unsigned long long>(speaking_fade_ms) || now >= until;
+  return now < start + static_cast<unsigned long long>(fade_ms) || now >= until;
 }
 
 void RoomScreen::pulse(std::uint32_t slot) {
@@ -139,19 +139,20 @@ void RoomScreen::pulse(std::uint32_t slot) {
   const auto member = std::ranges::find(members_, slot, &MemberView::slot);
   if (member != members_.end() && slot != me_ && member_volume(member->cid) == 0) return;
   const auto now = clock_ms();
-  const auto until = now + speaking_hold_ms;
+  const auto until = now + static_cast<unsigned long long>(ui_.motion.speaking_hold_ms);
+  const float fade_ms = ui_.motion.speaking_fade_ms;
   for (auto& p : pulses_) {
     if (p.slot != slot) continue;
     // Still up, it stays up with nothing to draw; on its way down, it turns back.
     if (now < p.until) {
       p.until = until;
     } else {
-      p = {slot, p.level(now, ui_.animations), now, until};
+      p = {slot, p.level(now, ui_.animations), now, until, true, fade_ms};
       new_pulse_ = true;
     }
     return;
   }
-  pulses_.push_back({slot, 0, now, until});
+  pulses_.push_back({slot, 0, now, until, true, fade_ms});
   new_pulse_ = true;
 }
 
@@ -241,7 +242,7 @@ bool RoomScreen::tick(unsigned long long now_ms) {
   // These change only the avatars, so they do not ask for the whole window.
   bool pulse_moved = false;
   std::erase_if(pulses_, [&](Pulse& p) {
-    const auto end = p.until + (ui_.animations ? static_cast<unsigned long long>(speaking_fade_ms) : 0);
+    const auto end = p.until + (ui_.animations ? static_cast<unsigned long long>(p.fade_ms) : 0);
     if (now_ms >= end) {
       add_area(ended_area_, p.slot);
       pulse_moved = true;

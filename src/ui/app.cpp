@@ -101,10 +101,21 @@ std::expected<void, std::string> App::read_pack(const std::string& overlay) {
   return {};
 }
 
+int App::notification_style() const {
+  if (ui_.theme.from_pack) return static_cast<int>(pack_->constant("notification_sounds"));
+  return ui_.theme.skin == SkinId::Luna ? 1 : 0;
+}
+
 void App::point_at_palette() {
   ui_.palette = pack_->palette_of(theme_id_).value_or(-1);
   ui_.theme.from_pack = ui_.palette >= 0 ? pack_skin_.get() : nullptr;
+  ui_.motion = {};
   if (ui_.palette < 0) return;
+  if (pack_->constant("moves") != 0) {
+    const skin::Pack& k = *pack_;
+    ui_.motion = {k.constant("scroll_settle_ms"), k.constant("scroll_return_ms"), k.constant("scroll_stretch"), k.constant("edge_fade"),
+                  k.constant("screen_fade_ms"), k.constant("screen_rise"), k.constant("speaking_hold_ms"), k.constant("speaking_fade_ms")};
+  }
   ui_.theme.dark = pack_->palette_is_dark(ui_.palette);
   if (const skin::Paint* sky = pack_->paint_named(ui_.palette, "sky")) ui_.theme.sky = sky->color;
 }
@@ -579,8 +590,7 @@ void App::paint_screen(Painter& p, View view) {
 }
 
 void App::paint_screens(Painter& p) {
-  constexpr float leaving_ms = 180, rise_px = 8;
-  const float t = left_at_ != 0 ? transition(ui_, left_at_, leaving_ms) : 1;
+  const float t = left_at_ != 0 ? transition(ui_, left_at_, ui_.motion.screen_fade_ms) : 1;
   if (t >= 1) {
     left_at_ = 0;
     finish_leaving_room();
@@ -594,7 +604,7 @@ void App::paint_screens(Painter& p) {
   p.pop_opacity();
   ui_.hits_enabled = true;
   p.push_opacity(t);
-  p.set_moved(0, rise_px * (1 - t));
+  p.set_moved(0, ui_.motion.screen_rise * (1 - t));
   paint_screen(p, view_);
   p.set_moved(0, 0);
   p.pop_opacity();

@@ -10,6 +10,9 @@
   "default_theme": "cloudroom",
   "constants": {
     "own_frame": 0, "moves": 1,
+    "scroll_settle_ms": 32, "scroll_return_ms": 52, "scroll_stretch": 48, "edge_fade": 27,
+    "screen_fade_ms": 180, "screen_rise": 8,
+    "speaking_hold_ms": 160, "speaking_fade_ms": 100,
     "list_pad": 6, "list_item_h": 38, "list_gap": 4, "list_max_h": 224, "list_margin": 6, "slider_thumb": 21
   },
   "palettes": {

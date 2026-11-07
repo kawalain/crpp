@@ -143,13 +143,12 @@ class RoomScreen final : public Surface {
   [[nodiscard]] bool is_host() const { return host_ && *host_ == me_; }
   // main.js SPEAKING_MS and .emoji-ring::before's transition. While held at full strength,
   // renewing it needs no frame.
-  static constexpr unsigned long long speaking_hold_ms = 160;
-  static constexpr float speaking_fade_ms = 100;
   struct Pulse {
     std::uint32_t slot = 0;
     float rise_from = 0;
     unsigned long long start = 0, until = 0;
     bool was_moving = true;
+    float fade_ms = 100;
     [[nodiscard]] float level(unsigned long long now, bool animations) const;
     [[nodiscard]] bool moving(unsigned long long now, bool animations) const;
   };

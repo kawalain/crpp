@@ -35,7 +35,7 @@ struct Scroll {
   float stretch = 0;  // how far it is pulled past an end: below 0 above the top
   unsigned long long moved_at = 0, pulled_at = 0;
 
-  static constexpr float longest_stretch = 48;
+  float edge_fade = 27;  // how long the edge fades can be, from what last moved it
 
   [[nodiscard]] float max_offset() const { return content_h > view_h ? content_h - view_h : 0; }
   [[nodiscard]] float drawn() const { return offset + stretch; }

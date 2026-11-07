@@ -173,15 +173,19 @@ std::vector<float> synthesize_cue(std::string_view name, std::uint32_t rate) {
 
 bool can_chime(std::string_view name) noexcept { return name.ends_with("cloud_chat") || name.ends_with("cloud_enter"); }
 
-std::vector<float> synthesize_chime(std::string_view name, std::uint32_t rate) {
-  if (rate == 0 || !can_chime(name)) return {};
+std::vector<float> synthesize_chime(std::string_view name, std::uint32_t rate, ChimeStyle style) {
+  if (rate == 0 || !can_chime(name) || style == ChimeStyle::None) return {};
   struct Note {
     float at_ms, hz;
   };
   // Two notes for a message, three quicker ones for someone entering.
   constexpr Note message[] = {{0, 1319}, {105, 1760}};
   constexpr Note enter[] = {{0, 1047}, {75, 1319}, {150, 1568}};
-  const std::span<const Note> notes = name.ends_with("cloud_chat") ? std::span<const Note>(message) : std::span<const Note>(enter);
+  constexpr Note plain_message[] = {{0, 660}};
+  constexpr Note plain_enter[] = {{0, 523}, {120, 660}};
+  const bool plain = style == ChimeStyle::Plain, is_message = name.ends_with("cloud_chat");
+  const std::span<const Note> notes = plain ? (is_message ? std::span<const Note>(plain_message) : std::span<const Note>(plain_enter))
+                                            : (is_message ? std::span<const Note>(message) : std::span<const Note>(enter));
 
   const float sample_rate = static_cast<float>(rate);
   const auto count = static_cast<std::size_t>(sample_rate * chime_longest_ms / 1000);
@@ -189,9 +193,9 @@ std::vector<float> synthesize_chime(std::string_view name, std::uint32_t rate) {
   constexpr float two_pi = 2 * std::numbers::pi_v<float>;
   for (const Note& note : notes) {
     const auto start = static_cast<std::size_t>(sample_rate * note.at_ms / 1000);
-    const float tau = 0.075f * sample_rate;
-    // A bell's overtone is not a whole multiple of its note, and it dies sooner.
-    const float step = two_pi * note.hz / sample_rate, overtone = step * 2.76f;
+    const float tau = (plain ? 0.11f : 0.075f) * sample_rate;
+    // A bell's overtone is not a whole multiple of its note, and it dies sooner. A plain tone's is.
+    const float step = two_pi * note.hz / sample_rate, overtone = step * (plain ? 2.0f : 2.76f);
     for (std::size_t i = start; i < count; ++i) {
       const auto n = static_cast<float>(i - start);
       const float attack = std::min(1.0f, n / (0.002f * sample_rate));

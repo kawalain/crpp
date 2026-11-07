@@ -521,8 +521,13 @@ void test_the_pack_says_how_windows_are_measured() {
   CHECK(h.app.load_skin_dir(pack_with("overlays/luna/pack.jsonc", R"("korean_size": 12)", R"("korean_size": 15)")).has_value());
   h.app.ui().gfx.set_language(L"ko");
   CHECK(h.app.ui().gfx.classic_size() == 15);
-  CHECK(h.app.load_skin_dir(pack_with("pack.jsonc", R"("moves": 0)", R"("moves": 1)")).has_value());
+  // A pack that moves says the numbers of what moves in the engine.
+  CHECK(!h.app.load_skin_dir(pack_with("pack.jsonc", R"("moves": 0)", R"("moves": 1)")).has_value());
+  CHECK(h.app.load_skin_dir(pack_with("pack.jsonc", R"("moves": 0)",
+                                      R"("moves": 1, "scroll_settle_ms": 10, "scroll_return_ms": 20, "scroll_stretch": 30, "edge_fade": 9, "screen_fade_ms": 40, "screen_rise": 2, "speaking_hold_ms": 50, "speaking_fade_ms": 60)")).has_value());
   CHECK(h.app.ui().skin().moves());
+  CHECK(h.app.ui().motion.scroll_stretch == 30);
+  CHECK(h.app.ui().motion.speaking_fade_ms == 60);
 
   // A number the program reads may not be missing.
   const auto refused = h.app.load_skin_dir(pack_with("pack.jsonc", R"("window_room_h": 500, )", ""));

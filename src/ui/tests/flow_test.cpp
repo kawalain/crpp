@@ -200,7 +200,7 @@ void test_scroll_stretches_past_the_end_and_comes_back() {
   for (int notch = 0; notch < 40; ++notch) s.wheel(ui, -1);
   CHECK(s.target == 500);
   CHECK(s.stretch > 20);
-  CHECK(s.stretch <= Scroll::longest_stretch);
+  CHECK(s.stretch <= EngineMotion{}.scroll_stretch);
   CHECK(s.drawn() > 500);
   CHECK(s.fade_bottom() == 0);
   const float pulled = s.stretch;

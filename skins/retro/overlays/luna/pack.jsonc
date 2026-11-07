@@ -4,6 +4,7 @@
   "id": "luna",
   // The look of Windows XP, written over classic. Only what differs is here.
   "constants": {
+    "notification_sounds": 1,
     "caption_h": 28, "frame_w": 3, "window_radius": 8, "frame_button": 21, "frame_button_top": 4, "frame_button_right": 5
   },
   "fonts": {

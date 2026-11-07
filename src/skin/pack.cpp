@@ -1213,6 +1213,11 @@ std::span<const std::string_view> own_frame_constants() {
   return names;
 }
 
+std::span<const std::string_view> moving_constants() {
+  static constexpr std::string_view names[] = {"scroll_settle_ms", "scroll_return_ms", "scroll_stretch", "edge_fade", "screen_fade_ms", "screen_rise", "speaking_hold_ms", "speaking_fade_ms"};
+  return names;
+}
+
 std::optional<std::string_view> missing_constant(const Pack& pack) {
   const auto has = [&](std::string_view name) { return std::ranges::any_of(pack.constants, [&](const auto& c) { return c.first == name; }); };
   for (const std::string_view name : required_constants()) {
@@ -1220,6 +1225,11 @@ std::optional<std::string_view> missing_constant(const Pack& pack) {
   }
   if (pack.constant("own_frame") != 0) {
     for (const std::string_view name : own_frame_constants()) {
+      if (!has(name)) return name;
+    }
+  }
+  if (pack.constant("moves") != 0) {
+    for (const std::string_view name : moving_constants()) {
       if (!has(name)) return name;
     }
   }

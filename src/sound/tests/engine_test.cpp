@@ -382,7 +382,7 @@ void chimes_take_the_place_of_a_skins_notifications() {
   FakeDevice device;
   Engine engine(device, std::filesystem::path(CRPP_SOUNDS_DIR) / "none");
   Settings settings = full_volume();
-  settings.chimes = true;
+  settings.chimes = ChimeStyle::Bells;
   engine.set_settings(settings);
   engine.start();
   engine.play_notification("no_such_sound");  // nothing to play and no chime for it

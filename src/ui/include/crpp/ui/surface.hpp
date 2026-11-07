@@ -42,6 +42,14 @@ inline D2D1_MATRIX_3X2_F scale_about(float cx, float cy, float s) {
   return D2D1::Matrix3x2F::Translation(-cx, -cy) * D2D1::Matrix3x2F::Scale(s, s) * D2D1::Matrix3x2F::Translation(cx, cy);
 }
 
+// The numbers of the motion that stays in the engine: a pack that moves gives them all. These
+// are for what the program draws without a pack.
+struct EngineMotion {
+  float scroll_settle_ms = 32, scroll_return_ms = 52, scroll_stretch = 48, edge_fade = 27;
+  float screen_fade_ms = 180, screen_rise = 8;
+  float speaking_hold_ms = 160, speaking_fade_ms = 100;
+};
+
 class Surface;
 class Prefs;
 class Dialogs;
@@ -115,6 +123,7 @@ class Ui : public WindowState {
 
   // The Skin Pack in use and this Theme's Palette in it, while data draws what it has.
   const skin::Pack* pack = nullptr;
+  EngineMotion motion;
   // Every pack there is to choose from.
   std::vector<SkinInfo> skins;
   int palette = -1;

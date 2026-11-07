@@ -11,7 +11,7 @@
   },
   "default_theme": "classic",
   "constants": {
-    "own_frame": 1, "moves": 0,
+    "own_frame": 1, "moves": 0, "notification_sounds": 2,
     "caption_h": 22, "frame_w": 4, "menu_h": 20, "window_radius": 0,
     "frame_edge": 4, "frame_corner": 12, "frame_button": 16, "frame_button_gap": 2, "frame_button_top": 5, "frame_button_right": 6,
     "window_home_w": 300, "window_home_h": 560, "window_home_min_w": 260, "window_home_min_h": 400,

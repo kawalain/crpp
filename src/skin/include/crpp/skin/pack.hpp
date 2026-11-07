@@ -55,6 +55,9 @@
 // point there. A pack without them leaves the pointer to the system. With hard: true they are drawn with
 // hard edges in that box, then enlarged by whole pixels, so the steps of the grid are part of the look.
 //
+// notification_sounds, when not 0, has a message and someone entering sound as tones made by the program:
+// 1 small bells, 2 plain tones.
+//
 // Some constants are read by the program too: see required_constants. Fonts are installed ones, the
 // first of each list that this system has: korean for Korean and for every Hangul letter, other for
 // the other languages, caption for a style of role caption, with the size that font_size then is.
@@ -312,6 +315,8 @@ struct LoadOptions {
 // own_frame is not 0 draws its own window frame, and also needs own_frame_constants.
 [[nodiscard]] std::span<const std::string_view> required_constants();
 [[nodiscard]] std::span<const std::string_view> own_frame_constants();
+// And one whose moves is not 0 says these, of the motion that stays in the engine.
+[[nodiscard]] std::span<const std::string_view> moving_constants();
 // The first of them this pack lacks.
 [[nodiscard]] std::optional<std::string_view> missing_constant(const Pack& pack);
 

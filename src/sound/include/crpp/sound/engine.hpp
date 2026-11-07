@@ -4,6 +4,8 @@
 // and stops the device once everything has rung out, so a quiet Room costs
 // nothing. play_*() are safe from any thread, take no heap and never wait on the
 // disk or the device.
+#include "crpp/sound/synth.hpp"
+
 #include <array>
 #include <chrono>
 #include <condition_variable>
@@ -66,7 +68,7 @@ struct Settings {
   bool others_use_my_sounds = false;
   bool muted = false;  // the sound of other members only
   bool mute_notifications = false;  // while muted, notification sounds too
-  bool chimes = false;  // a message and someone entering sound like the Skin, not their recordings
+  ChimeStyle chimes = ChimeStyle::None;  // a message and someone entering sound like the Skin, not their recordings
   bool idle_muted = false;  // away, and wanting quiet: everything but system sounds
   bool spatial = true;
   int balance = 60;

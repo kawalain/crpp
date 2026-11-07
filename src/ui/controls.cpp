@@ -174,12 +174,14 @@ void Scroll::wheel(const Ui& ui, float delta, float px_per_notch) {
   if (past != 0 && max > 0) {
     // The further out, the heavier the pull.
     constexpr float give = 0.4f;
-    stretch = std::clamp(stretch + past * give * (1 - std::abs(stretch) / longest_stretch), -longest_stretch, longest_stretch);
+    const float longest = ui.motion.scroll_stretch;
+    stretch = std::clamp(stretch + past * give * (1 - std::abs(stretch) / longest), -longest, longest);
     pulled_at = ui.now_ms;
   }
 }
 
 void Scroll::advance(Ui& ui) {
+  edge_fade = ui.motion.edge_fade;
   if (!ui.animations) {
     jump_to(target);
     return;
@@ -191,7 +193,8 @@ void Scroll::advance(Ui& ui) {
   // Time constants for settling in about 160 ms from a notch away, and coming back from
   // the furthest stretch in about 240 ms. A longer gap between frames than the cap, as
   // when a dialog held them up, must not read as a jump.
-  constexpr float settle_ms = 32, return_ms = 52, longest_step_ms = 50, near_px = 0.5f;
+  const float settle_ms = ui.motion.scroll_settle_ms, return_ms = ui.motion.scroll_return_ms;
+  constexpr float longest_step_ms = 50, near_px = 0.5f;
   constexpr unsigned long long hold_ms = 60;  // a wheel still turning keeps it stretched
   const float dt = moved_at == 0 ? 8 : std::min(longest_step_ms, static_cast<float>(ui.now_ms - std::min(ui.now_ms, moved_at)));
   moved_at = ui.now_ms;
@@ -204,9 +207,9 @@ void Scroll::advance(Ui& ui) {
   ui.more_frames = true;
 }
 
-float Scroll::fade_top() const { return std::clamp(drawn(), 0.0f, edge_fade_px); }
+float Scroll::fade_top() const { return std::clamp(drawn(), 0.0f, edge_fade); }
 
-float Scroll::fade_bottom() const { return std::clamp(max_offset() - drawn(), 0.0f, edge_fade_px); }
+float Scroll::fade_bottom() const { return std::clamp(max_offset() - drawn(), 0.0f, edge_fade); }
 
 Rect Scroll::thumb(Rect track) const {
   const float h = content_h > 0 ? std::max(28.0f, track.h * std::min(1.0f, view_h / content_h)) : track.h;

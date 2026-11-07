@@ -66,7 +66,7 @@ std::expected<void, std::string> App::load_skin_dir(const std::filesystem::path&
     if (!in.read(text.data(), static_cast<std::streamsize>(size))) return std::nullopt;
     return text;
   };
-  const skin::ScreenSchema schemas[] = {HomeScreen::schema()};
+  const skin::ScreenSchema schemas[] = {HomeScreen::schema(), PromptScreen::schema()};
   auto pack = skin::load_pack(read, schemas);
   if (!pack) return std::unexpected(std::move(pack.error()));
   ui_.forget_render_target();  // brushes are kept by the address of their stops

@@ -142,6 +142,36 @@ void test_graphics_can_be_let_go_with_a_pack_drawn() {
   CHECK(h.render());
 }
 
+void test_the_prompt_from_the_pack_takes_typing_and_clicks() {
+  UiHarness h;
+  CHECK(h.start(420, 400));
+  h.app.set_theme("messenger");
+  CHECK(h.app.load_skin_dir(messenger_pack).has_value());
+  CHECK(h.app.ui().pack_screen("prompt") != nullptr);
+  PromptScreen& prompt = h.app.prompt();
+  std::string submitted;
+  int linked = 0;
+  prompt.on_submit = [&](std::string value) { submitted = std::move(value); };
+  prompt.on_link = [&] { ++linked; };
+  h.app.show_prompt({.placeholder = "password", .link = "forgot", .password = true, .valid = [](std::string_view v) { return !v.empty(); }});
+  h.render();
+
+  // Empty, the button is drawn but does nothing.
+  CHECK(h.click(prompt, PromptScreen::Submit));
+  CHECK(submitted.empty());
+  CHECK(h.click(prompt, PromptScreen::Field));
+  for (const wchar_t c : std::wstring(L"abc")) h.app.char_input(c, false);
+  h.render();
+  CHECK(!prompt.password_shown());
+  CHECK(h.click(prompt, PromptScreen::Eye));
+  CHECK(prompt.password_shown());
+  CHECK(h.click(prompt, PromptScreen::Link));
+  CHECK(linked == 1);
+  CHECK(h.click(prompt, PromptScreen::Submit));
+  CHECK(submitted == "abc");
+  CHECK(!h.drawn(prompt, PromptScreen::Back));
+}
+
 void test_a_folder_without_a_pack_is_refused_and_changes_nothing() {
   UiHarness h;
   start_on_home(h);
@@ -159,6 +189,7 @@ int main() {
   test_a_click_in_the_field_lands_in_the_text();
   test_a_theme_outside_the_pack_is_drawn_as_before();
   test_graphics_can_be_let_go_with_a_pack_drawn();
+  test_the_prompt_from_the_pack_takes_typing_and_clicks();
   test_a_folder_without_a_pack_is_refused_and_changes_nothing();
   return crpp_test_result();
 }

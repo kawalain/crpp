@@ -1,0 +1,44 @@
+{
+  "draw": [
+    {"fill": "$face"},
+    {"let": "form_w", "value": "min(300, W-24)"},
+    {"let": "left", "value": "floor(X+(W-form_w)/2)-X"},
+    {"let": "hint_h", "value": "max(16, texth('paragraph', '@hint', form_w))"},
+    {"let": "total", "value": "64+12+field_h+6+hint_h+14+button_h+(@has_heading ? 26 : 0)+(@has_label ? 18 : 0)+(@has_link ? 26 : 0)"},
+    {"let": "picture_x", "value": "floor(X+(W-64)/2)-X"},
+    {"x": "left", "y": "floor(Y+max(8, (H-total)/2))-Y", "w": "form_w", "column": [
+      {"x": "picture_x-left", "w": 64, "h": 64, "after": 12, "group": [
+        {"use": "picture_frame"},
+        {"picture": "droplet", "x": 6, "y": 6, "w": 52, "h": 52}
+      ]},
+      {"if": "@has_heading", "text": "@heading", "style": "bold_center", "color": "$ink", "h": 20, "after": 6},
+      {"if": "@has_label", "text": "@label", "style": "body", "color": "$ink", "h": 16, "after": 2},
+
+      {"//": "The field, with what goes before the text and the eye inside it.", "h": "field_h", "after": 6, "group": [
+        {"use": "field", "args": {"off": "@locked"}},
+        {"hit": "field", "group": []},
+        {"if": "@has_prefix", "text": "@prefix", "style": "body", "color": "$ink", "x": 4, "w": 30},
+        {"let": "text_left", "value": "4+(@has_prefix ? textw('body', '@prefix')+1 : 0)"},
+        {"let": "text_right", "value": "W-2-(@password ? 19 : 0)"},
+        {"if": "@password", "hit": "eye", "x": "W-2-19", "y": 2, "w": 19, "h": 19, "group": [
+          {"if": "hot", "fill": "$hover_0"},
+          {"fill": "$bar_arrow", "x": 4, "y": 8, "w": 11, "h": 3},
+          {"fill": "$bar_arrow", "x": 7, "y": 6, "w": 5, "h": 7},
+          {"fill": "$field", "x": 8, "y": 8, "w": 3, "h": 3},
+          {"if": "@shown", "fill": "$bar_arrow", "x": 9, "y": 9, "w": 1, "h": 1}
+        ]},
+        {"slot": "field", "styles": ["body"], "colors": ["$ink", "$ink_soft", "$ink", "$selection", "@locked ? $field_off : $field"], "x": "text_left", "w": "text_right-2-text_left"}
+      ]},
+
+      {"text": "@hint", "style": "paragraph", "color": "@hint_error ? $error_text : $ink_soft", "h": "hint_h", "after": 14},
+
+      {"//": "Submitting comes last on the right, then the step's other choices, as a dialog has them.", "h": "button_h", "group": [
+        {"use": "button", "id": "ok", "text": "#ok", "hit": "submit", "right": "W", "live": "!@busy", "args": {"primary": 1, "off": "@submit_off"}},
+        {"if": "@has_extra2", "use": "button", "id": "two", "text": "@extra2", "hit": "extra2", "right": "ok.x-6", "live": "!@busy"},
+        {"if": "@has_extra", "use": "button", "text": "@extra", "hit": "extra", "right": "(@has_extra2 ? two.x : ok.x)-6", "live": "!@busy"},
+        {"if": "@cancelable", "use": "button", "text": "#prompt_back", "hit": "back", "live": "!@busy"}
+      ]},
+      {"if": "@has_link", "use": "link", "text": "@link", "hit": "link", "y": "flow+10", "h": 16}
+    ]}
+  ]
+}

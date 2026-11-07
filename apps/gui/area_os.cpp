@@ -5,6 +5,7 @@
 #include <shellapi.h>
 #include <windowsx.h>
 
+#include <algorithm>
 #include <climits>
 #include <memory>
 #include <string>
@@ -74,10 +75,15 @@ void CALLBACK release_graphics(HWND hwnd, UINT, UINT_PTR id, DWORD) {
 
 [[nodiscard]] bool in_room(const Shell& s) { return s.app.view() == View::Session; }
 
-[[nodiscard]] bool foreground_is_ours() {
+[[nodiscard]] bool ours(HWND hwnd) {
   DWORD pid = 0;
-  GetWindowThreadProcessId(GetForegroundWindow(), &pid);
+  GetWindowThreadProcessId(hwnd, &pid);
   return pid == GetCurrentProcessId();
+}
+
+[[nodiscard]] bool pointer_over_ours() {
+  POINT at;
+  return GetCursorPos(&at) && ours(WindowFromPoint(at));
 }
 
 void CALLBACK trim_when_quiet(HWND hwnd, UINT, UINT_PTR id, DWORD) {
@@ -90,7 +96,7 @@ void CALLBACK trim_when_quiet(HWND hwnd, UINT, UINT_PTR id, DWORD) {
 void CALLBACK release_when_unused(HWND hwnd, UINT, UINT_PTR id, DWORD) {
   KillTimer(hwnd, id);
   Shell& s = *state.shell;
-  if (!s.target || !os_policy::releases_when_unused(in_room(s), s.hidden, foreground_is_ours())) return;
+  if (!s.target || !os_policy::releases_when_unused(in_room(s), s.hidden, ours(GetForegroundWindow()), pointer_over_ours())) return;
   s.target.reset();
   drop_pane_targets(s);
   s.app.ui().forget_render_target();
@@ -324,6 +330,7 @@ void pref_changed(Shell& s, std::string_view key) {
     else if (state.balloons == 0) state.tray.remove();
   }
   if (key == pref::start_with_system.name && !state.reverting_autostart) apply_start_with_system(s);
+  if (key == pref::release_graphics_after.name) painted(s);
 }
 
 void first_show(Shell& s, bool minimized) {
@@ -337,7 +344,9 @@ void first_show(Shell& s, bool minimized) {
 void painted(Shell& s) {
   if (s.hidden || in_room(s)) return;
   SetTimer(s.hwnd, quiet_timer, quiet_trim_ms, trim_when_quiet);
-  if (s.unused_release_ms) SetTimer(s.hwnd, unused_timer, s.unused_release_ms, release_when_unused);
+  const int seconds = s.prefs->get(pref::release_graphics_after);
+  if (seconds < 0) KillTimer(s.hwnd, unused_timer);
+  else SetTimer(s.hwnd, unused_timer, static_cast<UINT>(std::min(seconds, 86400)) * 1000, release_when_unused);  // 0: the shortest a timer waits
 }
 
 bool on_message(Shell& s, UINT msg, WPARAM wp, LPARAM lp, LRESULT& result) {
@@ -384,6 +393,9 @@ bool on_message(Shell& s, UINT msg, WPARAM wp, LPARAM lp, LRESULT& result) {
         }
         painted(s);  // the clock to letting go starts from here too
       }
+      return false;
+    case WM_MOUSELEAVE:
+      painted(s);  // and from here, as nothing is let go of under the pointer
       return false;
     case WM_DESTROY:
       state.tray.remove();

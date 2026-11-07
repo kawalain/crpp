@@ -219,6 +219,29 @@ void test_idle_dropdown_saves_minutes() {
   CHECK(prefs.get(pref::idle_minutes) == 7);
 }
 
+void test_release_dropdown_saves_seconds() {
+  UiHarness h;
+  CHECK(h.start());
+  open(h, SettingsPage::System);
+  SystemTab& tab = h.app.settings().system();
+  Prefs& prefs = *h.app.ui().prefs;
+  CHECK(prefs.get(pref::release_graphics_after) == 0);  // at once
+  h.app.settings().scroll_to(10000);
+  h.render();
+  CHECK(h.click(tab, SystemTab::ReleaseList));
+  CHECK(h.click(tab, SystemTab::ReleaseList + 4));
+  CHECK(prefs.get(pref::release_graphics_after) == -1);  // never
+  h.render();
+  CHECK(h.click(tab, SystemTab::ReleaseList));
+  CHECK(h.click(tab, SystemTab::ReleaseList + 2));
+  CHECK(prefs.get(pref::release_graphics_after) == 10);
+  prefs.set(pref::release_graphics_after, 30);  // not a choice: shown as the 10 s below it
+  h.render();
+  CHECK(h.click(tab, SystemTab::ReleaseList));
+  CHECK(h.click(tab, SystemTab::ReleaseList + 2));  // already selected, so nothing changes
+  CHECK(prefs.get(pref::release_graphics_after) == 30);
+}
+
 void test_reset_goes_through_its_dialog() {
   UiHarness h;
   CHECK(h.start());
@@ -341,6 +364,7 @@ int main() {
   test_language_dropdown_saves_the_locale();
   test_the_detail_hint_keeps_three_lines_in_every_locale();
   test_idle_dropdown_saves_minutes();
+  test_release_dropdown_saves_seconds();
   test_reset_goes_through_its_dialog();
   test_scrollbar_shows_on_scrolling_and_hides_after_a_pause();
   test_scrollbar_stays_under_the_pointer();

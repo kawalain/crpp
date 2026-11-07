@@ -100,11 +100,14 @@ unshared part of the working set, which is what Task Manager's Memory column sho
 - **Measure 7, done: segment heap.** Settings open, six runs each, alternating: commit 76.0 to 75.2,
   resident private 19.3 to 18.4, ranges not overlapping. Wheel scrolling 7.4% against 6.6% of a core,
   within noise. Chromium reported a CPU cost (secondhand, crbug 1102281); not seen here.
-- **Releasing the device while shown: built, off.** `--release-unused <s>` lets the device go after
-  `<s>` seconds with no frame, outside a Room and while another program has the foreground. Home: commit
-  65 to 11.8, settings used: 75 to 12.4, Retro 60 to 11.6; `nvwgf2umx.dll` unloads. Activation or the
-  next frame makes it again. Ten cycles showed no growth in handles, threads or the peak. It stays off
-  until a real desktop shows that the window keeps its picture without a device; meant to run at 180 s.
+- **Releasing the device while shown: on, at once by default.** The device goes after a chosen wait
+  with no frame (`releaseGraphicsAfter`: at once, 10 s, 1 min, never), outside a Room, while another
+  program has the foreground and the pointer is not over the app. Home: commit 65 to 11.8, settings
+  used: 75 to 12.4, Retro 60 to 11.6; `nvwgf2umx.dll` unloads. Activation or the next frame makes it
+  again. Ten cycles showed no growth in handles, threads or the peak. First built behind a command-line
+  option; the user then saw on a real desktop that the window kept its picture and came back quickly, and
+  chose "at once" as the default. The pointer guard exists because a hover still draws a window in the
+  background, and each frame would otherwise make the device again at about 140 ms of CPU.
 - **The hidden floor is 12, not 24.** Measured 15 s after the release it was 12.4 even after settings
   had been used; 4 s after, it was still 35.7. The driver frees its memory several seconds late, so
   the 24 above was probably measured too early.

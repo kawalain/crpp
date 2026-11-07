@@ -267,7 +267,7 @@ void test_every_tab_stands_where_the_code_puts_it() {
   for (const int id : {SoundTab::SpeakerVolume, SoundTab::KeyboardVolume, SoundTab::MouseVolume, SoundTab::SpeakerList, SoundTab::KeyboardList, SoundTab::MouseList, SoundTab::ListenSelf, SoundTab::OthersUseMine}) places.push_back({sound, id});
   same_places(h, places);
 
-  const auto compare = [](SettingsPage page, const std::vector<int>& ids) {
+  const auto compare = [](SettingsPage page, const std::vector<int>& ids, float scroll = 0) {
     UiHarness other;
     CHECK(other.start(1200, 900));
     other.app.show_home();
@@ -275,6 +275,8 @@ void test_every_tab_stands_where_the_code_puts_it() {
     panel.notify().set_sounds({{"a", "a", "One"}, {"b", "b", "Two"}});
     panel.account().set_profile({"Me", "me", "Me", "", true});
     panel.open(page);
+    other.render();
+    panel.scroll_to(scroll);
     const Surface* owner = page == SettingsPage::Display   ? static_cast<const Surface*>(&panel.display())
                            : page == SettingsPage::Notify ? static_cast<const Surface*>(&panel.notify())
                            : page == SettingsPage::System ? static_cast<const Surface*>(&panel.system())
@@ -285,6 +287,7 @@ void test_every_tab_stands_where_the_code_puts_it() {
   };
   compare(SettingsPage::Notify, {NotifyTab::TrayToggle, NotifyTab::FlashToggle, NotifyTab::SoundBase, NotifyTab::SoundBase + 1, NotifyTab::PreviewBase, NotifyTab::PreviewBase + 1});
   compare(SettingsPage::System, {SystemTab::Autostart, SystemTab::Tray, SystemTab::Detail, SystemTab::Use24h, SystemTab::IdleList});
+  compare(SettingsPage::System, {SystemTab::ReleaseList, SystemTab::Logging, SystemTab::Reset}, 10000);
   compare(SettingsPage::Account, {AccountTab::Emoji, AccountTab::Nickname, AccountTab::Handle, AccountTab::Logout});
 }
 

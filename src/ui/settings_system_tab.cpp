@@ -8,6 +8,7 @@ namespace crpp::ui {
 namespace {
 
 constexpr std::array<int, 3> idle_minutes{15, 30, 60};  // IDLE_CHOICES
+constexpr std::array<int, 4> release_seconds{0, 10, 60, -1};  // the last: never
 
 // Differs from upstream: no sleep-on-minimize or input log rows, and the Detail mode
 // row replaces "키보드 문자열 구분". Its description is three lines where upstream's is
@@ -17,7 +18,8 @@ constexpr float detail_top = row_top + row_step * 2;
 constexpr float time_top = 274;
 constexpr float language_top = time_top + 166;
 constexpr float advanced_top = language_top + 114;
-constexpr float logging_top = advanced_top + 51;
+constexpr float release_top = advanced_top + 51;  // not upstream's
+constexpr float logging_top = release_top + row_step;
 constexpr float open_logs_top = logging_top + row_step;
 constexpr float buttons_x = 381, buttons_w = 140, buttons_h = 38;
 
@@ -35,6 +37,18 @@ float reset_top(bool logging) { return (logging ? open_logs_top + buttons_h : lo
 SystemTab::SystemTab(Ui& ui) : SettingsTab(ui) {
   idle_.id_base = IdleList;
   language_.id_base = LanguageList;
+  release_.id_base = ReleaseList;
+}
+
+// A value no choice has, as from a file edited by hand, shows as the longest wait below it.
+void SystemTab::sync_release() {
+  release_.options = {tr().system_release_now, tr().system_release_10s, tr().system_release_1m, tr().system_release_off};
+  const int seconds = ui_.prefs->get(pref::release_graphics_after);
+  release_.selected = static_cast<int>(release_seconds.size()) - 1;
+  if (seconds < 0) return;
+  for (std::size_t i = 0; i + 1 < release_seconds.size(); ++i) {
+    if (release_seconds[i] <= seconds) release_.selected = static_cast<int>(i);
+  }
 }
 
 void SystemTab::sync_idle() {
@@ -88,6 +102,10 @@ void SystemTab::paint(Painter& p, Rect area) {
   language_.paint_button(ui_, this, p, language_rect_);
 
   paint_heading(p, t, area, advanced_top, tr().system_advanced);
+  paint_row_label(p, t, area, release_top + 5, tr().system_release);
+  sync_release();
+  release_rect_ = {area.x + dropdown_x, area.y + release_top - 1, dropdown_w, dropdown_h};
+  release_.paint_button(ui_, this, p, release_rect_);
   const bool logging = prefs.get(pref::log_enabled);
   paint_toggle(ui_, this, p, area, logging_top, tr().system_logging, logging, Logging, toggles_[4]);
   if (logging) {
@@ -99,14 +117,16 @@ void SystemTab::paint(Painter& p, Rect area) {
 void SystemTab::paint_popups(Painter& p, Rect) {
   idle_.paint_list(ui_, this, p, idle_rect_);
   language_.paint_list(ui_, this, p, language_rect_);
+  release_.paint_list(ui_, this, p, release_rect_);
 }
 
 void SystemTab::before_click(const Surface* owner, int id) {
   if (owner != this || !idle_.owns(id)) idle_.open = false;
   if (owner != this || !language_.owns(id)) language_.open = false;
+  if (owner != this || !release_.owns(id)) release_.open = false;
 }
 
-bool SystemTab::acts_on_press(int id) const { return id == idle_.id_base || id == language_.id_base; }
+bool SystemTab::acts_on_press(int id) const { return id == idle_.id_base || id == language_.id_base || id == release_.id_base; }
 
 void SystemTab::click(int id, float, float, bool) {
   Prefs& prefs = *ui_.prefs;
@@ -135,14 +155,19 @@ void SystemTab::click(int id, float, float, bool) {
       prefs.set(pref::language, language_.selected == 0 ? std::string_view{} : locales[static_cast<std::size_t>(language_.selected - 1)].id);
     }
     if (language_.open) place_dropdown(ui_, language_, language_rect_);
+  } else if (release_.owns(id)) {
+    if (release_.click(id)) prefs.set(pref::release_graphics_after, release_seconds[static_cast<std::size_t>(release_.selected)]);
+    if (release_.open) place_dropdown(ui_, release_, release_rect_);
   }
 }
 
-bool SystemTab::wheel(float x, float y, float delta) { return idle_.wheel(ui_, x, y, delta) || language_.wheel(ui_, x, y, delta); }
+bool SystemTab::wheel(float x, float y, float delta) {
+  return idle_.wheel(ui_, x, y, delta) || language_.wheel(ui_, x, y, delta) || release_.wheel(ui_, x, y, delta);
+}
 
 bool SystemTab::escape() {
-  const bool closed = idle_.open || language_.open;
-  idle_.open = language_.open = false;
+  const bool closed = idle_.open || language_.open || release_.open;
+  idle_.open = language_.open = release_.open = false;
   return closed;
 }
 

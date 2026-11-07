@@ -300,6 +300,8 @@ void SystemTab::paint_luna(Painter& p, Rect area) {
   sync_language();
   language_rect_ = form.combo(tr().system_language_row, language_);
   form.group(tr().system_advanced);
+  sync_release();
+  release_rect_ = form.combo(tr().system_release, release_);
   const bool logging = prefs.get(pref::log_enabled);
   form.check(tr().system_logging, logging, Logging);
   if (logging) form.button(tr().system_open_logs, OpenLogs);

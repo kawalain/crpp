@@ -70,6 +70,9 @@ inline constexpr Bool log_enabled{"logEnabled", false};
 inline constexpr Bool input_detail{"inputDetail", false};
 // Not upstream's: a Locale's id, empty to follow the OS.
 inline constexpr Text language{"language", ""};
+// Not upstream's: seconds a shown window waits behind another program before it lets go of
+// the graphics device; negative: never.
+inline constexpr Int release_graphics_after{"releaseGraphicsAfter", 0};
 
 // --- room: which defaults are pinned and which notices were answered ---
 inline constexpr Bool pin_public{"pinPublic", false};
@@ -83,7 +86,7 @@ inline constexpr std::array all_bool{mute_others,       listen_self,       other
                                      spatial_audio,     channel_balance_enabled, system_theme, theme_cursor, chat_tray_notify,
                                      chat_taskbar_flash, start_with_system,   minimize_to_tray, use_24h,
                                      log_enabled,       input_detail};
-inline constexpr std::array all_int{volume, keyboard_volume, mouse_volume, pen_volume, channel_balance, chat_scale, idle_minutes};
+inline constexpr std::array all_int{volume, keyboard_volume, mouse_volume, pen_volume, channel_balance, chat_scale, idle_minutes, release_graphics_after};
 inline constexpr std::array all_text{speaker_device, speaker_device_name, keyboard_sound, mouse_sound, pen_sound,
                                      reverb,         theme,               light_theme,    dark_theme,
                                      language,       skin,                skin_theme,     dark_mode};

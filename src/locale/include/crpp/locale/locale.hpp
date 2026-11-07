@@ -265,6 +265,11 @@ struct Strings {
   const char* system_language_row;
   const char* system_language_auto;
   const char* system_advanced;
+  const char* system_release;
+  const char* system_release_now;
+  const char* system_release_10s;
+  const char* system_release_1m;
+  const char* system_release_off;
   const char* system_logging;
   const char* system_open_logs;
   const char* system_reset;

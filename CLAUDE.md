@@ -135,6 +135,9 @@ against a real `server/` yet; do that once a local build of it is available.
   no frame, and otherwise only the avatars are drawn.
 - A Room that cannot be resumed at startup says so; upstream returns to Home silently.
 - The program calls itself Cloudroom++, so its autostart entry does not collide with upstream's.
+- The system tab's advanced section has "뒤에 있을 때 메모리 비우기" (at once, 10 s, 1 min, never), kept
+  under a key of this client's own. Behind another program, outside a Room, the window lets go of its
+  graphics device after that wait and makes it again when it next draws.
 - Assets may be missing without stopping the app; see ADR 0004.
 - Motion upstream does not have: wheel scrolling settles over 160 ms, the ends stretch up
   to 48 px and return over 240 ms, screens cross-fade over 180 ms with an 8 px rise,
@@ -337,8 +340,9 @@ exist (real + test).
   `docs/research/memory-floor.md`.
 - Outside a Room a shown window gives its pages back 10 s after its last still frame: Task
   Manager's Memory falls from about 17 MB to under 1 MB, and a hover brings about 6 back. Commit
-  stays. `--release-unused <s>` also lets the device go (commit 65 to 12 MB); it is off until
-  verified, and meant to run at 180 s.
+  stays. Behind another program and not under the pointer it also lets go of the graphics device,
+  at once by default (`releaseGraphicsAfter`): commit 65 to 12 MB, and each return costs about
+  140 ms of CPU once.
 - Frames have no cap of their own. Measured with an MSVC Release build at 125% on a hidden
   desktop, settings open: idle 0.0% of one core and about 47 MB working set; wheel
   scrolling without pause 0.6-1.9% at about 73 frames/s (a counter confirmed the frames),
@@ -387,9 +391,10 @@ exist (real + test).
 - Partial frames (a speaking disc over a retained frame) were measured on a hidden desktop,
   where one person typing went from 16.7% GPU to 0.0% and five at once from 17.5% to 10.7%.
   A real display adds composition, and Intel and AMD drivers have not run them.
-- `--release-unused`: whether a shown window keeps its picture after its device goes, how long its
-  first frame then takes, and Alt+Tab back to it, on a real desktop. Once seen, it runs at 180 s by
-  default. The trim when quiet has not run under memory pressure, where its pages may come back from disk.
+- Letting go of the device while shown was seen to come back quickly on one Windows 10 PC with an
+  NVIDIA card. Intel, AMD and hybrid laptops have not run it, and the pointer guard, which a hidden
+  desktop cannot exercise, has not been watched. The trim when quiet has not run under memory
+  pressure, where its pages may come back from disk.
 - Coming back from a hidden window that gave up its graphics has only run on a hidden
   desktop, on one NVIDIA card. See it on a real desktop, and on Intel and AMD drivers. The
   same goes for a chat notification drawn in that state.

@@ -43,9 +43,10 @@ namespace crpp::gui::os_policy {
 // come back one fault at a time.
 [[nodiscard]] constexpr bool trims_when_quiet(bool in_room, bool hidden) { return !in_room && !hidden; }
 
-// After longer, and while another program has the foreground, the graphics device goes too.
-[[nodiscard]] constexpr bool releases_when_unused(bool in_room, bool hidden, bool foreground) {
-  return trims_when_quiet(in_room, hidden) && !foreground;
+// While another program has the foreground, after the wait the user chose, the graphics device
+// goes too. Not under the pointer: a hover still draws, and each frame would make the device again.
+[[nodiscard]] constexpr bool releases_when_unused(bool in_room, bool hidden, bool foreground, bool pointer_over) {
+  return trims_when_quiet(in_room, hidden) && !foreground && !pointer_over;
 }
 
 struct ChatFacts {

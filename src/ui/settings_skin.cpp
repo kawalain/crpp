@@ -67,7 +67,7 @@ constexpr skin::Name notify_hits[] = {{"tray", NotifyTab::TrayToggle}, {"flash",
 // --- system ---
 enum SystemNumber : int { AutostartN, SystemTrayN, DetailN, Use24hN, LoggingN };
 constexpr skin::Name system_numbers[] = {{"autostart", AutostartN}, {"tray", SystemTrayN}, {"detail", DetailN}, {"use_24h", Use24hN}, {"logging", LoggingN}};
-constexpr skin::Name system_slots[] = {{"idle_list", 0}, {"language_list", 1}};
+constexpr skin::Name system_slots[] = {{"idle_list", 0}, {"language_list", 1}, {"release_list", 2}};
 constexpr skin::Name system_hits[] = {{"autostart", SystemTab::Autostart}, {"tray", SystemTab::Tray}, {"detail", SystemTab::Detail}, {"use_24h", SystemTab::Use24h}, {"logging", SystemTab::Logging}, {"open_logs", SystemTab::OpenLogs}, {"reset", SystemTab::Reset}};
 
 // --- account ---
@@ -414,6 +414,7 @@ void SystemTab::paint_pack(Painter& p, const skin::Screen& screen, Rect area) {
   idle_.options = {tr().system_idle_15, tr().system_idle_30, tr().system_idle_60};
   sync_idle();
   sync_language();
+  sync_release();
 
   class Shown final : public skin::Source {
    public:
@@ -433,8 +434,9 @@ void SystemTab::paint_pack(Painter& p, const skin::Screen& screen, Rect area) {
 
     void slot(int id, int, skin::Box box, const skin::SlotValues&) override {
       const Rect r = rect_of(box);
-      (id == 0 ? s_.idle_rect_ : s_.language_rect_) = r;
-      (id == 0 ? s_.idle_ : s_.language_).paint_button(s_.ui_, &s_, p_, r);
+      Dropdown& list = id == 0 ? s_.idle_ : id == 1 ? s_.language_ : s_.release_;
+      (id == 0 ? s_.idle_rect_ : id == 1 ? s_.language_rect_ : s_.release_rect_) = r;
+      list.paint_button(s_.ui_, &s_, p_, r);
     }
 
     void report(int, float value) override { s_.flow_height_ = value; }

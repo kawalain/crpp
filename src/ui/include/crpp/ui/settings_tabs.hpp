@@ -217,7 +217,7 @@ class SystemTab final : public SettingsTab {
  public:
   explicit SystemTab(Ui& ui);
   [[nodiscard]] static skin::ScreenSchema schema();
-  enum Id : int { Autostart = 1, Tray, Detail, Use24h, Logging, OpenLogs, Reset, IdleList = 100, LanguageList = 200 };
+  enum Id : int { Autostart = 1, Tray, Detail, Use24h, Logging, OpenLogs, Reset, IdleList = 100, LanguageList = 200, ReleaseList = 300 };
 
   std::function<void()> on_open_logs;
 
@@ -236,8 +236,9 @@ class SystemTab final : public SettingsTab {
   void paint_pack(Painter& p, const skin::Screen& screen, Rect area);
   void sync_idle();
   void sync_language();
-  Dropdown idle_, language_;
-  Rect idle_rect_, language_rect_;
+  void sync_release();
+  Dropdown idle_, language_, release_;
+  Rect idle_rect_, language_rect_, release_rect_;
   std::array<ToggleAnim, 5> toggles_;
   Fade open_logs_, reset_;
 };

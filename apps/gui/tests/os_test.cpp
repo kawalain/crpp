@@ -64,10 +64,11 @@ void a_quiet_window_gives_back_its_pages_outside_a_room() {
 }
 
 void an_unused_window_lets_go_of_its_device_only_in_the_background() {
-  CHECK(releases_when_unused(false, false, false));
-  CHECK(!releases_when_unused(false, false, true));
-  CHECK(!releases_when_unused(true, false, false));
-  CHECK(!releases_when_unused(false, true, false));
+  CHECK(releases_when_unused(false, false, false, false));
+  CHECK(!releases_when_unused(false, false, true, false));
+  CHECK(!releases_when_unused(true, false, false, false));
+  CHECK(!releases_when_unused(false, true, false, false));
+  CHECK(!releases_when_unused(false, false, false, true));
 }
 
 void chat_on_a_focused_window_only_sounds() {

@@ -17,9 +17,11 @@
     {"slot": "language_list", "x": 285, "y": 490, "w": 246, "h": 38},
 
     {"text": "#system_advanced", "style": "heading", "color": "$hl_text", "x": 9, "y": 554, "w": "W-9", "h": 32},
-    {"use": "toggle", "text": "#system_logging", "x": 16, "y": 605, "w": 505, "h": 36, "args": {"on": "@logging", "hit": "hit('logging')"}},
-    {"if": "@logging", "use": "text_button", "text": "#system_open_logs", "hit": "open_logs", "x": 381, "y": 649, "w": 140, "h": 38},
-    {"let": "reset_top", "value": "(@logging ? 649+38 : 605+36)+32"},
+    {"text": "#system_release", "style": "row_label", "color": "$hl_text", "x": 16, "y": 610, "w": 300, "h": 26},
+    {"slot": "release_list", "x": 285, "y": 604, "w": 246, "h": 38},
+    {"use": "toggle", "text": "#system_logging", "x": 16, "y": 649, "w": 505, "h": 36, "args": {"on": "@logging", "hit": "hit('logging')"}},
+    {"if": "@logging", "use": "text_button", "text": "#system_open_logs", "hit": "open_logs", "x": 381, "y": 693, "w": 140, "h": 38},
+    {"let": "reset_top", "value": "(@logging ? 693+38 : 649+36)+32"},
     {"use": "text_button", "text": "#system_reset", "hit": "reset", "x": 381, "y": "reset_top", "w": 140, "h": 38},
     {"report": "height", "value": "reset_top+38+25"}
   ]

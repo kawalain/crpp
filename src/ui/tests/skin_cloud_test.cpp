@@ -61,6 +61,26 @@ void test_the_layers_stand_where_the_code_puts_them() {
                   {&h.app.toasts(), Toasts::Action}});
 }
 
+void test_the_prompt_stands_where_the_code_puts_it_and_clicks_land() {
+  UiHarness h;
+  CHECK(h.start(1200, 900));
+  PromptScreen& prompt = h.app.prompt();
+  h.app.show_prompt({.heading = "Hello", .label = "Name", .placeholder = "name", .hint = "A hint", .value = "abc", .prefix = "@", .extra = "One", .extra2 = "Two", .link = "A link", .password = true, .cancelable = true, .valid = [](std::string_view v) { return !v.empty(); }});
+  h.render();
+  const Rect caret_of_code = h.app.ui().caret;
+  same_places(h, {{&prompt, PromptScreen::Field}, {&prompt, PromptScreen::Submit}, {&prompt, PromptScreen::Eye}, {&prompt, PromptScreen::Back},
+                  {&prompt, PromptScreen::Extra}, {&prompt, PromptScreen::Extra2}, {&prompt, PromptScreen::Link}});
+  const Rect caret = h.app.ui().caret;
+  CHECK(std::abs(caret.x - caret_of_code.x) < 0.01f && std::abs(caret.y - caret_of_code.y) < 0.01f);
+  CHECK(!prompt.password_shown());
+  CHECK(h.click(prompt, PromptScreen::Eye));
+  CHECK(prompt.password_shown());
+  std::string submitted;
+  prompt.on_submit = [&](std::string value) { submitted = std::move(value); };
+  CHECK(h.click(prompt, PromptScreen::Submit));
+  CHECK(submitted == "abc");
+}
+
 void test_a_list_stands_where_the_code_puts_it() {
   UiHarness h;
   CHECK(h.start(1200, 900));
@@ -184,6 +204,7 @@ void test_the_offline_popup_rises_once() {
 
 int main() {
   test_the_layers_stand_where_the_code_puts_them();
+  test_the_prompt_stands_where_the_code_puts_it_and_clicks_land();
   test_a_list_stands_where_the_code_puts_it();
   test_a_dialog_rises_and_then_asks_for_no_more_frames();
   test_a_toast_comes_goes_and_is_gone();

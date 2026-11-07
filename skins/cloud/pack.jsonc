@@ -37,6 +37,7 @@
       "backdrop": "#365669",
       "panel_shadow": "#2e78aa",
       "info_shadow": "#2e78aa",
+      "hint_ink": "#94b8ca",
       "volume_tip": "#75ccff"
     },
     "darkcloud": {
@@ -64,6 +65,7 @@
       "backdrop": "#365669",
       "panel_shadow": "#000000",
       "info_shadow": "#2e78aa",
+      "hint_ink": "#a0b4c9",
       "volume_tip": "#75ccff"
     },
     "pastel": {
@@ -91,6 +93,7 @@
       "backdrop": "#365669",
       "panel_shadow": "#2e78aa",
       "info_shadow": "#2e78aa",
+      "hint_ink": "#94b8ca",
       "volume_tip": "#75ccff"
     }
   },
@@ -121,6 +124,11 @@
     "dropdown": {"size": 17, "weight": 700, "line_height": 0, "ellipsis": true},
     "list_item": {"size": 16, "line_height": 20, "ellipsis": true},
     "list_item_selected": {"size": 16, "weight": 700, "line_height": 20, "ellipsis": true},
+    "prompt_heading": {"size": 28, "weight": 700, "line_height": 36, "align": "center"},
+    "prompt_label": {"size": 17, "weight": 700, "line_height": 22},
+    "prompt_input": {"size": 23, "line_height": 58},
+    "prompt_hint": {"size": 14, "line_height": 21, "wrap": true},
+    "prompt_button": {"size": 15, "line_height": 20, "align": "center"},
     "modal_button_measure": {"size": 16, "weight": 700, "line_height": 0}
   },
   "parts": {
@@ -187,6 +195,14 @@
         {"if": "primary", "fill": "hot ? $hl_dark : $hl", "radius": "H/2"},
         {"if": "!primary && hot", "fill": "$hl_pale", "radius": "H/2"},
         {"text": "@label", "style": "notice_label", "line_height": "H", "color": "primary ? $on_accent : $ink_strong"}
+      ]
+    },
+    "prompt_button": {
+      "draw": [
+        {"scale": "hot ? 1.03 : 1", "group": [
+          {"fill": "hot ? $hl_dark : $hl", "radius": 10},
+          {"text": "@label", "style": "prompt_button", "color": "$on_accent", "y": 8, "h": 20}
+        ]}
       ]
     },
     // The accent color is the sky's, so both parts are drawn in the surface color.

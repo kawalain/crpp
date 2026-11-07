@@ -164,6 +164,7 @@
     "row": {"size": 18, "line_height": 36},
     "row_hint": {"size": 14, "line_height": 20, "wrap": true},
     "text_button": {"size": 16, "line_height": 0, "align": "center"},
+    "account_button": {"size": 17, "line_height": 0, "align": "center"},
     "slider_value": {"size": 15, "line_height": 26, "align": "center"},
     "slider_value_measure": {"size": 15, "line_height": 20},
     "balance_title": {"size": 16, "line_height": 24},
@@ -175,6 +176,10 @@
     "sample_text": {"size": 17, "line_height": 19},
     "preview_tip": {"size": 14, "weight": 700, "line_height": 26, "align": "center"},
     "preview_tip_measure": {"size": 14, "weight": 700, "line_height": 20},
+    "account_nickname": {"size": 24, "weight": 700, "line_height": 30, "ellipsis": true},
+    "account_handle": {"size": 16, "line_height": 20, "ellipsis": true},
+    "account_display": {"size": 28, "weight": 700, "line_height": 34, "ellipsis": true},
+    "account_tip": {"size": 16, "weight": 700, "line_height": 22, "align": "center"},
     "modal_button_measure": {"size": 16, "weight": 700, "line_height": 0}
   },
   "parts": {
@@ -344,6 +349,15 @@
         {"scale": "1+(1.03-1)*over", "group": [
           {"fill": "mix($hl_dark, $hl, over*100)", "radius": 8},
           {"text": "@label", "style": "text_button", "line_height": "H", "color": "$on_accent"}
+        ]}
+      ]
+    },
+    // .account-buttons
+    "account_button": {
+      "draw": [
+        {"scale": "hot ? 1.03 : 1", "group": [
+          {"fill": "hot ? $hl_dark : $hl", "radius": 8},
+          {"text": "@label", "style": "account_button", "line_height": "H", "color": "$on_accent"}
         ]}
       ]
     },

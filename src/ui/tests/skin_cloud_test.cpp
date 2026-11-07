@@ -200,6 +200,86 @@ void test_the_offline_popup_rises_once() {
   CHECK(moving.after(0));  // shown anew, it rises anew
 }
 
+void test_every_tab_stands_where_the_code_puts_it() {
+  UiHarness h;
+  CHECK(h.start(1200, 900));
+  h.app.show_home();
+  SettingsPanel& panel = h.app.settings();
+  panel.set_version("v1.2.3");
+  panel.notify().set_sounds({{"a", "a", "One"}, {"b", "b", "Two"}});
+  panel.account().set_profile({"Me", "me", "Me", "", true});
+  panel.open(SettingsPage::Sound);
+  const Surface* panel_hits = &panel;
+  std::vector<Place> places = {{panel_hits, SettingsPanel::Droplet}, {panel_hits, SettingsPanel::Overlay}, {panel_hits, SettingsPanel::Version}, {panel_hits, SettingsPanel::Track}, {panel_hits, SettingsPanel::Thumb}};
+  for (int i = 0; i < 5; ++i) places.push_back({panel_hits, SettingsPanel::TabBase + i});
+  const Surface* sound = &panel.sound();
+  for (const int id : {SoundTab::SpeakerVolume, SoundTab::KeyboardVolume, SoundTab::MouseVolume, SoundTab::SpeakerList, SoundTab::KeyboardList, SoundTab::MouseList, SoundTab::ListenSelf, SoundTab::OthersUseMine}) places.push_back({sound, id});
+  same_places(h, places);
+
+  const auto compare = [](SettingsPage page, const std::vector<int>& ids) {
+    UiHarness other;
+    CHECK(other.start(1200, 900));
+    other.app.show_home();
+    SettingsPanel& panel = other.app.settings();
+    panel.notify().set_sounds({{"a", "a", "One"}, {"b", "b", "Two"}});
+    panel.account().set_profile({"Me", "me", "Me", "", true});
+    panel.open(page);
+    const Surface* owner = page == SettingsPage::Display   ? static_cast<const Surface*>(&panel.display())
+                           : page == SettingsPage::Notify ? static_cast<const Surface*>(&panel.notify())
+                           : page == SettingsPage::System ? static_cast<const Surface*>(&panel.system())
+                                                          : static_cast<const Surface*>(&panel.account());
+    std::vector<Place> list;
+    for (const int id : ids) list.push_back({owner, id});
+    same_places(other, list);
+  };
+  compare(SettingsPage::Display, {DisplayTab::SystemTheme, DisplayTab::ThemeList, DisplayTab::ScaleSlider});
+  compare(SettingsPage::Notify, {NotifyTab::TrayToggle, NotifyTab::FlashToggle, NotifyTab::SoundBase, NotifyTab::SoundBase + 1, NotifyTab::PreviewBase, NotifyTab::PreviewBase + 1});
+  compare(SettingsPage::System, {SystemTab::Autostart, SystemTab::Tray, SystemTab::Detail, SystemTab::Use24h, SystemTab::IdleList});
+  compare(SettingsPage::Account, {AccountTab::Emoji, AccountTab::Nickname, AccountTab::Handle, AccountTab::Logout});
+}
+
+void test_clicks_in_the_tabs_do_what_they_do_on_the_code() {
+  // What a click at the middle of each control leaves, without a pack and with one.
+  const auto after_clicks = [](bool pack) {
+    UiHarness h;
+    CHECK(h.start(1200, 900));
+    h.app.show_home();
+    if (pack) CHECK(h.app.load_skin_dir(cloud_pack).has_value());
+    SettingsPanel& panel = h.app.settings();
+    panel.open(SettingsPage::Sound);
+    h.render();
+    SoundTab& sound = panel.sound();
+    CHECK(h.click(sound, SoundTab::KeyboardVolume));
+    h.app.mouse_up();
+    CHECK(h.click(sound, SoundTab::ListenSelf));
+    panel.scroll_to(10000);
+    h.render();
+    CHECK(panel.scroll_offset() > 0);
+    CHECK(h.click(sound, SoundTab::Balance));
+    h.app.mouse_up();
+    panel.open(SettingsPage::Display);
+    h.render();
+    CHECK(h.click(panel.display(), DisplayTab::ScaleSlider));
+    h.app.mouse_up();
+    const Prefs& prefs = *h.app.ui().prefs;
+    return std::vector<int>{prefs.get(pref::keyboard_volume), prefs.get(pref::listen_self) ? 1 : 0, prefs.get(pref::channel_balance), prefs.get(pref::chat_scale)};
+  };
+  CHECK(after_clicks(false) == after_clicks(true));
+}
+
+void test_a_scroll_asked_before_the_first_frame_waits_for_the_height() {
+  UiHarness h;
+  CHECK(h.start(951, 692));
+  h.app.show_home();
+  CHECK(h.app.load_skin_dir(cloud_pack).has_value());
+  h.render();
+  SettingsPanel& panel = h.app.settings();
+  panel.open(SettingsPage::System);
+  panel.scroll_to(10000);
+  h.render();
+  CHECK(panel.scroll_offset() > 0);
+}
+
 void test_the_panel_comes_and_goes_and_only_the_droplet_takes_clicks_as_it_goes() {
   UiHarness h;
   CHECK(h.start(1200, 900));
@@ -284,6 +364,9 @@ int main() {
   test_a_toast_comes_goes_and_is_gone();
   test_a_tip_fades_out_before_it_lets_go_of_its_text();
   test_the_offline_popup_rises_once();
+  test_every_tab_stands_where_the_code_puts_it();
+  test_clicks_in_the_tabs_do_what_they_do_on_the_code();
+  test_a_scroll_asked_before_the_first_frame_waits_for_the_height();
   test_the_panel_comes_and_goes_and_only_the_droplet_takes_clicks_as_it_goes();
   test_a_change_of_tab_fades_and_ends();
   test_scrolling_settles_and_the_bar_goes_away();

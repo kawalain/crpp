@@ -109,20 +109,25 @@ wheel posted about 60 times a second and reversing every 20 notches, seven round
 - Scrolling: 4.88-9.77% (mean 7.48%) before, 5.47-7.81% (mean 6.47%) now. Within the limit.
 - Reading the pack 3.5 ms and the first screen 0.8 ms. A frame offscreen: +1.3%. The pack holds about 183 KB.
 - **Idle memory is over the limit by its mean:** working set 45.7-51.6 MB (mean 47.6) before, 52.1-52.5 MB (mean 52.3) now, so +9.9%. Private 73.9 MB to 75.8 MB, +2.6%.
-  The earlier build lands either near 46 or near 52, and the new one always at the top of that, so this may be which mode it lands in and not what it holds. Not looked into: it goes to the user.
+  The earlier build lands either near 46 or near 52, and the new one always at the top of that, so this may be which mode it lands in and not what it holds.
+- **Decided on 2026-11-08: private bytes are what the limit counts**, as the working set depends on which mode a run lands in. Measured again,
+  20 rounds of each taken in turn, settings open, MSVC Release on a hidden desktop at 100%, 2680ddd against 07df243: private 72.5-76.3 MB
+  (mean 74.8) before and 73.9-76.1 MB (mean 75.2) now, so +0.5%, within the limit. The working set of the earlier build was near 46 MB in 4
+  rounds and 51.1-52.3 MB in 16; the new one was 51.6-52.4 MB in all 20, +1.2% against the upper mode's median. Why it never lands lower was
+  not looked into. Idle CPU 0.00% in every round.
+- The fixes of the Open list, da84062 against 07df243, every scene from the packs: Cloud and Luna Blue give the same 74 hashes. Classic
+  differs in 10, each by its background: a window of its own and the main window had Luna's beige behind them, and now its grey.
 
 ## Open
 
-Reported by the user on 2026-11-08 after trying the build. None is fixed yet:
+Reported by the user on 2026-11-08 after trying the build. The other three are fixed:
 
 - Retro's cursors, the hand above all, differ somewhat from the real ones.
 
-Waiting for a decision from the user: idle memory over its limit, under Measured.
-
 ## Steps
 
-Start from `main` with the Messenger work merged, after the user has seen its real windows. Steps 1 to 5 are done, but for the user's hands on step 4 and the
-memory above.
+Start from `main` with the Messenger work merged, after the user has seen its real windows. Steps 1 to 5 are done. The user's hands on step 4 are moved to
+before step 7, which removes what Cloud's pack is compared with.
 
 1. **Engine, proved on one screen.** A pure, portable module for parsing and layout, tested by CTest and GCC, and a
    painter on `Gfx` in `ui`. Move Messenger's Home to data beside the C++ one and measure the limits. Stop here if
@@ -139,7 +144,7 @@ memory above.
    pack. Edge fades and layered shadows become nodes. Done when every scene in `tests/shots/scenes.txt`
    renders to the same hash in Korean at 100% and 150% and in English at 100%. That proves the look and not the feel,
    so motion scenes (`--at`) are compared as well, and the user tries scrolling and transitions by hand with
-   `--skin-dir` before the next step.
+   `--skin-dir` before step 7.
 5. **Choosing.** The Skin, Theme and dark mode rows, their keys, and the list of Themes read from packs, which needs
    Cloud's pack first.
 6. **Packs and download.** `skins/` in this repository, catalog and signature, the second key, the first-run screen,

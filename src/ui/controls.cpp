@@ -23,22 +23,7 @@ skin::ScreenSchema Dropdown::schema() {
   return {.screen = "dropdown", .texts = list_text_names, .numbers = list_number_names, .hits = list_hit_names, .reports = list_report_names, .notes = list_note_names};
 }
 
-float ease(float t) {
-  // cubic-bezier(.25, .1, .25, 1): find the curve's parameter for x = t, then its y.
-  if (t <= 0) return 0;
-  if (t >= 1) return 1;
-  const auto bezier = [](float a, float b, float u) {
-    const float v = 1 - u;
-    return 3 * v * v * u * a + 3 * v * u * u * b + u * u * u;
-  };
-  float low = 0, high = 1;
-  for (int i = 0; i < 12; ++i) {
-    const float u = (low + high) / 2;
-    if (bezier(0.25f, 0.25f, u) < t) low = u;
-    else high = u;
-  }
-  return bezier(0.1f, 1.0f, (low + high) / 2);
-}
+float ease(float t) { return skin::curve_at(skin::Curve::Ease, t); }
 
 float transition(const Ui& ui, unsigned long long start, float duration_ms) {
   if (!ui.animations || ui.now_ms <= start) return ui.animations ? 0.0f : 1.0f;

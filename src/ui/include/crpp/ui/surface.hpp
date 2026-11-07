@@ -8,6 +8,7 @@
 #include <utility>
 #include <vector>
 
+#include "crpp/skin/motion.hpp"
 #include "crpp/skin/pack.hpp"
 #include "crpp/ui/gfx.hpp"
 #include "crpp/ui/skin.hpp"
@@ -54,6 +55,8 @@ struct WindowState {
 
   // Set while painting by whatever needs another frame after this one.
   bool more_frames = false;
+  // What a Skin Pack's transitions have under way in this window.
+  skin::Transitions transitions;
 
   // The stage is scaled to cover the window; the overflow is cropped, centered.
   float scale = 1, ox = 0, oy = 0, width = stage_w, height = stage_h;
@@ -85,6 +88,9 @@ struct WindowState {
     Rect rect;  // window coordinates
     Surface* owner;
     int id;
+    // Only this shape takes it: path data, its origin on the stage.
+    std::string_view shape = {};
+    float shape_x = 0, shape_y = 0;
   };
 
  protected:
@@ -111,6 +117,8 @@ class Ui : public WindowState {
   int palette = -1;
   // This screen in the pack, if the pack is for this Theme and has it.
   [[nodiscard]] const skin::Screen* pack_screen(std::string_view name) const;
+  // Where a screen is drawn: on the stage when that is scaled to the window, otherwise inside the frame.
+  [[nodiscard]] Rect screen_area() const;
 
   [[nodiscard]] ID2D1PathGeometry* cloud() const { return gfx.path(cloud_path_data); }
 
@@ -138,6 +146,7 @@ class Ui : public WindowState {
 
   void add_hit(Surface* owner, Rect stage_rect, int id);
   void add_hit_window(Surface* owner, Rect window_rect, int id);
+  void add_hit_shape(Surface* owner, Rect stage_rect, int id, std::string_view data, float x, float y);
   // Hits added until pop_hit_clip are cut to this rectangle, for scrolled content.
   void push_hit_clip(Rect window_rect);
   void pop_hit_clip();

@@ -5,6 +5,7 @@
 #include <string_view>
 #include <utility>
 
+#include "crpp/skin/motion.hpp"
 #include "crpp/skin/pack.hpp"
 
 namespace crpp::skin {
@@ -45,12 +46,29 @@ class Canvas {
   virtual void push_clip(Box box) = 0;
   virtual void pop_clip() = 0;
   virtual void hit(Box box, int id) = 0;
+  // A hit of this shape inside its box. Nothing beyond the box where only sizes are being worked out.
+  virtual void hit_shape(Box box, int id, std::string_view /*data*/, float /*x*/, float /*y*/) { hit(box, id); }
+  // Where a transition is now. Without motion, at its end.
+  [[nodiscard]] virtual float transition(std::uint64_t /*key*/, const TransitionSpec& spec) { return spec.on ? 1.0f : 0.0f; }
+  virtual void fill_ellipse(Box, Color) {}
+  virtual void stroke_ellipse(Box, Color, float /*width*/) {}
+  virtual void shadow_round(Box, float /*radius*/, float /*blur*/, float /*dy*/, Color) {}
+  // A path's gradient from y0 to y1 of its own coordinates, and its soft shadow.
+  virtual void path_gradient(std::string_view /*data*/, float /*x*/, float /*y*/, float /*scale*/, float /*y0*/, float /*y1*/, std::span<const GradientStop>) {}
+  virtual void path_shadow(std::string_view /*data*/, float /*x*/, float /*y*/, float /*scale*/, float /*blur*/, float /*dy*/, Color) {}
+  // Everything until the matching pop grows around this point. Hits stay as they are.
+  virtual void push_scale(float /*x*/, float /*y*/, float /*scale*/) {}
+  virtual void pop_scale() {}
+  // Each says whether it pushed a layer, which pop_layer then ends.
+  [[nodiscard]] virtual bool push_opacity(Box, float /*opacity*/) { return false; }
+  [[nodiscard]] virtual bool push_edge_fade(Box, float /*top*/, float /*bottom*/) { return false; }
+  virtual void pop_layer() {}
   [[nodiscard]] virtual bool hot(int id) = 0;
   [[nodiscard]] virtual bool pressed(int id) = 0;
 };
 
 struct FieldLook {
-  TextLook text;
+  TextLook text, placeholder_text;
   Color color, placeholder_color, caret, selection;
   std::string_view placeholder;
 };
@@ -82,6 +100,7 @@ struct PartCall {
   std::string_view label;
   bool hot = false, pressed = false;
   std::span<const std::pair<std::string_view, float>> args;
+  std::uint64_t seed = 0;  // tells its transitions from those of the same part elsewhere
 };
 void draw_part(const Pack& pack, const Part& part, int palette, Box box, Canvas& canvas, Source& source, const PartCall& call);
 

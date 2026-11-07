@@ -9,34 +9,41 @@
 // Each node is one thing to draw, chosen by which of these keys it has:
 //   fill    a Palette entry, plain or a gradient, with an optional radius; a gradient runs over the
 //           box unless down_to says how far down it ends, or from left to right with across: true.
-//           Fill, frame, stroke and text take alpha
+//           Fill, frame, stroke and text take alpha. With ellipse: true it fills the ellipse in its box
 //   frame   a line inside the box's edge
-//   stroke  a rounded line, with radius and width
+//   stroke  a rounded line, with radius and width, or around the ellipse in its box
+//   shadow  a soft shadow under a rounded box, with radius, blur and dy, as CSS's box-shadow
 //   line    a colour, from x, y to x2, y2 with width
 //   path    SVG path data, drawn from x, y, with color, scale, and a width to stroke it instead of
 //           filling, with caps "round" (the default) or "flat", and soft: true for smooth edges
-//           under a Skin whose edges are whole pixels
+//           under a Skin whose edges are whole pixels. A color that is a gradient runs from from_y to to_y
+//           of the path's own coordinates. With blur it is that shape's shadow, dy further down
 //   text    a text: #locale_key, @bound, or the words themselves, in a style and a color, and
 //           size and line_height to change the style's where it depends on the screen
 //   picture a picture the screen supplies, with opacity and gray
 //   field   a text field the screen owns, with style, color, placeholder, placeholder_color,
 //           caret and selection
 //   slot    what only the screen can draw, given numbers, styles and colors
-//   group   a list of nodes, inside this box, with an optional clip
+//   group   a list of nodes, inside this box, with an optional clip. opacity draws them as one, at that
+//           opacity. fade_top and fade_bottom fade what they hold out over that length at those edges.
+//           scale grows them around about_x, about_y, or the middle of the box
 //   column  a list of nodes under each other: each goes at y = flow unless it says otherwise, and
 //           flow then moves below it, by its after as well. Its height is what they took
 //   use     a part from pack.jsonc, with args, a text the part reads as @label, and a draw list
 //           that goes where the part has a node {"content": true}
 //   content see use
 //   repeat  a number; its "draw" runs that many times, with i counting
-//   let     a name for a number, with value
+//   let     a name for a number, with value. With to, it is a transition: it runs from 0 to 1 and back as to
+//           goes on and off, over ms (ms_off when going off, if it says), on a curve: "ease", the
+//           default, or "linear". first: "jump" has a state that is on when first seen start at its end.
 //   set     a new value for a name above it, as when a repeat looks for the widest
 //   report  a number for the screen, with value
 // and each may have: if, id (siblings can then read id.x, .y, .w, .h, .right, .bottom), x or right,
 // y or bottom, w, h (x and y from the box around it, 0 and that box's size by default), after,
 // hit (a name for clicks, counted up by hit_index, or by i if there is none), live (false: it is not
 // lit), hit_if (false: no hit), note (the box goes to the screen under this name), snap (the box moves
-// to whole pixels). A part knows no screen, so it takes hit_by and note_by: a
+// to whole pixels), hit_path (the hit takes the shape of this path, set at hit_path_x and hit_path_y).
+// A part knows no screen, so it takes hit_by and note_by: a
 // number, which a screen gives it as an argument with hit('name') or note('name'), and less than 0 for none.
 //
 // cursors names, for all seven of cursor_names, a part that draws it in a box of 32 by 32, and its hot
@@ -104,7 +111,7 @@ struct ScreenSchema {
   std::span<const Name> texts, numbers, pictures, fields, hits, slots, reports, notes;
 };
 
-enum class NodeKind : std::uint8_t { Fill, Frame, Stroke, Line, Path, Text, Picture, Field, Slot, Group, Column, Use, Content, Repeat, Let, Set, Report };
+enum class NodeKind : std::uint8_t { Fill, Frame, Stroke, Line, Path, Text, Picture, Field, Slot, Group, Column, Use, Content, Repeat, Let, Set, Report, Shadow };
 
 inline constexpr std::uint16_t no_slot = std::numeric_limits<std::uint16_t>::max();
 inline constexpr std::uint32_t no_text = std::numeric_limits<std::uint32_t>::max();
@@ -122,6 +129,11 @@ struct Node {
   bool has_alpha = false;
   bool has_down_to = false;  // Fill
   bool across = false;       // Fill
+  bool ellipse = false;      // Fill, Stroke
+  bool shadow = false;       // Path
+  bool has_stops = false;    // Path
+  bool has_effects = false;  // Group
+  bool transition = false, first_jumps = false, linear = false;  // Let
   std::uint16_t slot = no_slot;  // where id's box goes, or a let's value
   std::uint16_t style = 0;
   int hit = no_hit;
@@ -129,13 +141,30 @@ struct Node {
   int note = no_hit;             // the screen's id for the box
   std::uint32_t text = no_text;  // Text. Path: offset of its data in literals
   std::uint32_t first = 0, count = 0;  // Group, Column, Repeat: children. Use: index into uses. Field: fields. Slot: slots. Path: size of its data
+  std::uint32_t more = no_text;  // Group: index into effects. Path: into path_extras
+  std::uint32_t hit_shape = no_text;  // index into hit_shapes
   Expr when, x, y, w, h;
   Expr paint;  // Fill, Frame, Stroke, Line, Path, Text
-  Expr extra;  // Fill, Stroke: radius. Line: x2. Path: scale. Picture: opacity. Repeat: how many. Let, Report: value
-  Expr width;  // Stroke, Line, Path. Fill: down_to. Picture: gray
-  Expr extra2;  // Line: y2
+  Expr extra;  // Fill, Stroke, Shadow: radius. Line: x2. Path: scale. Picture: opacity. Repeat: how many. Let: value, or to. Report: value
+  Expr width;  // Stroke, Line, Path. Fill: down_to. Picture: gray. Let: ms. Shadow: blur
+  Expr extra2;  // Line: y2. Let: ms_off. Shadow: dy
   Expr after, hit_index, live, hit_if, alpha, note_by;
   Expr size, line_height;  // Text
+};
+
+struct GroupEffects {
+  bool has_scale = false, has_about_x = false, has_about_y = false, has_opacity = false, has_fade = false;
+  Expr scale, about_x, about_y, opacity, fade_top, fade_bottom;
+};
+
+struct PathExtra {
+  Expr from_y, to_y;  // a gradient
+  Expr dy;            // a shadow
+};
+
+struct HitShape {
+  std::uint32_t data = 0, size = 0;  // in literals
+  Expr x, y;
 };
 
 struct Style {
@@ -177,6 +206,8 @@ struct Use {
 struct FieldNode {
   Expr placeholder_color, caret, selection;
   std::uint32_t placeholder = no_text;
+  bool has_placeholder_style = false;
+  std::uint16_t placeholder_style = 0;
 };
 
 struct SlotNode {
@@ -224,6 +255,9 @@ struct Pack {
   std::optional<std::array<PackCursor, cursor_names.size()>> cursors;
   bool cursors_hard = false;
   std::vector<Node> nodes;
+  std::vector<GroupEffects> effects;
+  std::vector<PathExtra> path_extras;
+  std::vector<HitShape> hit_shapes;
   std::vector<Instr> code;
   std::vector<Style> styles;
   std::vector<TextRef> texts;
@@ -245,6 +279,8 @@ struct Pack {
   [[nodiscard]] std::optional<int> palette_of(std::string_view theme_id) const;
   // The Theme a Palette belongs to, as itself or as its dark variant.
   [[nodiscard]] const PackTheme* theme_of_palette(std::string_view palette) const;
+  // Is this Palette the dark variant of a Theme?
+  [[nodiscard]] bool palette_is_dark(int palette) const;
   [[nodiscard]] const Screen* screen(std::string_view name) const;
   [[nodiscard]] const Part* part(std::string_view name) const;
   [[nodiscard]] const Paint* paint(int palette, float value) const;

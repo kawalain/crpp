@@ -355,6 +355,18 @@
           "$ref": "#/definitions/expression",
           "description": "The colour's alpha, from 0 to 1, on fill, frame, stroke and text."
         },
+        "hit_path": {
+          "type": "string",
+          "description": "SVG path data: the hit takes this shape inside its box."
+        },
+        "hit_path_x": {
+          "$ref": "#/definitions/expression",
+          "description": "Where that shape's origin is, from the left of the box around it."
+        },
+        "hit_path_y": {
+          "$ref": "#/definitions/expression",
+          "description": "Where that shape's origin is, from the top of the box around it."
+        },
         "fill": {
           "$ref": "#/definitions/expression",
           "description": "Fills its box with a Palette entry, plain or a gradient."
@@ -370,6 +382,10 @@
         "across": {
           "type": "boolean",
           "description": "A gradient runs from left to right over its box, not downward. It takes no radius or down_to."
+        },
+        "ellipse": {
+          "type": "boolean",
+          "description": "Fills the ellipse in its box."
         },
         "frame": {
           "$ref": "#/definitions/expression",
@@ -418,6 +434,22 @@
           "type": "boolean",
           "description": "Smooth edges under a Skin whose edges are whole pixels."
         },
+        "from_y": {
+          "$ref": "#/definitions/expression",
+          "description": "With a color that is a gradient: where it starts, in the path's own coordinates."
+        },
+        "to_y": {
+          "$ref": "#/definitions/expression",
+          "description": "Where that gradient ends."
+        },
+        "blur": {
+          "$ref": "#/definitions/expression",
+          "description": "Draws this shape's soft shadow in the color, instead of the shape."
+        },
+        "dy": {
+          "$ref": "#/definitions/expression",
+          "description": "How far down that shadow goes, before the path's scale."
+        },
         "text": {
           "type": "string",
           "description": "A text: #locale_key, @bound, or the words themselves."
@@ -453,6 +485,10 @@
         "placeholder": {
           "type": "string",
           "description": "What it shows when empty."
+        },
+        "placeholder_style": {
+          "type": "string",
+          "description": "A style for that, instead of its own."
         },
         "placeholder_color": {
           "$ref": "#/definitions/expression",
@@ -502,6 +538,22 @@
           "type": "boolean",
           "description": "Nothing inside shows outside its box."
         },
+        "fade_top": {
+          "$ref": "#/definitions/expression",
+          "description": "What is inside fades out over this length at the top of its box."
+        },
+        "fade_bottom": {
+          "$ref": "#/definitions/expression",
+          "description": "What is inside fades out over this length at the bottom of its box."
+        },
+        "about_x": {
+          "$ref": "#/definitions/expression",
+          "description": "What stays still when it grows, from the left of the box around it. The middle of its box when left out."
+        },
+        "about_y": {
+          "$ref": "#/definitions/expression",
+          "description": "What stays still when it grows, from the top of the box around it. The middle of its box when left out."
+        },
         "column": {
           "type": "array",
           "description": "A list of nodes under each other: each goes at y = flow, and flow moves below it, by its after as well. Its height is what they took."
@@ -537,6 +589,31 @@
           "$ref": "#/definitions/expression",
           "description": "The number."
         },
+        "to": {
+          "$ref": "#/definitions/expression",
+          "description": "Instead of value: this name is a transition, running from 0 to 1 and back as this goes on and off."
+        },
+        "ms": {
+          "$ref": "#/definitions/expression",
+          "description": "How long a transition takes."
+        },
+        "ms_off": {
+          "$ref": "#/definitions/expression",
+          "description": "How long it takes going off, when that differs."
+        },
+        "curve": {
+          "enum": [
+            "ease",
+            "linear"
+          ],
+          "description": "Its curve: ease, as CSS's, when left out."
+        },
+        "first": {
+          "enum": [
+            "jump"
+          ],
+          "description": "A state that is on when first seen starts at its end, as an element's first style does."
+        },
         "set": {
           "type": "string",
           "description": "A new value for a name above it, as when a repeat looks for the widest."
@@ -544,6 +621,10 @@
         "report": {
           "type": "string",
           "description": "A number for the screen."
+        },
+        "shadow": {
+          "$ref": "#/definitions/expression",
+          "description": "A soft shadow under a rounded box, in a Palette entry."
         }
       },
       "anyOf": [
@@ -572,9 +653,13 @@
               "note_by",
               "snap",
               "alpha",
+              "hit_path",
+              "hit_path_x",
+              "hit_path_y",
               "radius",
               "down_to",
-              "across"
+              "across",
+              "ellipse"
             ]
           }
         },
@@ -602,7 +687,10 @@
               "note",
               "note_by",
               "snap",
-              "alpha"
+              "alpha",
+              "hit_path",
+              "hit_path_x",
+              "hit_path_y"
             ]
           }
         },
@@ -631,8 +719,12 @@
               "note_by",
               "snap",
               "alpha",
+              "hit_path",
+              "hit_path_x",
+              "hit_path_y",
               "radius",
-              "width"
+              "width",
+              "ellipse"
             ]
           }
         },
@@ -661,6 +753,9 @@
               "note_by",
               "snap",
               "alpha",
+              "hit_path",
+              "hit_path_x",
+              "hit_path_y",
               "x2",
               "y2",
               "width"
@@ -692,11 +787,18 @@
               "note_by",
               "snap",
               "alpha",
+              "hit_path",
+              "hit_path_x",
+              "hit_path_y",
               "color",
               "scale",
               "width",
               "caps",
-              "soft"
+              "soft",
+              "from_y",
+              "to_y",
+              "blur",
+              "dy"
             ]
           }
         },
@@ -725,6 +827,9 @@
               "note_by",
               "snap",
               "alpha",
+              "hit_path",
+              "hit_path_x",
+              "hit_path_y",
               "style",
               "color",
               "size",
@@ -757,6 +862,9 @@
               "note_by",
               "snap",
               "alpha",
+              "hit_path",
+              "hit_path_x",
+              "hit_path_y",
               "opacity",
               "gray"
             ]
@@ -787,9 +895,13 @@
               "note_by",
               "snap",
               "alpha",
+              "hit_path",
+              "hit_path_x",
+              "hit_path_y",
               "style",
               "color",
               "placeholder",
+              "placeholder_style",
               "placeholder_color",
               "caret",
               "selection"
@@ -821,6 +933,9 @@
               "note_by",
               "snap",
               "alpha",
+              "hit_path",
+              "hit_path_x",
+              "hit_path_y",
               "numbers",
               "styles",
               "colors"
@@ -852,7 +967,16 @@
               "note_by",
               "snap",
               "alpha",
-              "clip"
+              "hit_path",
+              "hit_path_x",
+              "hit_path_y",
+              "clip",
+              "opacity",
+              "fade_top",
+              "fade_bottom",
+              "scale",
+              "about_x",
+              "about_y"
             ]
           }
         },
@@ -881,6 +1005,9 @@
               "note_by",
               "snap",
               "alpha",
+              "hit_path",
+              "hit_path_x",
+              "hit_path_y",
               "clip"
             ]
           }
@@ -910,6 +1037,9 @@
               "note_by",
               "snap",
               "alpha",
+              "hit_path",
+              "hit_path_x",
+              "hit_path_y",
               "args",
               "text",
               "draw"
@@ -940,7 +1070,10 @@
               "note",
               "note_by",
               "snap",
-              "alpha"
+              "alpha",
+              "hit_path",
+              "hit_path_x",
+              "hit_path_y"
             ]
           }
         },
@@ -969,6 +1102,9 @@
               "note_by",
               "snap",
               "alpha",
+              "hit_path",
+              "hit_path_x",
+              "hit_path_y",
               "draw"
             ]
           }
@@ -998,7 +1134,15 @@
               "note_by",
               "snap",
               "alpha",
-              "value"
+              "hit_path",
+              "hit_path_x",
+              "hit_path_y",
+              "value",
+              "to",
+              "ms",
+              "ms_off",
+              "curve",
+              "first"
             ]
           }
         },
@@ -1027,6 +1171,9 @@
               "note_by",
               "snap",
               "alpha",
+              "hit_path",
+              "hit_path_x",
+              "hit_path_y",
               "value"
             ]
           }
@@ -1056,7 +1203,44 @@
               "note_by",
               "snap",
               "alpha",
+              "hit_path",
+              "hit_path_x",
+              "hit_path_y",
               "value"
+            ]
+          }
+        },
+        {
+          "required": [
+            "shadow"
+          ],
+          "propertyNames": {
+            "enum": [
+              "shadow",
+              "if",
+              "id",
+              "x",
+              "right",
+              "y",
+              "bottom",
+              "w",
+              "h",
+              "after",
+              "hit",
+              "hit_index",
+              "hit_by",
+              "live",
+              "hit_if",
+              "note",
+              "note_by",
+              "snap",
+              "alpha",
+              "hit_path",
+              "hit_path_x",
+              "hit_path_y",
+              "radius",
+              "blur",
+              "dy"
             ]
           }
         }

@@ -550,6 +550,23 @@ void Painter::push_opacity(float opacity, Rect bounds) {
 
 void Painter::push(const D2D1_MATRIX_3X2_F& m) { rt_->SetTransform(m * base_); }
 
+void Painter::push_group(const D2D1_MATRIX_3X2_F& m) {
+  if (group_depth_ < most_groups) {
+    groups_[group_depth_] = base_;
+    base_ = m * base_;
+    rt_->SetTransform(base_);
+  }
+  ++group_depth_;
+}
+
+void Painter::pop_group() {
+  --group_depth_;
+  if (group_depth_ < most_groups) {
+    base_ = groups_[group_depth_];
+    rt_->SetTransform(base_);
+  }
+}
+
 void Painter::clear(Color c) { rt_->Clear(to_d2d(c)); }
 
 void Painter::fill_rect(Rect r, Color c) {

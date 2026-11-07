@@ -163,6 +163,9 @@ class Painter {
   // Applies m (in stage coordinates) on top of the base transform.
   void push(const D2D1_MATRIX_3X2_F& m);
   void pop() { rt_->SetTransform(base_); }
+  // Until pop_group everything goes through m as well, with what push does included.
+  void push_group(const D2D1_MATRIX_3X2_F& m);
+  void pop_group();
 
   void clear(Color c);
   void fill_rect(Rect r, Color c);
@@ -216,6 +219,9 @@ class Painter {
   float pixels_ = 1, line_ = 1;
   D2D1_MATRIX_3X2_F base_ = D2D1::Matrix3x2F::Identity();
   D2D1_MATRIX_3X2_F moved_ = D2D1::Matrix3x2F::Identity();
+  static constexpr std::size_t most_groups = 8;
+  std::array<D2D1_MATRIX_3X2_F, most_groups> groups_{};
+  std::size_t group_depth_ = 0;
 };
 
 // Upstream cloud outline (client/src/main.js cloudPath), 0..492 x 8..318.

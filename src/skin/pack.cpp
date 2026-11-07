@@ -716,6 +716,13 @@ class Loader final : public Names {
         !expr_of(json, "selection", field.selection)) {
       return false;
     }
+    if (const Json* other = json.find("placeholder_style")) {
+      const auto name = other->as_string();
+      const auto id = name ? style(*name) : std::nullopt;
+      if (!id) return fail("no such style \"" + std::string(name.value_or("")) + "\"");
+      field.has_placeholder_style = true;
+      field.placeholder_style = *id;
+    }
     out.first = static_cast<std::uint32_t>(pack_.fields.size());
     pack_.fields.push_back(field);
     return true;
@@ -807,6 +814,14 @@ class Loader final : public Names {
     return true;
   }
 
+  bool flag_of(const Json& json, std::string_view key, bool& out) {
+    if (const Json* value = json.find(key)) {
+      if (!value->as_bool()) return fail(std::string(key) + " is not true or false");
+      out = *value->as_bool();
+    }
+    return true;
+  }
+
   bool known_keys(const Json& json, NodeKind kind, std::string_view kind_key) {
     for (const Json::Member& m : *json.as_object()) {
       if (m.key != kind_key && !key_allowed(kind, m.key)) return fail("a \"" + std::string(kind_key) + "\" node has no \"" + m.key + "\"");
@@ -850,6 +865,18 @@ class Loader final : public Names {
     } else if (!optional_expr(json, "hit_index", out.hit_index, &out.has_hit_index)) {
       return false;
     }
+    if (const Json* shape = json.find("hit_path")) {
+      const auto data = shape->as_string();
+      if (!data) return fail("hit_path is not text");
+      if (out.hit == no_hit) return fail("hit_path goes with hit or hit_by");
+      HitShape hit_shape;
+      hit_shape.data = static_cast<std::uint32_t>(pack_.literals.size());
+      hit_shape.size = static_cast<std::uint32_t>(data->size());
+      pack_.literals += *data;
+      if (!optional_expr(json, "hit_path_x", hit_shape.x) || !optional_expr(json, "hit_path_y", hit_shape.y)) return false;
+      out.hit_shape = static_cast<std::uint32_t>(pack_.hit_shapes.size());
+      pack_.hit_shapes.push_back(hit_shape);
+    }
     return optional_expr(json, "note_by", out.note_by, &out.has_note_by) && optional_expr(json, "after", out.after, &out.has_after) &&
            optional_expr(json, "live", out.live, &out.has_live) && optional_expr(json, "hit_if", out.hit_if, &out.has_hit_if) &&
            optional_expr(json, "alpha", out.alpha, &out.has_alpha);
@@ -878,7 +905,31 @@ class Loader final : public Names {
     if (out.kind == NodeKind::Let) {
       const auto name = json.find("let")->as_string();
       if (!name) return fail("a let has no name");
-      if (!free_name(*name) || !expr_of(json, "value", out.extra) || !take_slots(1, out.slot)) return false;
+      if (!free_name(*name)) return false;
+      if (json.find("to")) {
+        if (json.find("value")) return fail("a let has both value and to");
+        out.transition = true;
+        if (!expr_of(json, "to", out.extra) || !expr_of(json, "ms", out.width)) return false;
+        if (json.find("ms_off")) {
+          if (!expr_of(json, "ms_off", out.extra2)) return false;
+        } else {
+          out.extra2 = out.width;
+        }
+        if (const Json* curve = json.find("curve")) {
+          const auto word = curve->as_string();
+          if (word != "ease" && word != "linear") return fail("curve is not ease or linear");
+          out.linear = word == "linear";
+        }
+        if (const Json* first = json.find("first")) {
+          if (first->as_string() != "jump") return fail("first is not jump");
+          out.first_jumps = true;
+        }
+      } else if (json.find("ms") || json.find("ms_off") || json.find("curve") || json.find("first")) {
+        return fail("ms, ms_off, curve and first go with to");
+      } else if (!expr_of(json, "value", out.extra)) {
+        return false;
+      }
+      if (!take_slots(1, out.slot)) return false;
       scope_->lets.emplace_back(*name, out.slot);
       return true;
     }
@@ -904,13 +955,18 @@ class Loader final : public Names {
           out.across = *across->as_bool();
           if (out.across && (json.find("radius") || out.has_down_to)) return fail("across takes no radius or down_to");
         }
+        if (!flag_of(json, "ellipse", out.ellipse)) return false;
         break;
       }
+      case NodeKind::Shadow:
+        if (!expr_of(json, "shadow", out.paint) || !expr_of(json, "radius", out.extra) || !expr_of(json, "blur", out.width) || !optional_expr(json, "dy", out.extra2)) return false;
+        break;
       case NodeKind::Frame:
         if (!expr_of(json, "frame", out.paint)) return false;
         break;
       case NodeKind::Stroke:
-        if (!expr_of(json, "stroke", out.paint) || !expr_of(json, "radius", out.extra) || !expr_of(json, "width", out.width)) return false;
+        if (!flag_of(json, "ellipse", out.ellipse)) return false;
+        if (!expr_of(json, "stroke", out.paint) || (!out.ellipse && !expr_of(json, "radius", out.extra)) || !expr_of(json, "width", out.width)) return false;
         break;
       case NodeKind::Line:
         if (!expr_of(json, "line", out.paint) || !expr_of(json, "x2", out.extra) || !expr_of(json, "y2", out.extra2) || !expr_of(json, "width", out.width)) return false;
@@ -932,6 +988,16 @@ class Loader final : public Names {
           if (!soft->as_bool()) return fail("soft is not true or false");
           out.soft = *soft->as_bool();
         }
+        out.shadow = json.find("blur") != nullptr;
+        out.has_stops = json.find("from_y") != nullptr;
+        if (out.shadow || out.has_stops) {
+          if (out.shadow && out.has_stops) return fail("a path is a shadow or a gradient, not both");
+          PathExtra more;
+          if (out.shadow && (!expr_of(json, "blur", out.width) || !optional_expr(json, "dy", more.dy))) return false;
+          if (out.has_stops && (!expr_of(json, "from_y", more.from_y) || !expr_of(json, "to_y", more.to_y))) return false;
+          out.more = static_cast<std::uint32_t>(pack_.path_extras.size());
+          pack_.path_extras.push_back(more);
+        }
         break;
       }
       case NodeKind::Text:
@@ -949,10 +1015,24 @@ class Loader final : public Names {
       case NodeKind::Slot:
         if (!compile_slot(json, out)) return false;
         break;
-      case NodeKind::Group:
+      case NodeKind::Group: {
         if (const Json* clip = json.find("clip")) out.clip = clip->as_bool().value_or(false);
+        GroupEffects effects;
+        bool top = false, bottom = false;
+        if (!optional_expr(json, "scale", effects.scale, &effects.has_scale) || !optional_expr(json, "about_x", effects.about_x, &effects.has_about_x) ||
+            !optional_expr(json, "about_y", effects.about_y, &effects.has_about_y) || !optional_expr(json, "opacity", effects.opacity, &effects.has_opacity) ||
+            !optional_expr(json, "fade_top", effects.fade_top, &top) || !optional_expr(json, "fade_bottom", effects.fade_bottom, &bottom)) {
+          return false;
+        }
+        effects.has_fade = top || bottom;
+        if (effects.has_scale || effects.has_opacity || effects.has_fade) {
+          out.has_effects = true;
+          out.more = static_cast<std::uint32_t>(pack_.effects.size());
+          pack_.effects.push_back(effects);
+        }
         if (!compile_list(*json.find("group"), out.first, out.count, depth + 1, false)) return false;
         break;
+      }
       case NodeKind::Column:
         if (const Json* clip = json.find("clip")) out.clip = clip->as_bool().value_or(false);
         out.auto_h = json.find("h") == nullptr;
@@ -1119,6 +1199,12 @@ std::optional<std::string_view> missing_constant(const Pack& pack) {
     }
   }
   return std::nullopt;
+}
+
+bool Pack::palette_is_dark(int palette) const {
+  if (palette < 0 || static_cast<std::size_t>(palette) >= palette_ids.size()) return false;
+  const std::string& id = palette_ids[static_cast<std::size_t>(palette)];
+  return std::ranges::any_of(themes, [&](const PackTheme& theme) { return theme.dark == id; });
 }
 
 float Pack::constant(std::string_view name) const {

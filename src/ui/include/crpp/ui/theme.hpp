@@ -16,13 +16,8 @@ constexpr Color rgb(std::uint32_t hex, float a = 1.0f) {
           static_cast<float>(hex & 0xFF) / 255.0f, a};
 }
 
-// CSS color-mix(in srgb, a pct%, b).
-constexpr Color mix(Color a, Color b, float pct) {
-  const float t = pct / 100.0f;
-  return {a.r * t + b.r * (1 - t), a.g * t + b.g * (1 - t), a.b * t + b.b * (1 - t), a.a * t + b.a * (1 - t)};
-}
-
-constexpr Color with_alpha(Color c, float a) { return {c.r, c.g, c.b, a}; }
+using skin::mix;
+using skin::with_alpha;
 
 // Who draws: shape and layout. See docs/adr/0005-skins-own-shape-and-layout.md.
 enum class SkinId : std::uint8_t { Cloud, Luna };

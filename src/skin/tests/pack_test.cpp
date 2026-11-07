@@ -120,6 +120,33 @@ class Log final : public Canvas {
   void push_clip(Box b) override { add("clip " + str(b)); }
   void pop_clip() override { add("unclip"); }
   void hit(Box b, int id) override { add("hit " + str(b) + " " + std::to_string(id)); }
+  void hit_shape(Box b, int id, std::string_view d, float x, float y) override { add("hitshape " + str(b) + " " + std::to_string(id) + " " + std::string(d) + " " + str(x) + "," + str(y)); }
+  float transition(std::uint64_t key, const TransitionSpec& s) override {
+    keys.push_back(key);
+    add("transition " + std::string(s.on ? "on " : "off ") + str(s.ms_on) + "/" + str(s.ms_off) + (s.first_jumps ? " jump" : "") + (s.curve == Curve::Linear ? " linear" : ""));
+    return 0.5f;
+  }
+  void fill_ellipse(Box b, Color c) override { add("ellipse " + str(b) + " " + str(c)); }
+  void stroke_ellipse(Box b, Color c, float w) override { add("ring " + str(b) + " " + str(c) + " " + str(w)); }
+  void shadow_round(Box b, float r, float blur, float dy, Color c) override { add("shadow " + str(b) + " " + str(r) + " " + str(blur) + " " + str(dy) + " " + str(c)); }
+  void path_gradient(std::string_view d, float x, float y, float s, float y0, float y1, std::span<const GradientStop> stops) override {
+    add("pathdown " + std::string(d) + " " + str(x) + "," + str(y) + " x" + str(s) + " " + str(y0) + ".." + str(y1) + " " + std::to_string(stops.size()));
+  }
+  void path_shadow(std::string_view d, float x, float y, float s, float blur, float dy, Color c) override {
+    add("pathshadow " + std::string(d) + " " + str(x) + "," + str(y) + " x" + str(s) + " " + str(blur) + " " + str(dy) + " " + str(c));
+  }
+  void push_scale(float x, float y, float s) override { add("scale " + str(x) + "," + str(y) + " x" + str(s)); }
+  void pop_scale() override { add("unscale"); }
+  bool push_opacity(Box b, float o) override {
+    add("opacity " + str(b) + " " + str(o));
+    return o < 1;
+  }
+  bool push_edge_fade(Box b, float top, float bottom) override {
+    add("fade " + str(b) + " " + str(top) + " " + str(bottom));
+    return top > 0 || bottom > 0;
+  }
+  void pop_layer() override { add("unlayer"); }
+  std::vector<std::uint64_t> keys;
   bool hot(int id) override { return id == hot_id; }
   bool pressed(int id) override { return id == pressed_id; }
 };
@@ -482,6 +509,83 @@ void a_walk_ends_however_parts_multiply() {
 
 }  // namespace
 
+void a_transition_is_asked_of_the_canvas() {
+  CHECK(walk(R"J({"let":"v","to":"1","ms":150,"ms_off":500,"first":"jump","curve":"linear"},{"fill":"$face","w":"v*10"})J") ==
+        "transition on 150/500 jump linear\nfill 100,200,5,400 1/0/0/1\n");
+  CHECK(walk(R"J({"let":"v","to":"0","ms":150},{"fill":"$face","w":"v*10"})J") == "transition off 150/150\nfill 100,200,5,400 1/0/0/1\n");
+  // A transition reads what is hot where it is.
+  CHECK(walk(R"J({"hit":"join","group":[{"let":"v","to":"hot","ms":1}]})J", 0, 0, 51) == "transition on 1/1\nhit 100,200,300,400 51\n");
+  CHECK(!load(R"J({"let":"v","to":"1"})J"));
+  CHECK(!load(R"J({"let":"v","value":1,"to":"1","ms":1})J"));
+  CHECK(!load(R"J({"let":"v","value":1,"ms":1})J"));
+  CHECK(!load(R"J({"let":"v","to":"1","ms":1,"curve":"bounce"})J"));
+  CHECK(!load(R"J({"let":"v","to":"1","ms":1,"first":"late"})J"));
+}
+
+void transitions_are_told_apart_where_they_are() {
+  const auto keys_of = [](std::string_view nodes, int rounds) {
+    const auto pack = load(nodes);
+    CHECK(pack.has_value());
+    Log log;
+    TestSource source;
+    source.log = &log;
+    source.seats = rounds;
+    if (pack) draw(*pack, *pack->screen("home"), 0, {0, 0, 100, 100}, log, source);
+    return log.keys;
+  };
+  // Each round of a repeat, and each of two nodes.
+  const auto rounds = keys_of(R"J({"repeat":"@seats","draw":[{"let":"v","to":"1","ms":1}]})J", 2);
+  CHECK(rounds.size() == 2 && rounds[0] != rounds[1]);
+  const auto two = keys_of(R"J({"let":"v","to":"1","ms":1},{"let":"u2","to":"1","ms":1})J", 0);
+  CHECK(two.size() == 2 && two[0] != two[1]);
+  // And the same frame gives the same keys.
+  CHECK(keys_of(R"J({"let":"v","to":"1","ms":1},{"let":"u2","to":"1","ms":1})J", 0) == two);
+}
+
+void colours_are_worked_out_in_expressions() {
+  CHECK(walk(R"J({"fill":"mix($face, $ink, 100)"})J") == "fill 100,200,300,400 1/0/0/1\n");
+  CHECK(walk(R"J({"fill":"alpha($face, 0.25)"})J") == "fill 100,200,300,400 1/0/0/0.25\n");
+  CHECK(walk(R"J({"fill":"alpha(mix($face, $face, 50), 0.5)","radius":2})J") == "round 100,200,300,400 2 1/0/0/0.5\n");
+  CHECK(walk(R"J({"let":"c","value":"mix($face, $face, 50)"},{"frame":"c"})J") == "frame 100,200,300,400 1/0/0/1\n");
+  CHECK(!load(R"J({"fill":"mix($face, $ink)"})J"));
+}
+
+void dark_says_which_palette_is_a_dark_variant() {
+  const std::string themed = R"J({
+    "format": 1, "id": "test", "themes": {"one": {"names": {"en": "One"}, "dark": "two"}}, "default_theme": "one",
+    "palettes": {"one": {"face": "#ff0000"}, "two": {"face": "#00ff00"}}, "styles": {}, "parts": {}})J";
+  const auto pack = load_pack(files(themed, fill_list(R"J({"fill":"$face","w":"dark ? 1 : 2"})J")), std::span(&test_schema, 1));
+  CHECK(pack.has_value());
+  if (!pack) return;
+  CHECK(walk(*pack, 0, 0, -1, -1) == "fill 100,200,2,400 1/0/0/1\n");
+  CHECK(walk(*pack, 1, 0, -1, -1) == "fill 100,200,1,400 0/1/0/1\n");
+}
+
+void ellipses_shadows_and_paths_of_other_kinds() {
+  CHECK(walk(R"J({"fill":"$face","ellipse":true,"w":10,"h":20})J") == "ellipse 100,200,10,20 1/0/0/1\n");
+  CHECK(walk(R"J({"stroke":"$face","ellipse":true,"w":10,"h":20,"width":2})J") == "ring 100,200,10,20 1/0/0/1 2\n");
+  CHECK(!load(R"J({"stroke":"$face","w":10,"width":2})J"));
+  CHECK(walk(R"J({"shadow":"$face","radius":14,"blur":16,"dy":4,"w":10,"h":20})J") == "shadow 100,200,10,20 14 16 4 1/0/0/1\n");
+  CHECK(walk(R"J({"path":"M0 0","color":"$shade","x":1,"y":2,"scale":3,"from_y":8,"to_y":9})J") == "pathdown M0 0 101,202 x3 8..9 2\n");
+  CHECK(walk(R"J({"path":"M0 0","color":"$face","x":1,"y":2,"blur":6,"dy":7})J") == "pathshadow M0 0 101,202 x1 6 7 1/0/0/1\n");
+  CHECK(!load(R"J({"path":"M0 0","color":"$face","blur":6,"from_y":1,"to_y":2})J"));
+}
+
+void a_group_can_grow_fade_and_be_seen_through() {
+  CHECK(walk(R"J({"x":10,"y":20,"w":40,"h":60,"scale":1.5,"group":[{"fill":"$face","w":1}]})J") ==
+        "scale 130,250 x1.5\nfill 110,220,1,60 1/0/0/1\nunscale\n");
+  CHECK(walk(R"J({"x":10,"y":20,"w":40,"h":60,"scale":2,"about_x":1,"about_y":2,"group":[]})J") == "scale 101,202 x2\nunscale\n");
+  CHECK(walk(R"J({"w":40,"h":60,"opacity":0.5,"group":[{"fill":"$face","w":1}]})J") == "opacity 100,200,40,60 0.5\nfill 100,200,1,60 1/0/0/1\nunlayer\n");
+  CHECK(walk(R"J({"w":40,"h":60,"opacity":1,"group":[]})J") == "opacity 100,200,40,60 1\n");
+  CHECK(walk(R"J({"w":40,"h":60,"fade_top":3,"fade_bottom":0,"group":[]})J") == "fade 100,200,40,60 3 0\nunlayer\n");
+  CHECK(walk(R"J({"w":40,"h":60,"fade_top":0,"group":[]})J") == "fade 100,200,40,60 0 0\n");
+}
+
+void a_hit_can_take_the_shape_of_a_path() {
+  CHECK(walk(R"J({"hit":"join","hit_path":"M1 1","hit_path_x":5,"hit_path_y":6,"x":10,"w":20,"h":30,"group":[]})J") == "hitshape 110,200,20,30 51 M1 1 105,206\n");
+  CHECK(!load(R"J({"hit_path":"M1 1","group":[]})J"));
+}
+
 void test_cursors_are_all_there_or_refused() {
   const auto with = [](std::string cursors) {
     const std::map<std::string, std::string> files = {{"pack.jsonc", R"J({"format":1,"id":"t","palettes":{"a":{"ink":"#000000"}},"styles":{},"parts":{"p":{"draw":[{"fill":"$ink"}]}},"cursors":)J" + std::move(cursors) + "}"}};
@@ -693,5 +797,12 @@ int main() {
   sizes_are_limited();
   a_walk_ends_however_parts_multiply();
   test_cursors_are_all_there_or_refused();
+  a_transition_is_asked_of_the_canvas();
+  transitions_are_told_apart_where_they_are();
+  colours_are_worked_out_in_expressions();
+  dark_says_which_palette_is_a_dark_variant();
+  ellipses_shadows_and_paths_of_other_kinds();
+  a_group_can_grow_fade_and_be_seen_through();
+  a_hit_can_take_the_shape_of_a_path();
   return crpp_test_result();
 }

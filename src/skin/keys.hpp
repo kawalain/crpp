@@ -21,6 +21,8 @@ enum class KeyType : unsigned char {
   Caps,    // "round" or "flat"
   Yes,     // always true
   Screen,  // a name the screen offers
+  Curve,   // "ease" or "linear"
+  Jump,    // "jump"
 };
 
 struct KeyDoc {
@@ -48,16 +50,26 @@ inline constexpr KeyDoc common_keys[] = {
     {"note_by", KeyType::Expr, "note as a number, for a part: a screen gives it with note('name'). Less than 0 is none."},
     {"snap", KeyType::Flag, "Its box moves to whole pixels."},
     {"alpha", KeyType::Expr, "The colour's alpha, from 0 to 1, on fill, frame, stroke and text."},
+    {"hit_path", KeyType::Word, "SVG path data: the hit takes this shape inside its box."},
+    {"hit_path_x", KeyType::Expr, "Where that shape's origin is, from the left of the box around it."},
+    {"hit_path_y", KeyType::Expr, "Where that shape's origin is, from the top of the box around it."},
 };
 
 inline constexpr KeyDoc fill_keys[] = {
     {"radius", KeyType::Expr, "Rounds its corners."},
     {"down_to", KeyType::Expr, "How far down from its top a gradient ends, instead of its height."},
     {"across", KeyType::Flag, "A gradient runs from left to right over its box, not downward. It takes no radius or down_to."},
+    {"ellipse", KeyType::Flag, "Fills the ellipse in its box."},
 };
 inline constexpr KeyDoc stroke_keys[] = {
     {"radius", KeyType::Expr, "Rounds its corners."},
     {"width", KeyType::Expr, "How thick its line is."},
+    {"ellipse", KeyType::Flag, "Around the ellipse in its box, and no radius."},
+};
+inline constexpr KeyDoc shadow_keys[] = {
+    {"radius", KeyType::Expr, "The radius of the box it is under."},
+    {"blur", KeyType::Expr, "As CSS's box-shadow."},
+    {"dy", KeyType::Expr, "How far down it goes."},
 };
 inline constexpr KeyDoc line_keys[] = {
     {"x2", KeyType::Expr, "Where it ends, from the left of the box around it."},
@@ -70,6 +82,10 @@ inline constexpr KeyDoc path_keys[] = {
     {"width", KeyType::Expr, "Strokes it this thick, instead of filling it."},
     {"caps", KeyType::Caps, "The ends of a stroke."},
     {"soft", KeyType::Flag, "Smooth edges under a Skin whose edges are whole pixels."},
+    {"from_y", KeyType::Expr, "With a color that is a gradient: where it starts, in the path's own coordinates."},
+    {"to_y", KeyType::Expr, "Where that gradient ends."},
+    {"blur", KeyType::Expr, "Draws this shape's soft shadow in the color, instead of the shape."},
+    {"dy", KeyType::Expr, "How far down that shadow goes, before the path's scale."},
 };
 inline constexpr KeyDoc text_keys[] = {
     {"style", KeyType::Word, "A style of the pack."},
@@ -85,6 +101,7 @@ inline constexpr KeyDoc field_keys[] = {
     {"style", KeyType::Word, "A style of the pack."},
     {"color", KeyType::Expr, "A Palette entry for its text, as $name."},
     {"placeholder", KeyType::Text, "What it shows when empty."},
+    {"placeholder_style", KeyType::Word, "A style for that, instead of its own."},
     {"placeholder_color", KeyType::Expr, "A Palette entry, as $name."},
     {"caret", KeyType::Expr, "A Palette entry, as $name."},
     {"selection", KeyType::Expr, "A Palette entry, as $name."},
@@ -97,6 +114,15 @@ inline constexpr KeyDoc slot_keys[] = {
 inline constexpr KeyDoc clip_keys[] = {
     {"clip", KeyType::Flag, "Nothing inside shows outside its box."},
 };
+inline constexpr KeyDoc group_keys[] = {
+    {"clip", KeyType::Flag, "Nothing inside shows outside its box."},
+    {"opacity", KeyType::Expr, "Draws what is inside as one, then blends it at this, from 0 to 1. What falls outside its box is cut."},
+    {"fade_top", KeyType::Expr, "What is inside fades out over this length at the top of its box."},
+    {"fade_bottom", KeyType::Expr, "What is inside fades out over this length at the bottom of its box."},
+    {"scale", KeyType::Expr, "What is inside grows by this, 1 being its own size. Its hits stay where they are."},
+    {"about_x", KeyType::Expr, "What stays still when it grows, from the left of the box around it. The middle of its box when left out."},
+    {"about_y", KeyType::Expr, "What stays still when it grows, from the top of the box around it. The middle of its box when left out."},
+};
 inline constexpr KeyDoc use_keys[] = {
     {"args", KeyType::Args, "What the part's arguments are here."},
     {"text", KeyType::Text, "What the part reads as @label."},
@@ -108,6 +134,14 @@ inline constexpr KeyDoc repeat_keys[] = {
 inline constexpr KeyDoc value_keys[] = {
     {"value", KeyType::Expr, "The number."},
 };
+inline constexpr KeyDoc let_keys[] = {
+    {"value", KeyType::Expr, "The number."},
+    {"to", KeyType::Expr, "Instead of value: this name is a transition, running from 0 to 1 and back as this goes on and off."},
+    {"ms", KeyType::Expr, "How long a transition takes."},
+    {"ms_off", KeyType::Expr, "How long it takes going off, when that differs."},
+    {"curve", KeyType::Curve, "Its curve: ease, as CSS's, when left out."},
+    {"first", KeyType::Jump, "A state that is on when first seen starts at its end, as an element's first style does."},
+};
 
 struct KindDoc {
   std::string_view key;
@@ -117,7 +151,7 @@ struct KindDoc {
 };
 
 // In the order of NodeKind.
-inline constexpr std::array<KindDoc, 17> node_kinds{{
+inline constexpr std::array<KindDoc, 18> node_kinds{{
     {"fill", KeyType::Expr, "Fills its box with a Palette entry, plain or a gradient.", fill_keys},
     {"frame", KeyType::Expr, "A line inside the edge of its box, in a Palette entry.", {}},
     {"stroke", KeyType::Expr, "A rounded line around its box, in a Palette entry.", stroke_keys},
@@ -127,14 +161,15 @@ inline constexpr std::array<KindDoc, 17> node_kinds{{
     {"picture", KeyType::Screen, "A picture the screen supplies.", picture_keys},
     {"field", KeyType::Screen, "A text field the screen owns.", field_keys},
     {"slot", KeyType::Screen, "What only the screen can draw, in this box.", slot_keys},
-    {"group", KeyType::List, "A list of nodes inside this box.", clip_keys},
+    {"group", KeyType::List, "A list of nodes inside this box.", group_keys},
     {"column", KeyType::List, "A list of nodes under each other: each goes at y = flow, and flow moves below it, by its after as well. Its height is what they took.", clip_keys},
     {"use", KeyType::Word, "A part of pack.jsonc.", use_keys},
     {"content", KeyType::Yes, "Where a part puts the draw list of whoever uses it.", {}},
     {"repeat", KeyType::Expr, "How many times its draw list runs.", repeat_keys},
-    {"let", KeyType::Word, "A name for a number, for what comes after it and inside that.", value_keys},
+    {"let", KeyType::Word, "A name for a number, for what comes after it and inside that.", let_keys},
     {"set", KeyType::Word, "A new value for a name above it, as when a repeat looks for the widest.", value_keys},
     {"report", KeyType::Screen, "A number for the screen.", value_keys},
+    {"shadow", KeyType::Expr, "A soft shadow under a rounded box, in a Palette entry.", shadow_keys},
 }};
 
 }  // namespace crpp::skin

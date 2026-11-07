@@ -242,6 +242,11 @@ class Compiler {
     if (word == "snap") return one(Op::Snap);
     if (word == "min") return two(Op::Min);
     if (word == "max") return two(Op::Max);
+    if (word == "alpha") return two(Op::AlphaColor);
+    if (word == "mix") {
+      return ternary() && (eat(",") || fail("mix takes two colours and a percent")) && ternary() && (eat(",") || fail("mix takes two colours and a percent")) && ternary() &&
+             (eat(")") || fail("a ( has no )")) && emit(Op::MixColor, -2);
+    }
     if (word == "hit" || word == "note") {
       const auto named = quoted();
       if (!named || !eat(")")) return fail(std::string(word) + " takes 'name'");
@@ -288,7 +293,7 @@ class Compiler {
 }  // namespace
 
 std::optional<Var> var_named(std::string_view name) {
-  static constexpr std::array<std::string_view, VarCount> names{"W", "H", "X", "Y", "x", "y", "w", "h", "u", "font_size", "hot", "pressed", "i", "flow"};
+  static constexpr std::array<std::string_view, VarCount> names{"W", "H", "X", "Y", "x", "y", "w", "h", "u", "font_size", "hot", "pressed", "i", "flow", "dark"};
   for (std::size_t i = 0; i < names.size(); ++i) {
     if (names[i] == name) return static_cast<Var>(i);
   }
@@ -346,6 +351,8 @@ float eval(std::span<const Instr> code, Expr expr, Env& env) {
       case Op::Floor: stack[top] = std::floor(stack[top]); break;
       case Op::Ceil: stack[top] = std::ceil(stack[top]); break;
       case Op::Round: stack[top] = std::round(stack[top]); break;
+      case Op::MixColor: top -= 2; stack[top] = env.mix_colors(stack[top], stack[top + 1], stack[top + 2]); break;
+      case Op::AlphaColor: --top; stack[top] = env.alpha_of(stack[top], stack[top + 1]); break;
     }
   }
   return stack[top];

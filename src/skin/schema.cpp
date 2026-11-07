@@ -77,6 +77,16 @@ Json shape_of(KeyType type) {
       out.set("additionalProperties", ref_to("#/definitions/expression"));
       return out;
     }
+    case KeyType::Curve: {
+      Json out = Json::object();
+      out.set("enum", strings({"ease", "linear"}));
+      return out;
+    }
+    case KeyType::Jump: {
+      Json out = Json::object();
+      out.set("enum", strings({"jump"}));
+      return out;
+    }
     case KeyType::Caps: {
       Json out = Json::object();
       out.set("enum", strings({"round", "flat"}));

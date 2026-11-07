@@ -26,11 +26,14 @@ void Ui::begin_frame(float window_w, float window_h, unsigned long long now) {
   content = modal_area = {0, 0, window_w, window_h};
   hits_.clear();
   hit_clips_.clear();
+  transitions.next_frame();
 }
 
 const skin::Screen* Ui::pack_screen(std::string_view name) const {
   return pack && palette >= 0 ? pack->screen(name) : nullptr;
 }
+
+Rect Ui::screen_area() const { return skin().scales_stage() ? Rect{0, 0, stage_w, stage_h} : content; }
 
 void Ui::add_hit(Surface* owner, Rect r, int id) { add_hit_window(owner, to_window(r), id); }
 
@@ -45,6 +48,15 @@ void Ui::add_hit_window(Surface* owner, Rect r, int id) {
   hits_.push_back({r, owner, id});
 }
 
+void Ui::add_hit_shape(Surface* owner, Rect r, int id, std::string_view data, float x, float y) {
+  const std::size_t before = hits_.size();
+  add_hit(owner, r, id);
+  if (hits_.size() == before) return;
+  hits_.back().shape = data;
+  hits_.back().shape_x = x;
+  hits_.back().shape_y = y;
+}
+
 void Ui::push_hit_clip(Rect window_rect) { hit_clips_.push_back(window_rect); }
 
 void Ui::pop_hit_clip() { hit_clips_.pop_back(); }
@@ -52,7 +64,15 @@ void Ui::pop_hit_clip() { hit_clips_.pop_back(); }
 const Ui::Hit* Ui::hit_at(float x, float y) const {
   // Later hits are drawn on top.
   for (auto it = hits_.rbegin(); it != hits_.rend(); ++it) {
-    if (it->rect.contains(x, y) && it->owner->accepts(it->id, x, y)) return &*it;
+    if (!it->rect.contains(x, y) || !it->owner->accepts(it->id, x, y)) continue;
+    if (!it->shape.empty()) {
+      BOOL inside = FALSE;
+      if (ID2D1PathGeometry* const shape = gfx.path(it->shape)) {
+        shape->FillContainsPoint(D2D1::Point2F(to_stage_x(x), to_stage_y(y)), D2D1::Matrix3x2F::Translation(it->shape_x, it->shape_y), &inside);
+      }
+      if (!inside) continue;
+    }
+    return &*it;
   }
   return nullptr;
 }

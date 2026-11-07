@@ -133,7 +133,7 @@ void MemberMenu::paint_pack(Painter& p, const skin::Screen& screen) {
    private:
     MemberMenu& m_;
   } shown(*this);
-  draw_screen(ui_, p, this, screen, {0, 0, ui_.width, ui_.height}, shown);
+  draw_layer(ui_, p, this, screen, {0, 0, ui_.width, ui_.height}, shown);
   const bool show_tip = !self_ && (ui_.hot(this, Slider) || ui_.capture == this);
   const HoverTip::Spec tip = show_tip ? volume_tip() : HoverTip::Spec{};
   tooltip_.paint(ui_, p, show_tip ? &tip : nullptr);

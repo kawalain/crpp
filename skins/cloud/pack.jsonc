@@ -197,6 +197,7 @@
     "room_label": {"size": 20, "weight": 700, "line_height": 41},
     "room_code": {"size": 20, "weight": 700, "line_height": 41, "align": "right", "letter_spacing": 0.4},
     "volume_text": {"size": 16, "weight": 700, "line_height": 22},
+    "menu_item": {"size": 17, "weight": 700, "line_height": 22},
     "chat_input": {"size": 17, "line_height": 22, "wrap": true},
     "chat_body": {"size": 17, "line_height": 19, "wrap": true},
     "chat_time": {"size": 14, "line_height": 20, "align": "right"},
@@ -401,6 +402,13 @@
           {"fill": "alarm ? $alarm : dark ? $cloud_base : $surface", "radius": 21},
           {"content": true}
         ]}
+      ]
+    },
+    "menu_item": {
+      "args": {"active": 0, "off": 0},
+      "draw": [
+        {"if": "active || hot", "fill": "active ? (hot ? $hl_dark : $hl) : $hl_soft", "radius": 9},
+        {"text": "@label", "style": "menu_item", "color": "alpha(active || hot ? $on_accent : $hl_text, off ? 0.45 : 1)", "x": 12, "y": 8, "w": "W-24", "h": 22}
       ]
     },
     // li: padding 9 12, 20 tall.

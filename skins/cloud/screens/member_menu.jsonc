@@ -1,0 +1,17 @@
+{
+  "$schema": "../../schema/screen.member_menu.schema.json",
+  "draw": [
+    // .member-menu's min-width; one with a volume row is a fifth wider, for the slider.
+    {"let": "box_w", "value": "@self ? 128 : 154"},
+    {"let": "volume_h", "value": "@self ? 0 : 6+22+8+14+10"},
+    {"let": "box_h", "value": "2*6+2*38+volume_h"},
+    {"x": "max(8, min(@point_x, W-box_w-8))", "y": "max(8, min(@point_y, H-box_h-8))", "w": "box_w", "h": "box_h", "group": [
+      {"use": "panel_info"},
+      {"hit": "card", "group": []},
+      {"use": "menu_item", "text": "@profile", "hit": "profile", "x": 6, "y": 6, "w": "W-12", "h": 38},
+      {"if": "!@self", "text": "@volume_label", "style": "menu_item", "color": "$hl_text", "x": 18, "y": "6+38+6", "w": "W-36", "h": 22},
+      {"if": "!@self", "use": "slider", "hit": "slider", "note": "track", "x": 18, "y": "6+38+6+22+8", "w": "W-36", "h": 14, "args": {"at": "@volume/100"}},
+      {"use": "menu_item", "text": "@mute", "hit": "mute", "hit_if": "!@self", "live": "!@self", "x": 6, "y": "6+38+volume_h", "w": "W-12", "h": 38, "args": {"active": "@muted", "off": "@self"}}
+    ]}
+  ]
+}

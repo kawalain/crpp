@@ -360,6 +360,18 @@ void a_failed_rollback_says_so_and_keeps_the_old_exe() {
   CHECK(start.files.at(old) == bytes_of("old"));
 }
 
+void notes_open_once_for_each_version() {
+  CHECK(notes_due_when_noticed("", "0.2.0"));
+  CHECK(!notes_due_when_noticed("0.2.0", "0.2.0"));  // the next check, or the next start
+  CHECK(notes_due_when_noticed("0.2.0", "0.3.0"));
+
+  CHECK(!notes_due_at_start("", "", "0.2.0"));  // a first run ever was updated from nothing
+  CHECK(!notes_due_at_start("0.2.0", "", "0.2.0"));  // the same version again
+  CHECK(!notes_due_at_start("0.1.0", "0.2.0", "0.2.0"));  // read before pressing update
+  CHECK(notes_due_at_start("0.1.0", "", "0.2.0"));  // never read: noticed under the prompt
+  CHECK(notes_due_at_start("0.1.0", "0.3.0", "0.2.0"));
+}
+
 }  // namespace
 
 int main() {
@@ -388,5 +400,6 @@ int main() {
   a_failed_swap_is_rolled_back();
   a_new_exe_that_does_not_start_is_rolled_back();
   a_failed_rollback_says_so_and_keeps_the_old_exe();
+  notes_open_once_for_each_version();
   return crpp_test_result();
 }

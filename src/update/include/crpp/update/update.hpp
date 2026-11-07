@@ -142,4 +142,10 @@ struct CheckResult {
 // start tries again.
 void remove_leftovers(const std::filesystem::path& exe, Platform& platform);
 
+// A version's notes open once: when it is first noticed, or else when it first runs after
+// an update. `shown` is the version they last opened for, `seen` the version last started;
+// both are empty if there was none.
+[[nodiscard]] bool notes_due_when_noticed(std::string_view shown, std::string_view available) noexcept;
+[[nodiscard]] bool notes_due_at_start(std::string_view seen, std::string_view shown, std::string_view current) noexcept;
+
 }  // namespace crpp::update

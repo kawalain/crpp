@@ -277,4 +277,10 @@ void remove_leftovers(const std::filesystem::path& exe, Platform& platform) {
   (void)platform.remove_file(with_suffix(exe, ".old"));
 }
 
+bool notes_due_when_noticed(std::string_view shown, std::string_view available) noexcept { return shown != available; }
+
+bool notes_due_at_start(std::string_view seen, std::string_view shown, std::string_view current) noexcept {
+  return !seen.empty() && seen != current && shown != current;
+}
+
 }  // namespace crpp::update

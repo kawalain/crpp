@@ -62,6 +62,14 @@ class UiHarness {
     return target;
   }
 
+  // What the last frame left at this point, as 0xRRGGBB.
+  [[nodiscard]] std::uint32_t pixel(int x, int y) {
+    const WICRect one{x, y, 1, 1};
+    std::uint32_t bgra = 0;
+    (void)bitmap_->CopyPixels(&one, 4, 4, reinterpret_cast<BYTE*>(&bgra));
+    return bgra & 0xFFFFFF;
+  }
+
   // True if the surface has this hit on screen now.
   [[nodiscard]] bool drawn(const Surface& owner, int id) { return app.ui().find_hit(&owner, id) != nullptr; }
 

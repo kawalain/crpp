@@ -36,6 +36,7 @@
       "caption_idle": [[0, "#808080"], [1, "#b8b4b8"]],
       "caption_ink": "#ffffff",
       "face": "#c0c0c0",
+      "sky": {"alpha": ["face", 1]},
       "field": "#ffffff",
       "field_off": "#c0c0c0",
       "edge_light": "#ffffff",

@@ -469,7 +469,7 @@ std::vector<Surface*> App::layers() {
 
 void App::paint_pane(Painter& p, float width, float height) {
   p.set_base(D2D1::Matrix3x2F::Identity());
-  p.clear(ui_.theme.luna.face);
+  p.clear(ui_.theme.sky);
   const PaneInfo info = pane_info(pane_);
   pane_frame_.set_title(info.title);
   pane_frame_.set_parts({.resizable = info.resizable, .minimize = false, .close = info.close});

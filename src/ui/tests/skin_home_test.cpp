@@ -644,6 +644,26 @@ void test_the_cursors_of_the_pack_become_system_cursors() {
   h.on_pane(Pane::Main);
 }
 
+void test_a_window_of_its_own_has_the_background_of_its_theme() {
+  UiHarness h;
+  CHECK(h.start(640, 500));
+  CHECK(h.app.load_skin_dir(retro_pack).has_value());
+  h.app.dialogs().show({"A question", "Yes", "No", false, nullptr, nullptr});
+  const auto background = [&](std::string_view theme) {
+    h.app.set_theme(theme);
+    h.on_pane(Pane::Main);
+    h.on_pane(Pane::Dialog);
+    const Ui::Hit* card = h.app.ui().find_hit(&h.app.dialogs(), Dialogs::Card);
+    CHECK(card != nullptr);
+    return card ? h.pixel(static_cast<int>(card->rect.x) + 2, static_cast<int>(card->rect.bottom()) - 2) : 0u;
+  };
+  CHECK(background("classic") == 0xc0c0c0);
+  CHECK(background("classic_dark") == 0x2e2e2e);
+  CHECK(background("luna_blue") == 0xece9d8);
+  CHECK(background("luna_blue_dark") == 0x232833);
+  CHECK(background("luna_metallic") == 0xe0dfe3);
+}
+
 void test_a_folder_without_a_pack_is_refused_and_changes_nothing() {
   UiHarness h;
   start_on_home(h);
@@ -671,6 +691,7 @@ int main() {
   test_a_theme_brings_its_overlay();
   test_the_pack_says_how_windows_are_measured();
   test_the_cursors_of_the_pack_become_system_cursors();
+  test_a_window_of_its_own_has_the_background_of_its_theme();
   test_a_folder_without_a_pack_is_refused_and_changes_nothing();
   return crpp_test_result();
 }

@@ -220,7 +220,7 @@ bool RoomScreen::shaking() const {
 
 bool RoomScreen::others_moving() const {
   return !arrivals_.empty() || tip_.animating(ui_) || copy_tip_.animating(ui_) || shaking() || profile_.animating() ||
-         menu_.animating() || chat_panel_.animating();
+         menu_.animating() || (chat_ && chat_panel_.animating());
 }
 
 bool RoomScreen::animating() const {
@@ -246,7 +246,8 @@ bool RoomScreen::tick(unsigned long long now_ms) {
   bool changed = false;
   if (tip_.animating(ui_) || copy_tip_.animating(ui_) || shaking() || menu_.animating()) changed = true;
   changed = profile_.tick(now_ms) || changed;
-  changed = chat_panel_.tick(now_ms) || changed;
+  // Not drawn without chat, so its link tip would wait for ever for a frame that shows the hover.
+  if (chat_) changed = chat_panel_.tick(now_ms) || changed;
   // The chat switch locks 5 minutes after chat was turned on.
   if (lock_pending_ && now_ms >= chat_lock_at_) {
     lock_pending_ = false;

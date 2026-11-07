@@ -37,6 +37,8 @@ void wire(Shell& s);
 namespace sound {  // the sound tab and everything it changes in the engine
 // Its packs are named in the language they were listed in.
 void language_changed(Shell& s);
+// A Skin may have notification sounds of its own.
+void theme_changed(Shell& s);
 struct State;
 void wire(Shell& s);
 [[nodiscard]] bool scene(Shell& s, std::string_view name);

@@ -22,6 +22,7 @@ bool system_prefers_dark() {
 
 void apply_theme(Shell& s) {
   s.app.set_theme(effective_theme(*s.app.ui().prefs, system_prefers_dark()).id);
+  area::sound::theme_changed(s);
   if (!s.hwnd) return;
   // The title bar too (DWMWA_USE_IMMERSIVE_DARK_MODE). Older Windows refuses; harmless.
   const BOOL dark = s.app.ui().theme.dark ? TRUE : FALSE;

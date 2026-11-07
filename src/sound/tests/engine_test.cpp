@@ -378,6 +378,22 @@ void an_absent_notification_plays_a_generated_cue() {
   engine.stop();
 }
 
+void chimes_take_the_place_of_a_skins_notifications() {
+  FakeDevice device;
+  Engine engine(device, std::filesystem::path(CRPP_SOUNDS_DIR) / "none");
+  Settings settings = full_volume();
+  settings.chimes = true;
+  engine.set_settings(settings);
+  engine.start();
+  engine.play_notification("no_such_sound");  // nothing to play and no chime for it
+  std::this_thread::sleep_for(100ms);
+  CHECK(device.starts.load() == 0);
+  engine.preview_notification("cloud_chat");
+  CHECK(eventually(device, [&] { return device.starts.load() == 1; }));
+  CHECK(loudest(device) > 0.001f);
+  engine.stop();
+}
+
 void notifications_follow_the_mute_settings() {
   FakeDevice device;
   Engine engine(device, CRPP_SOUNDS_DIR);
@@ -560,6 +576,7 @@ int main() {
   an_expected_file_that_is_absent_plays_a_generated_sound();
   a_sound_the_pack_does_not_have_stays_silent();
   an_absent_notification_plays_a_generated_cue();
+  chimes_take_the_place_of_a_skins_notifications();
   notifications_follow_the_mute_settings();
   previews_and_system_sounds_need_only_the_volume();
   an_unknown_cue_is_silent();

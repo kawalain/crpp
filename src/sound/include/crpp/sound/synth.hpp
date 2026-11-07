@@ -22,4 +22,11 @@ inline constexpr float synth_longest_ms = 80;
 // A short rise or fall of two tones for one; empty for any other name.
 [[nodiscard]] std::vector<float> synthesize_cue(std::string_view name, std::uint32_t rate);
 
+// The chimes of a Skin that has its own notification sounds: small bells going up, made here and
+// not modelled on any recording. Only a message and someone entering have one.
+inline constexpr float chime_longest_ms = 500;
+[[nodiscard]] bool can_chime(std::string_view name) noexcept;
+// Empty for any other name.
+[[nodiscard]] std::vector<float> synthesize_chime(std::string_view name, std::uint32_t rate);
+
 }  // namespace crpp::sound

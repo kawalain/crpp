@@ -1,7 +1,7 @@
 {
   "$schema": "http://json-schema.org/draft-07/schema#",
   "title": "The screen room of a Skin Pack",
-  "description": "A screen of a Skin Pack, as {\"draw\": [nodes]}. With no file for a screen, the program draws it itself.\nNumbers: @muted, @options_open, @mute_popup_open, @controls_shown, @chat, @public, @public_off, @chat_off, @pin_public, @pin_chat, @volume, @members, @member_slot, @member_level, @member_muted, @member_offline, @muted_all, @members_scroll, @members_offset, @members_overflow, @scale, @stage_x, @stage_y, @members_fade_top, @members_fade_bottom, @member_new, @member_key.\nTexts: @contacts, @mute_label, @status, @code, @volume_text, @member_name.\nHits: leave, mute, more, opt_code, opt_public, opt_chat, volume, popup, members_bar, member.\nPictures: member, muted.\nFields: none.\nSlots: chat.\nReports: members_view, members_content.\nNotes: members_area, fab_leave, fab_mute, fab_more, code, public, chat, volume, member, member_disc, members_track.",
+  "description": "A screen of a Skin Pack, as {\"draw\": [nodes]}. With no file for a screen, the program draws it itself.\nNumbers: @muted, @options_open, @mute_popup_open, @controls_shown, @chat, @public, @public_off, @chat_off, @pin_public, @pin_chat, @volume, @members, @member_slot, @member_level, @member_muted, @member_offline, @muted_all, @members_scroll, @members_offset, @members_overflow, @scale, @stage_x, @stage_y, @members_fade_top, @members_fade_bottom, @member_new, @member_key.\nTexts: @contacts, @mute_label, @status, @code, @volume_text, @member_name.\nHits: leave, mute, more, opt_code, opt_public, opt_chat, volume, popup, members_up, members_down, members_track, members_thumb, member.\nPictures: member, muted.\nFields: none.\nSlots: chat.\nReports: members_view, members_content.\nNotes: members_area, fab_leave, fab_mute, fab_more, code, public, chat, volume, member, member_disc, members_track.",
   "allowComments": true,
   "allowTrailingCommas": true,
   "type": "object",
@@ -58,7 +58,10 @@
             "opt_chat",
             "volume",
             "popup",
-            "members_bar",
+            "members_up",
+            "members_down",
+            "members_track",
+            "members_thumb",
             "member"
           ]
         },

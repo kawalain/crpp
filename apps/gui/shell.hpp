@@ -41,6 +41,7 @@ inline constexpr UINT_PTR frame_timer = 2;
 inline constexpr UINT_PTR smoke_timer = 3;
 inline constexpr UINT_PTR save_timer = 4;
 inline constexpr UINT_PTR wake_timer = 5;
+inline constexpr UINT_PTR hold_timer = 6;
 inline constexpr UINT save_delay_ms = 2000;  // chat arrives in bursts; write once per burst
 inline constexpr UINT wm_ui_task = WM_APP + 1;
 inline constexpr UINT wm_own_input = WM_APP + 2;

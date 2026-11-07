@@ -422,10 +422,10 @@
       "snap": true,
       "args": {"down": 0},
       "draw": [
-        {"fill": "hot ? $bar_thumb_hot : $bar_thumb", "radius": 2},
+        {"fill": "pressed ? $bar_thumb_low : hot ? $bar_thumb_hot : $bar_thumb", "radius": 2},
         {"stroke": "$edge_light", "radius": 2, "width": "u"},
-        {"if": "down", "path": "M-4 -2H4L0 2.5Z", "color": "$bar_arrow", "x": "W/2", "y": "H/2", "w": 1, "h": 1, "snap": true},
-        {"if": "!down", "path": "M-4 2H4L0 -2.5Z", "color": "$bar_arrow", "x": "W/2", "y": "H/2", "w": 1, "h": 1, "snap": true}
+        {"if": "down", "path": "M-4 -2H4L0 2.5Z", "color": "$bar_arrow", "x": "W/2+(pressed ? u : 0)", "y": "H/2+(pressed ? u : 0)", "w": 1, "h": 1, "snap": true},
+        {"if": "!down", "path": "M-4 2H4L0 -2.5Z", "color": "$bar_arrow", "x": "W/2+(pressed ? u : 0)", "y": "H/2+(pressed ? u : 0)", "w": 1, "h": 1, "snap": true}
       ]
     },
     "scroll_thumb": {

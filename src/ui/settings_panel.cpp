@@ -283,6 +283,9 @@ void SettingsPanel::before_click(const Surface* owner, int id) {
   if (open_) tab().before_click(owner, id);
 }
 
+// A track that jumps to the pointer has nothing to repeat.
+bool SettingsPanel::repeats(int id) const { return id == BarUp || id == BarDown || (id == Track && !ui_.skin().scales_stage()); }
+
 void SettingsPanel::click(int id, float, float y, bool) {
   if (id == Droplet) {
     if (open_) close();
@@ -293,7 +296,7 @@ void SettingsPanel::click(int id, float, float y, bool) {
     ui_.capture = this;
     grab_y_ = ui_.to_stage_y(y);
     grab_offset_ = scroll_.offset;
-  } else if (id == Track && !ui_.skin().scales_stage()) {
+  } else if (repeats(id)) {
     scroll_.step_towards(scroll_track_, y);
   } else if (id == Track) {
     scroll_.drag_thumb(scroll_track_, ui_.to_stage_y(y));

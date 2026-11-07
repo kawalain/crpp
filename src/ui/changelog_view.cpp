@@ -52,7 +52,7 @@ enum NumberId : int { HasEntries, HasTagline, HasDate, HasVersion, ShownHint, Ov
 constexpr skin::Name text_names[] = {{"tagline", Tagline}, {"date", Date}, {"version", Version}, {"hint", Hint}};
 constexpr skin::Name number_names[] = {{"has_entries", HasEntries}, {"has_tagline", HasTagline}, {"has_date", HasDate}, {"has_version", HasVersion}, {"shown_hint", ShownHint},
                                        {"overflow", Overflow}, {"view", View}, {"content", Content}, {"offset", Offset}, {"hint_on", HintOn}};
-constexpr skin::Name hit_names[] = {{"backdrop", ChangelogView::Backdrop}, {"close", ChangelogView::Close}, {"card", ChangelogView::Card}, {"bar_track", ChangelogView::BarTrack}, {"bar_thumb", ChangelogView::BarThumb}};
+constexpr skin::Name hit_names[] = {{"backdrop", ChangelogView::Backdrop}, {"close", ChangelogView::Close}, {"card", ChangelogView::Card}, {"bar_track", ChangelogView::BarTrack}, {"bar_thumb", ChangelogView::BarThumb}, {"bar_up", ChangelogView::BarUp}, {"bar_down", ChangelogView::BarDown}};
 constexpr skin::Name slot_names[] = {{"body", 0}};
 constexpr skin::Name note_names[] = {{"bar_track", 0}};
 constexpr skin::Name report_names[] = {{"hint_left", 0}};
@@ -389,7 +389,7 @@ void ChangelogView::paint(Painter& p) {
 void ChangelogView::click(int id, float, float y, bool) {
   if (id == Close || id == Backdrop) {
     close();
-  } else if (id == BarTrack) {
+  } else if (repeats(id)) {
     scroll_.step_towards(bar_track_, y);
   } else if (id == BarThumb) {
     ui_.capture = this;

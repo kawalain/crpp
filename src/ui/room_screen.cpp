@@ -722,16 +722,24 @@ void RoomScreen::before_click(const Surface* owner, int id) {
 }
 
 void RoomScreen::click(int id, float x, float y, bool) {
+  const auto hold_thumb = [&] {
+    ui_.capture = this;
+    members_held_ = true;
+    members_grab_y_ = y;
+    members_grab_offset_ = members_scroll_.offset;
+  };
   switch (id) {
     case MembersBar:
-      if (const Rect thumb = members_scroll_.thumb(members_track_); y >= thumb.y && y < thumb.bottom()) {
-        ui_.capture = this;
-        members_held_ = true;
-        members_grab_y_ = y;
-        members_grab_offset_ = members_scroll_.offset;
-      } else {
-        members_scroll_.step_towards(members_track_, y);
-      }
+      if (const Rect thumb = members_scroll_.thumb(members_track_); y >= thumb.y && y < thumb.bottom()) hold_thumb();
+      else members_scroll_.step_towards(members_track_, y);
+      break;
+    case MembersThumb:
+      hold_thumb();
+      break;
+    case MembersUp:
+    case MembersDown:
+    case MembersTrack:
+      members_scroll_.step_towards(members_track_, y);
       break;
     case Leave:
       ask_leave();

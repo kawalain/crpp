@@ -19,7 +19,7 @@ class SettingsPanel final : public Surface {
   explicit SettingsPanel(Ui& ui)
       : Surface(ui), sound_(ui), display_(ui), notify_(ui), system_(ui), account_(ui) {}
 
-  enum Id : int { Droplet, Overlay, Thumb, Version, Track, TabBase = 100 };
+  enum Id : int { Droplet, Overlay, Thumb, Version, Track, BarUp, BarDown, TabBase = 100 };
 
   // What a Skin Pack can name on this panel.
   [[nodiscard]] static skin::ScreenSchema schema();
@@ -51,7 +51,8 @@ class SettingsPanel final : public Surface {
   void paint(Painter& p);
   void before_click(const Surface* owner, int id) override;
   void click(int id, float x, float y, bool shift) override;
-  [[nodiscard]] bool acts_on_press(int id) const override { return id == Thumb || id == Track; }
+  [[nodiscard]] bool acts_on_press(int id) const override { return id == Thumb || id == Track || id == BarUp || id == BarDown; }
+  [[nodiscard]] bool repeats(int id) const override;
   void drag(float x, float y) override;
   bool wheel(float x, float y, float delta) override;
   bool escape() override;

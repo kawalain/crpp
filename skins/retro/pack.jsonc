@@ -12,6 +12,8 @@
   "default_theme": "classic",
   "constants": {
     "own_frame": 1, "moves": 0, "notification_sounds": 2,
+    // As Windows did at its default double-click time: Raymond Chen, The Old New Thing, 2008-04-23.
+    "hold_wait_ms": 400, "hold_repeat_ms": 50,
     "caption_h": 22, "frame_w": 4, "menu_h": 20, "window_radius": 0,
     "frame_edge": 4, "frame_corner": 12, "frame_button": 16, "frame_button_gap": 2, "frame_button_top": 5, "frame_button_right": 6,
     "window_home_w": 300, "window_home_h": 560, "window_home_min_w": 260, "window_home_min_h": 400,
@@ -256,7 +258,7 @@
       ]
     },
     "scrollbar": {
-      "args": {"view": 0, "content": 0, "offset": 0, "up": -1, "down": -1, "track": -1, "thumb": -1, "whole": 0, "track_note": -1},
+      "args": {"view": 0, "content": 0, "offset": 0, "up": -1, "down": -1, "track": -1, "thumb": -1, "track_note": -1},
       "draw": [
         {"let": "arrow_h", "value": "min(W, H/2)"},
         {"let": "track_h", "value": "H-2*arrow_h"},
@@ -265,8 +267,8 @@
         {"let": "thumb_y", "value": "arrow_h+(room>0 ? floor((track_h-thumb_h)*offset/room) : 0)"},
         {"fill": "$bar_track_from", "y": "arrow_h", "h": "track_h", "note_by": "track_note"},
         {"hit_by": "track", "group": []},
-        {"use": "scroll_arrow", "hit_by": "up", "live": "!whole", "h": "arrow_h"},
-        {"use": "scroll_arrow", "hit_by": "down", "live": "!whole", "y": "H-arrow_h", "h": "arrow_h", "args": {"down": 1}},
+        {"use": "scroll_arrow", "hit_by": "up", "h": "arrow_h"},
+        {"use": "scroll_arrow", "hit_by": "down", "y": "H-arrow_h", "h": "arrow_h", "args": {"down": 1}},
         {"hit_by": "thumb", "y": "thumb_y", "h": "thumb_h", "group": [
           {"if": "track_h>=16 && thumb_h<track_h", "use": "scroll_thumb"}
         ]}

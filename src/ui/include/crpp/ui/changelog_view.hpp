@@ -42,7 +42,7 @@ class ChangelogOverscroll {
 class ChangelogView final : public Surface {
  public:
   using Surface::Surface;
-  enum Id : int { Backdrop, Card, Close, BarTrack, BarThumb };
+  enum Id : int { Backdrop, Card, Close, BarTrack, BarThumb, BarUp, BarDown };
 
   [[nodiscard]] static skin::ScreenSchema schema();
 
@@ -61,7 +61,9 @@ class ChangelogView final : public Surface {
 
   void paint(Painter& p);
   void click(int id, float x, float y, bool shift) override;
-  [[nodiscard]] bool acts_on_press(int id) const override { return id == BarTrack || id == BarThumb; }
+  [[nodiscard]] bool acts_on_press(int id) const override { return repeats(id) || id == BarThumb; }
+  [[nodiscard]] bool repeats(int id) const override { return id == BarTrack || id == BarUp || id == BarDown; }
+  [[nodiscard]] float scroll_offset() const { return scroll_.offset; }
   void drag(float x, float y) override;
   bool wheel(float x, float y, float delta) override;
   bool escape() override;

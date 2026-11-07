@@ -206,6 +206,7 @@ LRESULT CALLBACK wnd_proc(HWND hwnd, UINT msg, WPARAM wp, LPARAM lp) {
       KillTimer(hwnd, frame_timer);
       KillTimer(hwnd, save_timer);
       KillTimer(hwnd, wake_timer);
+      KillTimer(hwnd, hold_timer);
       if (s->store) {
         if (s->own_frame) save_screen_size(*s, hwnd);
         else save_window_size(*s, hwnd);
@@ -344,6 +345,7 @@ LRESULT CALLBACK wnd_proc(HWND hwnd, UINT msg, WPARAM wp, LPARAM lp) {
       SetFocus(hwnd);
       SetCapture(hwnd);
       repaint(s->app.mouse_down(dips(GET_X_LPARAM(lp)), dips(GET_Y_LPARAM(lp)), (wp & MK_SHIFT) != 0));
+      if (const unsigned wait = s->app.hold_wait_ms()) SetTimer(hwnd, hold_timer, wait, nullptr);
       sync_blink(*s, hwnd);
       return 0;
     case WM_LBUTTONUP: {
@@ -355,6 +357,7 @@ LRESULT CALLBACK wnd_proc(HWND hwnd, UINT msg, WPARAM wp, LPARAM lp) {
       return 0;
     }
     case WM_CAPTURECHANGED:
+      KillTimer(hwnd, hold_timer);
       repaint(s->app.mouse_cancel());
       return 0;
     case WM_MOUSEWHEEL: {
@@ -413,6 +416,9 @@ LRESULT CALLBACK wnd_proc(HWND hwnd, UINT msg, WPARAM wp, LPARAM lp) {
         (void)s->store->save();
       } else if (wp == blink_timer) {
         repaint(s->app.blink(), true);
+      } else if (wp == hold_timer) {
+        SetTimer(hwnd, hold_timer, s->app.hold_repeat_ms(), nullptr);
+        repaint(s->app.hold_step());
       } else if (wp == wake_timer) {
         KillTimer(hwnd, wake_timer);
         if (s->app.tick(clock_ms())) {

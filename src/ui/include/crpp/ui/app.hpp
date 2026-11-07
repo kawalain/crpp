@@ -165,6 +165,11 @@ class App {
   bool mouse_up(float x, float y);
   // The button will not come up here: the window lost the mouse.
   bool mouse_cancel();
+  // While the button holds something that repeats: how long until hold_step, otherwise 0.
+  // The shell keeps a timer for it only until the button comes up.
+  [[nodiscard]] unsigned hold_wait_ms() const;
+  [[nodiscard]] unsigned hold_repeat_ms() const;
+  bool hold_step();
   bool right_click(float x, float y);
   bool wheel(float x, float y, float delta);  // delta in notches (+ = up)
   bool char_input(wchar_t c, bool shift);

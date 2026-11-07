@@ -1,7 +1,7 @@
 {
   "$schema": "http://json-schema.org/draft-07/schema#",
   "title": "The screen changelog of a Skin Pack",
-  "description": "A screen of a Skin Pack, as {\"draw\": [nodes]}. With no file for a screen, the program draws it itself.\nNumbers: @has_entries, @has_tagline, @has_date, @has_version, @shown_hint, @overflow, @view, @content, @offset, @hint_on.\nTexts: @tagline, @date, @version, @hint.\nHits: backdrop, close, card, bar_track, bar_thumb.\nPictures: none.\nFields: none.\nSlots: body.\nReports: hint_left.\nNotes: bar_track.",
+  "description": "A screen of a Skin Pack, as {\"draw\": [nodes]}. With no file for a screen, the program draws it itself.\nNumbers: @has_entries, @has_tagline, @has_date, @has_version, @shown_hint, @overflow, @view, @content, @offset, @hint_on.\nTexts: @tagline, @date, @version, @hint.\nHits: backdrop, close, card, bar_track, bar_thumb, bar_up, bar_down.\nPictures: none.\nFields: none.\nSlots: body.\nReports: hint_left.\nNotes: bar_track.",
   "allowComments": true,
   "allowTrailingCommas": true,
   "type": "object",
@@ -52,7 +52,9 @@
             "close",
             "card",
             "bar_track",
-            "bar_thumb"
+            "bar_thumb",
+            "bar_up",
+            "bar_down"
           ]
         },
         "note": {

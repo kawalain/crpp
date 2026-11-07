@@ -1,5 +1,6 @@
 // Home drawn from the Retro pack in skins/: the same places to click as the C++ layout, and
 // the same results. Their pixels are compared with tests/shots while both forms exist.
+#include <functional>
 #include <algorithm>
 #include <cmath>
 #include <filesystem>
@@ -741,6 +742,125 @@ void test_the_cursors_of_the_pack_become_system_cursors() {
   h.on_pane(Pane::Main);
 }
 
+// What is drawn in a rectangle, to tell two looks of it apart.
+std::uint32_t look_of(UiHarness& h, Rect r) {
+  std::uint32_t sum = 0;
+  for (int y = static_cast<int>(r.y); y < static_cast<int>(r.bottom()); ++y) {
+    for (int x = static_cast<int>(r.x); x < static_cast<int>(r.right()); ++x) sum = sum * 31 + h.pixel(x, y);
+  }
+  return sum;
+}
+
+// It looks pressed and scrolls again and again while the pointer stays on it.
+void hold_an_arrow(UiHarness& h, const Surface& owner, int arrow, const std::function<float()>& position) {
+  const Ui::Hit* hit = h.app.ui().find_hit(&owner, arrow);
+  CHECK(hit != nullptr);
+  if (!hit) return;
+  const Rect rect = hit->rect;
+  const float x = rect.x + rect.w / 2, y = rect.y + rect.h / 2;
+  const auto looks_pressed = [&] { return h.app.ui().pressed(&owner, arrow); };
+  h.app.mouse_move(1, 1);
+  h.render();
+  const std::uint32_t away = look_of(h, rect);
+  h.app.mouse_move(x, y);
+  h.render();
+  const std::uint32_t up = look_of(h, rect);
+
+  const float start = position();
+  h.app.mouse_down(x, y, false);
+  h.render();
+  CHECK(looks_pressed());
+  CHECK(look_of(h, rect) != up);
+  const float first = position();
+  CHECK(first != start);
+  CHECK(h.app.hold_wait_ms() == 400);
+  CHECK(h.app.hold_repeat_ms() == 50);
+  CHECK(h.app.hold_step());
+  h.render();
+  const float second = position();
+  CHECK(second != first);
+
+  // Off it, it rests; back on it, it goes on.
+  h.app.mouse_move(1, 1);
+  h.render();
+  CHECK(!looks_pressed());
+  CHECK(look_of(h, rect) == away);
+  CHECK(!h.app.hold_step());
+  CHECK(position() == second);
+  h.app.mouse_move(x, y);
+  h.render();
+  CHECK(looks_pressed());
+  CHECK(h.app.hold_step());
+  h.render();
+  const float third = position();
+  CHECK(third != second);
+
+  // The press moved it, so the button coming up does not.
+  h.app.mouse_up(x, y);
+  h.render();
+  CHECK(position() == third);
+  CHECK(h.app.hold_wait_ms() == 0);
+  CHECK(!h.app.hold_step());
+  CHECK(look_of(h, rect) == up);
+}
+
+void test_the_arrows_of_every_scrollbar_can_be_held(const char* theme) {
+  UiHarness h;
+  CHECK(h.start(640, 360));
+  CHECK(h.app.load_skin_dir(retro_pack).has_value());
+  h.app.set_theme(theme);
+
+  h.app.show_session("ABC234");
+  std::vector<MemberView> members;
+  for (std::uint32_t slot = 0; slot < 16; ++slot) members.push_back({slot, "Member", "", false, "c" + std::to_string(slot)});
+  RoomScreen& room = h.app.room();
+  room.set_room(members, 0, 0, false, true);
+  h.render();
+  ChatPanel& chat = room.chat();
+  for (int i = 0; i < 40; ++i) chat.add({1, "c1", "You", "", "hello " + std::to_string(i), 1700000000000});
+  h.render();
+  hold_an_arrow(h, chat, ChatPanel::BarUp, [&] { return chat.scroll_offset(); });
+  hold_an_arrow(h, room, RoomScreen::MembersDown, [&] { return room.members_offset(); });
+  hold_an_arrow(h, room, RoomScreen::MembersUp, [&] { return room.members_offset(); });
+
+  h.app.show_home();
+  SettingsPanel& panel = h.app.settings();
+  panel.open(SettingsPage::Sound);
+  h.on_pane(Pane::Options);
+  hold_an_arrow(h, panel, SettingsPanel::BarDown, [&] { return panel.scroll_offset(); });
+  hold_an_arrow(h, panel, SettingsPanel::BarUp, [&] { return panel.scroll_offset(); });
+
+  // Held on the track it goes by pages, until the thumb comes to the pointer.
+  panel.scroll_to(0);
+  h.render();
+  const Ui::Hit* track = h.app.ui().find_hit(&panel, SettingsPanel::Track);
+  CHECK(track != nullptr);
+  if (track) {
+    const float x = track->rect.x + track->rect.w / 2, y = track->rect.bottom() - 24;
+    h.app.mouse_move(x, y);
+    h.app.mouse_down(x, y, false);
+    h.render();
+    for (int i = 0; i < 100 && h.app.hold_step(); ++i) h.render();
+    CHECK(!h.app.hold_step());
+    const Ui::Hit* thumb = h.app.ui().find_hit(&panel, SettingsPanel::Thumb);
+    CHECK(thumb != nullptr);
+    if (thumb) CHECK(thumb->rect.contains(x, y));
+    h.app.mouse_up(x, y);
+  }
+  panel.close();
+  h.on_pane(Pane::Main);
+
+  ChangelogEntry entry{"A new version", "2026.11.08", "v1.0.0", {}};
+  for (int i = 0; i < 60; ++i) entry.blocks.push_back({crpp::update::NoteKind::Bullet, 0, "", {{"line " + std::to_string(i), i == 0}}});
+  ChangelogView& view = h.app.changelog();
+  view.open({entry}, 0);
+  h.on_pane(Pane::Changelog);
+  hold_an_arrow(h, view, ChangelogView::BarDown, [&] { return view.scroll_offset(); });
+  hold_an_arrow(h, view, ChangelogView::BarUp, [&] { return view.scroll_offset(); });
+  view.close();
+  h.on_pane(Pane::Main);
+}
+
 void test_a_window_of_its_own_has_the_background_of_its_theme() {
   UiHarness h;
   CHECK(h.start(640, 500));
@@ -793,6 +913,8 @@ int main() {
   test_the_pack_says_how_windows_are_measured();
   test_the_cursors_of_the_pack_become_system_cursors();
   test_a_window_of_its_own_has_the_background_of_its_theme();
+  test_the_arrows_of_every_scrollbar_can_be_held("classic");
+  test_the_arrows_of_every_scrollbar_can_be_held("luna_blue");
   test_a_folder_without_a_pack_is_refused_and_changes_nothing();
   return crpp_test_result();
 }

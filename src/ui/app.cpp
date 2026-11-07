@@ -116,6 +116,8 @@ void App::point_at_palette() {
     ui_.motion = {k.constant("scroll_settle_ms"), k.constant("scroll_return_ms"), k.constant("scroll_stretch"), k.constant("edge_fade"),
                   k.constant("screen_fade_ms"), k.constant("screen_rise"), k.constant("speaking_hold_ms"), k.constant("speaking_fade_ms")};
   }
+  ui_.motion.hold_wait_ms = pack_->constant("hold_wait_ms");
+  ui_.motion.hold_repeat_ms = pack_->constant("hold_repeat_ms");
   ui_.theme.dark = pack_->palette_is_dark(ui_.palette);
   if (const skin::Paint* sky = pack_->paint_named(ui_.palette, "sky")) ui_.theme.sky = sky->color;
 }
@@ -611,6 +613,8 @@ void App::paint_screens(Painter& p) {
 }
 
 bool App::mouse_move(float x, float y) {
+  ui_.pressed_x = x;
+  ui_.pressed_y = y;
   if (ui_.capture) {
     ui_.capture->drag(x, y);
     return true;
@@ -621,6 +625,19 @@ bool App::mouse_move(float x, float y) {
   if (owner == ui_.hover_owner && id == ui_.hover_id) return false;
   ui_.hover_owner = owner;
   ui_.hover_id = id;
+  return true;
+}
+
+unsigned App::hold_wait_ms() const { return ui_.pressed_repeats ? static_cast<unsigned>(ui_.motion.hold_wait_ms) : 0; }
+
+unsigned App::hold_repeat_ms() const { return ui_.pressed_repeats ? static_cast<unsigned>(ui_.motion.hold_repeat_ms) : 0; }
+
+bool App::hold_step() {
+  if (!ui_.pressed_repeats) return false;
+  // Asked anew each time, as the thumb comes to the pointer on a track and stops it there.
+  const Ui::Hit* hit = ui_.hit_at(ui_.pressed_x, ui_.pressed_y);
+  if (!hit || hit->owner != ui_.pressed_owner || hit->id != ui_.pressed_id) return false;
+  hit->owner->click(hit->id, ui_.pressed_x, ui_.pressed_y, false);
   return true;
 }
 
@@ -646,7 +663,7 @@ bool App::mouse_up(float x, float y) {
 bool App::mouse_cancel() {
   const bool was_pressed = ui_.pressed_owner != nullptr;
   ui_.pressed_owner = nullptr;
-  ui_.pressed_waits = false;
+  ui_.pressed_waits = ui_.pressed_repeats = false;
   if (!ui_.capture) return was_pressed;
   ui_.capture->release();
   ui_.capture = nullptr;
@@ -672,6 +689,9 @@ bool App::mouse_down(float x, float y, bool shift) {
   ui_.hover_owner = ui_.pressed_owner = owner;
   ui_.hover_id = ui_.pressed_id = id;
   ui_.pressed_waits = owner && !owner->acts_on_press(id);
+  ui_.pressed_repeats = owner && owner->repeats(id);
+  ui_.pressed_x = x;
+  ui_.pressed_y = y;
   if (owner && !ui_.pressed_waits) owner->click(id, x, y, shift);
   return true;
 }

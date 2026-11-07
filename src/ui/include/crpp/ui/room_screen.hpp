@@ -53,7 +53,7 @@ class RoomScreen final : public Surface {
   std::function<void(const std::string& id)> on_pick_emoji;
 
   // Hit ids tests click by.
-  enum Id : int { Leave, Mute, More, OptCode, OptPublic, OptChat, VolumeSlider, Popup, MembersBar, MemberBase = 1000 };
+  enum Id : int { Leave, Mute, More, OptCode, OptPublic, OptChat, VolumeSlider, Popup, MembersBar, MembersUp, MembersDown, MembersTrack, MembersThumb, MemberBase = 1000 };
 
   [[nodiscard]] ChatPanel& chat() { return chat_panel_; }
   [[nodiscard]] ProfileCard& profile_card() { return profile_; }
@@ -89,7 +89,8 @@ class RoomScreen final : public Surface {
   void paint_overlay(Painter& p);
   void before_click(const Surface* owner, int id) override;
   void click(int id, float x, float y, bool shift) override;
-  [[nodiscard]] bool acts_on_press(int id) const override { return id == MembersBar || id == VolumeSlider; }
+  [[nodiscard]] bool acts_on_press(int id) const override { return id == MembersBar || id == MembersThumb || id == VolumeSlider || repeats(id); }
+  [[nodiscard]] bool repeats(int id) const override { return id == MembersUp || id == MembersDown || id == MembersTrack; }
   bool right_click(int id, float x, float y) override;
   void drag(float x, float y) override;
   void release() override { members_held_ = false; }

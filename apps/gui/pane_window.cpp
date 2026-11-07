@@ -14,6 +14,7 @@ namespace crpp::gui {
 namespace {
 
 constexpr UINT_PTR pane_blink_timer = 1;
+constexpr UINT_PTR pane_hold_timer = 2;
 constexpr const wchar_t* pane_class = L"CrppPane";
 
 void save_pane_size(const PaneWindow& w) {
@@ -146,6 +147,7 @@ LRESULT CALLBACK pane_proc(HWND hwnd, UINT msg, WPARAM wp, LPARAM lp) {
       SetFocus(hwnd);
       SetCapture(hwnd);
       changed(s.app.mouse_down(dips(GET_X_LPARAM(lp)), dips(GET_Y_LPARAM(lp)), (wp & MK_SHIFT) != 0));
+      if (const unsigned wait = s.app.hold_wait_ms()) SetTimer(hwnd, pane_hold_timer, wait, nullptr);
       sync_pane_blink(*w);
       return 0;
     case WM_LBUTTONUP: {
@@ -157,6 +159,7 @@ LRESULT CALLBACK pane_proc(HWND hwnd, UINT msg, WPARAM wp, LPARAM lp) {
       return 0;
     }
     case WM_CAPTURECHANGED:
+      KillTimer(hwnd, pane_hold_timer);
       changed(s.app.mouse_cancel());
       return 0;
     case WM_RBUTTONDOWN:
@@ -195,10 +198,16 @@ LRESULT CALLBACK pane_proc(HWND hwnd, UINT msg, WPARAM wp, LPARAM lp) {
       changed(s.app.ime_composition({}, {}));
       return 0;
     case WM_TIMER:
-      if (wp == pane_blink_timer) changed(s.app.blink(), true);
+      if (wp == pane_blink_timer) {
+        changed(s.app.blink(), true);
+      } else if (wp == pane_hold_timer) {
+        SetTimer(hwnd, pane_hold_timer, s.app.hold_repeat_ms(), nullptr);
+        changed(s.app.hold_step());
+      }
       return 0;
     case WM_DESTROY:
       KillTimer(hwnd, pane_blink_timer);
+      KillTimer(hwnd, pane_hold_timer);
       save_pane_size(*w);
       w->blink_on = w->tracking = false;
       w->target.reset();

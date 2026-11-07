@@ -1198,7 +1198,7 @@ const Paint* Pack::paint(int palette, float value) const {
 }
 
 std::span<const std::string_view> required_constants() {
-  static constexpr std::string_view names[] = {"own_frame", "moves", "list_pad", "list_item_h", "list_gap", "list_max_h", "list_margin"};
+  static constexpr std::string_view names[] = {"own_frame", "moves", "hold_wait_ms", "hold_repeat_ms", "list_pad", "list_item_h", "list_gap", "list_max_h", "list_margin"};
   return names;
 }
 

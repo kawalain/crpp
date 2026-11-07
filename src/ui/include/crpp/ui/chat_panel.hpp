@@ -63,7 +63,8 @@ class ChatPanel final : public Surface {
 
   void paint(Painter& p, Rect panel);  // window coordinates
   void click(int id, float x, float y, bool shift) override;
-  [[nodiscard]] bool acts_on_press(int id) const override { return id == BarUp || id == BarDown || id == BarTrack || id == BarThumb || id == Input; }
+  [[nodiscard]] bool acts_on_press(int id) const override { return repeats(id) || id == BarThumb || id == Input; }
+  [[nodiscard]] bool repeats(int id) const override { return id == BarUp || id == BarDown || id == BarTrack; }
   void drag(float x, float y) override;
   bool wheel(float x, float y, float delta) override;
   void enter(bool shift) override;

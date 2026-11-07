@@ -9,7 +9,7 @@
   },
   "default_theme": "cloudroom",
   "constants": {
-    "own_frame": 0, "moves": 1,
+    "own_frame": 0, "moves": 1, "hold_wait_ms": 400, "hold_repeat_ms": 50,
     "scroll_settle_ms": 32, "scroll_return_ms": 52, "scroll_stretch": 48, "edge_fade": 27,
     "screen_fade_ms": 180, "screen_rise": 8,
     "speaking_hold_ms": 160, "speaking_fade_ms": 100,

@@ -50,8 +50,8 @@
             ]}
           ]}
         ]},
-        {"if": "@members_overflow", "use": "scrollbar", "hit": "members_bar", "x": "W-scrollbar_w", "w": "scrollbar_w",
-         "args": {"view": "H", "content": "rows*62", "offset": "@members_offset", "whole": 1, "track_note": "note('members_track')"}}
+        {"if": "@members_overflow", "use": "scrollbar", "x": "W-scrollbar_w", "w": "scrollbar_w",
+         "args": {"view": "H", "content": "rows*62", "offset": "@members_offset", "track": "hit('members_track')", "up": "hit('members_up')", "down": "hit('members_down')", "thumb": "hit('members_thumb')", "track_note": "note('members_track')"}}
       ]}
     ]},
     {"if": "@chat", "slot": "chat", "x": 6, "y": 58, "w": "main_w-112-6", "h": "main_h"},

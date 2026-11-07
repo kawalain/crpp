@@ -33,7 +33,7 @@ constexpr skin::Name report_names[] = {{"members_view", MembersView}, {"members_
 constexpr skin::Name note_names[] = {{"members_area", MembersArea}, {"fab_leave", FabLeave}, {"fab_mute", FabMute}, {"fab_more", FabMore}, {"code", CodeNote}, {"public", PublicNote}, {"chat", ChatNote},
                                      {"volume", VolumeNote}, {"member", MemberNote}, {"member_disc", MemberDisc}, {"members_track", MembersTrack}};
 constexpr skin::Name hit_names[] = {{"leave", RoomScreen::Leave}, {"mute", RoomScreen::Mute}, {"more", RoomScreen::More}, {"opt_code", RoomScreen::OptCode}, {"opt_public", RoomScreen::OptPublic}, {"opt_chat", RoomScreen::OptChat},
-                                    {"volume", RoomScreen::VolumeSlider}, {"popup", RoomScreen::Popup}, {"members_bar", RoomScreen::MembersBar}, {"member", RoomScreen::MemberBase}};
+                                    {"volume", RoomScreen::VolumeSlider}, {"popup", RoomScreen::Popup}, {"members_up", RoomScreen::MembersUp}, {"members_down", RoomScreen::MembersDown}, {"members_track", RoomScreen::MembersTrack}, {"members_thumb", RoomScreen::MembersThumb}, {"member", RoomScreen::MemberBase}};
 
 constexpr const char* muted_emoji = "1f507";
 

@@ -33,7 +33,7 @@ constexpr skin::Name droplet_numbers[] = {{"open", 0}};
 constexpr skin::Name droplet_hits[] = {{"droplet", SettingsPanel::Droplet}};
 constexpr skin::Name panel_slots[] = {{"tab", TabSlot}, {"popups", PopupsSlot}, {"current", CurrentSlot}, {"leaving", LeavingSlot}};
 constexpr skin::Name panel_notes[] = {{"track", TrackNote}, {"pane", PaneNote}};
-constexpr skin::Name panel_hits[] = {{"overlay", SettingsPanel::Overlay}, {"droplet", SettingsPanel::Droplet}, {"thumb", SettingsPanel::Thumb}, {"version", SettingsPanel::Version}, {"track", SettingsPanel::Track}, {"tab", SettingsPanel::TabBase}};
+constexpr skin::Name panel_hits[] = {{"overlay", SettingsPanel::Overlay}, {"droplet", SettingsPanel::Droplet}, {"thumb", SettingsPanel::Thumb}, {"version", SettingsPanel::Version}, {"track", SettingsPanel::Track}, {"bar_up", SettingsPanel::BarUp}, {"bar_down", SettingsPanel::BarDown}, {"tab", SettingsPanel::TabBase}};
 
 // --- sound ---
 enum SoundNumber : int { SpeakerVolumeN, KeyboardVolumeN, MouseVolumeN, PenVolumeN, ShowPen, ListenSelfN, OthersN, MuteNotifyN, MuteIdleN, SpatialN, BalanceEnabledN, BalanceOn, BalanceN };

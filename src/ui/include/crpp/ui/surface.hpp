@@ -48,6 +48,7 @@ struct EngineMotion {
   float scroll_settle_ms = 32, scroll_return_ms = 52, scroll_stretch = 48, edge_fade = 27;
   float screen_fade_ms = 180, screen_rise = 8;
   float speaking_hold_ms = 160, speaking_fade_ms = 100;
+  float hold_wait_ms = 400, hold_repeat_ms = 50;
 };
 
 class Surface;
@@ -90,6 +91,9 @@ struct WindowState {
   Surface* pressed_owner = nullptr;
   int pressed_id = 0;
   bool pressed_waits = false;
+  // Where the pointer is while it is held, and whether holding acts again and again.
+  float pressed_x = 0, pressed_y = 0;
+  bool pressed_repeats = false;
 
   Surface* hover_owner = nullptr;
   int hover_id = 0;
@@ -208,6 +212,8 @@ class Surface {
   // True for what cannot wait for the button to come up: what is dragged or scrolled by
   // holding it, a text field, and what opens a list.
   [[nodiscard]] virtual bool acts_on_press(int /*id*/) const { return false; }
+  // True for a hit that acts on the press and again while it is held and the pointer stays on it.
+  [[nodiscard]] virtual bool repeats(int /*id*/) const { return false; }
   virtual bool right_click(int /*id*/, float /*x*/, float /*y*/) { return false; }
   virtual void drag(float /*x*/, float /*y*/) {}
   virtual void release() {}

@@ -234,8 +234,9 @@ void Engine::close_device() {
 
 void Engine::apply_settings() {
   mixer_.set_master(gain_of(settings_.volume));
+  mixer_.set_reverb(settings_.reverb);
   if (rate_ == 0) return;
-  const SpatialConfig config{settings_.spatial, settings_.balance};
+  const SpatialConfig config{settings_.spatial, settings_.balance, settings_.reverb};
   for (std::size_t desk = 0; desk < desk_count; ++desk) desk_mixes_[desk] = desk_mix(desk, rate_, config);
 }
 

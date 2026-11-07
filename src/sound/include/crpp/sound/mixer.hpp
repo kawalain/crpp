@@ -22,15 +22,24 @@ struct DeskMix {
   float send = 0;                             // level into the reverb
 };
 
+// The space around the listener, apart from where the Desks are.
+enum class Reverb : std::uint8_t { Off, Office, Large };
+
+struct ReverbTuning {
+  float feedback, damp, wet;
+};
+
 struct SpatialConfig {
   bool spatial = true;
   // How strongly a Desk to one side leans, on the slider's scale from 55 to 90: straight
   // to the side, 60 is 6 dB between the ears and 90 is 19 dB. 50 or less does not lean;
   // 0 also drops the other side cues.
   int balance = 60;
+  Reverb reverb = Reverb::Office;
 };
 
-// Where a sound of this member plays from. Without spatial audio, the middle.
+// Where a sound of this member plays from. Without spatial audio, the middle, with the
+// same send from everywhere.
 [[nodiscard]] DeskMix desk_mix(std::size_t desk, std::uint32_t rate, const SpatialConfig& config) noexcept;
 // In the listener's own head: for their own sounds.
 [[nodiscard]] constexpr DeskMix own_mix() noexcept { return {}; }
@@ -53,6 +62,8 @@ class Mixer {
   // if too many triggers are queued. `gain` applies to this voice only.
   bool trigger(std::span<const float> samples, const DeskMix& mix, float gain) noexcept;
   void set_master(float gain) noexcept { master_target_.store(gain, std::memory_order_relaxed); }
+  // What is ringing keeps ringing; Off takes effect through the sends of new sounds.
+  void set_reverb(Reverb reverb) noexcept { reverb_mode_.store(reverb, std::memory_order_relaxed); }
   // True when nothing is queued, playing or ringing out.
   [[nodiscard]] bool idle() const noexcept {
     return head_.load(std::memory_order_acquire) == tail_.load(std::memory_order_acquire) &&
@@ -104,10 +115,14 @@ class Mixer {
   std::atomic<std::size_t> head_{0}, tail_{0};
   std::array<Voice, max_voices> voices_{};
   std::array<ReverbChannel, 2> reverb_;
+  std::atomic<Reverb> reverb_mode_{Reverb::Office};
+  ReverbTuning tuning_{};
+  float wet_ = 0;
+  bool ringing_ = false;  // the reverb has something in it; otherwise it is skipped
   std::atomic<float> master_target_{1};
   float master_ = 1, master_step_ = 0.001f;
   std::int32_t steal_frames_ = 256;
-  std::uint32_t quiet_frames_ = 0, quiet_limit_ = 4800;
+  std::uint32_t quiet_frames_ = 0, tail_quiet_frames_ = 0, quiet_limit_ = 4800;
   std::uint32_t clock_ = 0;
   std::atomic<bool> silent_{true};
 };

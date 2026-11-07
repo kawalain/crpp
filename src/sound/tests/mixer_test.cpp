@@ -110,8 +110,81 @@ void balance_controls_the_lean() {
 void without_spatial_audio_everything_is_centred() {
   const DeskMix mix = desk_mix(0, rate, {false, 60});
   CHECK(mix.left == mix.right);
-  CHECK(mix.send == 0);
   CHECK(mix.delay_left == 0 && mix.delay_right == 0);
+}
+
+void reverb_is_apart_from_the_surround() {
+  // Without the surround the space stays, the same from every Desk.
+  CHECK(desk_mix(0, rate, {false, 60, Reverb::Office}).send > 0);
+  CHECK(desk_mix(0, rate, {false, 60, Reverb::Office}).send == desk_mix(5, rate, {false, 60, Reverb::Office}).send);
+  CHECK(desk_mix(0, rate, {false, 60, Reverb::Off}).send == 0);
+  // Without reverb the surround stays.
+  const DeskMix dry = desk_mix(4, rate, {true, 60, Reverb::Off});
+  CHECK(dry.send == 0);
+  CHECK(dry.left > dry.right);
+  CHECK(dry.delay_right > 0);
+}
+
+std::size_t frames_until_idle(Mixer& mixer) {
+  std::size_t frames = 0;
+  for (; frames < 48000 * 10 && !mixer.idle(); frames += 480) render(mixer, 480);
+  return frames;
+}
+
+std::size_t frames_of_reverb(Reverb reverb) {
+  auto mixer = ready_mixer();
+  mixer->set_reverb(reverb);
+  const auto sample = click();
+  CHECK(mixer->trigger(sample, desk_mix(0, rate, {true, 60, reverb}), 1));
+  return frames_until_idle(*mixer);
+}
+
+float tail_peak(Reverb reverb) {
+  auto mixer = ready_mixer();
+  mixer->set_reverb(reverb);
+  const auto sample = click();
+  CHECK(mixer->trigger(sample, desk_mix(0, rate, {true, 60, reverb}), 1));
+  render(*mixer, 2200);
+  const auto tail = render(*mixer, 4800);
+  return std::max(peak(tail, 0), peak(tail, 1));
+}
+
+void each_reverb_rings_as_long_as_its_space() {
+  const std::size_t off = frames_of_reverb(Reverb::Off), office = frames_of_reverb(Reverb::Office),
+                    large = frames_of_reverb(Reverb::Large);
+  // The voice and a tenth of a second of quiet, and nothing more.
+  CHECK(off < 2000 + 4800 + 2000);
+  CHECK(office > off);
+  CHECK(large > office * 2);
+  CHECK(tail_peak(Reverb::Off) < 1e-4f);
+  CHECK(tail_peak(Reverb::Office) < tail_peak(Reverb::Large));
+}
+
+void turning_reverb_off_lets_the_tail_die_away() {
+  auto mixer = ready_mixer();
+  mixer->set_reverb(Reverb::Large);
+  const auto sample = click();
+  CHECK(mixer->trigger(sample, desk_mix(0, rate, {true, 60, Reverb::Large}), 1));
+  render(*mixer, 2200);
+  mixer->set_reverb(Reverb::Off);
+  const auto tail = render(*mixer, 4800);
+  CHECK(peak(tail, 0) > 1e-4f);
+  CHECK(frames_until_idle(*mixer) > 4800);
+  CHECK(mixer->idle());
+  const auto after = render(*mixer, 256);
+  CHECK(peak(after, 0) == 0 && peak(after, 1) == 0);
+}
+
+void a_dry_sound_passes_while_a_tail_is_ending() {
+  auto mixer = ready_mixer();
+  const auto sample = click();
+  CHECK(mixer->trigger(sample, desk_mix(0, rate, {}), 1));
+  render(*mixer, 2200);
+  CHECK(mixer->trigger(sample, own_mix(), 1));
+  const auto out = render(*mixer, 2200);
+  CHECK(peak(out, 0) > 0.1f);
+  CHECK(frames_until_idle(*mixer) > 0);
+  CHECK(mixer->idle());
 }
 
 void every_desk_is_sane() {
@@ -238,6 +311,10 @@ int main() {
   distance_lowers_the_level_and_raises_the_reverb();
   balance_controls_the_lean();
   without_spatial_audio_everything_is_centred();
+  reverb_is_apart_from_the_surround();
+  each_reverb_rings_as_long_as_its_space();
+  turning_reverb_off_lets_the_tail_die_away();
+  a_dry_sound_passes_while_a_tail_is_ending();
   every_desk_is_sane();
   the_first_members_sit_far_apart();
   everyone_gets_a_desk_of_their_own_until_they_run_out();

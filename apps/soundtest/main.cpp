@@ -1,8 +1,9 @@
 // crpp_soundtest: hear the spatial mix, to tune it by ear.
 //   crpp_soundtest (<sounds folder> | --synth) [--pack plastic] [--balance 60] [--flat]
-//                  [--volume 30] [--repeat 3]
+//                  [--reverb off|office|large] [--volume 30] [--repeat 3]
 // Walks through every desk of the virtual office, playing a few key presses from
-// each and printing where they should seem to come from.
+// each and printing where they should seem to come from. A desk in front and the one
+// behind it sound the same: only left to right and near to far can be told.
 #include <algorithm>
 #include <chrono>
 #include <cstdio>
@@ -49,12 +50,16 @@ int main(int argc, char** argv) {
     else if (arg == "--synth") synth = true;
     else if (arg == "--pack" && has_value) pack = argv[++i];
     else if (arg == "--balance" && has_value) config.balance = std::atoi(argv[++i]);
+    else if (arg == "--reverb" && has_value) {
+      const std::string name = argv[++i];
+      config.reverb = name == "off" ? sound::Reverb::Off : name == "large" ? sound::Reverb::Large : sound::Reverb::Office;
+    }
     else if (arg == "--volume" && has_value) volume = std::atoi(argv[++i]);
     else if (arg == "--repeat" && has_value) repeat = std::atoi(argv[++i]);
     else if (!arg.starts_with("--")) sounds = arg;
   }
   if (sounds.empty() && !synth) {
-    std::fprintf(stderr, "usage: crpp_soundtest (<sounds folder> | --synth) [--pack id] [--balance n] [--flat] [--volume n] [--repeat n]\n");
+    std::fprintf(stderr, "usage: crpp_soundtest (<sounds folder> | --synth) [--pack id] [--balance n] [--flat] [--reverb off|office|large] [--volume n] [--repeat n]\n");
     return 2;
   }
 
@@ -75,8 +80,10 @@ int main(int argc, char** argv) {
   mixer->prepare(*rate);
   const float v = static_cast<float>(std::clamp(volume, 0, 100)) / 100.0f;
   mixer->set_master(v * v);
-  std::printf("output: %u Hz, pack: %s, spatial: %s, balance: %d, volume: %d\n", *rate, pack.empty() ? "(default)" : pack.c_str(),
-              config.spatial ? "on" : "off", config.balance, volume);
+  mixer->set_reverb(config.reverb);
+  const char* reverb_name = config.reverb == sound::Reverb::Off ? "off" : config.reverb == sound::Reverb::Large ? "large" : "office";
+  std::printf("output: %u Hz, pack: %s, spatial: %s, balance: %d, reverb: %s, volume: %d\n", *rate, pack.empty() ? "(default)" : pack.c_str(),
+              config.spatial ? "on" : "off", config.balance, reverb_name, volume);
   if (!device.start()) {
     std::fprintf(stderr, "could not start the stream\n");
     return 1;
@@ -105,7 +112,7 @@ int main(int argc, char** argv) {
   std::this_thread::sleep_for(500ms);
   for (std::size_t desk = 0; desk < sound::desk_count; ++desk) {
     const std::size_t column = desk % 4, row = desk / 4;
-    std::printf("desk %2zu  %s %s\n", desk, row < 2 ? "behind  " : "in front",
+    std::printf("desk %2zu  %s %s\n", desk, row == 0 || row == 3 ? "far row " : "near row",
                 column == 0 ? "far left" : column == 1 ? "left" : column == 2 ? "right" : "far right");
     std::fflush(stdout);
     const auto mix = sound::desk_mix(desk, *rate, config);

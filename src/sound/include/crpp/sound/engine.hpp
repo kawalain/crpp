@@ -69,6 +69,7 @@ struct Settings {
   bool idle_muted = false;  // away, and wanting quiet: everything but system sounds
   bool spatial = true;
   int balance = 60;
+  Reverb reverb = Reverb::Office;  // apart from `spatial`
   std::string device;  // see AudioDevice::select
 };
 

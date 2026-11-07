@@ -162,6 +162,8 @@
     "subheading": {"size": 21, "weight": 700, "line_height": 28},
     "row_label": {"size": 18, "line_height": 26},
     "row": {"size": 18, "line_height": 36},
+    "row_hint": {"size": 14, "line_height": 20, "wrap": true},
+    "text_button": {"size": 16, "line_height": 0, "align": "center"},
     "slider_value": {"size": 15, "line_height": 26, "align": "center"},
     "slider_value_measure": {"size": 15, "line_height": 20},
     "balance_title": {"size": 16, "line_height": 24},
@@ -333,6 +335,16 @@
         {"fill": "$hl", "radius": 3, "y": "H/2-3", "w": "pos", "h": 6},
         {"fill": "$hl", "ellipse": true, "x": "pos-slider_thumb/2", "y": "H/2-slider_thumb/2", "w": "slider_thumb", "h": "slider_thumb"},
         {"fill": "dark ? $hl_text_dark : $surface", "ellipse": true, "x": "pos-slider_thumb/2+2", "y": "H/2-slider_thumb/2+2", "w": "slider_thumb-4", "h": "slider_thumb-4"}
+      ]
+    },
+    // .open-logs and .reset-settings: filled, grows a little under the pointer.
+    "text_button": {
+      "draw": [
+        {"let": "over", "to": "hot", "first": "jump", "ms": 150},
+        {"scale": "1+(1.03-1)*over", "group": [
+          {"fill": "mix($hl_dark, $hl, over*100)", "radius": 8},
+          {"text": "@label", "style": "text_button", "line_height": "H", "color": "$on_accent"}
+        ]}
       ]
     },
     // .person: a head and a body, in its box of 46 by 62.

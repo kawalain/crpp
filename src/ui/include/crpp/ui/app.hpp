@@ -196,7 +196,7 @@ class App {
   std::filesystem::path pack_dir_;
   std::optional<skin::Pack> pack_;
   std::unique_ptr<Skin> pack_skin_;
-  std::string theme_id_;
+  std::string theme_id_ = "cloudroom";  // the Theme a Ui starts with, until a choice is read
   MemoryPrefs memory_prefs_;
   SetupScreen setup_{ui_};
   HomeScreen home_{ui_};

@@ -1,0 +1,144 @@
+{
+  "$schema": "../schema/pack.schema.json",
+  "format": 1,
+  "id": "cloud",
+  "themes": {
+    "cloudroom": {"names": {"ko": "구름", "en": "Cloud"}, "dark": "darkcloud"},
+    "pastel": {"names": {"ko": "파스텔", "en": "Pastel"}}
+  },
+  "default_theme": "cloudroom",
+  "constants": {
+    "own_frame": 0, "moves": 1,
+    "list_pad": 6, "list_item_h": 38, "list_gap": 4, "list_max_h": 224, "list_margin": 6
+  },
+  "palettes": {
+    "cloudroom": {
+      "white": "#ffffff",
+      "blue": "#3a9af0",
+      "hl": "#66ccff",
+      "sky": "#66ccff",
+      "hl_text": "#66ccff",
+      "hl_soft": {"mix": ["hl", "white", 70]},
+      "hl_dark": {"mix": ["hl", "blue", 88]},
+      "hl_text_soft": {"mix": ["hl_text", "white", 65]},
+      "hl_text_dark": {"mix": ["hl_text", "blue", 88]},
+      "hl_pale": {"mix": ["hl", "white", 14]},
+      "hl_pale2": {"mix": ["hl", "white", 28]},
+      "hl_mid": {"mix": ["hl", "white", 55]},
+      "surface": "#ffffff",
+      "on_accent": "#ffffff",
+      "droplet": "#ffffff",
+      "entry": "#bbe1fd",
+      "error_text": "#df7373",
+      "ink_strong": "#2e5f80",
+      "cloud_base": "#f3f9ff",
+      "cloud_gradient": [[0, "#ffffff"], [1, "#eff8ff"]],
+      "cloud_shadow": "#4f7b99",
+      "backdrop": "#365669",
+      "panel_shadow": "#2e78aa"
+    },
+    "darkcloud": {
+      "white": "#ffffff",
+      "blue": "#3a9af0",
+      "hl": "#4d7fab",
+      "hl_dark": "#6393be",
+      "hl_soft": "#3b5878",
+      "hl_text": "#d0dfed",
+      "hl_text_soft": "#a0b4c9",
+      "hl_text_dark": "#ecf3fa",
+      "hl_pale": "#293a50",
+      "hl_pale2": "#344a63",
+      "hl_mid": "#3c536e",
+      "sky": "#101925",
+      "surface": "#233145",
+      "on_accent": "#eef5fb",
+      "droplet": "#27374c",
+      "error_text": "#f39b9b",
+      "entry": "#344a63",
+      "ink_strong": "#ecf3fa",
+      "cloud_base": "#27374c",
+      "cloud_gradient": [[0, "#27374c"], [1, "#27374c"]],
+      "cloud_shadow": "#000000",
+      "backdrop": "#365669",
+      "panel_shadow": "#000000"
+    },
+    "pastel": {
+      "white": "#ffffff",
+      "blue": "#3a9af0",
+      "hl": "#b1dafd",
+      "sky": "#b1dafd",
+      "hl_text": "#b1dafd",
+      "hl_soft": {"mix": ["hl", "white", 70]},
+      "hl_dark": {"mix": ["hl", "blue", 88]},
+      "hl_text_soft": {"mix": ["hl_text", "white", 65]},
+      "hl_text_dark": {"mix": ["hl_text", "blue", 88]},
+      "hl_pale": {"mix": ["hl", "white", 14]},
+      "hl_pale2": {"mix": ["hl", "white", 28]},
+      "hl_mid": {"mix": ["hl", "white", 55]},
+      "surface": "#ffffff",
+      "on_accent": "#ffffff",
+      "droplet": "#ffffff",
+      "entry": "#bbe1fd",
+      "error_text": "#df7373",
+      "ink_strong": "#2e5f80",
+      "cloud_base": "#f3f9ff",
+      "cloud_gradient": [[0, "#ffffff"], [1, "#eff8ff"]],
+      "cloud_shadow": "#4f7b99",
+      "backdrop": "#365669",
+      "panel_shadow": "#2e78aa"
+    }
+  },
+  "styles": {
+    "plain": {"size": 16, "line_height": 0},
+    "center": {"size": 16, "line_height": 0, "align": "center"},
+    "code": {"size": 34, "line_height": 60, "letter_spacing": 2.72},
+    "code_placeholder": {"size": 26, "line_height": 60},
+    "tip": {"size": 16, "weight": 700, "line_height": 22, "align": "center"},
+    "modal_text": {"size": 18, "weight": 700, "line_height": 27, "align": "center", "wrap": true},
+    "modal_button": {"size": 16, "weight": 700, "line_height": 38, "align": "center"},
+    "modal_button_measure": {"size": 16, "weight": 700, "line_height": 0}
+  },
+  "parts": {
+    // Upstream's cloud, set at this box's corner, with a soft shadow in the light Themes.
+    "cloud": {
+      "args": {"scale": 1, "shadow": 0, "sigma": 0},
+      "draw": [
+        {"if": "!dark", "path": "M388.527 317.44H101.915C54.679 317.44 16.386 279.073 16.386 231.744c0-42.356 30.678-77.512 70.979-84.436-.747-4.387-1.158-8.888-1.158-13.489 0-44 35.6-79.669 79.513-79.669 14.343 0 27.786 3.824 39.404 10.482C226.646 30.651 264.524 8.095 307.663 8.095c63.092 0 114.932 48.241 120.801 109.916 37.233 15.702 63.375 52.597 63.375 95.613 0 57.208-46.238 103.593-103.312 103.69Z", "color": "alpha($cloud_shadow, shadow)", "blur": "sigma*3", "dy": "6/scale", "scale": "scale"},
+        {"path": "M388.527 317.44H101.915C54.679 317.44 16.386 279.073 16.386 231.744c0-42.356 30.678-77.512 70.979-84.436-.747-4.387-1.158-8.888-1.158-13.489 0-44 35.6-79.669 79.513-79.669 14.343 0 27.786 3.824 39.404 10.482C226.646 30.651 264.524 8.095 307.663 8.095c63.092 0 114.932 48.241 120.801 109.916 37.233 15.702 63.375 52.597 63.375 95.613 0 57.208-46.238 103.593-103.312 103.69Z", "color": "$cloud_base", "scale": "scale"},
+        {"path": "M388.527 317.44H101.915C54.679 317.44 16.386 279.073 16.386 231.744c0-42.356 30.678-77.512 70.979-84.436-.747-4.387-1.158-8.888-1.158-13.489 0-44 35.6-79.669 79.513-79.669 14.343 0 27.786 3.824 39.404 10.482C226.646 30.651 264.524 8.095 307.663 8.095c63.092 0 114.932 48.241 120.801 109.916 37.233 15.702 63.375 52.597 63.375 95.613 0 57.208-46.238 103.593-103.312 103.69Z", "color": "$cloud_gradient", "scale": "scale", "from_y": 8, "to_y": 318}
+      ]
+    },
+    // .tip: its box is the label's own, and it rises 4 px as it fades in.
+    "tip": {
+      "args": {"shown": 1},
+      "draw": [
+        {"fill": "alpha($hl, shown)", "radius": 11},
+        {"text": "@label", "style": "tip", "color": "alpha($on_accent, shown)", "x": 15, "y": 5, "w": "W-29", "h": 22}
+      ]
+    },
+    // .modal-backdrop and .modal-card, in the window. What is in it goes in its box, and it rises 6 px.
+    "modal": {
+      "args": {"card_w": 320, "card_h": 100, "shown": 1, "backdrop": -1, "card": -1},
+      "draw": [
+        {"fill": "alpha($backdrop, 0.34*min(1, shown*160/140))"},
+        {"hit_by": "backdrop", "group": []},
+        {"let": "left", "value": "(W-card_w)/2"},
+        {"let": "top", "value": "(H-card_h)/2+6*(1-shown)"},
+        {"shadow": "alpha($panel_shadow, (dark ? 0.33 : 0.22)*shown)", "x": "left", "y": "top", "w": "card_w", "h": "card_h", "radius": 14, "blur": "dark ? 38 : 16", "dy": "dark ? 12 : 4"},
+        {"fill": "alpha($surface, shown)", "x": "left", "y": "top", "w": "card_w", "h": "card_h", "radius": 14},
+        {"x": "left", "y": "(H-card_h)/2", "w": "card_w", "h": "card_h", "hit_by": "card", "group": []},
+        {"x": "left", "y": "top", "w": "card_w", "h": "card_h", "group": [{"content": true}]}
+      ]
+    },
+    // .modal-confirm when primary, else .modal-cancel.
+    "modal_button": {
+      "args": {"primary": 0, "shown": 1, "hit": -1},
+      "draw": [
+        {"hit_by": "hit", "scale": "hot ? 1.04 : 1", "group": [
+          {"fill": "alpha(primary ? (hot ? $hl_dark : $hl) : (hot ? $hl_soft : $hl_pale2), shown)", "radius": 10},
+          {"text": "@label", "style": "modal_button", "color": "alpha(primary || hot ? $on_accent : $hl_text, shown)"}
+        ]}
+      ]
+    }
+  }
+}

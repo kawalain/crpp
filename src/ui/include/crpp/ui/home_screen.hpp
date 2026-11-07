@@ -18,6 +18,7 @@ class HomeScreen final : public Surface {
 
   // What a Skin Pack's screen for Home can name.
   [[nodiscard]] static skin::ScreenSchema schema();
+  [[nodiscard]] static skin::ScreenSchema return_schema();
 
   enum Id : int { Create, Join, Code, Find, ReturnBackdrop, ReturnCard, ReturnConfirm, ReturnRandom, SeatBase = 100 };
 
@@ -64,6 +65,7 @@ class HomeScreen final : public Surface {
   [[nodiscard]] bool is_busy() const { return busy && busy(); }
   void paint_luna(Painter& p);
   void paint_pack(Painter& p, const skin::Screen& screen);
+  void paint_return_pack(Painter& p, const skin::Screen& screen);
   [[nodiscard]] TextStyle luna_code_style() const;
   [[nodiscard]] TextStyle field_style() const;
   void join();

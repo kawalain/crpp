@@ -54,7 +54,7 @@ void App::reload_assets(const std::filesystem::path& assets_dir) {
 }
 
 std::span<const skin::ScreenSchema> screen_schemas() {
-  static const skin::ScreenSchema schemas[] = {HomeScreen::schema(), PromptScreen::schema(), WindowFrame::schema(), WindowFrame::menu_schema(), RoomScreen::schema(), ChatPanel::schema(),
+  static const skin::ScreenSchema schemas[] = {HomeScreen::schema(), HomeScreen::return_schema(), PromptScreen::schema(), WindowFrame::schema(), WindowFrame::menu_schema(), RoomScreen::schema(), ChatPanel::schema(),
                                                SettingsPanel::schema(), SoundTab::schema(), DisplayTab::schema(), NotifyTab::schema(), SystemTab::schema(), AccountTab::schema(),
                                                SetupScreen::schema(), Dialogs::schema(), OfflinePopup::schema(), NoticeCard::schema(), UpdatePopup::schema(), Toasts::schema(),
                                                Toasts::bubble_schema(), HoverTip::schema(), MemberMenu::schema(), ProfileCard::schema(), EmojiPicker::schema(), Dropdown::schema(), SoundTab::tip_schema(), ChangelogView::schema()};

@@ -285,6 +285,6 @@ exist (real + test).
 - The generated stand-in sounds need ears: `crpp_soundtest --synth`.
 - jsDelivr has only served the files pinned so far. Files of this repository 404 there
   until their commit is on GitHub, so a first real install needs that push.
-- v0.1.0 published, and its exe and signed manifest came back through WinHTTP's redirect
-  and verified. No installed copy has updated itself yet: the first time is v0.1.0 to the
-  next release, which must also show a replacement under real antivirus.
+- v0.1.0 updated itself to v0.1.1 from GitHub on one Windows 10 PC with Defender. The cause
+  of the detection in `docs/releases/README.md` is unknown, and it may come back with any
+  release. The exe has no code signature, so try another machine and SmartScreen.

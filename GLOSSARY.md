@@ -36,6 +36,18 @@
 
 **Host**: the member who controls the Room's visibility and chat. When the Host leaves, another online member becomes Host.
 
+**Theme** (테마): what a user picks in the display settings. A Theme is one Skin with one Palette, for example 먹구름 or 메신저 다크.
+
+**Skin**: how the program is built on screen: the shape of its controls, the layout of its screens, its window frame and its motion. Features and behaviour do not depend on the Skin. There are two: Cloud and Luna.
+
+**Palette**: the colours of one Theme within a Skin. A dark Theme has the same shapes as a light one of its Skin and differs only in its Palette.
+
+**Cloud**: the Skin of the upstream client, with clouds as its panels. 구름, 먹구름 and 파스텔 are its Themes.
+
+**Luna**: the Skin modelled on early-2000s messengers on Windows XP. 메신저 and 메신저 다크 are its Themes. "Luna", "XP" and "MSN" are never shown to users.
+
+**Locale** (언어): the language the program speaks: its wording, and how it writes times and counts. It never touches what members write, nor Nicknames.
+
 **Protected store**: this client's own data, with secrets encrypted for the current OS user.
 
 **Shared store**: the upstream client's data files, used in place when they already exist and no Protected store does. Secrets there are not protected.

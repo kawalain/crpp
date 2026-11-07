@@ -1,8 +1,11 @@
 #include "crpp/sound/mixer.hpp"
 
 #include <algorithm>
+#include <array>
 #include <cmath>
+#include <initializer_list>
 #include <memory>
+#include <span>
 #include <vector>
 
 #include "check.hpp"
@@ -58,10 +61,10 @@ void a_voice_sounds_and_rings_out() {
   CHECK(mixer->idle());
 }
 
-void seats_lean_to_their_side() {
+void desks_lean_to_their_side() {
   const SpatialConfig config;
-  const SeatMix far_left = seat_mix(4, rate, config);  // column 0
-  const SeatMix far_right = seat_mix(7, rate, config);  // column 3
+  const DeskMix far_left = desk_mix(4, rate, config);  // column 0
+  const DeskMix far_right = desk_mix(7, rate, config);  // column 3
   CHECK(far_left.left > far_left.right);
   CHECK(far_right.right > far_right.left);
   CHECK(std::abs(far_left.left - far_right.right) < 1e-5f);
@@ -75,47 +78,156 @@ void seats_lean_to_their_side() {
 
 void distance_lowers_the_level_and_raises_the_reverb() {
   const SpatialConfig config;
-  const SeatMix near_seat = seat_mix(5, rate, config);    // an inner seat
-  const SeatMix corner_seat = seat_mix(0, rate, config);  // a corner
-  const auto power = [](const SeatMix& m) { return m.left * m.left + m.right * m.right; };
-  CHECK(power(near_seat) > power(corner_seat));
-  CHECK(corner_seat.send > near_seat.send);
+  const DeskMix near_desk = desk_mix(5, rate, config);    // an inner desk
+  const DeskMix corner_desk = desk_mix(0, rate, config);  // a corner
+  const auto power = [](const DeskMix& m) { return m.left * m.left + m.right * m.right; };
+  CHECK(power(near_desk) > power(corner_desk));
+  CHECK(corner_desk.send > near_desk.send);
 }
 
 void balance_controls_the_lean() {
-  const SeatMix none = seat_mix(4, rate, {true, 0});
+  const DeskMix none = desk_mix(4, rate, {true, 0});
   CHECK(std::abs(none.left - none.right) < 1e-5f);
   CHECK(none.delay_left == 0 && none.delay_right == 0);
-  const SeatMix full = seat_mix(4, rate, {true, 90});
-  // A seat straight to the side would be 90:10; this one is a little off axis.
-  CHECK(full.left / full.right > 3);
-  CHECK(full.left / full.right < 9.01f);
-  // The default, 60:40 straight to the side.
-  const SeatMix label = seat_mix(4, rate, {true, 60});
-  CHECK(label.left / label.right > 1.3f);
-  CHECK(label.left / label.right < 1.51f);
+  const DeskMix full = desk_mix(4, rate, {true, 90});
+  // A desk straight to the side would differ by 19 dB; this one is a little off axis.
+  const auto difference_db = [](const DeskMix& m) { return 20 * std::log10(m.left / m.right); };
+  CHECK(difference_db(full) > 10);
+  CHECK(difference_db(full) < 19.01f);
+  // The default would be 6 dB, clearly more than 60:40.
+  const DeskMix standard = desk_mix(4, rate, {true, 60});
+  CHECK(difference_db(standard) > 5);
+  CHECK(difference_db(standard) < 6.01f);
+  // Each step of the slider leans further.
+  float last = 0;
+  for (int value = 55; value <= 90; ++value) {
+    const float now = difference_db(desk_mix(4, rate, {true, value}));
+    CHECK(now > last);
+    last = now;
+  }
 }
 
 void without_spatial_audio_everything_is_centred() {
-  const SeatMix mix = seat_mix(0, rate, {false, 60});
+  const DeskMix mix = desk_mix(0, rate, {false, 60});
   CHECK(mix.left == mix.right);
-  CHECK(mix.send == 0);
   CHECK(mix.delay_left == 0 && mix.delay_right == 0);
 }
 
-void every_seat_is_sane() {
-  for (std::size_t seat = 0; seat < seat_count; ++seat) {
-    const SeatMix m = seat_mix(seat, rate, {});
+void reverb_is_apart_from_the_surround() {
+  // Without the surround the space stays, the same from every Desk.
+  CHECK(desk_mix(0, rate, {false, 60, Reverb::Office}).send > 0);
+  CHECK(desk_mix(0, rate, {false, 60, Reverb::Office}).send == desk_mix(5, rate, {false, 60, Reverb::Office}).send);
+  CHECK(desk_mix(0, rate, {false, 60, Reverb::Off}).send == 0);
+  // Without reverb the surround stays.
+  const DeskMix dry = desk_mix(4, rate, {true, 60, Reverb::Off});
+  CHECK(dry.send == 0);
+  CHECK(dry.left > dry.right);
+  CHECK(dry.delay_right > 0);
+}
+
+std::size_t frames_until_idle(Mixer& mixer) {
+  std::size_t frames = 0;
+  for (; frames < 48000 * 10 && !mixer.idle(); frames += 480) render(mixer, 480);
+  return frames;
+}
+
+std::size_t frames_of_reverb(Reverb reverb) {
+  auto mixer = ready_mixer();
+  mixer->set_reverb(reverb);
+  const auto sample = click();
+  CHECK(mixer->trigger(sample, desk_mix(0, rate, {true, 60, reverb}), 1));
+  return frames_until_idle(*mixer);
+}
+
+float tail_peak(Reverb reverb) {
+  auto mixer = ready_mixer();
+  mixer->set_reverb(reverb);
+  const auto sample = click();
+  CHECK(mixer->trigger(sample, desk_mix(0, rate, {true, 60, reverb}), 1));
+  render(*mixer, 2200);
+  const auto tail = render(*mixer, 4800);
+  return std::max(peak(tail, 0), peak(tail, 1));
+}
+
+void each_reverb_rings_as_long_as_its_space() {
+  const std::size_t off = frames_of_reverb(Reverb::Off), office = frames_of_reverb(Reverb::Office),
+                    large = frames_of_reverb(Reverb::Large);
+  // The voice and a tenth of a second of quiet, and nothing more.
+  CHECK(off < 2000 + 4800 + 2000);
+  CHECK(office > off);
+  CHECK(large > office * 2);
+  CHECK(tail_peak(Reverb::Off) < 1e-4f);
+  CHECK(tail_peak(Reverb::Office) < tail_peak(Reverb::Large));
+}
+
+void turning_reverb_off_lets_the_tail_die_away() {
+  auto mixer = ready_mixer();
+  mixer->set_reverb(Reverb::Large);
+  const auto sample = click();
+  CHECK(mixer->trigger(sample, desk_mix(0, rate, {true, 60, Reverb::Large}), 1));
+  render(*mixer, 2200);
+  mixer->set_reverb(Reverb::Off);
+  const auto tail = render(*mixer, 4800);
+  CHECK(peak(tail, 0) > 1e-4f);
+  CHECK(frames_until_idle(*mixer) > 4800);
+  CHECK(mixer->idle());
+  const auto after = render(*mixer, 256);
+  CHECK(peak(after, 0) == 0 && peak(after, 1) == 0);
+}
+
+void a_dry_sound_passes_while_a_tail_is_ending() {
+  auto mixer = ready_mixer();
+  const auto sample = click();
+  CHECK(mixer->trigger(sample, desk_mix(0, rate, {}), 1));
+  render(*mixer, 2200);
+  CHECK(mixer->trigger(sample, own_mix(), 1));
+  const auto out = render(*mixer, 2200);
+  CHECK(peak(out, 0) > 0.1f);
+  CHECK(frames_until_idle(*mixer) > 0);
+  CHECK(mixer->idle());
+}
+
+void every_desk_is_sane() {
+  for (std::size_t desk = 0; desk < desk_count; ++desk) {
+    const DeskMix m = desk_mix(desk, rate, {});
     CHECK(m.left > 0 && m.right > 0 && m.left < 1 && m.right < 1);
     CHECK(m.lowpass_left >= 0 && m.lowpass_left < 1 && m.lowpass_right >= 0 && m.lowpass_right < 1);
     CHECK(m.send > 0 && m.send < 1);
   }
 }
 
+void the_first_members_sit_far_apart() {
+  std::array<bool, desk_count> taken{};
+  std::array<std::size_t, desk_count> choices{};
+  const auto are = [&](std::size_t count, std::initializer_list<std::size_t> desks) {
+    if (count != desks.size()) return false;
+    return std::ranges::equal(std::span(choices).first(count), desks);
+  };
+  // Alone, straight to one side: never nearly ahead.
+  CHECK(are(farthest_desks(taken, choices), {4, 7, 8, 11}));
+  taken[4] = true;  // left
+  CHECK(are(farthest_desks(taken, choices), {7, 11}));
+  taken[7] = true;  // and right
+  // The next is nearly ahead, the farthest from both sides that is left.
+  CHECK(are(farthest_desks(taken, choices), {1, 2, 13, 14}));
+}
+
+void everyone_gets_a_desk_of_their_own_until_they_run_out() {
+  std::array<bool, desk_count> taken{};
+  std::array<std::size_t, desk_count> choices{};
+  for (std::size_t member = 0; member < desk_count; ++member) {
+    const std::size_t count = farthest_desks(taken, choices);
+    CHECK(count > 0);
+    CHECK(!taken[choices[count - 1]]);
+    taken[choices[count - 1]] = true;
+  }
+  CHECK(farthest_desks(taken, choices) == desk_count);
+}
+
 void reverb_rings_on_then_stops() {
   auto mixer = ready_mixer();
   const auto sample = click();
-  CHECK(mixer->trigger(sample, seat_mix(0, rate, {}), 1));
+  CHECK(mixer->trigger(sample, desk_mix(0, rate, {}), 1));
   render(*mixer, 2200);
   const auto tail = render(*mixer, 4800);
   CHECK(peak(tail, 0) > 1e-4f);
@@ -195,11 +307,17 @@ void preparing_again_forgets_everything() {
 int main() {
   silence_does_nothing();
   a_voice_sounds_and_rings_out();
-  seats_lean_to_their_side();
+  desks_lean_to_their_side();
   distance_lowers_the_level_and_raises_the_reverb();
   balance_controls_the_lean();
   without_spatial_audio_everything_is_centred();
-  every_seat_is_sane();
+  reverb_is_apart_from_the_surround();
+  each_reverb_rings_as_long_as_its_space();
+  turning_reverb_off_lets_the_tail_die_away();
+  a_dry_sound_passes_while_a_tail_is_ending();
+  every_desk_is_sane();
+  the_first_members_sit_far_apart();
+  everyone_gets_a_desk_of_their_own_until_they_run_out();
   reverb_rings_on_then_stops();
   the_output_stays_in_range();
   soft_clip_is_smooth();

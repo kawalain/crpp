@@ -41,6 +41,8 @@ inline constexpr Bool mute_notifications_on_mute{"muteNotificationsOnMute", fals
 inline constexpr Bool spatial_audio{"spatialAudio", true};
 inline constexpr Bool channel_balance_enabled{"channelBalanceEnabled", true};
 inline constexpr Int channel_balance{"channelBalance", 60};
+// Not upstream's: "off", "office" or "large".
+inline constexpr Text reverb{"reverb", "office"};
 
 // --- display tab ---
 inline constexpr Text theme{"theme", "cloudroom"};
@@ -76,7 +78,7 @@ inline constexpr std::array all_bool{mute_others,       listen_self,       other
                                      log_enabled,       input_detail};
 inline constexpr std::array all_int{volume, keyboard_volume, mouse_volume, pen_volume, channel_balance, chat_scale, idle_minutes};
 inline constexpr std::array all_text{speaker_device, speaker_device_name, keyboard_sound, mouse_sound, pen_sound,
-                                     theme,          light_theme,         dark_theme};
+                                     reverb,         theme,               light_theme,    dark_theme};
 
 // The key of a sound in notificationSounds: its file name stem without the order
 // prefix, lower case ("01_Cloud_Chat" -> "cloud_chat"), as upstream derives it.

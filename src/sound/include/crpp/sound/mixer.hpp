@@ -12,27 +12,43 @@
 
 namespace crpp::sound {
 
-inline constexpr std::size_t seat_count = 16;  // 4 x 4, with the listener in the middle
+inline constexpr std::size_t desk_count = 16;  // 4 x 4, with the listener in the middle
 
 // Per-ear parameters of one position, precomputed since positions never move.
-struct SeatMix {
+struct DeskMix {
   float left = 0.7071f, right = 0.7071f;      // constant-power pan times distance gain
   float delay_left = 0, delay_right = 0;      // samples
   float lowpass_left = 0, lowpass_right = 0;  // one-pole coefficient; 0 passes everything
   float send = 0;                             // level into the reverb
 };
 
-struct SpatialConfig {
-  bool spatial = true;
-  // The louder ear's share of a seat straight to one side, in percent: 60 is the
-  // slider's "60:40". 50 or less does not lean; 0 also drops the other side cues.
-  int balance = 60;
+// The space around the listener, apart from where the Desks are.
+enum class Reverb : std::uint8_t { Off, Office, Large };
+
+struct ReverbTuning {
+  float feedback, damp, wet;
 };
 
-// Where a sound of this member plays from. Without spatial audio, the middle.
-[[nodiscard]] SeatMix seat_mix(std::size_t seat, std::uint32_t rate, const SpatialConfig& config) noexcept;
+struct SpatialConfig {
+  bool spatial = true;
+  // How strongly a Desk to one side leans, on the slider's scale from 55 to 90: straight
+  // to the side, 60 is 6 dB between the ears and 90 is 19 dB. 50 or less does not lean;
+  // 0 also drops the other side cues.
+  int balance = 60;
+  Reverb reverb = Reverb::Office;
+};
+
+// Where a sound of this member plays from. Without spatial audio, the middle, with the
+// same send from everywhere.
+[[nodiscard]] DeskMix desk_mix(std::size_t desk, std::uint32_t rate, const SpatialConfig& config) noexcept;
 // In the listener's own head: for their own sounds.
-[[nodiscard]] constexpr SeatMix own_mix() noexcept { return {}; }
+[[nodiscard]] constexpr DeskMix own_mix() noexcept { return {}; }
+
+// The Desks a newcomer may get: the free ones whose direction is farthest from the
+// directions already taken and from straight ahead, so that the first few members can
+// be told apart. Fills `out` and returns how many; with none free, every Desk.
+[[nodiscard]] std::size_t farthest_desks(const std::array<bool, desk_count>& taken,
+                                         std::array<std::size_t, desk_count>& out) noexcept;
 
 // Keeps a sum inside full scale: unchanged up to 0.85, then a smooth bend.
 [[nodiscard]] float soft_clip(float x) noexcept;
@@ -44,8 +60,10 @@ class Mixer {
 
   // Producer side, one thread at a time. `samples` must outlive the voice; false
   // if too many triggers are queued. `gain` applies to this voice only.
-  bool trigger(std::span<const float> samples, const SeatMix& mix, float gain) noexcept;
+  bool trigger(std::span<const float> samples, const DeskMix& mix, float gain) noexcept;
   void set_master(float gain) noexcept { master_target_.store(gain, std::memory_order_relaxed); }
+  // What is ringing keeps ringing; Off takes effect through the sends of new sounds.
+  void set_reverb(Reverb reverb) noexcept { reverb_mode_.store(reverb, std::memory_order_relaxed); }
   // True when nothing is queued, playing or ringing out.
   [[nodiscard]] bool idle() const noexcept {
     return head_.load(std::memory_order_acquire) == tail_.load(std::memory_order_acquire) &&
@@ -58,7 +76,7 @@ class Mixer {
  private:
   struct Voice {
     std::span<const float> samples;
-    SeatMix mix;
+    DeskMix mix;
     float gain = 0;
     float state_left = 0, state_right = 0;
     std::uint32_t position = 0;
@@ -68,7 +86,7 @@ class Mixer {
   };
   struct Trigger {
     std::span<const float> samples;
-    SeatMix mix;
+    DeskMix mix;
     float gain = 0;
   };
   struct Comb {
@@ -97,10 +115,14 @@ class Mixer {
   std::atomic<std::size_t> head_{0}, tail_{0};
   std::array<Voice, max_voices> voices_{};
   std::array<ReverbChannel, 2> reverb_;
+  std::atomic<Reverb> reverb_mode_{Reverb::Office};
+  ReverbTuning tuning_{};
+  float wet_ = 0;
+  bool ringing_ = false;  // the reverb has something in it; otherwise it is skipped
   std::atomic<float> master_target_{1};
   float master_ = 1, master_step_ = 0.001f;
   std::int32_t steal_frames_ = 256;
-  std::uint32_t quiet_frames_ = 0, quiet_limit_ = 4800;
+  std::uint32_t quiet_frames_ = 0, tail_quiet_frames_ = 0, quiet_limit_ = 4800;
   std::uint32_t clock_ = 0;
   std::atomic<bool> silent_{true};
 };

@@ -52,8 +52,9 @@ void the_controls_are_there_and_pen_is_hidden() {
   CHECK(f.h.drawn(f.tab, SoundTab::MouseList));
   CHECK(show_pen == f.h.drawn(f.tab, SoundTab::PenVolume));
   CHECK(show_pen == f.h.drawn(f.tab, SoundTab::PenList));
-  // Upstream's height, the balance control's bottom and the panel's padding, and a line more.
-  CHECK(f.tab.content_height() == 869);
+  // Upstream's height, the balance control's bottom and the panel's padding, a line more,
+  // and the reverb's row.
+  CHECK(f.tab.content_height() == 921);
 }
 
 void sliders_change_their_settings_and_only_when_different() {
@@ -141,6 +142,26 @@ void the_balance_is_locked_without_the_surround() {
   CHECK(f.h.click(f.tab, SoundTab::Spatial));
   CHECK(f.h.drawn(f.tab, SoundTab::Balance));
   CHECK(f.h.drawn(f.tab, SoundTab::BalanceEnabled));
+}
+
+void the_reverb_is_picked_from_its_list_and_stays_without_the_surround() {
+  Fixture f;
+  f.show_end();
+  CHECK(f.prefs.get(pref::reverb) == "office");
+  CHECK(f.h.click(f.tab, SoundTab::ReverbList));
+  CHECK(f.h.click(f.tab, SoundTab::ReverbList + 1));
+  CHECK(f.prefs.get(pref::reverb) == "off");
+  CHECK(f.h.click(f.tab, SoundTab::Spatial));
+  CHECK(f.h.drawn(f.tab, SoundTab::ReverbList));
+  CHECK(f.h.click(f.tab, SoundTab::ReverbList));
+  CHECK(f.h.click(f.tab, SoundTab::ReverbList + 3));
+  CHECK(f.prefs.get(pref::reverb) == "large");
+  CHECK(!f.prefs.get(pref::spatial_audio));
+  // Low in the view, so its list opens upward and covers what is above it.
+  CHECK(f.h.click(f.tab, SoundTab::ReverbList));
+  f.h.key(VK_ESCAPE);
+  CHECK(!f.h.drawn(f.tab, SoundTab::ReverbList + 1));
+  CHECK(f.h.app.settings().is_open());
 }
 
 void a_tab_fading_out_keeps_its_edge_fades() {
@@ -266,6 +287,7 @@ int main() {
   a_tab_fading_out_keeps_its_edge_fades();
   the_balance_is_said_in_words();
   the_balance_is_locked_without_the_surround();
+  the_reverb_is_picked_from_its_list_and_stays_without_the_surround();
   a_pack_is_picked_from_its_list();
   one_list_is_open_at_a_time_and_escape_closes_it_first();
   a_click_elsewhere_closes_the_list_and_changes_nothing();

@@ -26,6 +26,7 @@
 #include "crpp/assets/built_in.hpp"
 #include "crpp/assets/windows_platform.hpp"
 #include "shell.hpp"
+#include "sound_prefs.hpp"
 
 using namespace crpp;
 using namespace crpp::gui;
@@ -52,6 +53,7 @@ sound::Settings load_audio_settings(const store::Store& data) {
   audio.others_use_my_sounds = data.bool_or("othersUseMySounds", audio.others_use_my_sounds);
   audio.spatial = data.bool_or("spatialAudio", audio.spatial);
   audio.balance = data.bool_or("channelBalanceEnabled", true) ? percent("channelBalance", audio.balance) : 0;
+  audio.reverb = reverb_named(data.string_or("reverb", "office"));
   return audio;
 }
 

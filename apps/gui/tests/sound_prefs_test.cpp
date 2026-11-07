@@ -19,6 +19,7 @@ void settings_come_from_the_prefs() {
   CHECK(audio.pen_pack == "paper");
   CHECK(audio.balance == 60);
   CHECK(audio.spatial);
+  CHECK(audio.reverb == sound::Reverb::Office);
   CHECK(audio.device.empty());
   CHECK(audio.muted && audio.idle_muted);  // not settings
 
@@ -46,12 +47,23 @@ void settings_come_from_the_prefs() {
   prefs.set(ui::pref::channel_balance, 10);
   read_sound_settings(prefs, audio);
   CHECK(audio.balance == 55);
+
+  prefs.set(ui::pref::reverb, "off");
+  read_sound_settings(prefs, audio);
+  CHECK(audio.reverb == sound::Reverb::Off);
+  prefs.set(ui::pref::reverb, "large");
+  read_sound_settings(prefs, audio);
+  CHECK(audio.reverb == sound::Reverb::Large);
+  prefs.set(ui::pref::reverb, "from a later version");
+  read_sound_settings(prefs, audio);
+  CHECK(audio.reverb == sound::Reverb::Office);
 }
 
 void only_the_keys_of_this_area_count() {
   CHECK(is_sound_key("volume"));
   CHECK(is_sound_key("muteOthers"));
   CHECK(is_sound_key("channelBalance"));
+  CHECK(is_sound_key("reverb"));
   CHECK(is_sound_key("speakerDevice"));
   CHECK(!is_sound_key("theme"));
   CHECK(!is_sound_key("speakerDeviceName"));  // set just before the device itself

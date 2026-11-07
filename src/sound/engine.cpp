@@ -234,33 +234,32 @@ void Engine::close_device() {
 
 void Engine::apply_settings() {
   mixer_.set_master(gain_of(settings_.volume));
+  mixer_.set_reverb(settings_.reverb);
   if (rate_ == 0) return;
-  const SpatialConfig config{settings_.spatial, settings_.balance};
-  for (std::size_t seat = 0; seat < seat_count; ++seat) seat_mixes_[seat] = seat_mix(seat, rate_, config);
+  const SpatialConfig config{settings_.spatial, settings_.balance, settings_.reverb};
+  for (std::size_t desk = 0; desk < desk_count; ++desk) desk_mixes_[desk] = desk_mix(desk, rate_, config);
 }
 
 void Engine::place_members() {
-  std::erase_if(seats_, [&](const auto& seat) {
-    return std::ranges::none_of(members_, [&](const Member& m) { return m.slot == seat.first; });
+  std::erase_if(desks_, [&](const auto& desk) {
+    return std::ranges::none_of(members_, [&](const Member& m) { return m.slot == desk.first; });
   });
   for (const Member& member : members_) {
-    if (std::ranges::any_of(seats_, [&](const auto& seat) { return seat.first == member.slot; })) continue;
-    // Everyone sits somewhere random, and alone while a seat is free.
-    std::array<std::size_t, seat_count> free_seats{};
-    std::size_t free_count = 0;
-    for (std::size_t seat = 0; seat < seat_count; ++seat) {
-      if (std::ranges::none_of(seats_, [&](const auto& taken) { return taken.second == seat; })) free_seats[free_count++] = seat;
-    }
-    const std::size_t seat = free_count > 0 ? free_seats[random_.below(free_count)] : random_.below(seat_count);
-    seats_.emplace_back(member.slot, seat);
+    if (std::ranges::any_of(desks_, [&](const auto& desk) { return desk.first == member.slot; })) continue;
+    // Everyone sits alone while a Desk is free, spread out left to right.
+    std::array<bool, desk_count> taken{};
+    for (const auto& [slot, desk] : desks_) taken[desk] = true;
+    std::array<std::size_t, desk_count> choices{};
+    const std::size_t count = farthest_desks(taken, choices);
+    desks_.emplace_back(member.slot, choices[random_.below(count)]);
   }
 }
 
-std::size_t Engine::seat_of(std::uint32_t slot) const {
-  for (const auto& [member, seat] : seats_) {
-    if (member == slot) return seat;
+std::size_t Engine::desk_of(std::uint32_t slot) const {
+  for (const auto& [member, desk] : desks_) {
+    if (member == slot) return desk;
   }
-  return slot % seat_count;  // the member list has not arrived yet
+  return slot % desk_count;  // the member list has not arrived yet
 }
 
 std::string_view Engine::pack_for(const Event& event, Device device) const {
@@ -320,7 +319,7 @@ int Engine::volume_of(std::uint32_t slot) const {
   return 100;
 }
 
-void Engine::start_voice(std::span<const float> samples, const SeatMix& mix, float gain) {
+void Engine::start_voice(std::span<const float> samples, const DeskMix& mix, float gain) {
   if (samples.empty() || !mixer_.trigger(samples, mix, gain)) return;
   if (!running_) running_ = device_.start();
   if (!running_) close_device();
@@ -341,7 +340,7 @@ void Engine::play(const Event& event) {
   const std::string_view pack = pack_for(event, device);
   const auto file = catalog_.pick(event.kind, pack, random_);
   if (!file || !ensure_open()) return;
-  const SeatMix mix = event.own ? own_mix() : seat_mixes_[seat_of(event.slot)];
+  const DeskMix mix = event.own ? own_mix() : desk_mixes_[desk_of(event.slot)];
   std::span<const float> samples = recording(*file);
   if (samples.empty()) samples = generated(event.kind, pack);
   start_voice(samples, mix, gain_of(device_volume) * gain_of(member_volume));

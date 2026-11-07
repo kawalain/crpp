@@ -8,7 +8,7 @@ Smaller memory and a smaller exe are not the goal. Measured before this decision
 
 ## Considered options
 
-- Data only for colours, fonts, sounds and pictures, with layouts still in C++: far less work, but a new layout would still need a release, and a Skin would not stand on its own.
+- Data only for colours, fonts, sounds and pictures, with layouts still in C++: far less work, but a new layout would still need a release.
 - Skins as DLLs: would run downloaded code, raising the stakes of signing and of the antivirus detection in `docs/releases/README.md`, and C++ objects do not cross a DLL boundary safely with the static runtime a release uses.
 - A plain Skin built into the exe, so that a failed download still leaves a usable app: every screen would be kept twice, and a Skin would not stand on its own.
 - Scripts in a pack: more freedom, but that is downloaded code again. What the data cannot express becomes a new node in the engine.
@@ -22,3 +22,5 @@ Smaller memory and a smaller exe are not the goal. Measured before this decision
 - State, hit handling and features stay in the exe, whatever the Skin. A Skin Pack holds no code.
 - Sound packs stay outside Skin Packs: another member's choice must be heard whichever Skin is in use.
 - ADR 0005's "a new Skin is large, on purpose" no longer holds, and neither do its implementations per Skin.
+- The exe knows no pack: not a name, a Theme's id, a colour or a duration. It knows generic nodes, the names of its own state and commands, its screen slots and its wording keys. What is hard to state as data stays a general feature of the engine, with its numbers from the pack, never a feature of one Skin.
+- A pack may extend another by name, replacing whole items, as a look of Windows was written over the one before it. A child therefore does not stand on its own: its parent is fetched with it and is kept while it is in use. Patching inside a node tree was rejected: replacing a whole part or screen is simple to reason about and to check.

@@ -134,7 +134,7 @@ MIT 라이선스는 `assets/`, `apps/gui/icon/`의 앱 아이콘, 같은 아트�
 - `assets/emoji/`(직접 그린 이모지)와 `assets/words/`는 공식 클라이언트에서 가져왔으며, 메인테이너의 허가를 받아
   사용합니다.
 - 앱 아이콘은 공식 클라이언트의 디자인을 따르며, 여기에서 재사용하도록 허가되어 있지 않습니다.
-- Pretendard GOV: [SIL Open Font License](assets/fonts/PretendardGOV-LICENSE.txt)
+- Pretendard GOV: [SIL Open Font License](https://github.com/orioncactus/pretendard/blob/v1.3.9/LICENSE)
 - Twemoji: © Twitter, Inc. and contributors,
   [CC BY 4.0](https://creativecommons.org/licenses/by/4.0/)
 

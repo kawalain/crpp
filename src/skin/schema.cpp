@@ -269,11 +269,55 @@ std::string pack_json_schema() {
   format.set("description", text_json("What the pack is written for; an exe that reads another number refuses it."));
   properties.set("format", std::move(format));
   properties.set("id", with_doc(typed("string"), "The name of the pack, in lower case."));
-  properties.set("constants", with_doc(map_of(typed("number")), "Names for numbers, anywhere in the pack."));
+  properties.set("constants", with_doc(map_of(typed("number")), "Names for numbers, anywhere in the pack. The program reads the ones this requires."));
+  Json fonts = typed("object");
+  fonts.set("required", strings({"korean", "other", "caption", "korean_size", "other_size"}));
+  fonts.set("additionalProperties", Json(false));
+  Json font_names = typed("array");
+  font_names.set("items", typed("string"));
+  font_names.set("minItems", Json(1));
+  Json font_properties = Json::object();
+  font_properties.set("korean", with_doc(font_names, "Installed fonts, the first this system has: for Korean, and for every Hangul letter."));
+  font_properties.set("other", with_doc(font_names, "The same, for the other languages."));
+  font_properties.set("caption", with_doc(font_names, "The same, for a style of role caption."));
+  font_properties.set("korean_size", with_doc(typed("number"), "font_size in Korean."));
+  font_properties.set("other_size", with_doc(typed("number"), "font_size in the other languages."));
+  fonts.set("properties", std::move(font_properties));
+  properties.set("fonts", with_doc(std::move(fonts), "The fonts of the time, fitted to whole pixels. Without this the program uses its own font."));
   properties.set("palettes", with_doc(map_of(ref_to("#/definitions/palette")), "One per Theme id. All have the same entries."));
   properties.set("styles", with_doc(map_of(ref_to("#/definitions/style")), "Text styles."));
   properties.set("parts", with_doc(map_of(ref_to("#/definitions/part")), "Controls that screens use. A part can only use parts above it, and knows nothing of screens."));
   out.set("properties", std::move(properties));
+
+  // What the program reads itself.
+  const auto names_of = [](std::span<const std::string_view> names) {
+    Json::Array list;
+    for (const std::string_view name : names) list.push_back(text_json(name));
+    return Json(std::move(list));
+  };
+  Json required_here = Json::object();
+  required_here.set("required", names_of(required_constants()));
+  Json own = Json::object();
+  own.set("required", strings({"own_frame"}));
+  Json own_properties = Json::object();
+  Json not_zero = Json::object();
+  Json zero = Json::object();
+  zero.set("const", Json(0));
+  not_zero.set("not", std::move(zero));
+  own_properties.set("own_frame", std::move(not_zero));
+  own.set("properties", std::move(own_properties));
+  Json own_needs = Json::object();
+  own_needs.set("required", names_of(own_frame_constants()));
+  required_here.set("if", std::move(own));
+  required_here.set("then", std::move(own_needs));
+  Json constants_rule = Json::object();
+  Json constants_properties = Json::object();
+  constants_properties.set("constants", std::move(required_here));
+  constants_rule.set("properties", std::move(constants_properties));
+  constants_rule.set("required", strings({"constants"}));
+  Json::Array all_of;
+  all_of.push_back(std::move(constants_rule));
+  out.set("allOf", Json(std::move(all_of)));
 
   Json definitions = Json::object();
 

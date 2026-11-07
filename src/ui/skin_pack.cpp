@@ -15,8 +15,8 @@ class PackSkin final : public Skin {
  public:
   explicit PackSkin(Ui& ui) : ui_(ui), pack_(*ui.pack) {}
 
-  [[nodiscard]] bool scales_stage() const override { return false; }
-  [[nodiscard]] bool moves() const override { return false; }
+  [[nodiscard]] bool scales_stage() const override { return pack_.constant("own_frame") == 0; }
+  [[nodiscard]] bool moves() const override { return pack_.constant("moves") != 0; }
 
   void panel(Painter& p, const Theme&, Rect r, PanelKind kind, float) const override {
     switch (kind) {

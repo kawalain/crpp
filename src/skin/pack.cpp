@@ -75,6 +75,7 @@ class Loader final : public Names {
     if (!id || !id->as_string()) return fail("no id");
     pack_.id = std::string(*id->as_string());
     if (const Json* constants = root->find("constants"); constants && !load_constants(*constants)) return false;
+    if (const Json* fonts = root->find("fonts"); fonts && !load_fonts(*fonts)) return false;
     if (!load_palettes(root->find("palettes")) || !load_styles(root->find("styles")) || !load_parts(root->find("parts"))) return false;
     for (const ScreenSchema& schema : schemas) {
       if (!load_screen(schema)) return false;
@@ -203,6 +204,31 @@ class Loader final : public Names {
       if (!value) return fail("the constant \"" + m.key + "\" is not a number");
       pack_.constants.emplace_back(m.key, *value);
     }
+    return true;
+  }
+
+  bool load_fonts(const Json& json) {
+    PackFonts fonts;
+    const auto names = [&](std::string_view key, std::vector<std::string>& into) {
+      const Json* found = json.find(key);
+      const Json::Array* list = found ? found->as_array() : nullptr;
+      if (!list || list->empty()) return fail("fonts has no list \"" + std::string(key) + "\"");
+      for (const Json& name : *list) {
+        if (!name.as_string() || name.as_string()->empty() || name.as_string()->size() > 64) return fail("a name in fonts \"" + std::string(key) + "\" is not one");
+        into.emplace_back(*name.as_string());
+      }
+      return true;
+    };
+    const auto size = [&](std::string_view key, float& into) {
+      const Json* found = json.find(key);
+      const auto value = found ? as_float(*found) : std::nullopt;
+      if (!value || *value < 1 || *value > 72) return fail("fonts has no size \"" + std::string(key) + "\"");
+      into = *value;
+      return true;
+    };
+    if (!names("korean", fonts.korean) || !names("other", fonts.other) || !names("caption", fonts.caption)) return false;
+    if (!size("korean_size", fonts.korean_size) || !size("other_size", fonts.other_size)) return false;
+    pack_.fonts = std::move(fonts);
     return true;
   }
 
@@ -800,6 +826,35 @@ const Paint* Pack::paint(int palette, float value) const {
   const auto entry = static_cast<std::uint32_t>(value);
   if (value < 0 || entry >= paint_names) return nullptr;
   return &paints[static_cast<std::size_t>(palette) * paint_names + entry];
+}
+
+std::span<const std::string_view> required_constants() {
+  static constexpr std::string_view names[] = {"own_frame", "moves", "list_pad", "list_item_h", "list_gap", "list_max_h", "list_margin"};
+  return names;
+}
+
+std::span<const std::string_view> own_frame_constants() {
+  static constexpr std::string_view names[] = {
+      "caption_h", "frame_w", "menu_h", "window_radius", "frame_edge", "frame_corner", "frame_button", "frame_button_gap", "frame_button_top", "frame_button_right",
+      "window_home_w", "window_home_h", "window_home_min_w", "window_home_min_h",
+      "window_room_w", "window_room_h", "window_room_min_w", "window_room_min_h",
+      "window_prompt_w", "window_prompt_h", "window_prompt_min_w", "window_prompt_min_h",
+      "window_options_w", "window_options_h", "window_options_min_w", "window_options_min_h",
+      "window_changelog_w", "window_changelog_h", "window_changelog_min_w", "window_changelog_min_h"};
+  return names;
+}
+
+std::optional<std::string_view> missing_constant(const Pack& pack) {
+  const auto has = [&](std::string_view name) { return std::ranges::any_of(pack.constants, [&](const auto& c) { return c.first == name; }); };
+  for (const std::string_view name : required_constants()) {
+    if (!has(name)) return name;
+  }
+  if (pack.constant("own_frame") != 0) {
+    for (const std::string_view name : own_frame_constants()) {
+      if (!has(name)) return name;
+    }
+  }
+  return std::nullopt;
 }
 
 float Pack::constant(std::string_view name) const {

@@ -30,7 +30,53 @@
       "additionalProperties": {
         "type": "number"
       },
-      "description": "Names for numbers, anywhere in the pack."
+      "description": "Names for numbers, anywhere in the pack. The program reads the ones this requires."
+    },
+    "fonts": {
+      "type": "object",
+      "required": [
+        "korean",
+        "other",
+        "caption",
+        "korean_size",
+        "other_size"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "korean": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "minItems": 1,
+          "description": "Installed fonts, the first this system has: for Korean, and for every Hangul letter."
+        },
+        "other": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "minItems": 1,
+          "description": "The same, for the other languages."
+        },
+        "caption": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "minItems": 1,
+          "description": "The same, for a style of role caption."
+        },
+        "korean_size": {
+          "type": "number",
+          "description": "font_size in Korean."
+        },
+        "other_size": {
+          "type": "number",
+          "description": "font_size in the other languages."
+        }
+      },
+      "description": "The fonts of the time, fitted to whole pixels. Without this the program uses its own font."
     },
     "palettes": {
       "type": "object",
@@ -54,6 +100,72 @@
       "description": "Controls that screens use. A part can only use parts above it, and knows nothing of screens."
     }
   },
+  "allOf": [
+    {
+      "properties": {
+        "constants": {
+          "required": [
+            "own_frame",
+            "moves",
+            "list_pad",
+            "list_item_h",
+            "list_gap",
+            "list_max_h",
+            "list_margin"
+          ],
+          "if": {
+            "required": [
+              "own_frame"
+            ],
+            "properties": {
+              "own_frame": {
+                "not": {
+                  "const": 0
+                }
+              }
+            }
+          },
+          "then": {
+            "required": [
+              "caption_h",
+              "frame_w",
+              "menu_h",
+              "window_radius",
+              "frame_edge",
+              "frame_corner",
+              "frame_button",
+              "frame_button_gap",
+              "frame_button_top",
+              "frame_button_right",
+              "window_home_w",
+              "window_home_h",
+              "window_home_min_w",
+              "window_home_min_h",
+              "window_room_w",
+              "window_room_h",
+              "window_room_min_w",
+              "window_room_min_h",
+              "window_prompt_w",
+              "window_prompt_h",
+              "window_prompt_min_w",
+              "window_prompt_min_h",
+              "window_options_w",
+              "window_options_h",
+              "window_options_min_w",
+              "window_options_min_h",
+              "window_changelog_w",
+              "window_changelog_h",
+              "window_changelog_min_w",
+              "window_changelog_min_h"
+            ]
+          }
+        }
+      },
+      "required": [
+        "constants"
+      ]
+    }
+  ],
   "definitions": {
     "color": {
       "type": "string",

@@ -10,21 +10,18 @@ namespace crpp::ui {
 
 namespace {
 
-constexpr float edge = 4, corner = 12;
-constexpr float button = 21, button_gap = 2, button_top = 4, button_right = 5;
-
-Rect close_rect(float width) { return {width - button_right - button, button_top, button, button}; }
-Rect minimize_rect(float width) { return {width - button_right - 2 * button - button_gap, button_top, button, button}; }
+Rect close_rect(float width, const FrameMetrics& m = {}) { return {width - m.button_right - m.button, m.button_top, m.button, m.button}; }
+Rect minimize_rect(float width, const FrameMetrics& m = {}) { return {width - m.button_right - 2 * m.button - m.button_gap, m.button_top, m.button, m.button}; }
 
 }  // namespace
 
-WindowFrame::Zone WindowFrame::zone_at(float x, float y, float w, float h, Parts parts) {
+WindowFrame::Zone WindowFrame::zone_at(float x, float y, float w, float h, Parts parts, const FrameMetrics& m) {
   if (!parts.resizable) {
-    if (y >= luna::caption_h || (parts.close && close_rect(w).contains(x, y))) return Zone::Client;
+    if (y >= m.caption_h || (parts.close && close_rect(w, m).contains(x, y))) return Zone::Client;
     return Zone::Caption;
   }
-  const bool left = x < edge, right = x >= w - edge, top = y < edge, bottom = y >= h - edge;
-  const bool near_left = x < corner, near_right = x >= w - corner, near_top = y < corner, near_bottom = y >= h - corner;
+  const bool left = x < m.edge, right = x >= w - m.edge, top = y < m.edge, bottom = y >= h - m.edge;
+  const bool near_left = x < m.corner, near_right = x >= w - m.corner, near_top = y < m.corner, near_bottom = y >= h - m.corner;
   if ((top && near_left) || (left && near_top)) return Zone::TopLeft;
   if ((top && near_right) || (right && near_top)) return Zone::TopRight;
   if ((bottom && near_left) || (left && near_bottom)) return Zone::BottomLeft;
@@ -33,16 +30,16 @@ WindowFrame::Zone WindowFrame::zone_at(float x, float y, float w, float h, Parts
   if (bottom) return Zone::Bottom;
   if (left) return Zone::Left;
   if (right) return Zone::Right;
-  if (y >= luna::caption_h || (parts.close && close_rect(w).contains(x, y)) || (parts.minimize && minimize_rect(w).contains(x, y))) return Zone::Client;
+  if (y >= m.caption_h || (parts.close && close_rect(w, m).contains(x, y)) || (parts.minimize && minimize_rect(w, m).contains(x, y))) return Zone::Client;
   return Zone::Caption;
 }
 
-Rect WindowFrame::content(float width, float height, bool with_menu) {
-  const float top = luna::caption_h + (with_menu ? luna::menu_h : 0);
-  return {luna::frame_w, top, width - 2 * luna::frame_w, height - top - luna::frame_w};
+Rect WindowFrame::content(float width, float height, bool with_menu, const FrameMetrics& m) {
+  const float top = m.caption_h + (with_menu ? m.menu_h : 0);
+  return {m.frame_w, top, width - 2 * m.frame_w, height - top - m.frame_w};
 }
 
-Rect WindowFrame::below_caption(float width, float height) { return {0, luna::caption_h, width, height - luna::caption_h}; }
+Rect WindowFrame::below_caption(float width, float height, const FrameMetrics& m) { return {0, m.caption_h, width, height - m.caption_h}; }
 
 std::vector<WindowFrame::Item> WindowFrame::items_of(int menu) {
   switch (menu) {

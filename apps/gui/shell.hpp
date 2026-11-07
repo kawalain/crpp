@@ -196,7 +196,7 @@ void frame_changed(Shell& s);
 void sync_frames(Shell& s);
 // For the other windows of a Skin's own frame.
 [[nodiscard]] std::string saved_size_key(std::string_view screen, std::string_view side);
-void set_frame_region(HWND hwnd, UINT dpi);
+void set_frame_region(HWND hwnd, UINT dpi, float radius_dips);
 [[nodiscard]] LRESULT frame_hit_code(ui::WindowFrame::Zone zone);
 void place_ime(Shell& s, HWND hwnd, UINT dpi);
 [[nodiscard]] std::wstring ime_string(HIMC imc, DWORD kind);

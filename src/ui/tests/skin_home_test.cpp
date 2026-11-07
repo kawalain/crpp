@@ -3,7 +3,10 @@
 #include <cmath>
 #include <filesystem>
 #include <fstream>
+#include <iterator>
 #include <string>
+#include <string_view>
+#include <system_error>
 #include <vector>
 
 #include "check.hpp"
@@ -457,6 +460,50 @@ void test_a_list_from_the_pack_picks_and_the_notes_scroll() {
   h.on_pane(Pane::Main);
 }
 
+// A copy of the Messenger pack with one piece of it changed.
+std::filesystem::path pack_with(std::string_view file, std::string_view from, std::string_view to) {
+  namespace fs = std::filesystem;
+  const fs::path dir = fs::temp_directory_path() / "crpp_skin_changed_pack";
+  fs::remove_all(dir);
+  fs::copy(messenger_pack, dir, fs::copy_options::recursive);
+  std::ifstream in(dir / file, std::ios::binary);
+  std::string text((std::istreambuf_iterator<char>(in)), std::istreambuf_iterator<char>());
+  in.close();
+  const auto at = text.find(from);
+  CHECK(at != std::string::npos);
+  text.replace(at, from.size(), to);
+  std::ofstream(dir / file, std::ios::binary) << text;
+  return dir;
+}
+
+void test_the_pack_says_how_windows_are_measured() {
+  UiHarness h;
+  CHECK(h.start(640, 500));
+  h.app.set_theme("messenger");
+  h.app.show_home();
+  CHECK(h.app.load_skin_dir(pack_with("pack.jsonc", R"("caption_h": 28)", R"("caption_h": 40)")).has_value());
+  CHECK(h.app.frame_metrics().caption_h == 40);
+  CHECK(WindowFrame::zone_at(100, 35, 640, 500, {}, h.app.frame_metrics()) == WindowFrame::Zone::Caption);
+  h.render();
+  CHECK(h.app.ui().content.y == 60);
+  CHECK(h.app.load_skin_dir(pack_with("pack.jsonc", R"("window_home_w": 300)", R"("window_home_w": 333)")).has_value());
+  CHECK(h.app.screen_size().w == 333);
+  CHECK(h.app.load_skin_dir(pack_with("pack.jsonc", R"("window_options_min_h": 440)", R"("window_options_min_h": 444)")).has_value());
+  CHECK(h.app.pane_info(Pane::Options).min_h == 444);
+  CHECK(h.app.load_skin_dir(pack_with("pack.jsonc", R"("korean_size": 12)", R"("korean_size": 15)")).has_value());
+  h.app.ui().gfx.set_language(L"ko");
+  CHECK(h.app.ui().gfx.classic_size() == 15);
+  CHECK(h.app.load_skin_dir(pack_with("pack.jsonc", R"("moves": 0)", R"("moves": 1)")).has_value());
+  CHECK(h.app.ui().skin().moves());
+
+  // A number the program reads may not be missing.
+  const auto refused = h.app.load_skin_dir(pack_with("pack.jsonc", R"("window_room_h": 500, )", ""));
+  CHECK(!refused.has_value());
+  if (!refused) CHECK(refused.error().find("window_room_h") != std::string::npos);
+  std::error_code ignored;
+  std::filesystem::remove_all(std::filesystem::temp_directory_path() / "crpp_skin_changed_pack", ignored);
+}
+
 void test_a_folder_without_a_pack_is_refused_and_changes_nothing() {
   UiHarness h;
   start_on_home(h);
@@ -481,6 +528,7 @@ int main() {
   test_the_panels_from_the_pack_do_what_they_do_on_the_code();
   test_the_emoji_from_the_pack_walk_only_what_is_in_view();
   test_a_list_from_the_pack_picks_and_the_notes_scroll();
+  test_the_pack_says_how_windows_are_measured();
   test_a_folder_without_a_pack_is_refused_and_changes_nothing();
   return crpp_test_result();
 }

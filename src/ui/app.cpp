@@ -77,12 +77,30 @@ std::expected<void, std::string> App::load_skin_dir(const std::filesystem::path&
   auto pack = skin::load_pack(read, screen_schemas());
   if (!pack) return std::unexpected(std::move(pack.error()));
   ui_.forget_render_target();  // brushes are kept by the address of their stops
+  if (const auto missing = skin::missing_constant(*pack)) return std::unexpected("pack.jsonc: no constant \"" + std::string(*missing) + "\"");
   pack_ = std::move(*pack);
   ui_.pack = &*pack_;
   pack_skin_ = make_pack_skin(ui_);
   ui_.palette = pack_->palette_of(theme_id_).value_or(-1);
   ui_.theme.from_pack = ui_.palette >= 0 ? pack_skin_.get() : nullptr;
+  skin_changed();
   return {};
+}
+
+void App::skin_changed() {
+  Gfx::ClassicFonts fonts;
+  if (ui_.theme.from_pack && pack_->fonts) {
+    const auto wide = [](const std::vector<std::string>& names) {
+      std::vector<std::wstring> list;
+      for (const std::string& name : names) list.push_back(widen(name));
+      return list;
+    };
+    fonts = {wide(pack_->fonts->korean), wide(pack_->fonts->other), wide(pack_->fonts->caption), pack_->fonts->korean_size, pack_->fonts->other_size};
+  }
+  ui_.gfx.set_classic_fonts(std::move(fonts));
+  ui_.gfx.set_classic(!ui_.skin().scales_stage());
+  set_animations(animations_wanted_);
+  room_.chat().locale_changed();  // its rows hold their text, laid out in the other font
 }
 
 void App::set_theme(std::string_view id) {
@@ -93,9 +111,19 @@ void App::set_theme(std::string_view id) {
     ui_.palette = pack_->palette_of(theme_id_).value_or(-1);
     ui_.theme.from_pack = ui_.palette >= 0 ? pack_skin_.get() : nullptr;
   }
-  ui_.gfx.set_classic(!ui_.skin().scales_stage());
-  set_animations(animations_wanted_);
-  room_.chat().locale_changed();  // its rows hold their text, laid out in the other font
+  skin_changed();
+}
+
+FrameMetrics App::frame_metrics() const {
+  if (!ui_.theme.from_pack || !own_frame()) return {};
+  const skin::Pack& k = *pack_;
+  return {k.constant("caption_h"), k.constant("frame_w"), k.constant("menu_h"), k.constant("window_radius"),
+          k.constant("frame_edge"), k.constant("frame_corner"), k.constant("frame_button"), k.constant("frame_button_gap"), k.constant("frame_button_top"), k.constant("frame_button_right")};
+}
+
+float App::window_size(std::string_view name, std::string_view side, float code) const {
+  if (!ui_.theme.from_pack) return code;
+  return pack_->constant("window_" + std::string(name) + "_" + std::string(side));
 }
 
 void App::set_animations(bool wanted) {
@@ -105,10 +133,13 @@ void App::set_animations(bool wanted) {
 
 ScreenSize App::screen_size() const {
   if (!own_frame()) return {};
+  const auto sized = [&](std::string_view key, std::string_view name, float w, float h, float min_w, float min_h) {
+    return ScreenSize{key, window_size(name, "w", w), window_size(name, "h", h), window_size(name, "min_w", min_w), window_size(name, "min_h", min_h)};
+  };
   switch (view_) {
-    case View::Home: return {"Home", 300, 560, 260, 400};
-    case View::Session: return {"Room", 640, 500, 480, 360};
-    default: return {"Prompt", 360, 420, 320, 360};
+    case View::Home: return sized("Home", "home", 300, 560, 260, 400);
+    case View::Session: return sized("Room", "room", 640, 500, 480, 360);
+    default: return sized("Prompt", "prompt", 360, 420, 320, 360);
   }
 }
 
@@ -190,8 +221,9 @@ std::vector<Pane> App::open_panes() const {
 }
 
 PaneInfo App::pane_info(Pane pane) const {
-  const auto around = [](D2D1_SIZE_F content) {
-    return std::pair(content.width + 2 * luna::frame_w, content.height + luna::caption_h + luna::frame_w);
+  const FrameMetrics frame = frame_metrics();
+  const auto around = [&](D2D1_SIZE_F content) {
+    return std::pair(content.width + 2 * frame.frame_w, content.height + frame.caption_h + frame.frame_w);
   };
   PaneInfo info;
   const auto fixed = [&](D2D1_SIZE_F content) {
@@ -204,13 +236,15 @@ PaneInfo App::pane_info(Pane pane) const {
     case Pane::Options:
       info.key = "Options";
       info.title = tr().options_title;
-      info.w = 580, info.h = 480, info.min_w = 540, info.min_h = 440;
+      info.w = window_size("options", "w", 580), info.h = window_size("options", "h", 480);
+      info.min_w = window_size("options", "min_w", 540), info.min_h = window_size("options", "min_h", 440);
       info.resizable = true;
       break;
     case Pane::Changelog:
       info.key = "Changelog";
       info.title = tr().menu_changelog;
-      info.w = 560, info.h = 560, info.min_w = 400, info.min_h = 300;
+      info.w = window_size("changelog", "w", 560), info.h = window_size("changelog", "h", 560);
+      info.min_w = window_size("changelog", "min_w", 400), info.min_h = window_size("changelog", "min_h", 300);
       info.resizable = true;
       break;
     case Pane::Profile:
@@ -335,7 +369,7 @@ void App::paint_pane(Painter& p, float width, float height) {
   pane_frame_.set_title(info.title);
   pane_frame_.set_parts({.resizable = info.resizable, .minimize = false, .close = info.close});
   pane_frame_.set_active(pane_active_[static_cast<std::size_t>(pane_)]);
-  ui_.content = ui_.modal_area = WindowFrame::content(width, height, false);
+  ui_.content = ui_.modal_area = WindowFrame::content(width, height, false, frame_metrics());
   switch (pane_) {
     case Pane::Options:
       settings_.paint(p);
@@ -384,8 +418,9 @@ void App::paint(ID2D1RenderTarget* rt, float width, float height) {
     const bool menus = view_ == View::Home || view_ == View::Session;
     frame_.set_menu_shown(menus);
     frame_.set_in_room(view_ == View::Session);
-    ui_.content = WindowFrame::content(width, height, menus);
-    ui_.modal_area = WindowFrame::below_caption(width, height);
+    const FrameMetrics frame = frame_metrics();
+    ui_.content = WindowFrame::content(width, height, menus, frame);
+    ui_.modal_area = WindowFrame::below_caption(width, height, frame);
   }
   paint_screens(p);
   if (own) frame_.paint(p);

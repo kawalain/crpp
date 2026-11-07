@@ -3,11 +3,23 @@
   "format": 1,
   "id": "messenger",
   "constants": {
+    "own_frame": 1, "moves": 0,
     "caption_h": 28, "frame_w": 3, "menu_h": 20, "window_radius": 8,
+    "frame_edge": 4, "frame_corner": 12, "frame_button": 21, "frame_button_gap": 2, "frame_button_top": 4, "frame_button_right": 5,
+    "window_home_w": 300, "window_home_h": 560, "window_home_min_w": 260, "window_home_min_h": 400,
+    "window_room_w": 640, "window_room_h": 500, "window_room_min_w": 480, "window_room_min_h": 360,
+    "window_prompt_w": 360, "window_prompt_h": 420, "window_prompt_min_w": 320, "window_prompt_min_h": 360,
+    "window_options_w": 580, "window_options_h": 480, "window_options_min_w": 540, "window_options_min_h": 440,
+    "window_changelog_w": 560, "window_changelog_h": 560, "window_changelog_min_w": 400, "window_changelog_min_h": 300,
     "button_w": 75, "button_h": 23, "field_h": 23, "check_size": 13, "row_h": 20, "scrollbar_w": 17,
     "dialog_pad_top": 14, "dialog_pad_x": 14, "dialog_pad_bottom": 12, "dialog_gap": 14, "dialog_button_h": 23, "dialog_button_w": 75,
     "dialog_button_gap": 6, "dialog_width": 280, "dialog_wide_width": 340, "dialog_margin": 16, "dialog_text_size": 16, "dialog_text_line": 18, "dialog_align": 0,
     "list_pad": 1, "list_item_h": 17, "list_gap": 0, "list_max_h": 138, "list_margin": 0, "slider_thumb": 21
+  },
+  "fonts": {
+    // Gulim comes with an optional package of Windows; Malgun Gothic is always there.
+    "korean": ["Gulim", "Malgun Gothic"], "other": ["Tahoma"], "caption": ["Trebuchet MS"],
+    "korean_size": 12, "other_size": 11
   },
   "palettes": {
     "messenger": {

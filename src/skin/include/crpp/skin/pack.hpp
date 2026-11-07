@@ -2,7 +2,7 @@
 // A Skin Pack as it stays in memory: a compact tree of nodes, with the JSON it came from gone.
 // Everything a pack names is checked when it loads, so that drawing has nothing left to refuse.
 //
-// Its files are JSONC. pack.jsonc holds format, constants (names for numbers, anywhere in the pack), palettes (one per
+// Its files are JSONC. pack.jsonc holds format, constants (names for numbers, anywhere in the pack), fonts, palettes (one per
 // Theme id), styles and parts; screens/<name>.jsonc holds a screen as {"draw": [nodes]}. A Palette entry is "#rrggbb", "#rrggbbaa", stops as
 // [[at, colour], ...], {"mix": ["a", "b", percent]} or {"alpha": ["a", value]} of an entry above it.
 //
@@ -37,6 +37,10 @@
 // lit), hit_if (false: no hit), note (the box goes to the screen under this name), snap (the box moves
 // to whole pixels). A part knows no screen, so it takes hit_by and note_by: a
 // number, which a screen gives it as an argument with hit('name') or note('name'), and less than 0 for none.
+//
+// Some constants are read by the program too: see required_constants. Fonts are installed ones, the
+// first of each list that this system has: korean for Korean and for every Hangul letter, other for
+// the other languages, caption for a style of role caption, with the size that font_size then is.
 //
 // A part may give w and h for a use that says none, and height: worked out after it has drawn,
 // from its own names, it is the height it took in a column.
@@ -172,8 +176,14 @@ struct Paint {
   std::uint32_t first_stop = 0, stops = 0;
 };
 
+struct PackFonts {
+  std::vector<std::string> korean, other, caption;
+  float korean_size = 0, other_size = 0;
+};
+
 struct Pack {
   std::string id;
+  std::optional<PackFonts> fonts;
   std::vector<Node> nodes;
   std::vector<Instr> code;
   std::vector<Style> styles;
@@ -207,5 +217,12 @@ using ReadFile = std::function<std::optional<std::string>(std::string_view path)
 
 // A screen with no file is left out, and that screen can tell from Pack::screen.
 [[nodiscard]] std::expected<Pack, std::string> load_pack(const ReadFile& read, std::span<const ScreenSchema> schemas);
+
+// The constants the program reads, as a pack that is to be used must have them. A pack whose
+// own_frame is not 0 draws its own window frame, and also needs own_frame_constants.
+[[nodiscard]] std::span<const std::string_view> required_constants();
+[[nodiscard]] std::span<const std::string_view> own_frame_constants();
+// The first of them this pack lacks.
+[[nodiscard]] std::optional<std::string_view> missing_constant(const Pack& pack);
 
 }  // namespace crpp::skin

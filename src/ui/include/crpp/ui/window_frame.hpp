@@ -10,6 +10,13 @@
 
 namespace crpp::ui {
 
+// The sizes of a window frame the app draws itself.
+struct FrameMetrics {
+  float caption_h = 28, frame_w = 3, menu_h = 20, radius = 8;
+  float edge = 4, corner = 12;  // how near an edge or a corner resizes
+  float button = 21, button_gap = 2, button_top = 4, button_right = 5;
+};
+
 class WindowFrame final : public Surface {
  public:
   using Surface::Surface;
@@ -26,11 +33,11 @@ class WindowFrame final : public Surface {
   struct Parts {
     bool resizable = true, minimize = true, close = true;
   };
-  [[nodiscard]] static Zone zone_at(float x, float y, float width, float height, Parts parts = {});
+  [[nodiscard]] static Zone zone_at(float x, float y, float width, float height, Parts parts = {}, const FrameMetrics& m = {});
   // Inside the frame and under the caption, and the menu bar when there is one.
-  [[nodiscard]] static Rect content(float width, float height, bool with_menu);
+  [[nodiscard]] static Rect content(float width, float height, bool with_menu, const FrameMetrics& m = {});
   // All but the caption, which stays usable under a modal.
-  [[nodiscard]] static Rect below_caption(float width, float height);
+  [[nodiscard]] static Rect below_caption(float width, float height, const FrameMetrics& m = {});
 
   void set_title(std::string title) { title_ = std::move(title); }
   void set_active(bool active) { active_ = active; }

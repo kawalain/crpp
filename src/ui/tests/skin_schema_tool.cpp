@@ -69,6 +69,10 @@ int check_pack(const fs::path& folder) {
     std::fprintf(stderr, "%s\n", pack.error().c_str());
     return 1;
   }
+  if (const auto missing = skin::missing_constant(*pack)) {
+    std::fprintf(stderr, "pack.jsonc: no constant \"%.*s\"\n", static_cast<int>(missing->size()), missing->data());
+    return 1;
+  }
   std::printf("%s: %zu screens of %zu, %zu nodes\n", pack->id.c_str(), pack->screens.size(), ui::screen_schemas().size(), pack->nodes.size());
   return 0;
 }

@@ -100,6 +100,7 @@ class App {
   // Does the app draw the window's frame?
   [[nodiscard]] bool own_frame() const { return !ui_.skin().scales_stage(); }
   [[nodiscard]] ScreenSize screen_size() const;
+  [[nodiscard]] FrameMetrics frame_metrics() const;
   // The settings surfaces read and change; in memory until the shell sets its own.
   void set_prefs(Prefs& prefs) { ui_.prefs = &prefs; }
 
@@ -107,6 +108,9 @@ class App {
   void set_theme(std::string_view id);
   // Draws from the Skin Pack in this folder what it has. The error says what is wrong with it.
   [[nodiscard]] std::expected<void, std::string> load_skin_dir(const std::filesystem::path& dir);
+  void skin_changed();
+  // A window's size from the pack in use, or else this.
+  [[nodiscard]] float window_size(std::string_view name, std::string_view side, float code) const;
   // Whether the system or the caller wants motion; a Skin may have none anyway.
   void set_animations(bool wanted);
   void show_setup(int percent);

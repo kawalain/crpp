@@ -40,7 +40,7 @@ void save_screen_size(Shell& s, HWND hwnd) {
 }
 
 void update_region(Shell& s, HWND hwnd) {
-  if (s.own_frame) set_frame_region(hwnd, s.dpi);
+  if (s.own_frame) set_frame_region(hwnd, s.dpi, s.app.frame_metrics().radius);
   else SetWindowRgn(hwnd, nullptr, TRUE);
 }
 
@@ -92,11 +92,11 @@ void ensure_target(Shell& s, HWND hwnd) {
 std::string saved_size_key(std::string_view screen, std::string_view side) { return "window" + std::string(screen) + std::string(side); }
 
 // Rounds the top corners; only a region does that on every Windows.
-void set_frame_region(HWND hwnd, UINT dpi) {
+void set_frame_region(HWND hwnd, UINT dpi, float radius_dips) {
   RECT rc;
   if (IsIconic(hwnd) || !GetWindowRect(hwnd, &rc)) return;
   const int w = rc.right - rc.left, h = rc.bottom - rc.top;
-  const double radius = static_cast<double>(luna::window_radius) * dpi / 96;
+  const double radius = static_cast<double>(radius_dips) * dpi / 96;
   // Every pixel the curve touches, row by row: drawing smooths the ones it only partly covers.
   HRGN shape = CreateRectRgn(0, static_cast<int>(std::ceil(radius)), w, h);
   for (int y = 0; y < static_cast<int>(std::ceil(radius)); ++y) {
@@ -231,7 +231,7 @@ LRESULT CALLBACK wnd_proc(HWND hwnd, UINT msg, WPARAM wp, LPARAM lp) {
         ScreenToClient(hwnd, &pt);
         RECT rc;
         GetClientRect(hwnd, &rc);
-        return frame_hit_code(WindowFrame::zone_at(dips(pt.x), dips(pt.y), dips(rc.right), dips(rc.bottom)));
+        return frame_hit_code(WindowFrame::zone_at(dips(pt.x), dips(pt.y), dips(rc.right), dips(rc.bottom), {}, s->app.frame_metrics()));
       }
       break;
     case WM_ACTIVATE:

@@ -15,6 +15,10 @@ namespace crpp::gui {
 namespace {
 
 bool apply_scene(Shell& s, std::string_view name) {
+  if (name == "luna-controls") {
+    s.app.show_controls_sheet();
+    return true;
+  }
   return area::connection::scene(s, name) || area::home::scene(s, name) || area::room::scene(s, name) ||
          area::sound::scene(s, name) || area::preferences::scene(s, name) || area::os::scene(s, name) ||
          area::account::scene(s, name) || area::update::scene(s, name);
@@ -62,7 +66,7 @@ const Motion* motion_named(std::string_view name) {
 
 int run_motion(Shell& s, const Motion& motion, const std::wstring& path, unsigned w, unsigned h, float dpi, int at) {
   constexpr unsigned long long start = 1000000;
-  s.app.ui().animations = true;
+  s.app.set_animations(true);
   hold_clock_at(start);
   motion.before(s);
   // Twice: what starts in the first frame has run its course before the second.
@@ -78,7 +82,7 @@ int run_motion(Shell& s, const Motion& motion, const std::wstring& path, unsigne
 }  // namespace
 
 int run_shot(Shell& s, int argc, char** argv, float dpi) {
-  s.app.ui().animations = false;
+  s.app.set_animations(false);
   hold_wall_clock(1700000000);
   unsigned w = 951, h = 692;
   if (argc >= 4) std::sscanf(argv[3], "%ux%u", &w, &h);

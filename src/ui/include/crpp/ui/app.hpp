@@ -63,6 +63,8 @@ class App {
 
   // An id from themes.hpp; an unknown one means the default.
   void set_theme(std::string_view id);
+  // Whether the system or the caller wants motion; a Skin may have none anyway.
+  void set_animations(bool wanted);
   void show_setup(int percent);
   void show_home();
   void show_session(std::string room_code);
@@ -74,6 +76,9 @@ class App {
   [[nodiscard]] PromptScreen& prompt() { return prompt_; }
   // The view under the prompt, or the view itself when there is none.
   [[nodiscard]] View base_view() const { return view_ == View::Prompt ? prompt_return_ : view_; }
+
+  // For --shot luna-controls: nothing but the page of controls.
+  void show_controls_sheet() { controls_sheet_ = true; }
 
   // --- drawing ---
   void paint(ID2D1RenderTarget* rt, float width, float height);
@@ -109,6 +114,7 @@ class App {
   void finish_leaving_room();
   void paint_screen(Painter& p, View view);
   void paint_screens(Painter& p);
+  void paint_controls_sheet(Painter& p);
 
   Ui ui_;
   MemoryPrefs memory_prefs_;
@@ -131,6 +137,8 @@ class App {
   unsigned long long left_at_ = 0;
   bool room_leaving_ = false;
   bool full_frame_ = false;
+  bool animations_wanted_ = true;
+  bool controls_sheet_ = false;
 };
 
 }  // namespace crpp::ui

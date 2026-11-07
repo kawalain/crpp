@@ -159,6 +159,8 @@ const Strings korean{
     .theme_cloud = "구름",
     .theme_dark_cloud = "먹구름",
     .theme_pastel = "파스텔",
+    .theme_messenger = "메신저",
+    .theme_messenger_dark = "메신저 다크",
     .display_theme = "테마",
     .display_sync = "시스템 연동",
     .display_light = "라이트 테마",

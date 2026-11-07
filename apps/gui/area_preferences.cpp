@@ -33,7 +33,7 @@ void apply_theme(Shell& s) {
 // Windows' "Animation effects", as a browser's prefers-reduced-motion follows it.
 void follow_system_animations(Shell& s) {
   BOOL on = TRUE;
-  if (SystemParametersInfoW(SPI_GETCLIENTAREAANIMATION, 0, &on, 0)) s.app.ui().animations = on != FALSE;
+  if (SystemParametersInfoW(SPI_GETCLIENTAREAANIMATION, 0, &on, 0)) s.app.set_animations(on != FALSE);
 }
 
 // In Windows' display language, "ko-KR".

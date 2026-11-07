@@ -108,7 +108,78 @@ bool Gfx::init(const std::filesystem::path& font_file) {
   return true;
 }
 
+void Gfx::set_language(std::wstring tag) {
+  language_ = std::move(tag);
+  if (classic_) choose_classic_fonts();
+}
+
+void Gfx::set_classic(bool on) {
+  if (on == classic_) return;
+  classic_ = on;
+  if (on) {
+    fonts_.reset();  // nothing will use it
+    choose_classic_fonts();
+  } else {
+    classic_fallback_.reset();
+    load_font(font_file_);
+  }
+}
+
+Gfx::Metrics Gfx::metrics_of(const std::wstring& family) const {
+  Metrics metrics;
+  ComPtr<IDWriteFontCollection> system_fonts;
+  UINT32 index = 0;
+  BOOL exists = FALSE;
+  ComPtr<IDWriteFontFamily> found;
+  ComPtr<IDWriteFont> font;
+  if (SUCCEEDED(dwrite_->GetSystemFontCollection(system_fonts.put(), FALSE)) &&
+      SUCCEEDED(system_fonts->FindFamilyName(family.c_str(), &index, &exists)) && exists &&
+      SUCCEEDED(system_fonts->GetFontFamily(index, found.put())) &&
+      SUCCEEDED(found->GetFirstMatchingFont(DWRITE_FONT_WEIGHT_NORMAL, DWRITE_FONT_STRETCH_NORMAL, DWRITE_FONT_STYLE_NORMAL, font.put()))) {
+    DWRITE_FONT_METRICS m{};
+    font->GetMetrics(&m);
+    if (m.designUnitsPerEm > 0) {
+      metrics.ascent = static_cast<float>(m.ascent) / m.designUnitsPerEm;
+      metrics.descent = static_cast<float>(m.descent) / m.designUnitsPerEm;
+    }
+  }
+  return metrics;
+}
+
+void Gfx::choose_classic_fonts() {
+  ComPtr<IDWriteFontCollection> system_fonts;
+  const auto installed = [&](const wchar_t* family) {
+    UINT32 index = 0;
+    BOOL exists = FALSE;
+    return system_fonts && SUCCEEDED(system_fonts->FindFamilyName(family, &index, &exists)) && exists;
+  };
+  dwrite_->GetSystemFontCollection(system_fonts.put(), FALSE);
+  // Gulim comes with an optional package of Windows; Malgun Gothic is always there.
+  const wchar_t* const hangul = installed(L"Gulim") ? L"Gulim" : L"Malgun Gothic";
+  const bool korean = language_.starts_with(L"ko");
+  classic_body_ = korean ? hangul : L"Tahoma";
+  classic_size_ = korean ? 12.0f : 11.0f;
+  classic_caption_ = L"Trebuchet MS";
+  classic_body_metrics_ = metrics_of(classic_body_);
+  classic_caption_metrics_ = metrics_of(classic_caption_);
+
+  // Whatever the font of the text, Hangul takes this one.
+  classic_fallback_.reset();
+  ComPtr<IDWriteFactory2> factory2;
+  ComPtr<IDWriteFontFallbackBuilder> builder;
+  ComPtr<IDWriteFontFallback> system_fallback;
+  if (SUCCEEDED(dwrite_->QueryInterface(__uuidof(IDWriteFactory2), reinterpret_cast<void**>(factory2.put()))) &&
+      SUCCEEDED(factory2->CreateFontFallbackBuilder(builder.put())) && SUCCEEDED(factory2->GetSystemFontFallback(system_fallback.put()))) {
+    const DWRITE_UNICODE_RANGE ranges[] = {{0x1100, 0x11FF}, {0x3130, 0x318F}, {0xA960, 0xA97F}, {0xAC00, 0xD7FF}};
+    const WCHAR* families[] = {hangul};
+    builder->AddMapping(ranges, 4, families, 1);
+    builder->AddMappings(system_fallback.get());
+    builder->CreateFontFallback(classic_fallback_.put());
+  }
+}
+
 void Gfx::load_font(const std::filesystem::path& font_file) {
+  font_file_ = font_file;
   fonts_.reset();
   family_ = ui_font;
   if (!font_file.empty()) {
@@ -319,32 +390,23 @@ std::wstring Gfx::emoji_glyph(std::string_view id) const {
   return text;
 }
 
-ComPtr<IDWriteTextLayout> Gfx::layout(std::wstring_view text, const TextStyle& style, float max_w,
-                                      float max_h) const {
-  ComPtr<IDWriteTextFormat> format;
-  if (FAILED(dwrite_->CreateTextFormat(family_.c_str(), fonts_.get(), static_cast<DWRITE_FONT_WEIGHT>(style.weight),
-                                       DWRITE_FONT_STYLE_NORMAL, DWRITE_FONT_STRETCH_NORMAL, style.size,
-                                       language_.c_str(), format.put()))) {
-    return {};
-  }
+void Gfx::apply_style(IDWriteTextFormat* format, const TextStyle& style, Metrics metrics) const {
   format->SetWordWrapping(style.wrap ? DWRITE_WORD_WRAPPING_WRAP : DWRITE_WORD_WRAPPING_NO_WRAP);
   format->SetTextAlignment(style.align == Align::Center  ? DWRITE_TEXT_ALIGNMENT_CENTER
                            : style.align == Align::Right ? DWRITE_TEXT_ALIGNMENT_TRAILING
                                                          : DWRITE_TEXT_ALIGNMENT_LEADING);
   if (style.line_height > 0) {
     // Place the baseline where a CSS line box of this height would.
-    const float content = (ascent_ + descent_) * style.size;
-    const float baseline = (style.line_height - content) / 2 + ascent_ * style.size;
+    const float content = (metrics.ascent + metrics.descent) * style.size;
+    const float baseline = (style.line_height - content) / 2 + metrics.ascent * style.size;
     format->SetLineSpacing(DWRITE_LINE_SPACING_METHOD_UNIFORM, style.line_height, baseline);
   }
-  ComPtr<IDWriteTextLayout> layout;
-  if (FAILED(dwrite_->CreateTextLayout(text.data(), static_cast<UINT32>(text.size()), format.get(), max_w, max_h,
-                                       layout.put()))) {
-    return {};
-  }
+}
+
+void Gfx::finish_layout(IDWriteTextLayout* layout, IDWriteTextFormat* format, std::wstring_view text, const TextStyle& style) const {
   if (style.ellipsis) {
     ComPtr<IDWriteInlineObject> sign;
-    if (SUCCEEDED(dwrite_->CreateEllipsisTrimmingSign(format.get(), sign.put()))) {
+    if (SUCCEEDED(dwrite_->CreateEllipsisTrimmingSign(format, sign.put()))) {
       DWRITE_TRIMMING trimming{DWRITE_TRIMMING_GRANULARITY_CHARACTER, 0, 0};
       layout->SetTrimming(&trimming, sign.get());
     }
@@ -355,15 +417,90 @@ ComPtr<IDWriteTextLayout> Gfx::layout(std::wstring_view text, const TextStyle& s
       l1->SetCharacterSpacing(0, style.letter_spacing, 0, DWRITE_TEXT_RANGE{0, static_cast<UINT32>(text.size())});
     }
   }
+}
+
+ComPtr<IDWriteTextLayout> Gfx::layout(std::wstring_view text, const TextStyle& style, float max_w,
+                                      float max_h) const {
+  if (classic_) return classic_layout(text, style, max_w, max_h);
+  ComPtr<IDWriteTextFormat> format;
+  if (FAILED(dwrite_->CreateTextFormat(family_.c_str(), fonts_.get(), static_cast<DWRITE_FONT_WEIGHT>(style.weight),
+                                       DWRITE_FONT_STYLE_NORMAL, DWRITE_FONT_STRETCH_NORMAL, style.size,
+                                       language_.c_str(), format.put()))) {
+    return {};
+  }
+  apply_style(format.get(), style, {ascent_, descent_});
+  ComPtr<IDWriteTextLayout> layout;
+  if (FAILED(dwrite_->CreateTextLayout(text.data(), static_cast<UINT32>(text.size()), format.get(), max_w, max_h,
+                                       layout.put()))) {
+    return {};
+  }
+  finish_layout(layout.get(), format.get(), text, style);
   return layout;
+}
+
+ComPtr<IDWriteTextLayout> Gfx::classic_layout(std::wstring_view text, TextStyle style, float max_w, float max_h) const {
+  if (!style.exact) {
+    // What a shared surface asks for as a title stays a title; all else is plain body text.
+    const bool title = style.size >= 21;
+    style.size = title ? classic_size_ + 2 : classic_size_;
+    style.weight = title ? 700 : 400;
+    style.letter_spacing = 0;
+    if (style.wrap) style.line_height = classic_size_ + 4;
+  }
+  const bool caption = style.role == FontRole::Caption;
+  const std::wstring& family = caption ? classic_caption_ : classic_body_;
+  ComPtr<IDWriteTextFormat> format;
+  if (FAILED(dwrite_->CreateTextFormat(family.c_str(), nullptr, static_cast<DWRITE_FONT_WEIGHT>(style.weight), DWRITE_FONT_STYLE_NORMAL,
+                                       DWRITE_FONT_STRETCH_NORMAL, style.size, language_.c_str(), format.put()))) {
+    return {};
+  }
+  apply_style(format.get(), style, caption ? classic_caption_metrics_ : classic_body_metrics_);
+  if (classic_fallback_) {
+    ComPtr<IDWriteTextFormat1> format1;
+    if (SUCCEEDED(format->QueryInterface(__uuidof(IDWriteTextFormat1), reinterpret_cast<void**>(format1.put())))) {
+      format1->SetFontFallback(classic_fallback_.get());
+    }
+  }
+  ComPtr<IDWriteTextLayout> layout;
+  if (FAILED(dwrite_->CreateGdiCompatibleTextLayout(text.data(), static_cast<UINT32>(text.size()), format.get(), max_w, max_h, pixels_per_dip_,
+                                                    nullptr, FALSE, layout.put()))) {
+    return {};
+  }
+  finish_layout(layout.get(), format.get(), text, style);
+  return layout;
+}
+
+ID2D1LinearGradientBrush* Gfx::gradient(ID2D1RenderTarget* rt, std::span<const GradientStop> stops) const {
+  if (gradients_target_ != rt) {
+    gradients_.clear();
+    gradients_target_ = rt;
+  }
+  auto& brush = gradients_[stops.data()];
+  if (brush) return brush.get();
+  std::vector<D2D1_GRADIENT_STOP> list;
+  for (const GradientStop& stop : stops) list.push_back({stop.at, D2D1::ColorF(stop.color.r, stop.color.g, stop.color.b, stop.color.a)});
+  ComPtr<ID2D1GradientStopCollection> collection;
+  if (FAILED(rt->CreateGradientStopCollection(list.data(), static_cast<UINT32>(list.size()), collection.put())) ||
+      FAILED(rt->CreateLinearGradientBrush(D2D1::LinearGradientBrushProperties(D2D1::Point2F(0, 0), D2D1::Point2F(0, 1)), collection.get(),
+                                           brush.put()))) {
+    gradients_.erase(stops.data());
+    return nullptr;
+  }
+  return brush.get();
+}
+
+void Gfx::forget_render_target() const {
+  gradients_.clear();
+  gradients_target_ = nullptr;
 }
 
 // --- Painter ---------------------------------------------------------------
 
 Painter::Painter(const Gfx& gfx, ID2D1RenderTarget* rt) : gfx_(gfx), rt_(rt) {
   rt_->CreateSolidColorBrush(D2D1::ColorF(0, 0, 0, 1), brush_.put());
-  rt_->SetAntialiasMode(D2D1_ANTIALIAS_MODE_PER_PRIMITIVE);
-  rt_->SetTextAntialiasMode(D2D1_TEXT_ANTIALIAS_MODE_GRAYSCALE);
+  const bool classic = gfx.classic();
+  rt_->SetAntialiasMode(classic ? D2D1_ANTIALIAS_MODE_ALIASED : D2D1_ANTIALIAS_MODE_PER_PRIMITIVE);
+  rt_->SetTextAntialiasMode(classic ? D2D1_TEXT_ANTIALIAS_MODE_ALIASED : D2D1_TEXT_ANTIALIAS_MODE_GRAYSCALE);
 }
 
 void Painter::push_opacity(float opacity) {
@@ -385,6 +522,21 @@ void Painter::clear(Color c) { rt_->Clear(to_d2d(c)); }
 void Painter::fill_rect(Rect r, Color c) {
   brush_->SetColor(to_d2d(c));
   rt_->FillRectangle(D2D1::RectF(r.x, r.y, r.right(), r.bottom()), brush_.get());
+}
+
+void Painter::fill_gradient(Rect r, D2D1_POINT_2F from, D2D1_POINT_2F to, std::span<const GradientStop> stops) {
+  ID2D1LinearGradientBrush* const brush = gfx_.gradient(rt_, stops);
+  if (!brush) return;
+  brush->SetStartPoint(from);
+  brush->SetEndPoint(to);
+  rt_->FillRectangle(D2D1::RectF(r.x, r.y, r.right(), r.bottom()), brush);
+}
+
+void Painter::frame(Rect r, Color c, float width) {
+  fill_rect({r.x, r.y, r.w, width}, c);
+  fill_rect({r.x, r.bottom() - width, r.w, width}, c);
+  fill_rect({r.x, r.y + width, width, r.h - 2 * width}, c);
+  fill_rect({r.right() - width, r.y + width, width, r.h - 2 * width}, c);
 }
 
 void Painter::fill_round(Rect r, float radius, Color c) {
@@ -480,8 +632,12 @@ void Painter::emoji(std::wstring_view glyph, Rect r, float opacity) {
   // A glyph may overhang its box a little.
   if (translucent) push_opacity(opacity, {r.x - r.w / 2, r.y - r.h / 2, r.w * 2, r.h * 2});
   brush_->SetColor(D2D1::ColorF(0, 0, 0, 1));
+  // A picture, whatever the text around it.
+  const D2D1_TEXT_ANTIALIAS_MODE text_mode = rt_->GetTextAntialiasMode();
+  rt_->SetTextAntialiasMode(D2D1_TEXT_ANTIALIAS_MODE_GRAYSCALE);
   rt_->DrawTextLayout(D2D1::Point2F(r.x + (r.w - m.width) / 2, r.y + (r.h - m.height) / 2), layout.get(), brush_.get(),
                       D2D1_DRAW_TEXT_OPTIONS_ENABLE_COLOR_FONT);
+  rt_->SetTextAntialiasMode(text_mode);
   if (translucent) pop_opacity();
 }
 

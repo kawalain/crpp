@@ -13,9 +13,14 @@ void Ui::begin_frame(float window_w, float window_h, unsigned long long now) {
   width = window_w;
   height = window_h;
   now_ms = now;
-  scale = std::max(window_w / stage_w, window_h / stage_h);
-  ox = (window_w - stage_w * scale) / 2;
-  oy = (window_h - stage_h * scale) / 2;
+  if (skin().scales_stage()) {
+    scale = std::max(window_w / stage_w, window_h / stage_h);
+    ox = (window_w - stage_w * scale) / 2;
+    oy = (window_h - stage_h * scale) / 2;
+  } else {
+    scale = 1;
+    ox = oy = 0;
+  }
   hits_.clear();
   hit_clips_.clear();
 }
@@ -109,6 +114,7 @@ ID2D1LinearGradientBrush* Ui::edge_fade_mask(Painter& p, Rect area, float top, f
 }
 
 void Ui::forget_render_target() {
+  gfx.forget_render_target();
   fade_masks_.clear();
   masks_target_ = nullptr;
 }

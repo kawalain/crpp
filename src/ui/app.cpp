@@ -36,7 +36,17 @@ void App::reload_assets(const std::filesystem::path& assets_dir) {
   ui_.emoji.emplace(assets_dir);
 }
 
-void App::set_theme(std::string_view id) { ui_.theme = theme_named(id).theme; }
+void App::set_theme(std::string_view id) {
+  ui_.forget_render_target();  // brushes are kept by the address of the colours they show
+  ui_.theme = theme_named(id).theme;
+  ui_.gfx.set_classic(!ui_.skin().scales_stage());
+  set_animations(animations_wanted_);
+}
+
+void App::set_animations(bool wanted) {
+  animations_wanted_ = wanted;
+  ui_.animations = wanted && ui_.skin().moves();
+}
 
 void App::view_left(View from) {
   if (!ui_.animations || from == view_) return;
@@ -111,11 +121,18 @@ std::vector<Surface*> App::layers() {
 
 void App::paint(ID2D1RenderTarget* rt, float width, float height) {
   full_frame_ = false;
+  FLOAT dpi_x = 96, dpi_y = 96;
+  rt->GetDpi(&dpi_x, &dpi_y);
+  ui_.gfx.set_pixels_per_dip(dpi_x / 96);
   ui_.begin_frame(width, height, clock_ms());
   ui_.more_frames = false;
   Painter p(ui_.gfx, rt);
   p.set_base(D2D1::Matrix3x2F::Scale(ui_.scale, ui_.scale) * D2D1::Matrix3x2F::Translation(ui_.ox, ui_.oy));
   p.clear(ui_.theme.sky);
+  if (controls_sheet_) {
+    paint_controls_sheet(p);
+    return;
+  }
   room_.set_controls_shown(!settings_.is_open());
   paint_screens(p);
   if (view_ == View::Setup) {

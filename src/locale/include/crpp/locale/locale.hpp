@@ -178,6 +178,8 @@ struct Strings {
   const char* theme_cloud;
   const char* theme_dark_cloud;
   const char* theme_pastel;
+  const char* theme_messenger;
+  const char* theme_messenger_dark;
   const char* display_theme;
   const char* display_sync;
   const char* display_light;

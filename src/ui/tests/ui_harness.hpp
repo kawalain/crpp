@@ -13,7 +13,7 @@ class UiHarness {
   bool start(unsigned width = 951, unsigned height = 692) {
     CoInitializeEx(nullptr, COINIT_APARTMENTTHREADED);
     if (!app.init({})) return false;
-    app.ui().animations = false;
+    app.set_animations(false);
     if (FAILED(CoCreateInstance(CLSID_WICImagingFactory, nullptr, CLSCTX_INPROC_SERVER, IID_IWICImagingFactory,
                                 reinterpret_cast<void**>(wic_.put())))) {
       return false;

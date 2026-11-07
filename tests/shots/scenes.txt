@@ -70,3 +70,4 @@ motion-message --at 150
 motion-member --at 150
 motion-scroll --at 80
 motion-stretch --at 120
+luna-controls

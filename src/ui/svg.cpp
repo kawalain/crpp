@@ -256,6 +256,14 @@ SvgImage parse_svg(const Gfx& gfx, std::string_view svg) {
 }
 
 void draw_svg(Painter& p, const SvgImage& image, Rect dst, float opacity, float gray) {
+  // A picture, however crisp the controls around it.
+  const D2D1_ANTIALIAS_MODE mode = p.rt()->GetAntialiasMode();
+  p.rt()->SetAntialiasMode(D2D1_ANTIALIAS_MODE_PER_PRIMITIVE);
+  const struct Restore {
+    ID2D1RenderTarget* rt;
+    D2D1_ANTIALIAS_MODE mode;
+    ~Restore() { rt->SetAntialiasMode(mode); }
+  } restore{p.rt(), mode};
   // CSS grayscale(): the sRGB values themselves are weighted.
   const auto shade = [gray](Color c) {
     if (gray <= 0) return c;

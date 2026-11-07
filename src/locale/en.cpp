@@ -158,6 +158,8 @@ const Strings english{
     .theme_cloud = "Cloud",
     .theme_dark_cloud = "Dark cloud",
     .theme_pastel = "Pastel",
+    .theme_messenger = "Messenger",
+    .theme_messenger_dark = "Messenger dark",
     .display_theme = "Theme",
     .display_sync = "Follow the system",
     .display_light = "Light theme",

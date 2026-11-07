@@ -49,6 +49,19 @@ State state;  // one window per process
 constexpr UINT graphics_release_ms = 30000;
 constexpr UINT_PTR graphics_timer = 102;  // WM_TIMER goes to its own procedure, not the window's
 
+// A shown window that nothing has happened on this long gives its pages back to the system.
+constexpr UINT quiet_trim_ms = 10000;
+constexpr UINT_PTR quiet_timer = 103;
+
+// Freed memory stays in the working set until asked for, and a heap keeps blocks it freed for
+// the next allocation. What is still in use comes back on the next touch, at the price of one
+// soft fault per page: SetProcessWorkingSetSize's and HeapSetInformation's documentation.
+void give_back_pages() {
+  HEAP_OPTIMIZE_RESOURCES_INFORMATION info{HEAP_OPTIMIZE_RESOURCES_CURRENT_VERSION, 0};
+  HeapSetInformation(nullptr, HeapOptimizeResources, &info, sizeof info);
+  SetProcessWorkingSetSize(GetCurrentProcess(), static_cast<SIZE_T>(-1), static_cast<SIZE_T>(-1));
+}
+
 void CALLBACK release_graphics(HWND hwnd, UINT, UINT_PTR id, DWORD) {
   KillTimer(hwnd, id);
   Shell& s = *state.shell;
@@ -56,7 +69,15 @@ void CALLBACK release_graphics(HWND hwnd, UINT, UINT_PTR id, DWORD) {
   s.target.reset();
   drop_pane_targets(s);
   s.app.release_graphics();
-  SetProcessWorkingSetSize(GetCurrentProcess(), static_cast<SIZE_T>(-1), static_cast<SIZE_T>(-1));
+  give_back_pages();
+}
+
+[[nodiscard]] bool in_room(const Shell& s) { return s.app.view() == View::Session; }
+
+void CALLBACK trim_when_quiet(HWND hwnd, UINT, UINT_PTR id, DWORD) {
+  KillTimer(hwnd, id);
+  const Shell& s = *state.shell;
+  if (os_policy::trims_when_quiet(in_room(s), s.hidden)) give_back_pages();
 }
 
 [[nodiscard]] bool tray_wanted(const Shell& s) { return s.prefs->get(pref::minimize_to_tray); }
@@ -232,9 +253,7 @@ void sync_hidden(Shell& s) {
     drop_pane_targets(s);
     s.app.ui().forget_render_target();
     if (s.app.ui().emoji) s.app.ui().emoji.emplace(s.assets_dir);
-    // Freed memory stays in the working set until asked for. What is still in use comes
-    // back on the next touch, at the price of one soft fault per page.
-    SetProcessWorkingSetSize(GetCurrentProcess(), static_cast<SIZE_T>(-1), static_cast<SIZE_T>(-1));
+    give_back_pages();
     SetTimer(s.hwnd, graphics_timer, graphics_release_ms, release_graphics);
   } else {
     KillTimer(s.hwnd, graphics_timer);
@@ -295,6 +314,11 @@ void first_show(Shell& s, bool minimized) {
     return;
   }
   if (!os_policy::start_hidden(tray_wanted(s), state.tray.present())) ShowWindow(s.hwnd, SW_SHOWMINNOACTIVE);
+}
+
+void painted(Shell& s) {
+  if (s.hidden || in_room(s)) return;
+  SetTimer(s.hwnd, quiet_timer, quiet_trim_ms, trim_when_quiet);
 }
 
 bool on_message(Shell& s, UINT msg, WPARAM wp, LPARAM lp, LRESULT& result) {

@@ -57,6 +57,12 @@ void hidden_means_not_on_screen() {
   CHECK(window_hidden(true, true));
 }
 
+void a_quiet_window_gives_back_its_pages_outside_a_room() {
+  CHECK(trims_when_quiet(false, false));
+  CHECK(!trims_when_quiet(true, false));
+  CHECK(!trims_when_quiet(false, true));  // hiding has done it already
+}
+
 void chat_on_a_focused_window_only_sounds() {
   const auto r = chat_reaction({.hidden = false, .focused = true});
   CHECK(r.sound);
@@ -186,6 +192,7 @@ int main() {
   a_development_build_has_its_own_window();
   hint_appears_once_in_a_room();
   hidden_means_not_on_screen();
+  a_quiet_window_gives_back_its_pages_outside_a_room();
   chat_on_a_focused_window_only_sounds();
   chat_while_away();
   chat_settings_are_honored();

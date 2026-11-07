@@ -334,6 +334,9 @@ exist (real + test).
 - Nearly all memory while visible is the GPU driver's: an empty hardware Direct2D window is
   already 58 MB private against the app's 63. Software rendering is not the way down: it
   takes about 10 times the CPU to scroll. Findings: `docs/research/memory-floor.md`.
+- Outside a Room a shown window gives its pages back 10 s after its last still frame: Task
+  Manager's Memory falls from about 17 MB to under 1 MB, and a hover brings about 6 back. Commit
+  stays.
 - Frames have no cap of their own. Measured with an MSVC Release build at 125% on a hidden
   desktop, settings open: idle 0.0% of one core and about 47 MB working set; wheel
   scrolling without pause 0.6-1.9% at about 73 frames/s (a counter confirmed the frames),

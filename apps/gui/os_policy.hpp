@@ -38,6 +38,11 @@ namespace crpp::gui::os_policy {
 // A shown window has its render resources; hidden and minimized ones do not.
 [[nodiscard]] constexpr bool window_hidden(bool visible, bool iconic) { return !visible || iconic; }
 
+// A shown window nothing has happened on for a while gives its pages back to the system. Hiding
+// does so on its own. In a Room the sound and input paths keep touching theirs, which would only
+// come back one fault at a time.
+[[nodiscard]] constexpr bool trims_when_quiet(bool in_room, bool hidden) { return !in_room && !hidden; }
+
 struct ChatFacts {
   bool mine = false;
   bool muted = false;  // the sender, by this user's member volume

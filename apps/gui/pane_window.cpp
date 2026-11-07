@@ -4,6 +4,7 @@
 
 #include <algorithm>
 
+#include "areas.hpp"
 #include "shell.hpp"
 #include "tray.hpp"
 
@@ -129,6 +130,7 @@ LRESULT CALLBACK pane_proc(HWND hwnd, UINT msg, WPARAM wp, LPARAM lp) {
       place_ime(s, hwnd, w->dpi);
       sync_pane_blink(*w);
       if (s.app.ui().more_frames) InvalidateRect(hwnd, nullptr, FALSE);  // it is measuring itself
+      else area::os::painted(s);
       return 0;
     }
     case WM_MOUSEMOVE:

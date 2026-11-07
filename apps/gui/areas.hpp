@@ -83,6 +83,8 @@ void pref_changed(Shell& s, std::string_view key);
 [[nodiscard]] bool on_message(Shell& s, UINT msg, WPARAM wp, LPARAM lp, LRESULT& result);
 // Shows the window for the first time, or (--minimized) puts it where it can be reopened.
 void first_show(Shell& s, bool minimized);
+// A frame was drawn and nothing moves: the clocks to giving memory back start again.
+void painted(Shell& s);
 }  // namespace os
 
 namespace account {  // HTTP API, first-run flow, the account tab

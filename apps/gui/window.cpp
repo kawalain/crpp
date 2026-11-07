@@ -305,6 +305,7 @@ LRESULT CALLBACK wnd_proc(HWND hwnd, UINT msg, WPARAM wp, LPARAM lp) {
       place_ime(*s, hwnd, s->dpi);
       s->last_frame_ms = clock_ms();
       sync_frames(*s);  // painting is where a hover's transition starts
+      if (!s->frame_running) area::os::painted(*s);
       // A window that keeps painting would never see its timers: they come after paint.
       for (MSG timer; PeekMessageW(&timer, hwnd, WM_TIMER, WM_TIMER, PM_REMOVE);) DispatchMessageW(&timer);
       return 0;

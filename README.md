@@ -37,8 +37,8 @@ The interface is in Korean. In these screenshots, the names and messages are sam
 Others learn when you press a key or use the mouse wheel or a button, and which mouse button
 it was. They don't learn which key you pressed or where your mouse is.
 
-If you turn on Detail mode, special keys such as Space and Enter also play their own sounds.
-Letters and digits still can't be told apart.
+If you turn on Detail mode, special keys such as Space and Enter play their own sounds, and letter
+and digit keys sound by the row of the keyboard they are on, so others learn that row too.
 
 ### What stays on your PC
 

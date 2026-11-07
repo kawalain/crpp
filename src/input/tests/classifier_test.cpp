@@ -22,7 +22,7 @@ void presence_says_nothing_about_the_key() {
   }
 }
 
-void detail_names_only_special_keys() {
+void detail_names_special_keys_and_rows() {
   KeyClassifier c;
   c.set_privacy(Privacy::Detail);
   const auto press = [&](std::uint16_t make, bool extended = false) {
@@ -41,10 +41,31 @@ void detail_names_only_special_keys() {
   CHECK(press(right_shift) == Kind::KeyShiftHold);
   CHECK(press(ctrl, true) == Kind::KeyCtrlHold);
   CHECK(press(alt, true) == Kind::KeyAltHold);
-  // Letters and digits, on any row, stay the same.
-  CHECK(press(key_a) == Kind::KeyAny);
-  CHECK(press(key_q) == Kind::KeyAny);
-  CHECK(press(key_1) == Kind::KeyAny);
+  // Letters and digits say their row, by the key's place.
+  CHECK(press(0x2C) == Kind::KeyR1);  // Z
+  CHECK(press(0x35) == Kind::KeyR1);  // /
+  CHECK(press(0x56) == Kind::KeyR1);  // the ISO key beside Z
+  CHECK(press(key_a) == Kind::KeyR2);
+  CHECK(press(0x28) == Kind::KeyR2);  // '
+  CHECK(press(key_q) == Kind::KeyR3);
+  CHECK(press(0x1B) == Kind::KeyR3);  // ]
+  CHECK(press(0x2B) == Kind::KeyR3);  // backslash
+  CHECK(press(key_1) == Kind::KeyR4);
+  CHECK(press(0x0D) == Kind::KeyR4);  // =
+  CHECK(press(0x29) == Kind::KeyR4);  // `
+  // Off the four rows nothing is said. E0 marks another key with the same code.
+  CHECK(press(0x3B) == Kind::KeyAny);        // F1
+  CHECK(press(0x48, true) == Kind::KeyAny);  // up
+  CHECK(press(0x35, true) == Kind::KeyAny);  // the keypad's /
+  CHECK(press(0x4F) == Kind::KeyAny);        // the keypad's 1
+}
+
+void rows_make_no_sound_on_release() {
+  KeyClassifier c;
+  c.set_privacy(Privacy::Detail);
+  CHECK(c.on_key(key_a, false, false) == Kind::KeyR2);
+  CHECK(!c.on_key(key_a, false, false));  // auto-repeat
+  CHECK(!c.on_key(key_a, false, true));
 }
 
 void only_modifiers_sound_on_release() {
@@ -105,7 +126,8 @@ void every_kind_is_accepted_by_the_server() {
 
 int main() {
   presence_says_nothing_about_the_key();
-  detail_names_only_special_keys();
+  detail_names_special_keys_and_rows();
+  rows_make_no_sound_on_release();
   only_modifiers_sound_on_release();
   auto_repeat_is_silent();
   reset_forgets_held_keys();

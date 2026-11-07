@@ -1,7 +1,7 @@
 {
   "$schema": "http://json-schema.org/draft-07/schema#",
   "title": "The screen settings of a Skin Pack",
-  "description": "A screen of a Skin Pack, as {\"draw\": [nodes]}. With no file for a screen, the program draws it itself.\nNumbers: @page, @overflow, @view, @content, @offset, @has_version.\nTexts: @version.\nHits: overlay, droplet, thumb, version, track, tab.\nPictures: none.\nFields: none.\nSlots: tab, popups.\nReports: none.\nNotes: track.",
+  "description": "A screen of a Skin Pack, as {\"draw\": [nodes]}. With no file for a screen, the program draws it itself.\nNumbers: @page, @overflow, @view, @content, @offset, @has_version, @open, @scale, @window_x, @window_y, @window_w, @window_h, @tab_height, @scroll, @fade_top, @fade_bottom, @tab_changes, @selects, @left_scroll, @left_height, @left_fade_top, @left_fade_bottom, @bar_shown, @bar_over, @thumb_y, @thumb_h.\nTexts: @version.\nHits: overlay, droplet, thumb, version, track, tab.\nPictures: none.\nFields: none.\nSlots: tab, popups, current, leaving.\nReports: view, content.\nNotes: track, pane.",
   "allowComments": true,
   "allowTrailingCommas": true,
   "type": "object",
@@ -55,7 +55,8 @@
         },
         "note": {
           "enum": [
-            "track"
+            "track",
+            "pane"
           ]
         },
         "picture": false,
@@ -63,10 +64,17 @@
         "slot": {
           "enum": [
             "tab",
-            "popups"
+            "popups",
+            "current",
+            "leaving"
           ]
         },
-        "report": false,
+        "report": {
+          "enum": [
+            "view",
+            "content"
+          ]
+        },
         "text": {
           "$ref": "#/definitions/text"
         },

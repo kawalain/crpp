@@ -3,6 +3,7 @@
 #include <string>
 
 #include "crpp/skin/draw.hpp"
+#include "crpp/ui/chat_panel.hpp"
 #include "crpp/ui/emoji_picker.hpp"
 #include "crpp/ui/settings_panel.hpp"
 #include "crpp/ui/skin_canvas.hpp"
@@ -15,12 +16,22 @@ constexpr float yes(bool b) { return b ? 1.0f : 0.0f; }
 constexpr skin::Name height_report[] = {{"height", 0}};
 
 // --- the panel ---
-enum PanelNumber : int { Page, Overflow, View, Content, Offset, HasVersion };
-enum PanelSlot : int { TabSlot, PopupsSlot };
+enum PanelNumber : int { Page, Overflow, View, Content, Offset, HasVersion, Open, StageScale, WindowX, WindowY, WindowW, WindowH, TabHeight, Drawn, FadeTop, FadeBottom,
+                         TabChanges, Selects, LeftScroll, LeftHeight, LeftFadeTop, LeftFadeBottom, BarShown, BarOver, ThumbY, ThumbH };
+enum PanelSlot : int { TabSlot, PopupsSlot, CurrentSlot, LeavingSlot };
+enum PanelReport : int { ViewReport, ContentReport };
+enum PanelNote : int { TrackNote, PaneNote };
 constexpr skin::Name panel_texts[] = {{"version", 0}};
-constexpr skin::Name panel_numbers[] = {{"page", Page}, {"overflow", Overflow}, {"view", View}, {"content", Content}, {"offset", Offset}, {"has_version", HasVersion}};
-constexpr skin::Name panel_slots[] = {{"tab", TabSlot}, {"popups", PopupsSlot}};
-constexpr skin::Name panel_notes[] = {{"track", 0}};
+constexpr skin::Name panel_numbers[] = {{"page", Page}, {"overflow", Overflow}, {"view", View}, {"content", Content}, {"offset", Offset}, {"has_version", HasVersion},
+                                       {"open", Open}, {"scale", StageScale}, {"window_x", WindowX}, {"window_y", WindowY}, {"window_w", WindowW}, {"window_h", WindowH}, {"tab_height", TabHeight},
+                                       {"scroll", Drawn}, {"fade_top", FadeTop}, {"fade_bottom", FadeBottom}, {"tab_changes", TabChanges}, {"selects", Selects},
+                                       {"left_scroll", LeftScroll}, {"left_height", LeftHeight}, {"left_fade_top", LeftFadeTop}, {"left_fade_bottom", LeftFadeBottom},
+                                       {"bar_shown", BarShown}, {"bar_over", BarOver}, {"thumb_y", ThumbY}, {"thumb_h", ThumbH}};
+constexpr skin::Name panel_reports[] = {{"view", ViewReport}, {"content", ContentReport}};
+constexpr skin::Name droplet_numbers[] = {{"open", 0}};
+constexpr skin::Name droplet_hits[] = {{"droplet", SettingsPanel::Droplet}};
+constexpr skin::Name panel_slots[] = {{"tab", TabSlot}, {"popups", PopupsSlot}, {"current", CurrentSlot}, {"leaving", LeavingSlot}};
+constexpr skin::Name panel_notes[] = {{"track", TrackNote}, {"pane", PaneNote}};
 constexpr skin::Name panel_hits[] = {{"overlay", SettingsPanel::Overlay}, {"droplet", SettingsPanel::Droplet}, {"thumb", SettingsPanel::Thumb}, {"version", SettingsPanel::Version}, {"track", SettingsPanel::Track}, {"tab", SettingsPanel::TabBase}};
 
 // --- sound ---
@@ -37,10 +48,11 @@ constexpr skin::Name sound_hits[] = {{"speaker_volume", SoundTab::SpeakerVolume}
                                      {"spatial", SoundTab::Spatial}, {"balance_enabled", SoundTab::BalanceEnabled}, {"balance", SoundTab::Balance}};
 
 // --- display ---
-enum DisplayText : int { SampleSays, PercentText };
-enum DisplayNumber : int { Sync, Percent, HasCursors, ThemeCursorOn };
-constexpr skin::Name display_texts[] = {{"sample_says", SampleSays}, {"percent_text", PercentText}};
-constexpr skin::Name display_numbers[] = {{"sync", Sync}, {"percent", Percent}, {"has_cursors", HasCursors}, {"theme_cursor", ThemeCursorOn}};
+enum DisplayText : int { SampleSays, PercentText, SampleNick, SampleTime };
+enum DisplayNumber : int { Sync, Percent, HasCursors, ThemeCursorOn, DisplayScale, Dragging };
+constexpr skin::Name display_texts[] = {{"sample_says", SampleSays}, {"percent_text", PercentText}, {"sample_nick", SampleNick}, {"sample_time", SampleTime}};
+constexpr skin::Name display_numbers[] = {{"sync", Sync}, {"percent", Percent}, {"has_cursors", HasCursors}, {"theme_cursor", ThemeCursorOn}, {"scale", DisplayScale}, {"dragging", Dragging}};
+constexpr skin::Name display_pictures[] = {{"sample_emoji", 0}};
 constexpr skin::Name display_slots[] = {{"theme_list", 0}, {"light_list", 1}, {"dark_list", 2}};
 constexpr skin::Name display_notes[] = {{"slider", 0}};
 constexpr skin::Name display_hits[] = {{"system_theme", DisplayTab::SystemTheme}, {"scale_slider", DisplayTab::ScaleSlider}, {"theme_cursor", DisplayTab::ThemeCursor}};
@@ -67,16 +79,17 @@ constexpr skin::Name account_hits[] = {{"emoji", AccountTab::Emoji}, {"nickname"
 
 }  // namespace
 
-skin::ScreenSchema SettingsPanel::schema() { return {.screen = "settings", .texts = panel_texts, .numbers = panel_numbers, .hits = panel_hits, .slots = panel_slots, .notes = panel_notes}; }
+skin::ScreenSchema SettingsPanel::schema() { return {.screen = "settings", .texts = panel_texts, .numbers = panel_numbers, .hits = panel_hits, .slots = panel_slots, .reports = panel_reports, .notes = panel_notes}; }
+skin::ScreenSchema SettingsPanel::droplet_schema() { return {.screen = "droplet", .numbers = droplet_numbers, .hits = droplet_hits}; }
 skin::ScreenSchema SoundTab::schema() { return {.screen = "settings_sound", .texts = sound_texts, .numbers = sound_numbers, .hits = sound_hits, .slots = sound_slots, .reports = height_report, .notes = sound_notes}; }
-skin::ScreenSchema DisplayTab::schema() { return {.screen = "settings_display", .texts = display_texts, .numbers = display_numbers, .hits = display_hits, .slots = display_slots, .reports = height_report, .notes = display_notes}; }
+skin::ScreenSchema DisplayTab::schema() { return {.screen = "settings_display", .texts = display_texts, .numbers = display_numbers, .pictures = display_pictures, .hits = display_hits, .slots = display_slots, .reports = height_report, .notes = display_notes}; }
 skin::ScreenSchema NotifyTab::schema() { return {.screen = "settings_notify", .texts = notify_texts, .numbers = notify_numbers, .hits = notify_hits, .reports = height_report}; }
 skin::ScreenSchema SystemTab::schema() { return {.screen = "settings_system", .numbers = system_numbers, .hits = system_hits, .slots = system_slots, .reports = height_report}; }
 skin::ScreenSchema AccountTab::schema() { return {.screen = "settings_account", .texts = account_texts, .numbers = account_numbers, .pictures = account_pictures, .hits = account_hits, .reports = height_report}; }
 
 void SettingsPanel::paint_pack(Painter& p, const skin::Screen& screen) {
-  if (!open_) return;
-  p.set_base(D2D1::Matrix3x2F::Identity());
+  if (!open_ && !ui_.skin().scales_stage()) return;  // a window of its own, that is going
+  p.set_base(D2D1::Matrix3x2F::Scale(ui_.scale, ui_.scale) * D2D1::Matrix3x2F::Translation(ui_.ox, ui_.oy));
 
   class Shown final : public skin::Source {
    public:
@@ -92,27 +105,61 @@ void SettingsPanel::paint_pack(Painter& p, const skin::Screen& screen) {
         case Content: return s_.scroll_.content_h;
         case Offset: return s_.scroll_.offset;
         case HasVersion: return yes(!s_.version_.empty());
+        case Open: return yes(s_.open_);
+        case StageScale: return s_.ui_.scale;
+        case WindowX: return s_.ui_.to_stage_x(0);
+        case WindowY: return s_.ui_.to_stage_y(0);
+        case WindowW: return s_.ui_.width / s_.ui_.scale;
+        case WindowH: return s_.ui_.height / s_.ui_.scale;
+        case TabHeight: return height_of_tab();
+        case Drawn: return s_.scroll_.drawn();
+        case FadeTop: return s_.scroll_.fade_top();
+        case FadeBottom: return s_.scroll_.fade_bottom();
+        case TabChanges: return static_cast<float>(s_.tab_changes_);
+        case Selects: return static_cast<float>(s_.selects_);
+        case LeftScroll: return s_.left_scroll_;
+        case LeftHeight: return s_.tab_of(s_.left_page_).content_height();
+        case LeftFadeTop: return s_.left_fade_top_;
+        case LeftFadeBottom: return s_.left_fade_bottom_;
+        case BarShown: return yes(s_.bar_shown_);
+        case BarOver: return yes(s_.bar_over_);
+        case ThumbY: return s_.scroll_.thumb(s_.scroll_track_).y;
+        case ThumbH: return s_.scroll_.thumb(s_.scroll_track_).h;
         default: return 0;
       }
     }
 
     void slot(int id, int, skin::Box box, const skin::SlotValues& values) override {
       SettingsTab& current = s_.tab();
+      Ui& ui = s_.ui_;
+      // Closing, the panel is only a picture.
+      const bool hits = ui.hits_enabled;
+      ui.hits_enabled = hits && s_.open_;
+      struct Restore {
+        Ui& ui;
+        bool hits;
+        ~Restore() { ui.hits_enabled = hits; }
+      } restore{ui, hits};
       if (id == PopupsSlot) {
         current.paint_popups(p_, area_);
         return;
       }
+      if (id == LeavingSlot) {
+        ui.hits_enabled = false;
+        s_.tab_of(s_.left_page_).paint(p_, rect_of(box));
+        return;
+      }
+      if (id == CurrentSlot) {
+        area_ = rect_of(box);
+        current.paint(p_, area_);
+        if (current.content_height() != s_.scroll_.content_h) ui.more_frames = true;  // a row came or went
+        return;
+      }
       const Rect pane = rect_of(box);
-      Ui& ui = s_.ui_;
       s_.content_area_ = pane;
       ui.dropdown_view = pane;
       if (current.content_height() <= 0) {  // only drawing a tab tells how tall it is
-        const bool hits = ui.hits_enabled;
-        ui.hits_enabled = false;
-        p_.rt()->PushAxisAlignedClip(D2D1::RectF(0, 0, 0, 0), D2D1_ANTIALIAS_MODE_ALIASED);
-        current.paint(p_, pane);
-        p_.rt()->PopAxisAlignedClip();
-        ui.hits_enabled = hits;
+        draw_unseen(current, pane);
       }
       s_.scroll_.view_h = pane.h;
       s_.scroll_.content_h = current.content_height();
@@ -129,9 +176,51 @@ void SettingsPanel::paint_pack(Painter& p, const skin::Screen& screen) {
       s_.scroll_.content_h = current.content_height();
     }
 
-    void note(int, int, skin::Box box) override { s_.scroll_track_ = rect_of(box); }
+    void note(int id, int, skin::Box box) override {
+      if (id == TrackNote) {
+        s_.scroll_track_ = rect_of(box);
+      } else {
+        s_.content_area_ = rect_of(box);
+        s_.ui_.dropdown_view = s_.content_area_;
+      }
+    }
+
+    // For a pack that scrolls the tab itself: its numbers then come from here.
+    void report(int id, float value) override {
+      Scroll& scroll = s_.scroll_;
+      if (id == ViewReport) {
+        scroll.view_h = value;
+        return;
+      }
+      scroll.content_h = value;
+      overflow_ = scroll.content_h > scroll.view_h;
+      scroll.clamp();
+      if (s_.pending_scroll_ >= 0 && value > 0) {
+        scroll.jump_to(s_.pending_scroll_);
+        s_.pending_scroll_ = -1;
+      }
+      scroll.advance(s_.ui_);
+      s_.watch_scrollbar();
+    }
 
    private:
+    [[nodiscard]] float height_of_tab() {
+      SettingsTab& current = s_.tab();
+      if (current.content_height() <= 0) draw_unseen(current, s_.content_area_);
+      return current.content_height();
+    }
+
+    // Only drawing a tab tells how tall it is.
+    void draw_unseen(SettingsTab& tab, Rect at) {
+      Ui& ui = s_.ui_;
+      const bool hits = ui.hits_enabled;
+      ui.hits_enabled = false;
+      p_.rt()->PushAxisAlignedClip(D2D1::RectF(0, 0, 0, 0), D2D1_ANTIALIAS_MODE_ALIASED);
+      tab.paint(p_, at);
+      p_.rt()->PopAxisAlignedClip();
+      ui.hits_enabled = hits;
+    }
+
     SettingsPanel& s_;
     Painter& p_;
     bool overflow_ = false;
@@ -139,8 +228,21 @@ void SettingsPanel::paint_pack(Painter& p, const skin::Screen& screen) {
   } shown(*this, p);
 
   SkinCanvas canvas(ui_, p, this);
-  const Rect c = ui_.content;
+  const Rect c = ui_.screen_area();
   skin::draw(*ui_.pack, screen, ui_.palette, {c.x, c.y, c.w, c.h}, canvas, shown);
+
+  if (const skin::Screen* droplet = ui_.pack_screen("droplet")) {
+    class Droplet final : public skin::Source {
+     public:
+      explicit Droplet(bool open) : open_(open) {}
+      float number(int, int) override { return yes(open_); }
+
+     private:
+      bool open_;
+    } on_top(open_);
+    p.set_base(D2D1::Matrix3x2F::Identity());
+    draw_layer(ui_, p, this, *droplet, {0, 0, ui_.width, ui_.height}, on_top);
+  }
 }
 
 void SoundTab::paint_pack(Painter& p, const skin::Screen& screen, Rect area) {
@@ -225,14 +327,24 @@ void DisplayTab::paint_pack(Painter& p, const skin::Screen& screen, Rect area) {
     Shown(DisplayTab& tab, Painter& painter) : s_(tab), p_(painter), percent_(std::clamp(tab.ui_.prefs->get(pref::chat_scale), 80, 150)) {
       says_ = locale::fill(tr().chat_says, {s_.sample_nick_.empty() ? std::string(tr().guest) : s_.sample_nick_});
       percent_text_ = std::to_string(percent_) + "%";
+      time_ = chat_clock_text(wall_clock_seconds() * 1000, s_.ui_.prefs->get(pref::use_24h));
     }
 
-    std::string_view text(int id, int) override { return id == SampleSays ? says_ : percent_text_; }
+    std::string_view text(int id, int) override {
+      switch (id) {
+        case SampleSays: return says_;
+        case SampleNick: return s_.sample_nick_.empty() ? std::string_view(tr().guest) : std::string_view(s_.sample_nick_);
+        case SampleTime: return time_;
+        default: return percent_text_;
+      }
+    }
     float number(int id, int) override {
       switch (id) {
         case Sync: return yes(s_.ui_.prefs->get(pref::system_theme));
         case HasCursors: return yes(s_.ui_.pack->cursors.has_value());
         case ThemeCursorOn: return yes(s_.ui_.prefs->get(pref::theme_cursor));
+        case DisplayScale: return s_.ui_.scale;
+        case Dragging: return yes(s_.ui_.capture == &s_);
         default: return static_cast<float>(percent_);
       }
     }
@@ -244,6 +356,8 @@ void DisplayTab::paint_pack(Painter& p, const skin::Screen& screen, Rect area) {
       list.paint_button(s_.ui_, &s_, p_, r);
     }
 
+    void picture(int, int, skin::Box box, float, float) override { draw_svg(p_, s_.ui_.emoji_image(s_.sample_emoji_), rect_of(box)); }
+
     void note(int, int, skin::Box box) override { s_.slider_ = rect_of(box); }
     void report(int, float value) override { s_.flow_height_ = value; }
 
@@ -251,7 +365,7 @@ void DisplayTab::paint_pack(Painter& p, const skin::Screen& screen, Rect area) {
     DisplayTab& s_;
     Painter& p_;
     int percent_;
-    std::string says_, percent_text_;
+    std::string says_, percent_text_, time_;
   } shown(*this, p);
 
   SkinCanvas canvas(ui_, p, this);

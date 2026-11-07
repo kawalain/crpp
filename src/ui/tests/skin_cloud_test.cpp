@@ -200,6 +200,80 @@ void test_the_offline_popup_rises_once() {
   CHECK(moving.after(0));  // shown anew, it rises anew
 }
 
+void test_the_panel_comes_and_goes_and_only_the_droplet_takes_clicks_as_it_goes() {
+  UiHarness h;
+  CHECK(h.start(1200, 900));
+  h.app.show_home();
+  CHECK(h.app.load_skin_dir(cloud_pack).has_value());
+  h.render();
+  SettingsPanel& panel = h.app.settings();
+  Moving moving(h);
+  CHECK(!moving.after(0));
+  CHECK(h.drawn(panel, SettingsPanel::Droplet));
+  CHECK(!h.drawn(panel, SettingsPanel::Overlay));
+  panel.open(SettingsPage::Sound);
+  CHECK(moving.after(0));
+  CHECK(moving.after(80));
+  CHECK(!moving.after(80));
+  CHECK(h.drawn(panel, SettingsPanel::Overlay));
+  CHECK(h.drawn(panel.sound(), SoundTab::ListenSelf));
+  panel.close();
+  CHECK(moving.after(0));
+  CHECK(h.drawn(panel, SettingsPanel::Droplet));
+  CHECK(!h.drawn(panel, SettingsPanel::Overlay));
+  CHECK(!h.drawn(panel.sound(), SoundTab::ListenSelf));
+  CHECK(moving.after(80));
+  CHECK(!moving.after(80));
+  CHECK(!moving.after(1000));
+}
+
+void test_a_change_of_tab_fades_and_ends() {
+  UiHarness h;
+  CHECK(h.start(1200, 900));
+  h.app.show_home();
+  CHECK(h.app.load_skin_dir(cloud_pack).has_value());
+  SettingsPanel& panel = h.app.settings();
+  panel.open(SettingsPage::Sound);
+  h.render();
+  Moving moving(h);
+  (void)moving.after(1000);
+  CHECK(!moving.after(1000));
+  panel.select(SettingsPage::System);
+  CHECK(moving.after(0));
+  CHECK(h.drawn(panel.system(), SystemTab::Autostart));
+  CHECK(!h.drawn(panel.sound(), SoundTab::ListenSelf));  // on its way out it takes no clicks
+  CHECK(moving.after(70));
+  CHECK(!moving.after(150));
+  CHECK(!moving.after(1000));
+}
+
+void test_scrolling_settles_and_the_bar_goes_away() {
+  UiHarness h;
+  CHECK(h.start(1200, 900));
+  h.app.show_home();
+  CHECK(h.app.load_skin_dir(cloud_pack).has_value());
+  SettingsPanel& panel = h.app.settings();
+  panel.open(SettingsPage::Sound);
+  h.render();
+  Moving moving(h);
+  (void)moving.after(1000);
+  CHECK(!moving.after(1000));
+  CHECK(!panel.scrollbar_shown());
+  panel.wheel(0, 0, -1);
+  CHECK(moving.after(16));
+  CHECK(panel.scrollbar_shown());
+  for (int i = 0; i < 100 && moving.after(16); ++i) {
+  }
+  CHECK(panel.scroll_offset() == 80);
+  CHECK(!moving.after(0));
+  CHECK(panel.wake_at() != 0);
+  CHECK(moving.after(2000));  // its pause is over
+  CHECK(!panel.scrollbar_shown());
+  for (int i = 0; i < 100 && moving.after(16); ++i) {
+  }
+  CHECK(!moving.after(1000));
+}
+
 }  // namespace
 
 int main() {
@@ -210,5 +284,8 @@ int main() {
   test_a_toast_comes_goes_and_is_gone();
   test_a_tip_fades_out_before_it_lets_go_of_its_text();
   test_the_offline_popup_rises_once();
+  test_the_panel_comes_and_goes_and_only_the_droplet_takes_clicks_as_it_goes();
+  test_a_change_of_tab_fades_and_ends();
+  test_scrolling_settles_and_the_bar_goes_away();
   return crpp_test_result();
 }

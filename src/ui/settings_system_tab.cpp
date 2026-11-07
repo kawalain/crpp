@@ -52,7 +52,7 @@ void SystemTab::sync_language() {
 }
 
 float SystemTab::content_height() const {
-  if (!ui_.skin().scales_stage()) return flow_height_;
+  if (flows("settings_system")) return flow_height_;
   return reset_top(ui_.prefs->get(pref::log_enabled)) + buttons_h + settings_bottom_pad;
 }
 

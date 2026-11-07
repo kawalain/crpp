@@ -56,7 +56,7 @@ float DisplayTab::chat_top() const {
 }
 
 float DisplayTab::content_height() const {
-  if (!ui_.skin().scales_stage()) return flow_height_;
+  if (flows("settings_display")) return flow_height_;
   // .chat-size-block: the sample, then the label (14 + 26 + 8) and the slider (14).
   return chat_top() + sample_h / ui_.scale + 14 + 26 + 8 + 14 + settings_bottom_pad;
 }

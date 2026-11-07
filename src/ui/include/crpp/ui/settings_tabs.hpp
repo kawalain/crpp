@@ -30,6 +30,8 @@ class SettingsTab : public Surface {
   virtual void shown() {}
 
  protected:
+  // Is the height of this tab what its layout came out as, and not known ahead?
+  [[nodiscard]] bool flows(std::string_view screen) const { return ui_.pack_screen(screen) || !ui_.skin().scales_stage(); }
   // How tall a Skin's flowing layout came out the last time it was drawn.
   float flow_height_ = 0;
 };

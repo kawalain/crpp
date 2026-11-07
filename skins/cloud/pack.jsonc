@@ -40,6 +40,10 @@
       "info_shadow": "#2e78aa",
       "hint_ink": "#94b8ca",
       "volume_tip": "#75ccff",
+      "black": "#000000",
+      "version_ink": "#8a94a0",
+      "tip_shadow": "#2e648c",
+      "panel_cloud": "#f7fcff",
     },
     "darkcloud": {
       "white": "#ffffff",
@@ -69,6 +73,10 @@
       "info_shadow": "#2e78aa",
       "hint_ink": "#a0b4c9",
       "volume_tip": "#75ccff",
+      "black": "#000000",
+      "version_ink": "#8a94a0",
+      "tip_shadow": "#2e648c",
+      "panel_cloud": "#f7fcff",
     },
     "pastel": {
       "white": "#ffffff",
@@ -98,6 +106,10 @@
       "info_shadow": "#2e78aa",
       "hint_ink": "#94b8ca",
       "volume_tip": "#75ccff",
+      "black": "#000000",
+      "version_ink": "#8a94a0",
+      "tip_shadow": "#2e648c",
+      "panel_cloud": "#f7fcff",
     }
   },
   "styles": {
@@ -132,6 +144,11 @@
     "prompt_input": {"size": 23, "line_height": 58},
     "prompt_hint": {"size": 14, "line_height": 21, "wrap": true},
     "prompt_button": {"size": 15, "line_height": 20, "align": "center"},
+    "settings_tab": {"size": 20, "line_height": 37},
+    "settings_tab_active": {"size": 20, "weight": 700, "line_height": 37},
+    "version": {"size": 14, "line_height": 20, "align": "right"},
+    "version_tip": {"size": 15, "weight": 700, "line_height": 32, "align": "center"},
+    "droplet_tip": {"size": 16, "weight": 700, "line_height": 32, "align": "center"},
     "modal_button_measure": {"size": 16, "weight": 700, "line_height": 0}
   },
   "parts": {
@@ -240,6 +257,20 @@
         {"let": "cy", "value": "H/2"},
         {"line": "alpha($white, a)", "x": "cx-6", "y": "cy-3", "x2": "cx", "y2": "cy+3", "width": 2},
         {"line": "alpha($white, a)", "x": "cx", "y": "cy+3", "x2": "cx+6", "y2": "cy-3", "width": 2}
+      ]
+    },
+    "settings_tab": {
+      "args": {"active": 0},
+      "draw": [
+        {"let": "lit_up", "to": "active", "first": "jump", "ms": 150},
+        {"let": "over", "to": "hot", "first": "jump", "ms": 150},
+        {"let": "grow", "to": "hot", "first": "jump", "ms": 140},
+        {"let": "lit", "value": "max(lit_up, over)"},
+        {"scale": "1+0.04*grow", "group": [
+          {"if": "lit>0", "fill": "alpha(mix($hl, $hl_soft, lit_up*100), lit)", "radius": 9},
+          {"if": "active", "text": "@label", "style": "settings_tab_active", "color": "mix($on_accent, $hl_text_soft, lit*100)", "x": 10, "w": "W-20"},
+          {"if": "!active", "text": "@label", "style": "settings_tab", "color": "mix($on_accent, $hl_text_soft, lit*100)", "x": 10, "w": "W-20"}
+        ]}
       ]
     },
     // li: padding 9 12, 20 tall.

@@ -68,6 +68,16 @@ about 60 times a second and reversing every 20 notches, five rounds of each:
 - Scrolling: 5.39-6.72% (mean 6.17%) from C++, 5.78-6.48% (mean 6.11%) from data.
 - Idle 0.00% and afterwards 0.00%, working set 48.4-48.9 MB and 48.8-49.1 MB, private 62.6-64.7 MB and 63.1-64.5 MB.
 
+Step 2 done, all of Messenger from data, on 26 screens and 595 nodes:
+
+- 74 scenes in Korean at 100% and 150%, English at 125% and the dark Palette give the hash of the C++ layouts, but for the four
+  of the display tab, which has the new cursor check. Those were equal before it, and were looked at since. Cloud is unchanged: 72 scenes, three sets.
+- The same scrolling, five rounds again: 5.08-6.17% (mean 5.58%) from C++, 5.16-6.33% (mean 6.01%) from data, so +7.7%.
+  Idle 0.00%, working set 48.5-49.0 MB and 48.6-49.0 MB.
+- Reading the pack 3.1 ms and the first screen 0.85 ms. It holds about 155 KB, and adds 396 KB of private bytes. A frame offscreen: +3.5%.
+- From the pack on a hidden desktop: the frame's hit tests, window sizes per screen and panel, a question holding the others off, and leaving for Cloud's
+  Theme all behave. The cursors themselves need a real desktop, which is in Verification debt.
+
 ## Steps
 
 Start from `main` with the Messenger work merged, after the user has seen its real windows.

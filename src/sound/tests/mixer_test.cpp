@@ -90,7 +90,7 @@ void balance_controls_the_lean() {
   // A seat straight to the side would be 90:10; this one is a little off axis.
   CHECK(full.left / full.right > 3);
   CHECK(full.left / full.right < 9.01f);
-  // What the slider's label says, at its default.
+  // The default, 60:40 straight to the side.
   const SeatMix label = seat_mix(4, rate, {true, 60});
   CHECK(label.left / label.right > 1.3f);
   CHECK(label.left / label.right < 1.51f);

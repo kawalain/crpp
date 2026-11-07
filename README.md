@@ -138,7 +138,7 @@ sources with their own terms:
 - `assets/emoji/` (hand-made emoji) and `assets/words/` come from the official client and
   are used here with its maintainer's permission.
 - The app icon follows the official client's design and is not licensed for reuse here.
-- Pretendard GOV: [SIL Open Font License](assets/fonts/PretendardGOV-LICENSE.txt)
+- Pretendard GOV: [SIL Open Font License](https://github.com/orioncactus/pretendard/blob/v1.3.9/LICENSE)
 - Twemoji: © Twitter, Inc. and contributors,
   [CC BY 4.0](https://creativecommons.org/licenses/by/4.0/)
 

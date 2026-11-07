@@ -89,7 +89,7 @@ void the_built_in_manifest_describes_the_assets_folder() {
   // Text files, which are what a line ending conversion would change.
   int checked = 0;
   for (const Entry& entry : manifest.entries) {
-    if (entry.path != "words/animals.txt" && entry.path != "fonts/PretendardGOV-LICENSE.txt") continue;
+    if (entry.path != "words/animals.txt" && entry.path != "words/adjectives.txt") continue;
     std::ifstream in(std::filesystem::path(CRPP_ASSETS_DIR) / entry.path, std::ios::binary);
     const std::vector<std::uint8_t> bytes{std::istreambuf_iterator<char>(in), std::istreambuf_iterator<char>()};
     CHECK(bytes.size() == entry.size);

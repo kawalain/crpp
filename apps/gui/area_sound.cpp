@@ -192,7 +192,10 @@ bool scene(Shell& s, std::string_view name) {
   tab.set_speakers({{"a", "스피커 (Realtek High Definition Audio)"}, {"b", "헤드셋 (USB Audio Device)"}});
   s.app.settings().open(SettingsPage::Sound);
   if (name == "settings-sound-dark" || name == "settings-sound-effects-dark") s.app.set_theme(ThemeId::DarkCloud);
-  if (name == "settings-sound-effects" || name == "settings-sound-effects-dark") s.app.settings().scroll_to(10000);
+  if (name == "settings-sound-effects-flat") s.app.ui().prefs->set(pref::spatial_audio, false);
+  if (name == "settings-sound-effects" || name == "settings-sound-effects-dark" || name == "settings-sound-effects-flat") {
+    s.app.settings().scroll_to(10000);
+  }
   if (name == "settings-sound-open") {
     tab.click(SoundTab::SpeakerList, 0, 0, false);
     s.app.ui().hover_owner = &tab;

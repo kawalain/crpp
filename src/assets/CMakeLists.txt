@@ -16,7 +16,7 @@ set(CRPP_TWEMOJI_COMMIT b6b55fef1e8636b540a6d016a4729ca8cdf2e60b)     # v17.0.3
 set(CRPP_PRETENDARD_REF v1.3.9)
 set(assets_root ${PROJECT_SOURCE_DIR}/assets)
 file(GLOB_RECURSE asset_files RELATIVE ${assets_root} CONFIGURE_DEPENDS ${assets_root}/*)
-list(REMOVE_ITEM asset_files README.md fonts/README.md)
+list(REMOVE_ITEM asset_files README.md)
 list(SORT asset_files)
 set(CRPP_ASSET_ENTRIES "")
 set(picker_ids "")

@@ -40,6 +40,12 @@ const Motion* motion_named(std::string_view name) {
       {"motion-settings-open", {[](Shell&) {}, [](Shell& s) { s.app.settings().open(SettingsPage::Sound); }}},
       {"motion-settings-close", {[](Shell& s) { s.app.settings().open(SettingsPage::Sound); }, [](Shell& s) { s.app.settings().close(); }}},
       {"motion-tab", {[](Shell& s) { s.app.settings().open(SettingsPage::Sound); }, [](Shell& s) { s.app.settings().open(SettingsPage::Display); }}},
+      {"motion-tab-scrolled",
+       {[](Shell& s) {
+          s.app.settings().open(SettingsPage::Sound);
+          s.app.settings().scroll_to(150);
+        },
+        [](Shell& s) { s.app.settings().select(SettingsPage::Display); }}},
       {"motion-message",
        {room_with_two, [](Shell& s) { s.app.room().chat().add({1, "c1", "구름이", "", "새 메시지가 올라와요", 1700000120000}); }}},
       {"motion-member",

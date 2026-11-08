@@ -1,0 +1,6 @@
+let box_w = textw(body_center, @text)+10
+let middle = @track_x+slider_thumb/2+@percent/100*(@track_w-slider_thumb)
+(floor(middle-box_w/2), @track_y-17, ceil(box_w), 17) if @on {
+  use bubble
+  text @text style body_center color tooltip_ink
+}

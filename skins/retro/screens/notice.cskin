@@ -1,0 +1,14 @@
+let pad = 10
+let card_w = min(380, @W+2*frame_w-32)
+let text_h = texth(chat_text, @text, card_w-2*pad)
+let card_h = pad+text_h+pad+button_h+pad
+(8, @H-8-card_h, card_w, card_h) {
+  use panel_info
+  hit card
+  text @text (pad, pad, @W-2*pad, text_h) style chat_text color ink
+  let action_w = @has_action ? textw(button, @action)+24 : 0
+  let dismiss_w = textw(button, @dismiss)+24
+  use button(primary = 1) (@W-pad-action_w, @H-pad-button_h, action_w, button_h) text @action hit action if @has_action
+  use button(primary = !@has_action)
+      (@W-pad-(@has_action ? action_w+6 : 0)-dismiss_w, @H-pad-button_h, dismiss_w, button_h) text @dismiss hit dismiss
+}

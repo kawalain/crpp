@@ -93,7 +93,7 @@ Catalog two_skins() {
   catalog.skins = {{"cloud", 1, ""}, {"retro", 1, "cloud"}, {"plain", 1, ""}};
   catalog.default_skin = "cloud";
   catalog.files = {file("shared", "emoji/a.svg", "aaa", "gh"), file("skin:cloud", "fonts/f.ttf", "ffff", "gh"),
-                   file("skin:retro", "skins/retro/pack.jsonc", "rr", "gh"), file("skin:plain", "skins/plain/pack.jsonc", "pp", "gh")};
+                   file("skin:retro", "skins/retro/pack.cskin", "rr", "gh"), file("skin:plain", "skins/plain/pack.cskin", "pp", "gh")};
   return catalog;
 }
 
@@ -154,7 +154,7 @@ void a_new_catalog_fetches_only_what_changed() {
   CHECK(install(catalog, base, shared_and_cloud, dir.path, fake, nullptr));
   CHECK(fake.asked == std::vector<std::string>{"https://repo/fonts/f.ttf"});
   CHECK(read(dir.path / "fonts/f.ttf") == "FFFFF");
-  CHECK(!fs::exists(dir.path / "skins/retro/pack.jsonc"));
+  CHECK(!fs::exists(dir.path / "skins/retro/pack.cskin"));
 }
 
 void a_group_not_asked_for_stays_listed_while_it_matches() {

@@ -1,0 +1,48 @@
+// .chat-panel.multi: from two lines on the button moves out and the text takes its place.
+let one_line_w = @W-11-17-36
+let multi = texth(chat_input, @input_text, one_line_w)+20>42
+let text_w = multi ? @W-11-17-17 : one_line_w
+let input_h = min(130, max(42, texth(chat_input, @input_text, text_w)+20))
+hit area note area h @H-10-input_h
+slot rows h @H-10-input_h numbers (17, 21, 24, 25, 7, 27, 2.5, 10, 14, 300, 8, 38, 4, 44)
+    styles (chat_body, chat_time, chat_nick) colors (hl_text)
+let ink = @dark ? hl_text : on_accent
+hit input (5, @H-4-input_h, @W-11, input_h) {
+  fill hl_mid radius 8
+  field input (17, 10, text_w, input_h-20) style chat_input color ink placeholder @tr.chat_placeholder
+      placeholder_color alpha(ink, 0.85) caret ink selection alpha(hl, 0.4)
+}
+// @keyframes chat-shake.
+let shake = ease(1, 420ms) first jump again @shakes curve linear
+let shake_dx = shake<0.15 ? -7*ease(shake/0.15) : shake<0.3 ? -7+14*ease((shake-0.15)/0.15) : shake<0.45 ? 7-12*ease((shake-0.3)/0.15) : shake<0.6 ? -5+10*ease((shake-0.45)/0.15) : shake<0.75 ? 5-8*ease((shake-0.6)/0.15) : shake<0.9 ? -3+6*ease((shake-0.75)/0.15) : 3-3*ease((shake-0.9)/0.1)
+// .chat-send-anchor: its bottom goes from 10 px to -34 px.
+let moving_out = ease(multi, 240ms) first jump curve linear
+let out = multi ? bezier(0.22, 0.9, 0.3, 1, moving_out) : 1-bezier(0.22, 0.9, 0.3, 1, 1-moving_out)
+let send_x = @W-12-30+shake_dx
+let send_y = @H-10-30+44*out
+hit send (send_x, send_y, 30, 30) {
+  let a = @send_off ? 0.55 : 1
+  scale @hot ? 1.08 : 1 {
+    fill alpha(mix(hl, surface, out), a) ellipse
+    path "M5 12h14M13 6l6 6-6 6" (6, 6) color alpha(mix(on_accent, hl_text, out), a) scale 18/24 width 3
+  }
+}
+// .calm-bubble: springs out of the send button, and shrinks back faster.
+let calming = ease(@calm, 420ms) curve linear ms_off 140ms
+if calming>0 {
+  let grown = @calm ? 0.05+0.95*bezier(0.3, 1.7, 0.5, 1, calming) : 1-0.95*bezier(0.5, 0, 0.9, 0.6, 1-calming)
+  let seen = @calm ? min(1, calming*420/100) : 1-max(0, min(1, ((1-calming)*140-20)/120))
+  let bubble_w = textw(calm, @calm_text, 2000)+2*28+1
+  let bubble_h = 34*1.35+2*12
+  let right_x = send_x+30
+  let bottom_y = send_y+30-54
+  // transform-origin: the send button's middle.
+  about (right_x-15, bottom_y+39) scale grown {
+    shadow alpha(tip_shadow, 0.28*seen) (right_x-bubble_w, bottom_y-bubble_h, bubble_w, bubble_h) radius 28 blur 18 dy 6
+    fill alpha(hl, seen) (right_x-bubble_w, bottom_y-bubble_h, bubble_w, bubble_h) radius 28
+    text @calm_text (right_x-bubble_w+28, bottom_y-bubble_h+12, bubble_w-56, bubble_h-24) style calm
+        color alpha(on_accent, seen)
+    path "M0 0H32C28 10 27 22 31 34C17 27 15 18 10 12C7 6 3 3 0 0Z" (right_x-10-36, bottom_y+20-36)
+        color alpha(hl, seen)
+  }
+}

@@ -1,0 +1,51 @@
+let shown = ease(@open, 160ms) first jump
+// The panel comes and goes as one, and rises 6 px of the window.
+(-100, -100, @W+200, @H+200) opacity shown if shown>0 {
+  (100, 100, @W-200, @H-200) dy 6*(1-shown)/@scale {
+    hit overlay (@window_x, @window_y, @window_w, @window_h) hit_if @open {
+      fill alpha(black, 0.255)
+    }
+    // The cloud, mirrored (viewBox 0 0 496 330 stretched to 1091x733 at 15,-35).
+    path "M388.527 317.44H101.915C54.679 317.44 16.386 279.073 16.386 231.744c0-42.356 30.678-77.512 70.979-84.436-.747-4.387-1.158-8.888-1.158-13.489 0-44 35.6-79.669 79.513-79.669 14.343 0 27.786 3.824 39.404 10.482C226.646 30.651 264.524 8.095 307.663 8.095c63.092 0 114.932 48.241 120.801 109.916 37.233 15.702 63.375 52.597 63.375 95.613 0 57.208-46.238 103.593-103.312 103.69Z"
+        (15+1091, -35) color @dark ? surface : alpha(panel_cloud, 0.98) scale -1091/496 scale_y 733/330
+    use settings_tab(active = @page==0) (103, 309.5, 172, 37) text @tr.tab_sound hit tab hit_index 0 hit_if @open
+    use settings_tab(active = @page==1) (103, 355.5, 172, 37) text @tr.tab_display hit tab hit_index 1 hit_if @open
+    use settings_tab(active = @page==2) (103, 401.5, 172, 37) text @tr.tab_notify hit tab hit_index 2 hit_if @open
+    use settings_tab(active = @page==3) (103, 447.5, 172, 37) text @tr.tab_system hit tab hit_index 3 hit_if @open
+    use settings_tab(active = @page==4) (103, 493.5, 172, 37) text @tr.tab_account hit tab hit_index 4 hit_if @open
+    // The tab that shows, and the one it took over from, each with the edge fades of where it stands.
+    report view = 504
+    report content = @tab_height
+    let changing = ease(1, 140ms) first jump again @tab_changes
+    note pane (296, 137, 566, 504) clip soft_clip {
+      opacity 1-changing fade_top @left_fade_top fade_bottom @left_fade_bottom if changing<1 {
+        slot leaving y -@left_scroll w 550 h @left_height
+      }
+      opacity changing fade_top @fade_top fade_bottom @fade_bottom {
+        slot current y -@scroll w 550 h @content
+      }
+    }
+    // .settings-scrollbar: the pointer on it, seen or not, brings it up and keeps it.
+    if @overflow {
+      hit track note track (835, 187, 8, 403) hit_if @open
+      hit thumb (835, @thumb_y, 8, @thumb_h) hit_if @open {
+        let bar = ease(@bar_shown, 150ms) first jump again @selects ms_off 500ms
+        let bar_hover = ease(@bar_over, 120ms) first jump
+        fill alpha(mix(hl_soft, hl_pale2, bar_hover), bar) radius 5 if bar>0
+      }
+    }
+    slot popups
+    // .version .tip: over the button's right edge, 15 px, rising 4 px as it appears.
+    hit version (103, 624, 172, 20) hit_if @open if @has_version {
+      text @version style version color @hot ? hl_text : version_ink
+      let tip = ease(@hot, 150ms) first jump
+      if tip>0 {
+        let tip_w = textw(tip_small_measure, @tr.tip_changelog, 2000)+30
+        (@W-tip_w, -8-32+4*(1-tip), tip_w, 32) {
+          fill alpha(hl, tip) radius 11
+          text @tr.tip_changelog style version_tip color alpha(on_accent, tip)
+        }
+      }
+    }
+  }
+}

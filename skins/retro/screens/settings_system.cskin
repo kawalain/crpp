@@ -1,0 +1,17 @@
+column id form y 10 {
+  use form_group text @tr.system_heading {
+    use form_check(on = @autostart) text @tr.system_autostart hit autostart
+    use form_check(on = @tray) text @tr.system_tray hit tray
+    use form_check(on = @detail) text @tr.system_detail hit detail
+    use form_hint text @tr.system_detail_hint x 18 w @W-18 after 4
+  }
+  use form_group text @tr.system_advanced {
+    use form_combo text @tr.system_release after 4 {
+      slot release_list
+    }
+    use form_check(on = @logging) text @tr.system_logging hit logging
+    use button text @tr.system_open_logs hit open_logs right @W after 6 if @logging
+    use button text @tr.system_reset hit reset right @W after 6
+  }
+}
+report height = form.bottom

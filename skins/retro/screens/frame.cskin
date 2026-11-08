@@ -1,0 +1,23 @@
+let cap = snap(caption_h)
+let band = snap(frame_w)
+fill face h cap
+use frame_ring(at = 2*@u, thick = band-2*@u, top = cap, left = face, right = face, bottom = face)
+use frame_ring(at = @u, thick = @u, top = @u, left = edge_soft, right = edge_dark, bottom = edge_dark)
+use frame_ring(at = 0, thick = @u, top = 0, left = edge_light, right = edge_out, bottom = edge_out)
+fill edge_soft (@u, @u, @W-3*@u, @u)
+fill edge_light w @W-@u h @u
+fill @active ? caption : caption_idle (band, band, @W-2*band, cap-band) across
+picture droplet (band+1, band+1, 16, 16)
+let button_left = @W-frame_button_right-frame_button
+let minimize_left = button_left-frame_button-frame_button_gap
+let title_end = @minimize ? minimize_left : @close ? button_left : @W
+text @title (band+20, band, max(0, title_end-band-24), cap-band) style caption color caption_ink
+use caption_button (minimize_left, frame_button_top, frame_button, frame_button-2) hit minimize if @minimize
+use caption_button(is_close = 1) (button_left, frame_button_top, frame_button, frame_button-2) hit close if @close
+(frame_w, caption_h, @W-2*frame_w, menu_h) if @menu_shown {
+  fill face
+  fill edge_dark y @H-1 h 1
+  use menu_title(open = @open_menu==0) id one text @tr.menu_file hit menu hit_index 0 note menu_0
+  use menu_title(open = @open_menu==1) id two text @tr.menu_tools hit menu hit_index 1 note menu_1 x one.right
+  use menu_title(open = @open_menu==2) text @tr.menu_help hit menu hit_index 2 note menu_2 x two.right
+}

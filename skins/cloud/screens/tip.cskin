@@ -1,0 +1,27 @@
+// @look: 0 .tip, 1 .host-tip, 2 .copy-tip, 3 .link-tip, 4 .volume-tooltip, 5 a member's.
+let volume = @look==4
+let small = @look==1 || @look==5
+let shown = ease(@on, volume ? 120 : 150) again @again ms_off volume ? 120 : @look==2 ? 350 : 150
+report shown = shown
+// @keyframes tip-shake, when a switch refuses.
+let shake = ease(1, 320ms) first jump again @shakes curve linear
+let shake_dx = shake<0.2 ? -7*ease(shake/0.2) : shake<0.4 ? -7+14*ease((shake-0.2)/0.2) : shake<0.6 ? 7-11*ease((shake-0.4)/0.2) : shake<0.8 ? -4+7*ease((shake-0.6)/0.2) : 3-3*ease((shake-0.8)/0.2)
+if shown>0 {
+  let pad_x = volume ? 9 : 15
+  let pad_y = volume ? 3 : 5
+  let gap = volume ? 11 : @look==5 ? -2 : @look==3 ? 6 : 8
+  let slide = volume || @look==3 ? 0 : 4
+  let line_w = volume ? textw(tip_volume_measure, @text, 2000) : small ? textw(tip_small_measure, @text, 2000) : textw(tip_measure, @text, 2000)
+  let line_h = volume ? texth(tip_volume_measure, @text, 2000) : small ? texth(tip_small_measure, @text, 2000) : texth(tip_measure, @text, 2000)
+  let box_w = line_w+2*pad_x+1
+  let box_h = line_h+2*pad_y
+  // Lines up with the middle, the left or the right of what it is about.
+  let wanted = @place==2 ? @anchor_x+@anchor_w-box_w : @place==1 ? @anchor_x : @anchor_x+(@anchor_w-box_w)/2
+  (max(4, min(wanted, @W-box_w-4))+shake_dx, @anchor_y-gap-box_h+slide*(1-shown), box_w, box_h) {
+    fill alpha(volume ? volume_tip : hl, shown) radius volume ? 13 : 11
+    text @text (pad_x, pad_y, @W-2*pad_x, @H-2*pad_y) style tip_volume_text color alpha(white, shown) if volume
+    text @text (pad_x, pad_y, @W-2*pad_x, @H-2*pad_y) style tip_small_text color alpha(on_accent, shown)
+        if !volume && small
+    text @text (pad_x, pad_y, @W-2*pad_x, @H-2*pad_y) style tip_text color alpha(on_accent, shown) if !volume && !small
+  }
+}

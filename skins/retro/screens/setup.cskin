@@ -1,0 +1,23 @@
+let col_w = min(380, @W-32) if !@failed
+x (@W-col_w)/2 y @H/2-60 w col_w if !@failed {
+  text @message style paragraph_center color ink h 26
+  use progress(percent = @percent) y 46 h 8
+  text @percent_text style body_center color ink y 64 h 22
+  text @detail style body_center color ink y 88 h 22
+}
+// A question with two answers, as dialog.jsonc lays one out, on a raised box of its own.
+let card_w = min(dialog_wide_width, @W-40) if @failed
+let text_w = card_w-2*dialog_pad_x if @failed
+let text_h = texth(paragraph, @message, text_w) if @failed
+let card_h = dialog_pad_top+text_h+dialog_gap+dialog_button_h+dialog_pad_bottom if @failed
+(round((@W-card_w)/2), round((@H-card_h)/2), card_w, card_h) snap if @failed {
+  fill face
+  use raised
+  hit card
+  text @message (dialog_pad_x, dialog_pad_top, text_w, text_h) style paragraph color ink
+  let row_x = (card_w-2*dialog_button_w-dialog_button_gap)/2
+  let row_y = @H-dialog_pad_bottom-dialog_button_h
+  use button(primary = 1) (row_x, row_y, dialog_button_w, dialog_button_h) text @tr.setup_retry hit retry
+  use button (row_x+dialog_button_w+dialog_button_gap, row_y, dialog_button_w, dialog_button_h) text @tr.setup_quit
+      hit quit
+}

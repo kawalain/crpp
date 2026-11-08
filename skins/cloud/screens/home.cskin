@@ -1,0 +1,50 @@
+// Sky: the large cloud at lower right, then the create cloud at upper left, whose shape takes the click.
+use cloud(scale = 1.3906, shadow = 0.09, sigma = 6) (306.33, 295.56)
+hit create hit_path_at (-66.0667, 100.9)
+    hit_path "M388.527 317.44H101.915C54.679 317.44 16.386 279.073 16.386 231.744c0-42.356 30.678-77.512 70.979-84.436-.747-4.387-1.158-8.888-1.158-13.489 0-44 35.6-79.669 79.513-79.669 14.343 0 27.786 3.824 39.404 10.482C226.646 30.651 264.524 8.095 307.663 8.095c63.092 0 114.932 48.241 120.801 109.916 37.233 15.702 63.375 52.597 63.375 95.613 0 57.208-46.238 103.593-103.312 103.69Z" {
+  let grow = ease(@hot, 160ms)
+  about (182, 260) scale 1+0.03*grow {
+    use cloud(shadow = 0.06, sigma = 3.742) (-66.0667, 100.9)
+    text @tr.home_create style center size 44 line_height 110 color hl_text y 318 w 458 h 110
+  }
+}
+text @greeting (440, 108, 420, 44) style center size 44 line_height 44 color @dark ? hl_text_dark : white
+text @hello (440, 165, 420, 44) style center size 44 line_height 44 color @dark ? hl_text_dark : white
+text @tr.home_find (470, 452, 400, 60) style plain size 40 line_height 60 color hl_text
+// The code, which grows a little while it has the focus.
+let focus = ease(@code_focus, 150ms)
+let faint = @dark ? hl_text_soft : alpha(white, 0.85)
+(469, 522, 279, 80) scale 1+0.012*focus {
+  fill entry radius 18
+  field code (18, 10, 205, 60) style code color @dark ? hl_text : on_accent placeholder @tr.home_code_placeholder
+      placeholder_style code_placeholder placeholder_color faint caret @dark ? hl_text : on_accent
+      selection alpha(hl, 0.4)
+  hit code
+  hit join (221, 10, 52, 60) {
+    let over = ease(@hot, 150ms)
+    fill alpha(@dark ? hl_soft : mix(entry, white, 40%), over) radius 13 if over>0
+    path "M10 22h23M23 11l11 11-11 11" (10, 14)
+        color mix(@dark ? hl_text_dark : hl_text, @dark ? hl_text_soft : faint, over) scale 32/44 width 3
+  }
+}
+// Public room search. A held Seat lights it.
+hit find (759, 522, 92, 80) {
+  let over = ease(@hot, 150ms)
+  let grow = ease(@hot, 140ms)
+  let light = ease(@returning, 150ms)
+  let shown = ease(@find_tip, 150ms)
+  scale 1+0.05*grow {
+    fill mix(hl_dark, mix(hl, entry, light), over) radius 18
+    let rest = @dark ? mix(on_accent, hl_text_soft, light) : faint
+    let icon = mix(on_accent, rest, over)
+    (25, 19, 44, 44) about (25, 19) scale 42/44 {
+      stroke icon (8, 8, 22, 22) ellipse width 3.2
+      line icon (27.5, 27.5) to (37, 37) width 3.2
+    }
+    // The label is the button's child, so it grows with it.
+    if shown>0 {
+      let tip_w = textw(tip, @tr.home_find_public, 600)+30
+      use tip(shown = shown) ((@W-tip_w)/2, -40+4*(1-shown), tip_w, 32) text @tr.home_find_public
+    }
+  }
+}

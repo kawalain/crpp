@@ -1,0 +1,11 @@
+// .volume-tooltip, over the thumb.
+let shown = ease(@on, 120ms)
+if shown>0 {
+  let box_w = textw(slider_value_measure, @text, 200)+18
+  let middle = @track_x+slider_thumb/2+@percent/100*(244-slider_thumb)
+  (middle-box_w/2, @track_y+3.5-26-11, box_w, 26) {
+    shadow alpha(tip_shadow, 0.2*shown) radius 13 blur 8 dy 2
+    fill alpha(volume_tip, shown) radius 13
+    text @text style slider_value color alpha(white, shown)
+  }
+}

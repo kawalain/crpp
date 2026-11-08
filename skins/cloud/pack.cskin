@@ -1,0 +1,424 @@
+pack cloud format 1
+
+names ko "구름" en "Cloud"
+
+theme cumulus names ko "뭉게구름" en "Cumulus" dark darkcloud
+theme pastel names ko "파스텔" en "Pastel"
+
+default_theme cumulus
+
+constants {
+  own_frame 0
+  moves 1
+  hold_wait_ms 400
+  hold_repeat_ms 50
+  scroll_settle_ms 32
+  scroll_return_ms 52
+  scroll_stretch 48
+  edge_fade 27
+  screen_fade_ms 180
+  screen_rise 8
+  speaking_hold_ms 160
+  speaking_fade_ms 100
+  list_pad 6
+  list_item_h 38
+  list_gap 4
+  list_max_h 224
+  list_margin 6
+  slider_thumb 21
+}
+
+palette cumulus {
+  white #ffffff
+  blue #3a9af0
+  hl #66ccff
+  sky #66ccff
+  hl_text #66ccff
+  hl_soft mix(hl, white, 70%)
+  hl_dark mix(hl, blue, 88%)
+  hl_text_soft mix(hl_text, white, 65%)
+  hl_text_dark mix(hl_text, blue, 88%)
+  hl_pale mix(hl, white, 14%)
+  hl_pale2 mix(hl, white, 28%)
+  hl_mid mix(hl, white, 55%)
+  surface #ffffff
+  on_accent #ffffff
+  droplet #ffffff
+  entry #bbe1fd
+  error_text #df7373
+  ink_strong #2e5f80
+  cloud_base #f3f9ff
+  cloud_gradient stops(0: #ffffff, 1: #eff8ff)
+  room_cloud stops(0: #ffffff, 0.42: #f3f8fe, 0.8: #f1f8ff, 1: #e0eefb)
+  room_cloud_shadow #2f6f99
+  fab_shadow #2e6498
+  alarm #fa5462
+  cloud_shadow #4f7b99
+  backdrop #365669
+  panel_shadow #2e78aa
+  info_shadow #2e78aa
+  hint_ink #94b8ca
+  volume_tip #75ccff
+  black #000000
+  switch_off #cfe3ef
+  toggle_off #cddfea
+  version_ink #8a94a0
+  tip_shadow #2e648c
+  panel_cloud #f7fcff
+  knob_shadow #608ba3
+}
+
+palette darkcloud {
+  white #ffffff
+  blue #3a9af0
+  hl #4d7fab
+  hl_dark #6393be
+  hl_soft #3b5878
+  hl_text #d0dfed
+  hl_text_soft #a0b4c9
+  hl_text_dark #ecf3fa
+  hl_pale #293a50
+  hl_pale2 #344a63
+  hl_mid #3c536e
+  sky #101925
+  surface #233145
+  on_accent #eef5fb
+  droplet #27374c
+  error_text #f39b9b
+  entry #344a63
+  ink_strong #ecf3fa
+  cloud_base #27374c
+  cloud_gradient stops(0: #27374c, 1: #27374c)
+  room_cloud stops(0: #27374c, 1: #27374c)
+  room_cloud_shadow #2f6f99
+  fab_shadow #2e6498
+  alarm #fa5462
+  cloud_shadow #000000
+  backdrop #365669
+  panel_shadow #000000
+  info_shadow #2e78aa
+  hint_ink #a0b4c9
+  volume_tip #75ccff
+  black #000000
+  switch_off #cfe3ef
+  toggle_off #cddfea
+  version_ink #8a94a0
+  tip_shadow #2e648c
+  panel_cloud #f7fcff
+  knob_shadow #000000
+}
+
+palette pastel {
+  white #ffffff
+  blue #3a9af0
+  hl #b1dafd
+  sky #b1dafd
+  hl_text #b1dafd
+  hl_soft mix(hl, white, 70%)
+  hl_dark mix(hl, blue, 88%)
+  hl_text_soft mix(hl_text, white, 65%)
+  hl_text_dark mix(hl_text, blue, 88%)
+  hl_pale mix(hl, white, 14%)
+  hl_pale2 mix(hl, white, 28%)
+  hl_mid mix(hl, white, 55%)
+  surface #ffffff
+  on_accent #ffffff
+  droplet #ffffff
+  entry #bbe1fd
+  error_text #df7373
+  ink_strong #2e5f80
+  cloud_base #f3f9ff
+  cloud_gradient stops(0: #ffffff, 1: #eff8ff)
+  room_cloud stops(0: #ffffff, 0.42: #f3f8fe, 0.8: #f1f8ff, 1: #e0eefb)
+  room_cloud_shadow #2f6f99
+  fab_shadow #2e6498
+  alarm #fa5462
+  cloud_shadow #4f7b99
+  backdrop #365669
+  panel_shadow #2e78aa
+  info_shadow #2e78aa
+  hint_ink #94b8ca
+  volume_tip #75ccff
+  black #000000
+  switch_off #cfe3ef
+  toggle_off #cddfea
+  version_ink #8a94a0
+  tip_shadow #2e648c
+  panel_cloud #f7fcff
+  knob_shadow #608ba3
+}
+
+style plain size 16 line_height 0
+style center size 16 line_height 0 align center
+style code size 34 line_height 60 letter_spacing 2.72
+style code_placeholder size 26 line_height 60
+style tip size 16 weight 700 line_height 22 align center
+style modal_text size 18 weight 700 line_height 27 align center wrap
+style dialog_text size 18 weight 700 line_height 27 align center wrap keep_words
+style button size 16 weight 700 line_height 0 align center
+style toast_text size 15 weight 700 line_height 22 wrap
+style toast_action size 15 weight 700 line_height 32 align center
+style bubble_text size 16 weight 700 line_height 22 align center wrap
+style tip_text size 16 weight 700 line_height 22 align center wrap
+style tip_small_text size 15 weight 700 line_height 22 align center wrap
+style tip_volume_text size 15 line_height 20 align center wrap
+style tip_measure size 16 weight 700 line_height 22
+style tip_small_measure size 15 weight 700 line_height 22
+style tip_volume_measure size 15 line_height 20
+style notice_text size 16 line_height 23 wrap
+style notice_label size 15 weight 700 line_height 34 align center
+style update_text size 15 weight 700 line_height 22 ellipsis
+style update_label size 15 weight 700 line_height 32 align center
+style setup_message size 18 weight 700 line_height 26 align center wrap
+style setup_percent size 15 line_height 22 align center
+style dropdown size 17 weight 700 line_height 0 ellipsis
+style list_item size 16 line_height 20 ellipsis
+style list_item_selected size 16 weight 700 line_height 20 ellipsis
+style list_heading size 14 weight 700 line_height 20 align center ellipsis
+style prompt_heading size 28 weight 700 line_height 36 align center
+style prompt_label size 17 weight 700 line_height 22
+style prompt_input size 23 line_height 58
+style prompt_hint size 14 line_height 21 wrap
+style prompt_button size 15 line_height 20 align center
+style settings_tab size 20 line_height 37
+style settings_tab_active size 20 weight 700 line_height 37
+style version size 14 line_height 20 align right
+style version_tip size 15 weight 700 line_height 32 align center
+style droplet_tip size 16 weight 700 line_height 32 align center
+style heading size 26 weight 700 line_height 32
+style subheading size 21 weight 700 line_height 28
+style row_label size 18 line_height 26
+style row size 18 line_height 36
+style row_hint size 14 line_height 20 wrap
+style text_button size 16 line_height 0 align center
+style account_button size 17 line_height 0 align center
+style slider_value size 15 line_height 26 align center
+style slider_value_measure size 15 line_height 20
+style balance_title size 16 line_height 24
+style balance_word size 16 weight 700 line_height 24 align right
+style balance_hint size 14 line_height 20
+style person_me size 16 weight 700 line_height 20 align center
+style sample_time size 14 line_height 20 align right
+style sample_nick size 15 line_height 20 ellipsis
+style sample_text size 17 line_height 19
+style preview_tip size 14 weight 700 line_height 26 align center
+style preview_tip_measure size 14 weight 700 line_height 20
+style account_nickname size 24 weight 700 line_height 30 ellipsis
+style account_handle size 16 line_height 20 ellipsis
+style account_display size 28 weight 700 line_height 34 ellipsis
+style account_tip size 16 weight 700 line_height 22 align center
+style modal_button_measure size 16 weight 700 line_height 0
+style member_name size 21 weight 700 line_height 26 ellipsis
+style room_label size 20 weight 700 line_height 41
+style room_code size 20 weight 700 line_height 41 align right letter_spacing 0.4
+style volume_text size 16 weight 700 line_height 22
+style menu_item size 17 weight 700 line_height 22
+style profile_stat size 17 line_height 17*1.9 ellipsis
+style chat_input size 17 line_height 22 wrap
+style chat_body size 17 line_height 19 wrap
+style chat_time size 14 line_height 20 align right
+style chat_nick size 15 line_height 20 ellipsis
+style calm size 34 weight 800 line_height 34*1.35
+style note_title size 28 weight 800 line_height 36 wrap
+style note_date size 17 line_height 24 wrap
+style note_version size 14 line_height 20
+style note_heading size 18 weight 800 line_height 26 wrap
+style note_item size 16 line_height 24.8 wrap
+style note_failed size 18 weight 700 line_height 27 align center
+style note_hint size 15 weight 700 line_height 22 align center wrap
+
+// Upstream's cloud, set at this box's corner, with a soft shadow in the light Themes.
+part cloud(scale = 1, shadow = 0, sigma = 0) {
+  path "M388.527 317.44H101.915C54.679 317.44 16.386 279.073 16.386 231.744c0-42.356 30.678-77.512 70.979-84.436-.747-4.387-1.158-8.888-1.158-13.489 0-44 35.6-79.669 79.513-79.669 14.343 0 27.786 3.824 39.404 10.482C226.646 30.651 264.524 8.095 307.663 8.095c63.092 0 114.932 48.241 120.801 109.916 37.233 15.702 63.375 52.597 63.375 95.613 0 57.208-46.238 103.593-103.312 103.69Z"
+      color alpha(cloud_shadow, shadow) blur sigma*3 dy 6/scale scale scale if !@dark
+  path "M388.527 317.44H101.915C54.679 317.44 16.386 279.073 16.386 231.744c0-42.356 30.678-77.512 70.979-84.436-.747-4.387-1.158-8.888-1.158-13.489 0-44 35.6-79.669 79.513-79.669 14.343 0 27.786 3.824 39.404 10.482C226.646 30.651 264.524 8.095 307.663 8.095c63.092 0 114.932 48.241 120.801 109.916 37.233 15.702 63.375 52.597 63.375 95.613 0 57.208-46.238 103.593-103.312 103.69Z"
+      color cloud_base scale scale
+  path "M388.527 317.44H101.915C54.679 317.44 16.386 279.073 16.386 231.744c0-42.356 30.678-77.512 70.979-84.436-.747-4.387-1.158-8.888-1.158-13.489 0-44 35.6-79.669 79.513-79.669 14.343 0 27.786 3.824 39.404 10.482C226.646 30.651 264.524 8.095 307.663 8.095c63.092 0 114.932 48.241 120.801 109.916 37.233 15.702 63.375 52.597 63.375 95.613 0 57.208-46.238 103.593-103.312 103.69Z"
+      color cloud_gradient scale scale from_y 8 to_y 318
+}
+
+// .tip: its box is the label's own, and it rises 4 px as it fades in.
+part tip(shown = 1) {
+  fill alpha(hl, shown) radius 11
+  text @label (15, 5, @W-29, 22) style tip color alpha(on_accent, shown)
+}
+
+// .modal-backdrop's fade is a little shorter than the card's rise.
+part backdrop(shown = 1) {
+  fill alpha(backdrop, 0.34*min(1, shown*160/140))
+}
+
+// .modal-backdrop and .modal-card, in the window. What is in it goes in its box, and it rises 6 px.
+part modal(card_w = 320, card_h = 100, shown = 1, backdrop_hit = -1, card_hit = -1) {
+  use backdrop(shown = shown)
+  hit_by backdrop_hit
+  let left = (@W-card_w)/2
+  let top = (@H-card_h)/2+6*(1-shown)
+  shadow alpha(panel_shadow, (@dark ? 0.33 : 0.22)*shown) (left, top, card_w, card_h) radius 14 blur @dark ? 38 : 16
+      dy @dark ? 12 : 4
+  fill alpha(surface, shown) (left, top, card_w, card_h) radius 14
+  (left, (@H-card_h)/2, card_w, card_h) hit_by card_hit
+  (left, top, card_w, card_h) {
+    content
+  }
+}
+
+// A panel whose shadow follows the dark Theme, as upstream's CSS has .modal-card and its lists.
+part panel_list(shown = 1) {
+  shadow alpha(panel_shadow, (@dark ? 0.33 : 0.22)*shown) radius 14 blur @dark ? 38 : 16 dy @dark ? 12 : 4
+  fill alpha(surface, shown) radius 14
+}
+
+// A message that floats over a screen.
+part bubble(shown = 1) {
+  fill alpha(hl, shown) radius 11
+}
+
+// One that keeps the light Theme's shadow in the dark one.
+part panel_info(shown = 1) {
+  shadow alpha(info_shadow, 0.22*shown) radius 14 blur 16 dy 4
+  fill alpha(surface, shown) radius 14
+}
+
+// .modal-confirm when primary, else .modal-cancel; other sizes for .update-button and a toast's.
+part button(primary = 1, shown = 1, radius = 10, grow = 1.04, size = 16) {
+  scale @hot ? grow : 1 {
+    fill alpha(primary ? (@hot ? hl_dark : hl) : (@hot ? hl_soft : hl_pale2), shown) radius radius
+    text @label style button size size line_height @H color alpha(primary || @hot ? on_accent : hl_text, shown)
+  }
+}
+
+part notice_button(primary = 1) {
+  fill @hot ? hl_dark : hl radius @H/2 if primary
+  fill hl_pale radius @H/2 if !primary && @hot
+  text @label style notice_label line_height @H color primary ? on_accent : ink_strong
+}
+
+part prompt_button {
+  scale @hot ? 1.03 : 1 {
+    fill @hot ? hl_dark : hl radius 10
+    text @label style prompt_button color on_accent y 8 h 20
+  }
+}
+
+// The accent color is the sky's, so both parts are drawn in the surface color.
+part progress(percent = 0) {
+  fill alpha(surface, 0.35) radius 4
+  fill surface radius 4 w max(@H, @W*percent/100)
+}
+
+part dropdown(open = 0, off = 0) {
+  let a = off ? 0.5 : 1
+  fill alpha(open ? hl_soft : @hot ? hl_dark : hl, a) radius 10
+  text @label style dropdown line_height @H color alpha(on_accent, a) x 12 w @W-48
+  let cx = @W-13-7
+  let cy = @H/2
+  line alpha(white, a) (cx-6, cy-3) to (cx, cy+3) width 2
+  line alpha(white, a) (cx, cy+3) to (cx+6, cy-3) width 2
+}
+
+part settings_tab(active = 0) {
+  let lit_up = ease(active, 150ms) first jump
+  let over = ease(@hot, 150ms) first jump
+  let grow = ease(@hot, 140ms) first jump
+  let lit = max(lit_up, over)
+  scale 1+0.04*grow {
+    fill alpha(mix(hl, hl_soft, lit_up), lit) radius 9 if lit>0
+    text @label style settings_tab_active color mix(on_accent, hl_text_soft, lit) x 10 w @W-20 if active
+    text @label style settings_tab color mix(on_accent, hl_text_soft, lit) x 10 w @W-20 if !active
+  }
+}
+
+// .toggle-row: only the switch is clickable.
+part toggle(on = 0, hit = -1) {
+  text @label style row color hl_text w @W-50-16
+  (@W-50, 5, 50, 26) hit_by hit {
+    let at = ease(on, 160ms) first jump
+    let shade = ease(@hot, 150ms) first jump
+    fill mix(hl, @dark ? hl_pale2 : toggle_off, at) radius 13
+    fill alpha(black, 0.05*shade) radius 13 if shade>0
+    let cx = 13+24*at
+    // box-shadow: 0 1px 3px
+    fill alpha(knob_shadow, 0.33*0.5) (cx-11, 3, 22, 22) ellipse
+    fill alpha(knob_shadow, 0.33) (cx-10.5, 3.5, 21, 21) ellipse
+    fill @dark ? mix(on_accent, hl_text_soft, at) : surface (cx-10, 3, 20, 20) ellipse
+  }
+}
+
+part switch(on = 0, off = 0, ms = 160) {
+  let a = off ? 0.5 : 1
+  let at = ease(on, ms) first jump
+  let track = on ? hl : (@dark ? hl_pale2 : switch_off)
+  fill alpha(@hot && !off ? mix(black, track, 5%) : track, a) radius 14
+  fill alpha(@dark ? (on ? on_accent : hl_text_soft) : surface, a) (3+(@W-@H)*at, 3, @H-6, @H-6) ellipse
+}
+
+part slider(at = 0) {
+  let pos = slider_thumb/2+(@W-slider_thumb)*at
+  fill hl_pale2 radius 3 y @H/2-3 h 6
+  fill hl radius 3 y @H/2-3 w pos h 6
+  fill hl (pos-slider_thumb/2, @H/2-slider_thumb/2, slider_thumb, slider_thumb) ellipse
+  fill @dark ? hl_text_dark : surface (pos-slider_thumb/2+2, @H/2-slider_thumb/2+2, slider_thumb-4, slider_thumb-4)
+      ellipse
+}
+
+// .open-logs and .reset-settings: filled, grows a little under the pointer.
+part text_button {
+  let over = ease(@hot, 150ms) first jump
+  scale 1+(1.03-1)*over {
+    fill mix(hl_dark, hl, over) radius 8
+    text @label style text_button line_height @H color on_accent
+  }
+}
+
+// .account-buttons
+part account_button {
+  scale @hot ? 1.03 : 1 {
+    fill @hot ? hl_dark : hl radius 8
+    text @label style account_button line_height @H color on_accent
+  }
+}
+
+// .person: a head and a body, in its box of 46 by 62.
+part person(a = 1, marked = 0) {
+  let ink = alpha(hl, a)
+  fill ink ellipse x 9 w 28 h 28
+  path "M0 23A23 23 0 0 1 46 23V33A4 4 0 0 1 42 37H4A4 4 0 0 1 0 33Z" color ink y 25
+  text @tr.sound_me style person_me color alpha(on_accent, a) y 36 h 20 if marked
+}
+
+// .fab, and what is in it in the middle of its box of 42.
+part fab(alarmed = 0) {
+  scale @hot ? 1.08 : 1 {
+    shadow alpha(fab_shadow, 0.16) radius 21 blur 8 dy 2
+    fill alarmed ? alarm : @dark ? cloud_base : surface radius 21
+    content
+  }
+}
+
+part menu_item(active = 0, off = 0) {
+  fill active ? (@hot ? hl_dark : hl) : hl_soft radius 9 if active || @hot
+  text @label (12, 8, @W-24, 22) style menu_item color alpha(active || @hot ? on_accent : hl_text, off ? 0.45 : 1)
+}
+
+part cell(selected = 0) {
+  fill hl_soft radius 10 if selected
+  fill hl_pale2 radius 10 if !selected && @hot
+}
+
+// li: padding 9 12, 20 tall.
+part list_item(selected = 0) {
+  fill hl radius 9 if selected
+  fill hl_soft radius 9 if !selected && @hot
+  text @label (12, 9, @W-24, 20) style list_item_selected color on_accent if selected
+  text @label (12, 9, @W-24, 20) style list_item color @hot ? on_accent : hl_text if !selected
+}
+
+// Not upstream's: the name of what follows, between lines.
+part list_heading {
+  let tw = min(textw(list_heading, @label), @W-24-56)
+  let mid = floor(@Y+@H/2+0.5)-@Y
+  fill alpha(hl_text, 0.3) (12, mid, @W/2-tw/2-10-12, 1)
+  fill alpha(hl_text, 0.3) (@W/2+tw/2+10, mid, @W/2-tw/2-10-12, 1)
+  text @label (@W/2-tw/2, (@H-20)/2, tw, 20) style list_heading color alpha(hl_text, 0.75)
+}

@@ -610,28 +610,28 @@ void test_the_pack_says_how_windows_are_measured() {
   CHECK(h.start(640, 500));
   h.app.set_theme("luna_blue");
   h.app.show_home();
-  CHECK(h.app.load_skin_dir(pack_with("overlays/luna/pack.jsonc", R"("caption_h": 28)", R"("caption_h": 40)")).has_value());
+  CHECK(h.app.load_skin_dir(pack_with("overlays/luna/pack.cskin", "caption_h 28", "caption_h 40")).has_value());
   CHECK(h.app.frame_metrics().caption_h == 40);
   CHECK(WindowFrame::zone_at(100, 35, 640, 500, {}, h.app.frame_metrics()) == WindowFrame::Zone::Caption);
   h.render();
   CHECK(h.app.ui().content.y == 60);
-  CHECK(h.app.load_skin_dir(pack_with("pack.jsonc", R"("window_home_w": 300)", R"("window_home_w": 333)")).has_value());
+  CHECK(h.app.load_skin_dir(pack_with("pack.cskin", "window_home_w 300", "window_home_w 333")).has_value());
   CHECK(h.app.screen_size().w == 333);
-  CHECK(h.app.load_skin_dir(pack_with("pack.jsonc", R"("window_options_min_h": 440)", R"("window_options_min_h": 444)")).has_value());
+  CHECK(h.app.load_skin_dir(pack_with("pack.cskin", "window_options_min_h 440", "window_options_min_h 444")).has_value());
   CHECK(h.app.pane_info(Pane::Options).min_h == 444);
-  CHECK(h.app.load_skin_dir(pack_with("overlays/luna/pack.jsonc", R"("korean_size": 12)", R"("korean_size": 15)")).has_value());
+  CHECK(h.app.load_skin_dir(pack_with("overlays/luna/pack.cskin", "korean_size 12", "korean_size 15")).has_value());
   h.app.ui().gfx.set_language(L"ko");
   CHECK(h.app.ui().gfx.classic_size() == 15);
   // A pack that moves says the numbers of what moves in the engine.
-  CHECK(!h.app.load_skin_dir(pack_with("pack.jsonc", R"("moves": 0)", R"("moves": 1)")).has_value());
-  CHECK(h.app.load_skin_dir(pack_with("pack.jsonc", R"("moves": 0)",
-                                      R"("moves": 1, "scroll_settle_ms": 10, "scroll_return_ms": 20, "scroll_stretch": 30, "edge_fade": 9, "screen_fade_ms": 40, "screen_rise": 2, "speaking_hold_ms": 50, "speaking_fade_ms": 60)")).has_value());
+  CHECK(!h.app.load_skin_dir(pack_with("pack.cskin", "moves 0", "moves 1")).has_value());
+  CHECK(h.app.load_skin_dir(pack_with("pack.cskin", "moves 0",
+                                      "moves 1 scroll_settle_ms 10 scroll_return_ms 20 scroll_stretch 30 edge_fade 9 screen_fade_ms 40 screen_rise 2 speaking_hold_ms 50 speaking_fade_ms 60")).has_value());
   CHECK(h.app.ui().skin().moves());
   CHECK(h.app.ui().motion.scroll_stretch == 30);
   CHECK(h.app.ui().motion.speaking_fade_ms == 60);
 
   // A number the program reads may not be missing.
-  const auto refused = h.app.load_skin_dir(pack_with("pack.jsonc", R"("window_room_h": 500, )", ""));
+  const auto refused = h.app.load_skin_dir(pack_with("pack.cskin", "window_room_h 500", ""));
   CHECK(!refused.has_value());
   if (!refused) CHECK(refused.error().find("window_room_h") != std::string::npos);
   std::error_code ignored;

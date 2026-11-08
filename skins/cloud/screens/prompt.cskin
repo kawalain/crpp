@@ -1,0 +1,52 @@
+// .setup-card
+let card_w = min(440, @W*0.78)
+let inner = card_w-2*30
+let hint_h = max(24, texth(prompt_hint, @hint, inner-8))
+let has_actions = @has_extra || @cancelable
+let card_h = 28+26+(@has_heading ? 36+26 : 0)+(@has_label ? 22+10 : 0)+68+11+hint_h+(has_actions ? 14+36 : 0)+(@has_link ? 14+36 : 0)
+((@W-card_w)/2, (@H-card_h)/2, card_w, card_h) {
+  use panel_list
+  column x 30 y 28 w inner {
+    text @heading style prompt_heading color hl_text h 36 after 26 if @has_heading
+    text @label style prompt_label color hl_text x 4 w @W-4 h 22 after 10 if @has_label
+    // .setup-input-wrap: 20 of padding, then the text, the eye and the arrow.
+    h 68 after 11 {
+      fill hl_pale radius 16
+      hit field
+      text @prefix (20, 5, 40, 58) style prompt_input color hl_text if @has_prefix
+      let text_left = 20+(@has_prefix ? textw(prompt_input, @prefix, 40)+2 : 0)
+      // The arrow: 44 square, lit when the value can go.
+      let can = @valid && !@locked
+      let faded = @busy || @locked ? 0.6 : 1
+      hit submit (@W-12-44, 12, 44, 44) live can && !@busy {
+        fill alpha(@hot ? hl_dark : hl, faded) radius 13 if can
+        path "M10 22h23M23 11l11 11-11 11" (7, 7) color alpha(can ? on_accent : hl_text_soft, faded) scale 30/44 width 3
+      }
+      let text_right = @W-12-44-(@password ? 40 : 0)
+      hit eye (text_right, 16, 36, 36) if @password {
+        fill hl_pale2 radius 10 if @hot
+        path "M2 12s3.6-7 10-7 10 7 10 7-3.6 7-10 7S2 12 2 12Z" (7, 7) color hl_text scale 22/24 width 2
+        (7, 7, 24, 24) about (7, 7) scale 22/24 {
+          stroke hl_text (9, 9, 6, 6) ellipse width 2
+        }
+        path "M4 4l16 16" (7, 7) color hl_text scale 22/24 width 2 if @shown
+      }
+      // The input, scrolled sideways so the caret stays in view.
+      slot field (text_left, 5, text_right-8-text_left, 58) styles (prompt_input)
+          colors (hl_text, hl_text_soft, hl_text, alpha(hl, 0.4), hl_pale)
+    }
+    // .setup-hint
+    text @hint style prompt_hint color @hint_error ? error_text : hint_ink x 4 w @W-8 h hint_h
+    let back_w = textw(prompt_button, @tr.prompt_back, @W)+32
+    let extra_w = @has_extra ? textw(prompt_button, @extra, @W)+32 : 0
+    let extra2_w = @has_extra2 ? textw(prompt_button, @extra2, @W)+32 : 0
+    let link_w = @has_link ? textw(prompt_button, @link, @W)+32 : 0
+    y @flow+14 h 36 if has_actions {
+      use prompt_button text @tr.prompt_back hit back live !@busy w back_w if @cancelable
+      use prompt_button text @extra2 hit extra2 live !@busy x @W-extra2_w w extra2_w if @has_extra && @has_extra2
+      use prompt_button text @extra hit extra live !@busy x @W-(@has_extra2 ? extra2_w+10 : 0)-extra_w w extra_w
+          if @has_extra
+    }
+    use prompt_button ((@W-link_w)/2, @flow+14, link_w, 36) text @link hit link live !@busy if @has_link
+  }
+}

@@ -1,0 +1,13 @@
+let item_h = 22
+let volume_h = @self ? 0 : 46
+let box_w = @self ? 128 : 154
+let box_h = 2+2*item_h+volume_h
+(max(8, min(@point_x, @W-box_w-8)), max(8, min(@point_y, @H-box_h-8)), box_w, box_h) {
+  use panel_menu
+  hit card
+  use menu_item (1, 1, @W-2, item_h) text @profile hit profile
+  text @volume_label (13, 1+item_h+6, @W-26, 22) style body color ink if !@self
+  use slider(at = @volume/100) (13, 1+item_h+36, @W-26, 14) hit slider note track if !@self
+  use menu_item(active = @muted, off = @self) (1, 1+item_h+volume_h, @W-2, item_h) text @mute hit mute hit_if !@self
+      live !@self
+}

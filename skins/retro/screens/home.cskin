@@ -1,0 +1,47 @@
+fill face
+// Who you are.
+id header h 62 {
+  fill header
+  fill edge_dark y @H-1 h 1
+  (8, 7, 48, 48) {
+    use picture_frame
+    picture my_emoji (4, 4, 40, 40)
+  }
+  text @nickname (64, 13, @W-@x-6, 18) style bold color ink
+  text @greeting (64, 32, @W-@x-6, 16) style body color ink_soft
+}
+// A code to enter.
+id find (8, header.bottom+16, @W-16, 46) {
+  let enter_w = max(75, ceil(textw(button, @tr.home_enter))+24)
+  hit code id code (10, 13, @W-20-enter_w-6, 23) {
+    use field
+    field code style body color ink placeholder @tr.home_code_placeholder placeholder_color ink_soft caret ink
+        selection selection x 4 w @W-8
+  }
+  use button (code.right+6, code.y, enter_w, 23) text @tr.home_enter hit join
+  use group_box text @tr.home_find
+}
+// What can be started.
+id tasks y @H-66 h 66 {
+  fill header
+  fill edge_dark h 1
+  text @tr.home_tasks (10, 6, @W-20, 16) style bold color ink
+  fill link (14, 29, 8, 8)
+  use link (28, 24, @W-38, 18) text @tr.home_create hit create
+  fill link (14, 48, 8, 8)
+  use link (28, 43, @W-38, 18) text @tr.home_find_public hit find
+}
+// The Seats to go back to.
+text @tr.home_seats (10, find.bottom+16, @W-20, 16) id seats_title style bold color ink
+(8, seats_title.y+18, @W-16, max(20, tasks.y-8-@y)) {
+  use field
+  text @tr.home_seats_empty (6, 4, @W-12, @H-8) style paragraph color ink_soft if @seats==0
+  (1, 1, @W-2, @H-2) clip if @seats>0 {
+    repeat @seats {
+      hit seat y @i*20 h 20 {
+        fill select if @hot
+        text @seat style body color @hot ? select_ink : ink x 5 w @W-10
+      }
+    }
+  }
+}

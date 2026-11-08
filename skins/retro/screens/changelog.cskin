@@ -1,0 +1,30 @@
+hit card
+let pad_x = 12
+let head_top = 22
+let text_w = @W-scrollbar_w
+let head_w = text_w-2*pad_x
+let tagline_h = @has_tagline ? texth(note_title, @tagline, head_w) : 0
+let date_h = @has_date ? texth(chat_text, @date, head_w) : 0
+let version_h = @has_version ? texth(note_version, @version, head_w) : 0
+let date_y = head_top+(@has_tagline ? tagline_h+2 : 0)
+let version_y = date_y+(@has_date ? date_h+2 : 0)
+let head_end = version_y+(@has_version ? version_h : (@has_tagline || @has_date ? -2 : 0))
+let head_h = @has_tagline || @has_date || @has_version ? head_end+14 : 0
+text @tr.changelog_failed (pad_x, (@H-27)/2, @W-2*pad_x, 27) style body_center color ink if !@has_entries
+slot body y head_h h @H-head_h numbers (pad_x, 20, 4, 14, 6, 24, head_h>0 ? 0 : head_top, text_w)
+    styles (chat_text, chat_text) colors (ink)
+text @tagline (pad_x, head_top, head_w, tagline_h) style note_title color ink if @has_tagline
+text @date (pad_x, date_y, head_w, date_h) style chat_text color ink if @has_date
+text @version (pad_x, version_y, head_w, version_h) style note_version color ink_soft if @has_version
+(@W-scrollbar_w, head_h, scrollbar_w, @H-head_h) if @overflow {
+  hit bar_track
+  use scrollbar(view = @view, content = @content, offset = @offset, up = hit(bar_up), down = hit(bar_down), thumb_hit = hit(bar_thumb), track_note = note(bar_track))
+}
+x 0 if @shown_hint!=0 {
+  let bubble_w = textw(paragraph_center, @hint, @W)+30
+  let text_h = texth(paragraph_center, @hint, @W)
+  ((@W-bubble_w)/2, @shown_hint<0 ? 14 : @H-14-text_h-10, bubble_w, text_h+10) {
+    use bubble
+    text @hint style paragraph_center color tooltip_ink y 5 h text_h
+  }
+}

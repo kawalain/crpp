@@ -1,0 +1,13 @@
+// .member-menu's min-width; one with a volume row is a fifth wider, for the slider.
+let box_w = @self ? 128 : 154
+let volume_h = @self ? 0 : 6+22+8+14+10
+let box_h = 2*6+2*38+volume_h
+(max(8, min(@point_x, @W-box_w-8)), max(8, min(@point_y, @H-box_h-8)), box_w, box_h) {
+  use panel_info
+  hit card
+  use menu_item (6, 6, @W-12, 38) text @profile hit profile
+  text @volume_label (18, 6+38+6, @W-36, 22) style menu_item color hl_text if !@self
+  use slider(at = @volume/100) (18, 6+38+6+22+8, @W-36, 14) hit slider note track if !@self
+  use menu_item(active = @muted, off = @self) (6, 6+38+volume_h, @W-12, 38) text @mute hit mute hit_if !@self
+      live !@self
+}

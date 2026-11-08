@@ -1,0 +1,13 @@
+let card_w = @wide ? dialog_wide_width : dialog_width
+let text_w = card_w-2*dialog_pad_x
+let text_h = texth(paragraph, @text, text_w)
+report width = card_w
+report height = dialog_pad_top+text_h+dialog_gap+dialog_button_h+dialog_pad_bottom
+hit card
+text @text (dialog_pad_x, dialog_pad_top, text_w, text_h) style paragraph color ink
+let row_w = @has_cancel ? 2*dialog_button_w+dialog_button_gap : dialog_button_w
+let row_x = (card_w-row_w)/2
+let row_y = @H-dialog_pad_bottom-dialog_button_h
+use button(primary = 1) (row_x, row_y, dialog_button_w, dialog_button_h) text @confirm hit confirm
+use button (row_x+dialog_button_w+dialog_button_gap, row_y, dialog_button_w, dialog_button_h) text @cancel hit cancel
+    if @has_cancel

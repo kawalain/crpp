@@ -1,0 +1,101 @@
+// The cloud, four circles and a rectangle, on the stage. Everything else keeps its size in the window.
+(@stage_x, @stage_y, 951, 692) scale @scale origin {
+  path "F1 M461 190A169 169 0 0 1 292 359A169 169 0 0 1 123 190A169 169 0 0 1 292 21A169 169 0 0 1 461 190Z M860 160A250 250 0 0 1 610 410A250 250 0 0 1 360 160A250 250 0 0 1 610 -90A250 250 0 0 1 860 160Z M1045 400A185 185 0 0 1 860 585A185 185 0 0 1 675 400A185 185 0 0 1 860 215A185 185 0 0 1 1045 400Z M330 405A180 180 0 0 1 150 585A180 180 0 0 1 -30 405A180 180 0 0 1 150 225A180 180 0 0 1 330 405Z M150 300H860V585H150Z"
+      color alpha(room_cloud_shadow, 0.14) y 33 blur 18 dy 6 if !@dark
+  path "F1 M461 190A169 169 0 0 1 292 359A169 169 0 0 1 123 190A169 169 0 0 1 292 21A169 169 0 0 1 461 190Z M860 160A250 250 0 0 1 610 410A250 250 0 0 1 360 160A250 250 0 0 1 610 -90A250 250 0 0 1 860 160Z M1045 400A185 185 0 0 1 860 585A185 185 0 0 1 675 400A185 185 0 0 1 860 215A185 185 0 0 1 1045 400Z M330 405A180 180 0 0 1 150 585A180 180 0 0 1 -30 405A180 180 0 0 1 150 225A180 180 0 0 1 330 405Z M150 300H860V585H150Z"
+      color room_cloud y 33 from_y 0 to_y 585
+}
+// What of the stage the window shows, and where the members and the chat go in it.
+let k = @scale
+let vis_w = @W/k
+let vis_h = @H/k
+let vis_left = 951/2-vis_w/2
+let vis_right = 951/2+vis_w/2
+let vis_top = 692/2-vis_h/2
+let vis_bottom = 692/2+vis_h/2
+let top = max(74+33, vis_top+20)
+let bottom = max(top+140/k, min(537+33, vis_bottom-74/k))
+let left = max(190, vis_left+20)
+let right = max(left+(219+250)/k, min(825, vis_right-20))
+let stage_left = @chat ? left-16/k : (left+min(762, right))/2-286/k
+let col_w = @chat ? 227 : 274
+let cols = @chat ? 1 : 2
+let rows = ceil(@members/cols)
+let members_h = (bottom-top)*k
+let pad = max(0, (members_h-min(rows, 8)*49)/2)
+report members_view = members_h
+report members_content = 2*pad+rows*49
+// .emoji-ring under .mute-others.
+let quiet = ease(@muted_all, 200ms) first jump
+note members_area (@stage_x+stage_left*k, @stage_y+top*k, cols*col_w+(cols-1)*24, members_h) clip soft_clip
+    fade_top @members_fade_top fade_bottom @members_fade_bottom {
+  repeat @members {
+    // .member.entering: someone who came after the first list rises and fades in.
+    let came = 1
+    if @member_new {
+      let rising = ease(1, 300ms) key @member_key
+      set came = rising
+    }
+    let row_y = pad+floor(@i/cols)*49+1-@members_scroll+8*(1-came)
+    hit member note member ((@i-floor(@i/cols)*cols)*(col_w+24), row_y, col_w, 47) hit_index @member_slot opacity came
+        if row_y+47>0 && row_y<@H {
+      fill alpha(hl, 0.2) radius 14 if @hot
+      // Only this much changes while someone types.
+      note member_disc (6, 1.5, 44, 44)
+      let size = 36*(1+(0.8-1)*quiet)
+      // .emoji-ring::before fades in and grows from .82.
+      let ring = 22*(0.82+0.18*@member_level) if @member_level>0
+      fill alpha(hl, @member_level) (28-ring, 23.5-ring, 2*ring, 2*ring) ellipse if @member_level>0
+      picture muted (28-size/2, 23.5-size/2, size, size) opacity @member_offline ? 0.55 : 1 gray quiet if @member_muted
+      picture member (28-size/2, 23.5-size/2, size, size) opacity @member_offline ? 0.55 : 1 gray quiet
+          if !@member_muted
+      text @member_name (58, 10.5, @W-58-12, 26) style member_name color @member_offline ? alpha(hl_text, 0.5) : hl_text
+    }
+  }
+}
+slot chat (@stage_x+(left+219/k)*k, @stage_y+(top+7)*k, max(250, (right-left)*k-219), (bottom-top-7)*k) if @chat
+if @controls_shown {
+  use fab (18, @H-18-42, 42, 42) hit leave note fab_leave {
+    path "M19 12H5M11 6l-6 6 6 6" (10, 10) color @hot ? hl_text : hl_text_soft scale 22/24 width 3
+  }
+  // The speaker: shifted so that it stays in the middle, however many waves it has.
+  use fab(alarmed = @muted) (@W-68-42, @H-18-42, 42, 42) hit mute note fab_mute {
+    let ink = @muted ? white : @hot ? hl_text : hl_text_soft
+    let level = @volume<=0 ? 0 : @volume<34 ? 1 : @volume<67 ? 2 : 3
+    let at = 9+(@muted ? 0 : level<=1 ? 3.05 : level==2 ? 1.1 : -1.4)
+    path "M2.6,9 H5.6 L10.3,5.1 C10.9,4.6 11.8,5 11.8,5.8 V18.2 C11.8,19 10.9,19.4 10.3,18.9 L5.6,15 H2.6 C2,15 1.5,14.5 1.5,13.9 V10.1 C1.5,9.5 2,9 2.6,9 Z"
+        (at+(@muted ? 2.5 : 0), 9) color ink
+    path "M3.2,4.6 L17,18.6" (at+2.5, 9) color ink width 2.1 if @muted
+    path "M14.6,9.2 C15.6,10.9 15.6,13.1 14.6,14.8" (at, 9) color ink width 2.1 if !@muted && level>0
+    path "M17.6,6.6 C19.8,9.9 19.8,14.1 17.6,17.4" (at, 9) color ink width 2.1 if !@muted && level>1
+    path "M21.3,4.2 C24.3,8.8 24.3,15.2 21.3,19.8" (at, 9) color ink width 2.1 if !@muted && level>2
+  }
+  use fab (@W-18-42, @H-18-42, 42, 42) hit more note fab_more {
+    repeat 3 {
+      fill @hot ? hl_text : hl_text_soft (21+(@i-1)*10-3, 18, 6, 6) ellipse
+    }
+  }
+  (@W-12-251, @H-72-183, 251, 183) if @options_open {
+    use panel_info
+    hit popup
+    text @tr.room_code (25, 24, 150, 41) style room_label color hl_text
+    hit opt_code note code (@W-25-90, 24, 90, 41) {
+      text @code style room_code color @hot ? hl_text_dark : hl_text
+    }
+    fill hl_pale2 (25, 70, @W-50, 2) radius 1
+    text @tr.room_public (25, 77, 150, 41) style room_label color @public_off ? alpha(hl_text, 0.5) : hl_text
+    use switch(on = @public, off = @public_off, ms = 0) (169, 84, 51, 27) hit opt_public note public
+    // .switch.pinned: a small bar across the knob.
+    fill alpha(hl_mid, @public_off ? 0.5 : 1) (169+(@public ? 37.5 : 13.5)-5.5, 84+13.5-1.5, 11, 3) radius 1.5
+        if @pin_public
+    text @tr.room_word_chat (25, 118, 150, 41) style room_label color @public_off ? alpha(hl_text, 0.5) : hl_text
+    use switch(on = @chat, off = @chat_off, ms = 0) (169, 125, 51, 27) hit opt_chat note chat
+    fill alpha(hl_mid, @chat_off ? 0.5 : 1) (169+(@chat ? 37.5 : 13.5)-5.5, 125+13.5-1.5, 11, 3) radius 1.5 if @pin_chat
+  }
+  (@W-12-200, @H-72-50, 200, 50) if @mute_popup_open {
+    use panel_info
+    hit popup
+    text @volume_text (14, 14, 42, 22) style volume_text color hl_text
+    use slider(at = @volume/100) (64, 14, 122, 22) hit volume note volume
+  }
+}

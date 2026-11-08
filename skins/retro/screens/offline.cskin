@@ -1,0 +1,6 @@
+let text_w = dialog_width-2*dialog_pad_x
+let text_h = texth(paragraph, @message, text_w)
+report width = dialog_width
+report height = dialog_pad_top+text_h+dialog_pad_bottom
+hit card
+text @message (dialog_pad_x, dialog_pad_top, text_w, text_h) style paragraph color ink

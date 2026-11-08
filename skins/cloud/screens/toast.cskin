@@ -1,0 +1,17 @@
+// It slides from above the window to 8 below its top (translate(-50%, -150%)).
+report ms = 180
+let shown = ease(@up, 180ms)
+let max_w = @W-32
+let action_w = @has_action ? textw(toast_action, @action, max_w)+26 : 0
+let beside = action_w>0 ? action_w+16 : 0
+let text_max = max(40, max_w-36-beside)
+let text_w = textw(toast_text, @text, text_max)
+let text_h = texth(toast_text, @text, text_max)
+let card_w = text_w+36+beside
+let card_h = max(text_h, action_w>0 ? 32 : 0)+22
+((@W-card_w)/2, 8-(card_h*1.5+8)*(1-shown), card_w, card_h) {
+  use panel_info(shown = shown)
+  text @text (18, (@H-text_h)/2, text_w+1, text_h) style toast_text color alpha(hl_text, shown)
+  use button(shown = shown, radius = 8, grow = 1, size = 15) (@W-18-action_w, (@H-32)/2, action_w, 32) text @action
+      hit action if action_w>0
+}

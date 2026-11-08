@@ -1,0 +1,40 @@
+fill face
+let form_w = min(300, @W-24)
+let left = floor(@X+(@W-form_w)/2)-@X
+let hint_h = max(16, texth(paragraph, @hint, form_w))
+let total = 64+12+field_h+6+hint_h+14+button_h+(@has_heading ? 26 : 0)+(@has_label ? 18 : 0)+(@has_link ? 26 : 0)
+let picture_x = floor(@X+(@W-64)/2)-@X
+column x left y floor(@Y+max(8, (@H-total)/2))-@Y w form_w {
+  x picture_x-left w 64 h 64 after 12 {
+    use picture_frame
+    picture droplet (6, 6, 52, 52)
+  }
+  text @heading style bold_center color ink h 20 after 6 if @has_heading
+  text @label style body color ink h 16 after 2 if @has_label
+  // The field, with what goes before the text and the eye inside it.
+  h field_h after 6 {
+    use field(off = @locked)
+    hit field
+    text @prefix style body color ink x 4 w 30 if @has_prefix
+    let text_left = 4+(@has_prefix ? textw(body, @prefix)+1 : 0)
+    let text_right = @W-2-(@password ? 19 : 0)
+    hit eye (@W-2-19, 2, 19, 19) if @password {
+      fill hover_0 if @hot
+      fill bar_arrow (4, 8, 11, 3)
+      fill bar_arrow (7, 6, 5, 7)
+      fill field (8, 8, 3, 3)
+      fill bar_arrow (9, 9, 1, 1) if @shown
+    }
+    slot field styles (body) colors (ink, ink_soft, ink, selection, @locked ? field_off : field) x text_left
+        w text_right-2-text_left
+  }
+  text @hint style paragraph color @hint_error ? error_text : ink_soft h hint_h after 14
+  // Submitting comes last on the right, then the step's other choices, as a dialog has them.
+  h button_h {
+    use button(primary = 1, off = @submit_off) id ok text @tr.ok hit submit right @W live !@busy
+    use button id two text @extra2 hit extra2 right ok.x-6 live !@busy if @has_extra2
+    use button text @extra hit extra right (@has_extra2 ? two.x : ok.x)-6 live !@busy if @has_extra
+    use button text @tr.prompt_back hit back live !@busy if @cancelable
+  }
+  use link text @link hit link y @flow+10 h 16 if @has_link
+}

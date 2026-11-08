@@ -1,0 +1,16 @@
+let content_h = @items*(list_item_h+list_gap)-list_gap+2*list_pad
+let list_h = min(content_h, list_max_h)
+report view = list_h
+report content = content_h
+note list y @up ? -list_margin-list_h : @H+list_margin h list_h {
+  use panel_list
+  clip {
+    repeat @items {
+      use list_heading (list_pad, list_pad-@scroll+@i*(list_item_h+list_gap), @W-2*list_pad, list_item_h) text @item
+          if @heading
+      use list_item(selected = @selected)
+          (list_pad, list_pad-@scroll+@i*(list_item_h+list_gap), @W-2*list_pad, list_item_h) text @item hit item
+          hit_index @i if !@heading
+    }
+  }
+}

@@ -1,0 +1,16 @@
+let col_w = min(380, @W-32) if !@failed
+x (@W-col_w)/2 y @H/2-60 w col_w if !@failed {
+  text @message style setup_message color ink_strong h 26
+  use progress(percent = @percent) y 46 h 8
+  text @percent_text style setup_percent color ink_strong y 64 h 22
+  text @detail style setup_percent color ink_strong y 88 h 22
+}
+// As a question with two answers: dialog.jsonc, wide.
+let card_w = min(380, @W-40) if @failed
+let text_h = texth(dialog_text, @message, card_w-50) if @failed
+use modal(card_w = card_w, card_h = 24+text_h+20+38+20, shown = 1, backdrop_hit = hit(backdrop), card_hit = hit(card))
+    if @failed {
+  text @message (25, 24, @W-50, text_h) style dialog_text color hl_text
+  use button ((@W-202)/2, @H-20-38, 96, 38) text @tr.setup_retry hit retry
+  use button(primary = 0) ((@W-202)/2+106, @H-20-38, 96, 38) text @tr.setup_quit hit quit
+}

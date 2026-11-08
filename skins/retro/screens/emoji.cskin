@@ -1,0 +1,34 @@
+let box_w = 400
+let box_h = 306
+let pad = 14
+let gap = 4
+let cols = 8
+let cell_size = (box_w-2*pad-(cols-1)*gap)/cols
+let step = cell_size+gap
+let rows = ceil(@count/cols)
+let view_h = box_h-2*pad
+let content_h = rows>0 ? rows*step-gap : 0
+report width = box_w
+report height = box_h
+report view = view_h
+report content = content_h
+hit backdrop
+((@W-box_w)/2, (@H-box_h)/2, box_w, box_h) {
+  hit card
+  // Only the rows in view are walked, so only they get parsed.
+  let first = max(0, floor(@scroll/step))
+  let last = min(rows-1, floor((@scroll+view_h)/step))
+  report first = first*cols
+  (pad, pad, box_w-2*pad, view_h) clip {
+    repeat min(@count-first*cols, (last-first+1)*cols) {
+      let n = first*cols+@i
+      let cell_x = (n-floor(n/cols)*cols)*step
+      let cell_y = floor(n/cols)*step-@scroll
+      use cell(selected = @selected) (cell_x, cell_y, cell_size, cell_size) hit cell hit_index n
+      picture cell (cell_x+(cell_size-32)/2, cell_y+(cell_size-32)/2, 32, 32)
+    }
+  }
+  hit track note track (@W-12, pad, 8, view_h) if @overflow
+  let thumb_h = content_h>0 ? max(28, view_h*min(1, view_h/content_h)) : view_h
+  use plain_thumb (@W-12, pad+(view_h-thumb_h)*@offset/(content_h-view_h), 8, thumb_h) hit thumb if @overflow
+}

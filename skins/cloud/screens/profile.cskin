@@ -1,0 +1,19 @@
+let shown = ease(1, 160ms)
+let stat = 17*1.9
+let card_w = min(380, @W-40)
+let card_h = 24+72+20+(@has_joined ? 3 : 2)*stat+20
+report width = card_w
+report height = card_h
+use modal(card_w = card_w, card_h = card_h, shown = shown, backdrop_hit = hit(backdrop), card_hit = hit(card)) {
+  hit icon note icon (25, 24, 72, 72) hit_if @mine {
+    let grow = @hot ? 1.05 : 1
+    fill alpha(@hot ? hl_pale2 : hl_pale, shown) (36-36*grow, 36-36*grow, 72*grow, 72*grow) ellipse
+    picture icon (36-46*grow/2, 36-46*grow/2, 46*grow, 46*grow) opacity shown
+  }
+  text @nick (115, 34, @W-25-115, 30) style account_nickname color alpha(hl_text, shown) if @has_handle
+  text @handle (115, 66, @W-25-115, 20) style account_handle color alpha(hl_text_soft, shown) if @has_handle
+  text @nick (115, 43, @W-25-115, 34) style account_display color alpha(hl_text, shown) if !@has_handle
+  text @joined (25, 116, @W-50, stat) style profile_stat color alpha(hl_text, shown) if @has_joined
+  text @stayed (25, 116+(@has_joined ? stat : 0), @W-50, stat) style profile_stat color alpha(hl_text, shown)
+  text @inputs (25, 116+(@has_joined ? 2 : 1)*stat, @W-50, stat) style profile_stat color alpha(hl_text, shown)
+}

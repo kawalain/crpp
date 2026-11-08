@@ -3,7 +3,7 @@
 //   crpp_catalog <out-dir> --remote <remote_assets.txt> [--assets <dir>] [--skins <dir>]
 //                [--ref <git ref>] [--default-skin <id>] [--key <hex>] [--copy <cache dir>]
 //
-// --assets lists its files in the shared group, --skins each folder with a pack.jsonc as a
+// --assets lists its files in the shared group, --skins each folder with a pack.cskin as a
 // Skin Pack, and --remote the third-party files with the sources they come from. --ref names
 // the commit or tag at which raw.githubusercontent.com serves this repository's files, the
 // second source of each. --copy also puts every file in <out-dir>, the third-party ones from
@@ -28,6 +28,7 @@
 
 #include "crpp/assets/catalog.hpp"
 #include "crpp/assets/windows_platform.hpp"
+#include "crpp/skin/cskin.hpp"
 #include "crpp/store/json.hpp"
 #include "crpp/update/built_in.hpp"
 
@@ -100,16 +101,16 @@ class Writer {
   bool add_skins() {
     std::vector<fs::path> folders;
     for (const auto& item : fs::directory_iterator(options_.skins)) {
-      if (item.is_directory() && fs::exists(item.path() / "pack.jsonc")) folders.push_back(item.path());
+      if (item.is_directory() && fs::exists(item.path() / "pack.cskin")) folders.push_back(item.path());
     }
     std::ranges::sort(folders);
     for (const fs::path& folder : folders) {
-      const auto text = read_text(folder / "pack.jsonc");
-      const auto pack = text ? store::Json::parse(*text) : std::unexpected(store::JsonError::Syntax);
+      const auto text = read_text(folder / "pack.cskin");
+      const auto pack = text ? skin::read_cskin(*text, skin::SourceKind::Pack) : std::unexpected(skin::SourceError{});
       const auto id = pack ? pack->find("id") : nullptr;
       const auto format = pack ? pack->find("format") : nullptr;
       const auto parent = pack ? pack->find("extends") : nullptr;
-      if (!id || !id->as_string() || !format || !format->as_i64()) return fail("no id or format in " + generic(folder / "pack.jsonc"));
+      if (!id || !id->as_string() || !format || !format->as_i64()) return fail("no id or format in " + generic(folder / "pack.cskin"));
       assets::SkinPack skin{.id = std::string(*id->as_string()), .format = static_cast<int>(*format->as_i64())};
       if (parent && parent->as_string()) skin.parent = *parent->as_string();
       if (skin.id != generic(folder.filename())) return fail("the folder of pack " + skin.id + " has another name");

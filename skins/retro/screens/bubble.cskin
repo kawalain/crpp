@@ -1,0 +1,6 @@
+let text_w = textw(paragraph_center, @text, 412)
+let text_h = texth(paragraph_center, @text, 412)
+(@anchor_right-text_w-8, @anchor_y-@gap-text_h-4, text_w+8, text_h+4) {
+  use bubble
+  text @text (4, 2, @W-8+1, text_h) style paragraph_center color tooltip_ink
+}

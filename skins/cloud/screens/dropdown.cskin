@@ -1,0 +1,24 @@
+let content_h = @items*(list_item_h+list_gap)-list_gap+2*list_pad
+let list_h = min(content_h, list_max_h)
+report view = list_h
+report content = content_h
+let shown = ease(1, 120ms)
+let blur = @dark ? 38 : 16
+let drop = @dark ? 12 : 4
+note list y @up ? -list_margin-list_h : @H+list_margin h list_h {
+  // The whole list fades in, with its shadow.
+  (-blur, -blur, @W+2*blur, @H+2*blur+drop) opacity shown {
+    (blur, blur, @W-2*blur, @H-2*blur-drop) {
+      use panel_list
+      clip soft_clip fade_top @fade_top fade_bottom @fade_bottom {
+        repeat @items {
+          use list_heading (list_pad, list_pad-@scroll+@i*(list_item_h+list_gap), @W-2*list_pad, list_item_h) text @item
+              if @heading
+          use list_item(selected = @selected)
+              (list_pad, list_pad-@scroll+@i*(list_item_h+list_gap), @W-2*list_pad, list_item_h) text @item hit item
+              hit_index @i if !@heading
+        }
+      }
+    }
+  }
+}

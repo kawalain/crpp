@@ -1,0 +1,19 @@
+column id form y 10 {
+  use form_group text @tr.account_heading {
+    h 64 after 10 {
+      hit emoji w 64 {
+        use picture_frame(glow = @hot)
+        picture me (6, 6, 52, 52)
+      }
+      text @nickname (74, 14, @W-74, 18) style bold color ink if @has_names
+      text @handle (74, 34, @W-74, 16) style body color ink_soft if @has_names
+      text @display (74, 23, @W-74, 18) style bold color ink if !@has_names
+    }
+    h button_h after 8 {
+      use button id nick text @tr.account_change_nickname hit nickname
+      use button text @tr.account_change_handle hit change_handle x nick.right+6 if @has_account
+    }
+    use button text @tr.account_logout hit logout right @W after 6
+  }
+}
+report height = form.bottom

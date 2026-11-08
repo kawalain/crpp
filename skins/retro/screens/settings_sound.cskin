@@ -1,0 +1,41 @@
+column id form y 10 {
+  use form_group text @tr.sound_speaker {
+    use form_slider(at = @speaker_volume/100, list = 1, own = hit(speaker_volume), where = note(slider_0))
+        text @tr.sound_speaker_volume after 6 {
+      slot speaker_list
+    }
+  }
+  use form_group text @tr.sound_devices {
+    use form_slider(at = @keyboard_volume/100, list = 1, own = hit(keyboard_volume), where = note(slider_1))
+        text @tr.sound_keyboard_volume after 6 {
+      slot keyboard_list
+    }
+    use form_slider(at = @mouse_volume/100, list = 1, own = hit(mouse_volume), where = note(slider_2))
+        text @tr.sound_mouse_volume after 6 {
+      slot mouse_list
+    }
+    use form_slider(at = @pen_volume/100, list = 1, own = hit(pen_volume), where = note(slider_3))
+        text @tr.sound_pen_volume after 6 if @show_pen {
+      slot pen_list
+    }
+    use form_check(on = @listen_self) text @tr.sound_listen_self hit listen_self
+    use form_check(on = @others_use_mine) text @tr.sound_others_use_mine hit others_use_mine
+    use form_check(on = @mute_notifications) text @tr.sound_mute_notifications hit mute_notifications
+    use form_check(on = @mute_on_idle) text @tr.sound_mute_on_idle hit mute_on_idle
+  }
+  use form_group text @tr.sound_effects {
+    use form_check(on = @spatial) text @tr.sound_spatial hit spatial
+    use form_check(on = @balance_enabled, off = !@spatial) text @tr.sound_balance_enabled hit balance_enabled
+        live @spatial hit_if @spatial
+    h 18+field_h after 6 {
+      use form_slider(at = (@balance-55)/35, own = @balance_on ? hit(balance) : -1, where = note(balance))
+          text @tr.sound_balance
+      text @balance_word style body_right color ink_soft h 16
+    }
+    use form_text text @tr.sound_balance_hint after 4
+    use form_combo text @tr.sound_reverb after 4 {
+      slot reverb_list
+    }
+  }
+}
+report height = form.bottom

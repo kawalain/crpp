@@ -1,0 +1,19 @@
+text @tr.account_heading (9, 25, 400, 32) style heading color hl_text
+// .profile: the icon and the names beside it.
+hit emoji (16, 76, 72, 72) {
+  scale @hot ? 1.05 : 1 {
+    fill @hot ? hl_pale2 : hl_pale ellipse
+    picture me (13, 13, 46, 46)
+  }
+  (36-112/2, -8-32, 112, 32) if @hot {
+    fill hl radius 11
+    text @tr.profile_change_icon style account_tip color on_accent y 5 h 22
+  }
+}
+text @nickname (106, 86, 428, 30) style account_nickname color hl_text if @has_names
+text @handle (106, 118, 428, 20) style account_handle color hl_text_soft if @has_names
+text @display (106, 95, 428, 34) style account_display color hl_text if !@has_names
+use account_button (16, 165, 154, 38) text @tr.account_change_nickname hit nickname
+use account_button (182, 165, 154, 38) text @tr.account_change_handle hit change_handle if @has_account
+use account_button (380, 440, 154, 38) text @tr.account_logout hit logout
+report height = 440+38+25

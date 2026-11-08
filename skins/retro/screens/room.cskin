@@ -1,0 +1,72 @@
+fill face
+// Who else is here.
+fill header h 22
+text @contacts style body color ink x 8 w @W-16 h 22
+// The toolbar.
+fill edge_light y 22 h 1
+fill edge_dark y 51 h 1
+use toolbar_button(lit = @muted) (4, 25) id mute text @mute_label hit mute note fab_mute
+path "M2.6,9 H5.6 L10.3,5.1 C10.9,4.6 11.8,5 11.8,5.8 V18.2 C11.8,19 10.9,19.4 10.3,18.9 L5.6,15 H2.6 C2,15 1.5,14.5 1.5,13.9 V10.1 C1.5,9.5 2,9 2.6,9 Z"
+    (mute.x+5, mute.y+4) color bar_arrow soft scale 2/3
+path "M15 9 21 15M21 9 15 15" (mute.x+5, mute.y+4) color error_text soft width 2.4 scale 2/3 if @muted
+path "M14.6,9.2 C15.6,10.9 15.6,13.1 14.6,14.8M17.6,6.6 C19.8,9.9 19.8,14.1 17.6,17.4" (mute.x+5, mute.y+4)
+    color bar_arrow soft width 2.1 scale 2/3 if !@muted
+use toolbar_button(lit = @options_open) (mute.right+2, mute.y) id more text @tr.room_options hit more note fab_more
+repeat 3 (more.x, more.y) {
+  fill bar_arrow (5+@i*5, 11, 3, 3)
+}
+// The status line.
+fill edge_dark y @H-20 h 1
+fill edge_light y snap(@Y+@H-20)-@Y+@u h 1
+text @status (8, @H-18, @W-16, 18) style body color ink_soft
+let main_w = @W-12
+let main_h = @H-20-52-12
+let cols = @chat ? 1 : max(1, floor((main_w-scrollbar_w)/112))
+(@chat ? 6+main_w-112 : 6, 58, @chat ? 112 : main_w, main_h) {
+  use field
+  note members_area (1, 1, @W-2, @H-2) {
+    let rows = ceil(@members/cols)
+    report members_view = @H
+    report members_content = rows*62
+    let list_w = @W-(@members_overflow ? scrollbar_w : 0)
+    let col_w = floor(list_w/cols)
+    clip w list_w {
+      repeat @members {
+        let top = floor(@i/cols)*62-@members_scroll
+        hit member note member ((@i-floor(@i/cols)*cols)*col_w, top, col_w, 62) hit_index @member_slot
+            if top+62>0 && top<@H {
+          fill hl_pale if @hot
+          let disc_x = floor(@X+(@W-36)/2)-@X
+          // Only this much changes while someone types, so nothing else may depend on what is drawn under it.
+          fill @hot ? hl_pale : field (disc_x-3, 2, 42, 42) note member_disc
+          use picture_frame(glow = @member_level) (disc_x, 5, 36, 36)
+          picture muted (disc_x+2, 7, 32, 32) opacity @member_offline ? 0.55 : 1 gray @muted_all if @member_muted
+          picture member (disc_x+2, 7, 32, 32) opacity @member_offline ? 0.55 : 1 gray @muted_all if !@member_muted
+          text @member_name (3, 44, @W-6, 16) style body_center color @member_offline ? ink_soft : ink
+        }
+      }
+    }
+    use scrollbar(view = @H, content = rows*62, offset = @members_offset, track_hit = hit(members_track), up = hit(members_up), down = hit(members_down), thumb_hit = hit(members_thumb), track_note = note(members_track))
+        x @W-scrollbar_w w scrollbar_w if @members_overflow
+  }
+}
+slot chat (6, 58, main_w-112-6, main_h) if @chat
+// Hangs under its toolbar button: the code, then two boxes to tick.
+(min(more.x, @W-190-4), more.bottom+1, 190, 87) if @controls_shown && @options_open {
+  use panel_popup
+  hit popup
+  text @tr.room_code (10, 5, 100, 24) style body color ink
+  use link (@W-80, 5, 70, 24) text @code hit opt_code note code
+  fill edge_dark (5, 31, @W-10, 1)
+  fill edge_light (5, snap(@Y+31)-@Y+@u, @W-10, 1)
+  use check_row(on = @public, off = @public_off, pinned = @pin_public) (10, 34, @W-20, 24) text @tr.room_public
+      hit opt_public note public
+  use check_row(on = @chat, off = @chat_off, pinned = @pin_chat) (10, 58, @W-20, 24) text @tr.room_word_chat
+      hit opt_chat note chat
+}
+(mute.x, mute.bottom+1, 190, 33) if @controls_shown && @mute_popup_open {
+  use panel_popup
+  hit popup
+  text @volume_text style body color ink x 8 w 34
+  use slider(at = @volume/100) (44, 5, @W-52, @H-10) hit volume note volume
+}

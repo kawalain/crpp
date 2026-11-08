@@ -1,0 +1,8 @@
+let box_w = textw(tip_line, @text, 2000)+9
+let box_h = texth(tip_line, @text, 2000)+2
+// Lines up with the middle, the left or the right of what it is about.
+let wanted = @place==2 ? @anchor_x+@anchor_w-box_w : @place==1 ? @anchor_x : @anchor_x+(@anchor_w-box_w)/2
+(max(4, min(wanted, @W-box_w-4))+@dx, @anchor_y-min(@gap, 3)-box_h, box_w, box_h) {
+  use bubble
+  text @text (4, 1, @W-8, @H-2) style paragraph_center color tooltip_ink
+}

@@ -1,0 +1,12 @@
+// .update-popup: padding 10 12 10 16, gap 12, max-width: calc(100vw - 100px).
+let label_w = @has_label ? textw(update_label, @label, @W)+28 : 0
+let max_w = max(120, @W-100)
+let chrome = 28+(label_w>0 ? label_w+12 : 0)
+let room = max(40, max_w-chrome)
+let text_w = min(textw(update_text, @text, room)+1, room)
+(14, 14, text_w+chrome, (label_w>0 ? 32 : 22)+20) {
+  use panel_list
+  hit card
+  text @text (16, (@H-22)/2, text_w, 22) style update_text color hl_text
+  use button(radius = 9, grow = 1.03, size = 15) (@W-12-label_w, 10, label_w, 32) text @label hit button if label_w>0
+}

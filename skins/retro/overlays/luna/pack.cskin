@@ -1,0 +1,489 @@
+pack luna format 1
+
+// The look of Windows XP, written over classic. Only what differs is here.
+constants {
+  notification_sounds 1
+  caption_h 28
+  frame_w 3
+  window_radius 8
+  frame_button 21
+  frame_button_top 4
+  frame_button_right 5
+}
+
+fonts {
+  // Gulim comes with an optional package of Windows; Malgun Gothic is always there.
+  korean "Gulim" "Malgun Gothic"
+  other "Tahoma"
+  caption "Trebuchet MS"
+  korean_size 12
+  other_size 11
+}
+
+palette luna_blue {
+  caption stops(0: #0997ff, 0.08: #0053ee, 0.4: #0050ee, 0.88: #0066ff, 0.93: #0066ff, 0.95: #005bff, 0.96: #003dd7, 1: #003dd7)
+  caption_idle stops(0: #a9c0f0, 0.08: #7a96df, 0.4: #7a96df, 0.88: #8aa7e4, 0.93: #8aa7e4, 0.95: #7d9ae0, 0.96: #6f8bd6, 1: #6f8bd6)
+  caption_ink #ffffff
+  caption_shadow #0f1089
+  frame_out #0831d9
+  frame_mid #166aee
+  frame_in #0855dd
+  frame_low_out #00138c
+  frame_low_mid #001ea0
+  frame_low_in #0855dd
+  close stops(0: #e46142, 1: #dc451f)
+  close_hot stops(0: #f08a70, 1: #e8603c)
+  caption_button stops(0: #3c7ff0, 1: #1d4fd0)
+  caption_button_hot stops(0: #6aa0f8, 1: #3468e4)
+  face #ece9d8
+  sky alpha(face, 1)
+  field #ffffff
+  field_line #7f9db9
+  field_off #ece9d8
+  edge_light #ffffff
+  edge_dark #aca899
+  edge_out #716f64
+  button stops(0: #ffffff, 0.86: #ecebe5, 1: #d8d0c4)
+  button_down stops(0: #cdcac3, 0.08: #e3e3db, 0.94: #e5e5de, 1: #f2f2f1)
+  button_line #003c74
+  hover_0 #fff0cf
+  hover_1 #fdd889
+  hover_2 #fbc761
+  hover_3 #e5a01a
+  focus_0 #cee7ff
+  focus_1 #98b8ea
+  focus_2 #bcd4f6
+  focus_3 #89ade4
+  off_ink #808080
+  off_shadow #ffffff
+  check_line #1d5281
+  check_from #dcdcd7
+  check_to #ffffff
+  check_hot_0 #f8b636
+  check_hot_1 #fedf9c
+  tick #22a122
+  track #ecebe4
+  track_edge #9d9c99
+  thumb_line #7f9db9
+  thumb stops(0: #ffffff, 1: #e3e1d2)
+  bar_thumb #c8d6fb
+  bar_thumb_in #bad1fc
+  bar_thumb_low #b7caf5
+  bar_track_from #f3f1ec
+  bar_track_to #fefefb
+  bar_arrow #4d6185
+  progress stops(0: #acedad, 0.17: #7be47d, 0.33: #4cda50, 0.5: #2ed330, 0.67: #42d845, 0.83: #76e275, 1: #8fe791)
+  progress_line #686868
+  group_line #d0d0bf
+  legend #0046d5
+  menu #ffffff
+  menu_line #aca899
+  select #316ac5
+  select_ink #ffffff
+  tooltip #ffffe1
+  tooltip_line #000000
+  tooltip_ink #000000
+  header stops(0: #eef3fc, 1: #c9d9f4)
+  info stops(0: #e6eefb, 1: #c9daf5)
+  info_line #7f9db9
+  glow_0 #f8b636
+  glow_1 #fbc761
+  glow_2 #fedf9c
+  ink #000000
+  ink_soft #5a5a5a
+  link #0046d5
+  picture_line #7f9db9
+  selection #316ac566
+  black #000000
+  gray #808080
+  menu_shadow alpha(black, 0.25)
+  bar_thumb_hot mix(bar_thumb, edge_light, 50%)
+  toolbar_down mix(face, edge_dark, 60%)
+  check_shade_0 mix(check_from, check_to, 60%)
+  check_shade_1 mix(check_from, check_to, 40%)
+  check_shade_2 mix(check_from, check_to, 20%)
+  list_line mix(ink, menu_line, 100%)
+  hl_soft mix(select, field, 35%)
+  hl_pale mix(select, field, 12%)
+  hl_pale2 mix(select, field, 24%)
+  error_text #c00000
+  matte mix(frame_out, gray, 50%)
+  matte_idle mix(edge_dark, gray, 50%)
+  frame_idle mix(frame_in, edge_light, 70%)
+  close_down #b8351a
+  minimize_down #1740a8
+  cursor_face #ffffff
+  cursor_line #000000
+  edge_soft mix(face, edge_light, 50%)
+}
+
+palette luna_blue_dark {
+  caption stops(0: #4a6491, 0.08: #1d2f52, 0.4: #1d2f52, 0.88: #253a63, 0.93: #253a63, 0.95: #1d2f52, 0.96: #142440, 1: #142440)
+  caption_idle stops(0: #3a4252, 0.08: #2a303c, 0.4: #2a303c, 0.88: #303744, 0.93: #303744, 0.95: #2a303c, 0.96: #232833, 1: #232833)
+  caption_ink #f2f5fb
+  caption_shadow #0a1222
+  frame_out #142440
+  frame_mid #2a4066
+  frame_in #1d2f52
+  frame_low_out #0c1628
+  frame_low_mid #142440
+  frame_low_in #1d2f52
+  close stops(0: #b4503a, 1: #96361f)
+  close_hot stops(0: #d86c52, 1: #bc4a2e)
+  caption_button stops(0: #3a5484, 1: #253a63)
+  caption_button_hot stops(0: #54719f, 1: #365280)
+  face #232833
+  sky alpha(face, 1)
+  field #12161f
+  field_line #4b5a75
+  field_off #1c212b
+  edge_light #3b4252
+  edge_dark #151922
+  edge_out #0c0f15
+  button stops(0: #424a5c, 0.86: #333a49, 1: #282e3a)
+  button_down stops(0: #1c212b, 0.08: #262c38, 0.94: #282e3a, 1: #323949)
+  button_line #0c1628
+  hover_0 #fff0cf
+  hover_1 #fdd889
+  hover_2 #fbc761
+  hover_3 #e5a01a
+  focus_0 #6d8fc4
+  focus_1 #4a6491
+  focus_2 #5a7aad
+  focus_3 #3f5880
+  off_ink #6e7686
+  off_shadow #151922
+  check_line #6d8fc4
+  check_from #1c212b
+  check_to #12161f
+  check_hot_0 #f8b636
+  check_hot_1 #fedf9c
+  tick #5cd65c
+  track #3b4252
+  track_edge #151922
+  thumb_line #6d8fc4
+  thumb stops(0: #4a5266, 1: #333a49)
+  bar_thumb #3a4a68
+  bar_thumb_in #34435f
+  bar_thumb_low #2c3a53
+  bar_track_from #1c212b
+  bar_track_to #232833
+  bar_arrow #c4cfe4
+  progress stops(0: #acedad, 0.17: #7be47d, 0.33: #4cda50, 0.5: #2ed330, 0.67: #42d845, 0.83: #76e275, 1: #8fe791)
+  progress_line #4b5a75
+  group_line #3b4252
+  legend #8db4f2
+  menu #1c212b
+  menu_line #3b4252
+  select #3a68b4
+  select_ink #ffffff
+  tooltip #3d3a26
+  tooltip_line #8c8660
+  tooltip_ink #f5f1d8
+  header stops(0: #2c3546, 1: #232b3b)
+  info stops(0: #2c3a53, 1: #233046)
+  info_line #4b5a75
+  glow_0 #f8b636
+  glow_1 #fbc761
+  glow_2 #fedf9c
+  ink #e6ebf5
+  ink_soft #a2adc2
+  link #8db4f2
+  picture_line #4b5a75
+  selection #3a68b466
+  black #000000
+  gray #808080
+  menu_shadow alpha(black, 0.25)
+  bar_thumb_hot mix(bar_thumb, edge_light, 50%)
+  toolbar_down mix(face, edge_dark, 60%)
+  check_shade_0 mix(check_from, check_to, 60%)
+  check_shade_1 mix(check_from, check_to, 40%)
+  check_shade_2 mix(check_from, check_to, 20%)
+  list_line mix(menu_line, ink, 100%)
+  hl_soft mix(select, field, 35%)
+  hl_pale mix(select, field, 12%)
+  hl_pale2 mix(select, field, 24%)
+  error_text #ff8f8f
+  matte mix(frame_out, gray, 50%)
+  matte_idle mix(edge_dark, gray, 50%)
+  frame_idle mix(frame_in, edge_light, 70%)
+  close_down #b8351a
+  minimize_down #1740a8
+  cursor_face #ffffff
+  cursor_line #000000
+  edge_soft mix(face, edge_light, 50%)
+}
+
+// No public source gives the gradients of these two; docs/research/retro-themes.md says what is sourced and what is drawn here.
+palette luna_homestead extends luna_blue {
+  caption stops(0: #bccb97, 0.08: #8ba169, 0.4: #8ba169, 0.88: #9bb078, 0.93: #9bb078, 0.95: #8ba169, 0.96: #6f8550, 1: #6f8550)
+  caption_idle stops(0: #e6e8d6, 0.08: #d4d6ba, 0.4: #d4d6ba, 0.88: #dcdec6, 0.93: #dcdec6, 0.95: #d4d6ba, 0.96: #c2c4a6, 1: #c2c4a6)
+  caption_shadow #4b5a2e
+  frame_out #6f8550
+  frame_mid #8ba169
+  frame_in #7d9560
+  frame_low_out #4b5a2e
+  frame_low_mid #5f7340
+  frame_low_in #7d9560
+  caption_button stops(0: #a3b884, 1: #7d9560)
+  caption_button_hot stops(0: #bccd9f, 1: #93a870)
+  field_line #a5ab80
+  button_line #37512f
+  focus_0 #e2e8c8
+  focus_1 #b9c48f
+  focus_2 #ced8a8
+  focus_3 #a3b07a
+  check_line #4b5a2e
+  thumb_line #a5ab80
+  bar_thumb #d5dcb8
+  bar_thumb_in #c8d0a8
+  bar_thumb_low #b8c298
+  bar_arrow #5f7340
+  legend #5f7340
+  select #93a070
+  header stops(0: #f2f4e4, 1: #d8dfbc)
+  info stops(0: #eef1dc, 1: #d8dfbc)
+  info_line #a5ab80
+  link #4b6a2e
+  picture_line #a5ab80
+  selection #93a07066
+  minimize_down #5f7340
+}
+
+palette luna_homestead_dark extends luna_blue_dark {
+  caption stops(0: #6b7a4c, 0.08: #3c4a28, 0.4: #3c4a28, 0.88: #47562f, 0.93: #47562f, 0.95: #3c4a28, 0.96: #2a3519, 1: #2a3519)
+  caption_shadow #141a0a
+  frame_out #2a3519
+  frame_mid #47562f
+  frame_in #3c4a28
+  frame_low_out #1a2110
+  frame_low_mid #2a3519
+  frame_low_in #3c4a28
+  caption_button stops(0: #5a6b3c, 1: #47562f)
+  caption_button_hot stops(0: #74875a, 1: #5f7340)
+  field_line #5f6b46
+  focus_0 #93a070
+  focus_1 #6b7a4c
+  focus_2 #7d8c5c
+  focus_3 #5a6b3c
+  check_line #93a070
+  thumb_line #93a070
+  bar_thumb #47562f
+  bar_thumb_in #404e2a
+  bar_thumb_low #354224
+  legend #bccb97
+  select #6b7f45
+  header stops(0: #363f2a, 1: #2c3422)
+  info stops(0: #3a4628, 1: #2e3820)
+  info_line #5f6b46
+  link #bccb97
+  picture_line #5f6b46
+  selection #6b7f4566
+  minimize_down #2a3519
+}
+
+palette luna_metallic extends luna_blue {
+  caption stops(0: #f4f4f6, 0.08: #c0c0c8, 0.4: #c0c0c8, 0.88: #d2d2d8, 0.93: #d2d2d8, 0.95: #b8b8c0, 0.96: #8e8e9c, 1: #8e8e9c)
+  caption_idle stops(0: #ffffff, 0.08: #ededf0, 0.4: #ededf0, 0.88: #f4f4f6, 0.93: #f4f4f6, 0.95: #e4e4e8, 0.96: #cfcfd6, 1: #cfcfd6)
+  caption_ink #000000
+  caption_shadow #ffffff
+  frame_out #8e8e9c
+  frame_mid #c0c0c8
+  frame_in #a8a8b4
+  frame_low_out #6c6c78
+  frame_low_mid #8e8e9c
+  frame_low_in #a8a8b4
+  caption_button stops(0: #e4e4ea, 1: #b4b4c0)
+  caption_button_hot stops(0: #f4f4f8, 1: #ccccd6)
+  face #e0dfe3
+  field_off #e0dfe3
+  edge_dark #9d9da1
+  field_line #9d9da1
+  button_line #5c5c68
+  focus_0 #e8e8ee
+  focus_1 #b2b4bf
+  focus_2 #ccced6
+  focus_3 #9d9fac
+  check_line #5c5c68
+  thumb_line #9d9da1
+  bar_thumb #dcdce4
+  bar_thumb_in #d0d0da
+  bar_thumb_low #c0c0cc
+  bar_arrow #5c5c68
+  legend #5c5c68
+  group_line #c8c7cc
+  menu_line #9d9da1
+  select #b2b4bf
+  select_ink #000000
+  header stops(0: #f4f4f6, 1: #d8d8e0)
+  info stops(0: #f0f0f4, 1: #d8d8e0)
+  info_line #9d9da1
+  link #34456e
+  picture_line #9d9da1
+  selection #b2b4bf99
+  minimize_down #8e8e9c
+}
+
+palette luna_metallic_dark extends luna_blue_dark {
+  caption stops(0: #70707c, 0.08: #40404a, 0.4: #40404a, 0.88: #4c4c58, 0.93: #4c4c58, 0.95: #40404a, 0.96: #2e2e36, 1: #2e2e36)
+  caption_shadow #101014
+  frame_out #2e2e36
+  frame_mid #4c4c58
+  frame_in #40404a
+  frame_low_out #1c1c22
+  frame_low_mid #2e2e36
+  frame_low_in #40404a
+  caption_button stops(0: #5c5c68, 1: #4c4c58)
+  caption_button_hot stops(0: #7c7c8a, 1: #60606c)
+  field_line #5c5c68
+  focus_0 #9d9fac
+  focus_1 #70707c
+  focus_2 #858592
+  focus_3 #5c5c68
+  check_line #9d9fac
+  thumb_line #9d9fac
+  bar_thumb #4c4c58
+  bar_thumb_in #44444f
+  bar_thumb_low #383842
+  legend #c0c2cc
+  select #62646f
+  header stops(0: #36363e, 1: #2c2c33)
+  info stops(0: #3a3a44, 1: #2e2e36)
+  info_line #5c5c68
+  link #c0c2cc
+  picture_line #5c5c68
+  selection #62646f66
+  minimize_down #2e2e36
+}
+
+style caption size 13 weight 700 line_height @h ellipsis exact role caption
+
+part button(primary = 0, focused = 0, off = 0) snap w max(75, ceil(textw(button, @label))+24) h 23 {
+  fill @pressed && !off ? button_down : button radius 3
+  (@u, @u, @W-2*@u, @H-2*@u) if !off && !@pressed && (@hot || primary || focused) {
+    fill @hot ? hover_0 : focus_0 h @u
+    fill @hot ? hover_1 : focus_2 y @u h @u
+    fill @hot ? hover_2 : focus_1 y 2*@u w @u h @H-3*@u
+    fill @hot ? hover_2 : focus_1 (@W-@u, 2*@u, @u, @H-3*@u)
+    fill @hot ? hover_3 : focus_3 y @H-@u h @u
+  }
+  stroke off ? edge_dark : button_line radius 3 width @u
+  text @label (@u, @u) style button color off_shadow if off
+  text @label style button color off_ink if off
+  text @label (@pressed ? @u : 0, @pressed ? @u : 0) style button color ink if !off
+}
+
+part field(off = 0) {
+  fill off ? field_off : field
+  frame field_line
+}
+
+part check_box(on = 0, off = 0) snap w 13 h 13 {
+  (@u, @u, @W-2*@u, @H-2*@u) {
+    fill off ? field_off : check_to
+    fill check_shade_0 w @W h @u if !off
+    fill check_shade_0 w @u h @H if !off
+    fill check_shade_1 (@u, @u, @W-@u, @u) if !off
+    fill check_shade_1 (@u, @u, @u, @H-@u) if !off
+    fill check_shade_2 (2*@u, 2*@u, @W-2*@u, @u) if !off
+    fill check_shade_2 (2*@u, 2*@u, @u, @H-2*@u) if !off
+  }
+  frame off ? edge_dark : check_line
+  frame check_hot_0 (@u, @u, @W-2*@u, @H-2*@u) if @hot && !off
+  frame check_hot_1 (2*@u, 2*@u, @W-4*@u, @H-4*@u) if @hot && !off
+  path "M3.5 6.5 5.5 8.5 9.5 4" color off ? off_ink : tick width 2 caps flat if on
+}
+
+part combo_arrow(down = 0) snap {
+  fill down ? bar_thumb_low : @hot ? bar_thumb_hot : bar_thumb radius 2
+  stroke edge_light radius 2 width @u
+  path "M-4 -2H4L0 2.5Z" (@W/2, @H/2, 1, 1) color bar_arrow snap
+}
+
+part group_box snap {
+  stroke group_line radius 3 width @u
+  let legend_w = ceil(textw(body, @label))+6
+  fill face (8, -1, legend_w, 3)
+  text @label (11, -8, legend_w, 16) style body color legend
+}
+
+part scroll_arrow(down = 0) snap {
+  fill @pressed ? bar_thumb_low : @hot ? bar_thumb_hot : bar_thumb radius 2
+  stroke edge_light radius 2 width @u
+  path "M-4 -2H4L0 2.5Z" (@W/2+(@pressed ? @u : 0), @H/2+(@pressed ? @u : 0), 1, 1) color bar_arrow snap if down
+  path "M-4 2H4L0 -2.5Z" (@W/2+(@pressed ? @u : 0), @H/2+(@pressed ? @u : 0), 1, 1) color bar_arrow snap if !down
+}
+
+part scroll_thumb snap {
+  fill @hot ? bar_thumb_hot : bar_thumb radius 2
+  stroke edge_light radius 2 width @u
+  let mid = snap(@Y+@H/2)-@Y
+  repeat 4 {
+    fill edge_light (5, mid+(2*@i-3)*@u, @W-10, @u)
+    fill bar_thumb_low (5, mid+(2*@i-2)*@u, @W-10, @u)
+  }
+}
+
+part plain_thumb snap {
+  fill bar_thumb radius 2
+  stroke edge_light radius 2 width @u
+}
+
+part slider(at = 0) {
+  let cy = snap(@Y+@H/2)-@Y
+  fill track_edge y cy-@u h 1
+  fill track y cy h 1
+  fill edge_light y cy+@u h 1
+  (10.5+(@W-21)*at-5, cy-9, 11, 19) snap {
+    fill thumb radius 2
+    fill tick (@u, @u, @W-2*@u, 2*@u)
+    fill tick (@u, @H-3*@u, @W-2*@u, 2*@u)
+    stroke thumb_line radius 2 width @u
+  }
+}
+
+part progress(percent = 0) {
+  y @H/2-7 h 14 snap {
+    fill field
+    frame progress_line
+    let inner = @W-4
+    let filled = inner*percent/100
+    repeat min(floor(filled/10)+1, ceil(inner/10)) {
+      fill progress (2+@i*10, 2, min(8, inner-@i*10), @H-4) snap
+    }
+  }
+}
+
+part panel_list {
+  fill field
+  frame list_line
+}
+
+part panel_menu {
+  fill menu_shadow (2, 2)
+  fill menu
+  frame menu_line
+}
+
+part panel_popup snap {
+  fill face
+  frame edge_out
+  fill edge_light (@u, @u, @W-2*@u, @u)
+  fill edge_light (@u, @u, @u, @H-2*@u)
+  fill edge_dark (@u, @H-2*@u, @W-2*@u, @u)
+  fill edge_dark (@W-2*@u, @u, @u, @H-2*@u)
+}
+
+part panel_info {
+  fill info
+  frame info_line
+}
+
+part caption_button(is_close = 0) snap {
+  fill is_close ? close_down : minimize_down radius 3 if @pressed
+  fill is_close ? (@hot ? close_hot : close) : (@hot ? caption_button_hot : caption_button) radius 3 if !@pressed
+  stroke caption_ink radius 3 width @u
+  line caption_ink (@W*0.3, @W*0.3) to (@W-@W*0.3, @H-@W*0.3) width 2 if is_close
+  line caption_ink (@W-@W*0.3, @W*0.3) to (@W*0.3, @H-@W*0.3) width 2 if is_close
+  fill caption_ink (@W*0.25, @H-@H*0.34, @W*0.38, 3) if !is_close
+}

@@ -1,0 +1,13 @@
+column id form y 10 {
+  use form_group text @tr.notify_on_message {
+    use form_check(on = @tray) text @tr.notify_tray hit tray
+    use form_check(on = @flash) text @tr.notify_flash hit flash
+  }
+  use form_group text @tr.notify_sounds {
+    repeat @sounds h @sounds*23 {
+      use form_check(on = @sound_on) text @sound_name hit sound y @i*23
+      use button text @tr.notify_preview hit preview right @W y @i*23-1 h button_h-1
+    }
+  }
+}
+report height = form.bottom

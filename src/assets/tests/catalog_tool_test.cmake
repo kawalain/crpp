@@ -15,7 +15,7 @@ foreach(expected
     "\nskin retro 1\n"
     "\ndefault-skin cloud\n"
     "\nfile skin:cloud fonts/PretendardGOVVariable.ttf 13386352 "
-    "\nfile skin:cloud skins/cloud/pack.jsonc "
+    "\nfile skin:cloud skins/cloud/pack.cskin "
     "\nfile shared words/animals.txt "
     " from crpp assets/words/animals.txt\n"
     " from twemoji 1f507.svg nopick\n"

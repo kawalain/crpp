@@ -1,0 +1,29 @@
+let field_w = @W-button_w-6
+let input_h = min(100, max(52, ceil(texth(chat_text, @input_text, field_w-8))+8))
+// The messages.
+note area h @H-input_h-6 {
+  use field
+  hit area
+  (1, 1, @W-2, @H-2) {
+    slot messages numbers (14, 7, 7, scrollbar_w, round(@font_size*@zoom), round(@font_size*@zoom)+4) styles (chat_text)
+        colors (ink, ink_soft)
+    use scrollbar(view = @view, content = @content, offset = @offset, track_hit = hit(bar_track), up = hit(bar_up), down = hit(bar_down), thumb_hit = hit(bar_thumb), track_note = note(bar_track))
+        x @W-scrollbar_w w scrollbar_w
+  }
+}
+// What is being written.
+hit input y @H-input_h w field_w h input_h {
+  use field
+  (1, 1, @W-2, @H-2) clip {
+    field input (3, 3, @W-6, @H-6) style chat_text color ink placeholder @tr.chat_placeholder placeholder_color ink_soft
+        caret ink selection selection
+  }
+}
+use button(off = @send_off) (@W-button_w, @H-input_h, button_w, input_h) id send text @tr.chat_send hit send
+    live !@send_off
+// Too fast: said in a small box, over the button.
+let calm_w = ceil(textw(body_center, @calm_text))+10
+(max(0, send.right-calm_w), send.y-22, calm_w, 18) if @calm {
+  use bubble
+  text @calm_text style body_center color tooltip_ink h 16
+}

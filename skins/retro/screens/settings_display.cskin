@@ -1,0 +1,35 @@
+column id form y 10 {
+  use form_group text @tr.display_theme {
+    use form_combo text @tr.display_skin after 4 {
+      slot theme_list
+    }
+    use form_combo text @tr.display_dark_mode after 4 {
+      slot dark_mode_list
+    }
+    use form_check(on = @theme_cursor) text @tr.display_theme_cursor hit theme_cursor if @has_cursors
+  }
+  use form_group text @tr.room_word_chat {
+    let size = round(@font_size*@percent/100)
+    h 2*(size+4)+12 after 8 {
+      use field
+      text @sample_says (6, 5, @W-12, size+4) style sample size size line_height size+4 color ink_soft
+      text @tr.display_chat_sample (18, 6+size+4, @W-24, size+4) style sample size size line_height size+4 color ink
+    }
+    h 18+field_h after 6 {
+      use form_slider(at = (@percent-80)/70, own = hit(scale_slider), where = note(slider)) text @tr.display_chat_size
+      text @percent_text style body_right color ink_soft h 16
+    }
+  }
+  use form_group text @tr.system_time {
+    use form_check(on = @use_24h) text @tr.system_24h hit use_24h
+    use form_combo text @tr.system_idle after 4 {
+      slot idle_list
+    }
+  }
+  use form_group text @tr.system_language {
+    use form_combo text @tr.system_language_row after 4 {
+      slot language_list
+    }
+  }
+}
+report height = form.bottom

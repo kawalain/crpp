@@ -1,0 +1,12 @@
+// Not walked under open settings, it rises only the first time.
+let rising = ease(1, 160ms) if !@settled
+let shown = @settled ? 1 : rising
+report shown = shown
+let card_w = min(320, @W-40)
+let text_h = texth(dialog_text, @message, card_w-50)
+let card_h = 24+text_h+20
+report width = card_w
+report height = card_h
+use modal(card_w = card_w, card_h = card_h, shown = shown, backdrop_hit = hit(backdrop), card_hit = hit(card)) {
+  text @message (25, 24, @W-50, text_h) style dialog_text color alpha(hl_text, shown)
+}

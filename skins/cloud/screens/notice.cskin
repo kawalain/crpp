@@ -1,0 +1,14 @@
+// Above the leave button, and leaving the chat input free.
+let card_w = min(380, @W-32)
+let text_h = texth(notice_text, @text, card_w-36)
+let card_h = 18+text_h+14+34+18
+(16, @H-72-card_h, card_w, card_h) {
+  use panel_info
+  hit card
+  text @text (18, 18, @W-36, text_h) style notice_text color ink_strong
+  let action_w = @has_action ? textw(notice_label, @action, @W)+28 : 0
+  let dismiss_w = textw(notice_label, @dismiss, @W)+28
+  use notice_button (@W-18-action_w, @H-18-34, action_w, 34) text @action hit action if @has_action
+  use notice_button(primary = !@has_action) (@W-18-(@has_action ? action_w+6 : 0)-dismiss_w, @H-18-34, dismiss_w, 34)
+      text @dismiss hit dismiss
+}

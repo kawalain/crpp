@@ -1,0 +1,55 @@
+// Vertical positions are main.js settingsContent's. Without the Pen row everything below it moves up.
+let pen_shift = @show_pen ? 0 : 69
+let effects_shift = 104-pen_shift
+let balance_top = 749+effects_shift
+let reverb_top = balance_top+60+16
+text @tr.sound_speaker (9, 25, 500, 32) style heading color hl_text
+text @tr.sound_devices (9, 167, 500, 32) style heading color hl_text
+text @tr.sound_effects (9, 535+effects_shift, 500, 32) style heading color hl_text
+text @tr.sound_speaker_volume (16, 68, 300, 26) style row_label color hl_text
+use slider(at = @speaker_volume/100) (16, 102+7-21/2, 244, 21) hit speaker_volume note slider_0
+slot speaker_list (285, 75, 246, 38)
+text @tr.sound_keyboard_volume (16, 214, 300, 26) style row_label color hl_text
+use slider(at = @keyboard_volume/100) (16, 249+7-21/2, 244, 21) hit keyboard_volume note slider_1
+slot keyboard_list (285, 220.5, 246, 38)
+text @tr.sound_mouse_volume (16, 283, 300, 26) style row_label color hl_text
+use slider(at = @mouse_volume/100) (16, 318+7-21/2, 244, 21) hit mouse_volume note slider_2
+slot mouse_list (285, 290, 246, 38)
+text @tr.sound_pen_volume (16, 352, 300, 26) style row_label color hl_text if @show_pen
+use slider(at = @pen_volume/100) (16, 387+7-21/2, 244, 21) hit pen_volume note slider_3 if @show_pen
+slot pen_list (285, 360, 246, 38) if @show_pen
+text @tr.sound_listen_self (16, 424-pen_shift, 445, 36) style row color hl_text
+use switch(on = @listen_self) (471, 424-pen_shift+5, 50, 26) hit listen_self
+text @tr.sound_others_use_mine (16, 476-pen_shift, 445, 36) style row color hl_text
+use switch(on = @others_use_mine) (471, 476-pen_shift+5, 50, 26) hit others_use_mine
+text @tr.sound_mute_notifications (16, 528-pen_shift, 445, 36) style row color hl_text
+use switch(on = @mute_notifications) (471, 528-pen_shift+5, 50, 26) hit mute_notifications
+text @tr.sound_mute_on_idle (16, 580-pen_shift, 445, 36) style row color hl_text
+use switch(on = @mute_on_idle) (471, 580-pen_shift+5, 50, 26) hit mute_on_idle
+text @tr.sound_spatial (16, 581+effects_shift, 445, 36) style row color hl_text
+use switch(on = @spatial) (471, 581+effects_shift+5, 50, 26) hit spatial
+text @tr.sound_balance_enabled (16, 633+effects_shift, 445, 36) style row color alpha(hl_text, !@spatial ? 0.42 : 1)
+use switch(on = @balance_enabled, off = !@spatial) (471, 633+effects_shift+5, 50, 26) hit balance_enabled
+    live !!@spatial hit_if !!@spatial
+// .balance-control: 385 wide, centered in the 550 column, 60 high, with a person on each side of the slider.
+// Without the surround every Desk is centred, so it would change nothing.
+let a = @balance_on ? 1 : 0.42
+text @tr.sound_balance (16, 687+effects_shift, 505, 24) style balance_title color alpha(hl_text, a)
+text @balance_word (16, 687+effects_shift, 505, 24) style balance_word color alpha(hl_text, a)
+text @tr.sound_balance_hint (16, 687+effects_shift+24, 505, 20) style balance_hint color alpha(hl_text, a*0.75)
+use person(a = a, marked = 1) (82.5, balance_top-1, 46, 62)
+use person(a = a) (138.5+273+10, balance_top-1, 46, 62)
+let ratio = (@balance-55)/35
+hit balance (138.5, balance_top+(60-39)/2, 273, 39) hit_if @balance_on {
+  let thumb_w = 29.15
+  fill alpha(hl_pale2, a) (thumb_w/2, @H/2-3, @W-thumb_w, 6) radius 3
+  fill alpha(hl, a) (thumb_w/2, @H/2-3, (@W-thumb_w)*ratio, 6) radius 3 if ratio>0
+  // The thumb's mask, viewBox -9.8 0 349.8 468.
+  path "M305.1,287.000 C295.016,299.989 282.766,313.682 265.1,315.000 C251.730,316.122 255.120,296.759 263.000,289.000 C272.380,279.765 279.802,242.670 271.000,217.000 C262.198,191.330 230.460,157.326 192.1,149.1 L192.1,335.793 C193.345,336.601 193.706,337.398 194.028,338.222 C212.363,385.188 185.104,439.707 133.143,459.993 C81.182,480.278 24.195,458.649 5.859,411.683 C-12.477,364.717 14.782,310.198 66.744,289.913 C91.239,280.350 116.847,280.109 138.1,287.439 L138.1,8.1 C138.1,4.029 143.029,-0.000 148.000,-0.000 L192.1,1.1 C192.1,1.1 261.344,50.059 289.1,76.000 C325.180,107.847 333.327,134.014 339.000,166.000 C344.600,197.570 325.823,263.557 305.1,287.000 Z"
+      color alpha(hl, a) x ratio*(@W-thumb_w)+9.8*(thumb_w/349.8) scale thumb_w/349.8
+  // Where the program finds a value along it, for a thumb of its own size.
+  note balance x thumb_w/2-slider_thumb/2 w @W-thumb_w+slider_thumb
+}
+text @tr.sound_reverb (16, reverb_top, 505, 36) style row color hl_text
+slot reverb_list (285, reverb_top+(36-38)/2, 246, 38)
+report height = reverb_top+36+25

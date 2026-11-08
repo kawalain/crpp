@@ -1,0 +1,26 @@
+text @tr.notify_heading (9, 25, @W-9, 32) style heading color hl_text
+text @tr.notify_on_message (12, 70, @W-12, 28) style subheading color @dark ? hl_text_dark : hl
+use toggle(on = @tray, hit = hit(tray)) (16, 110, 505, 36) text @tr.notify_tray
+use toggle(on = @flash, hit = hit(flash)) (16, 154, 505, 36) text @tr.notify_flash
+text @tr.notify_sounds (9, 204, @W-9, 32) style heading color hl_text
+repeat @sounds {
+  let top = 255+@i*44
+  use toggle(on = @sound_on, hit = hit(sound)+@i) (16, top, 505, 36)
+  // .notice-name: grows from its left edge under the pointer, with its tip above.
+  let name_w = textw(row, @sound_name, 2000)
+  hit preview (16, top, name_w, 36) {
+    let grow = ease(@hot, 140ms) first jump
+    let tip = ease(@hot, 150ms) first jump
+    about (0, 18) scale 1+0.07*grow {
+      text @sound_name style row color hl_text w 400
+      if tip>0 {
+        let tip_w = textw(preview_tip_measure, @tr.notify_preview, 2000)+24
+        (name_w/2-tip_w/2, -2-26+4*(1-tip), tip_w, 26) {
+          fill alpha(hl, tip) radius 10
+          text @tr.notify_preview style preview_tip color alpha(on_accent, tip)
+        }
+      }
+    }
+  }
+}
+report height = (@sounds>0 ? 255+(@sounds-1)*44+36 : 204+32)+25

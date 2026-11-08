@@ -24,8 +24,8 @@ const std::string good = head +
                          file_line("shared", "emoji/1f600.svg", " from twemoji 1f600.svg") +
                          file_line("shared", "emoji/1f507.svg", " from twemoji 1f507.svg nopick") +
                          file_line("shared", "emoji/01.svg") + file_line("shared", "emoji/1f400.svg") +
-                         file_line("shared", "sounds/keyboard/a/down.wav") + file_line("skin:cloud", "skins/cloud/pack.jsonc") +
-                         file_line("skin:retro", "skins/retro/pack.jsonc") + file_line("sound:soft", "sounds/keyboard/soft/x.wav");
+                         file_line("shared", "sounds/keyboard/a/down.wav") + file_line("skin:cloud", "skins/cloud/pack.cskin") +
+                         file_line("skin:retro", "skins/retro/pack.cskin") + file_line("sound:soft", "sounds/keyboard/soft/x.wav");
 
 void reads_every_kind_of_line() {
   const auto catalog = parse_catalog(good);

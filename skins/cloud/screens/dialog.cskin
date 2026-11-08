@@ -1,0 +1,12 @@
+let shown = ease(1, 160ms) again @revision
+let card_w = min(@wide ? 380 : 320, @W-40)
+let text_h = texth(dialog_text, @text, card_w-50)
+let card_h = 24+text_h+20+38+20
+report width = card_w
+report height = card_h
+use modal(card_w = card_w, card_h = card_h, shown = shown, backdrop_hit = hit(backdrop), card_hit = hit(card)) {
+  text @text (25, 24, @W-50, text_h) style dialog_text color alpha(hl_text, shown)
+  let left = (@W-(@has_cancel ? 2*96+10 : 96))/2
+  use button(shown = shown) (left, @H-20-38, 96, 38) text @confirm hit confirm
+  use button(primary = 0, shown = shown) (left+96+10, @H-20-38, 96, 38) text @cancel hit cancel if @has_cancel
+}

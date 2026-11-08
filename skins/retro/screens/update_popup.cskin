@@ -1,0 +1,13 @@
+let pad_left = 10
+let pad_right = 6
+let pad_y = 5
+let label_w = @has_label ? textw(button, @label)+24 : 0
+let chrome = pad_left+pad_right+(label_w>0 ? label_w+8 : 0)
+let room = max(40, @W-16-chrome)
+let text_w = min(textw(body, @text, room)+1, room)
+(8, 8, text_w+chrome, (label_w>0 ? button_h : 22)+2*pad_y) {
+  use panel_info
+  hit card
+  text @text (pad_left, (@H-22)/2, text_w, 22) style body color ink
+  use button(primary = 1) (@W-pad_right-label_w, pad_y, label_w, button_h) text @label hit button if label_w>0
+}

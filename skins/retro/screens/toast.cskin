@@ -1,0 +1,12 @@
+let pad_x = 10
+let action_w = @has_action ? textw(button, @action)+24 : 0
+let beside = action_w>0 ? action_w+10 : 0
+let text_max = max(40, @W+2*frame_w-32-2*pad_x-beside)
+let text_w = textw(chat_text, @text, text_max)
+let text_h = texth(chat_text, @text, text_max)
+let card_w = text_w+2*pad_x+beside
+((@W-card_w)/2, 8, card_w, max(text_h, action_w>0 ? button_h : 0)+14) {
+  use panel_info
+  text @text (pad_x, (@H-text_h)/2, text_w+1, text_h) style chat_text color ink
+  use button(primary = 1) (@W-pad_x-action_w, (@H-button_h)/2, action_w, button_h) text @action hit action if action_w>0
+}

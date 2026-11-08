@@ -1,0 +1,11 @@
+let shown = ease(1, 160ms)
+let card_w = min(320, @W-40)
+let text_h = texth(modal_text, @tr.home_return_question, card_w-50)
+use modal(card_w = card_w, card_h = 24+text_h+20+38+20, shown = shown, backdrop_hit = hit(backdrop), card_hit = hit(card)) {
+  text @tr.home_return_question (25, 24, @W-50, text_h) style modal_text color alpha(hl_text, shown)
+  let confirm_w = max(96, textw(modal_button_measure, @tr.home_return, 400)+28)
+  let random_w = max(96, textw(modal_button_measure, @tr.home_random, 400)+28)
+  let left = (@W-confirm_w-10-random_w)/2
+  use button(shown = shown) (left, @H-58, confirm_w, 38) text @tr.home_return hit confirm
+  use button(primary = 0, shown = shown) (left+confirm_w+10, @H-58, random_w, 38) text @tr.home_random hit random
+}

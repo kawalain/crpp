@@ -1,0 +1,51 @@
+text @tr.display_theme (9, 25, @W-9, 32) style heading color hl_text
+// One list of every Skin's Themes, under each Skin's name.
+text @tr.display_skin (16, 81, 260, 26) style row_label color hl_text
+slot theme_list (285, 75, 246, 38)
+text @tr.display_dark_mode (16, 133, 260, 26) style row_label color hl_text
+slot dark_mode_list (285, 127, 246, 38)
+let chat_top = 76+52+62+76-25
+text @tr.room_word_chat (9, chat_top-51, @W-9, 32) style heading color hl_text
+// The sample cancels the stage's scale: it shows what the chat, which is not scaled with the window, will really look like.
+let zoom = @percent/100
+let sample_h = 116/@scale
+fill alpha(hl, 0.1) (8, chat_top, 420/@scale, sample_h) radius 14
+(8, chat_top, 420/@scale, sample_h) clip soft_clip {
+  scale zoom/@scale origin {
+    // .chat-sample .chat-list has padding 14 18; the rest is .chat-head and .chat-text.
+    let inner_w = 420/zoom-36
+    picture sample_emoji (18, 14, 25, 25)
+    text @sample_time (18, 16.5, inner_w, 20) style sample_time color hl_text
+    let time_w = textw(sample_time, @sample_time, inner_w)
+    text @sample_nick (50, 16.5, max(20, inner_w-25-7-time_w-7), 20) style sample_nick color hl_text
+    text @tr.display_chat_sample (18, 41, 2000, 19) style sample_text color hl_text
+  }
+}
+let label_y = chat_top+sample_h+14
+text @tr.display_chat_size (16, label_y, 300, 26) style row_label color hl_text
+note slider (16, label_y+26+8, 244, 14) {
+  let at = (@percent-80)/70
+  use slider(at = at)
+  hit scale_slider y -4 h @H+8 {
+    // .volume-tooltip, centered over the thumb.
+    let shown = ease(@hot || @dragging, 120ms) first jump
+    if shown>0 {
+      let tip_w = textw(slider_value_measure, @percent_text, 2000)+18
+      (10.5+at*(@W-21)-tip_w/2, 4-26-11, tip_w, 26) {
+        fill alpha(volume_tip, shown) radius 13
+        text @percent_text style slider_value color alpha(white, shown)
+      }
+    }
+  }
+}
+// Upstream's time and language sections, as they are on its system tab.
+let time_top = label_y+26+8+14+32
+text @tr.system_time (9, time_top, @W-9, 32) style heading color hl_text
+use toggle(on = @use_24h, hit = hit(use_24h)) (16, time_top+51, 505, 36) text @tr.system_24h
+text @tr.system_idle (16, time_top+100, 300, 26) style row_label color hl_text
+slot idle_list (285, time_top+94, 246, 38)
+let language_top = time_top+166
+text @tr.system_language (9, language_top, @W-9, 32) style heading color hl_text
+text @tr.system_language_row (16, language_top+56, 300, 26) style row_label color hl_text
+slot language_list (285, language_top+50, 246, 38)
+report height = language_top+50+38+25

@@ -1,0 +1,10 @@
+let menu_w = 120
+repeat @items {
+  set menu_w = max(menu_w, ceil(textw(body, @item))+40)
+}
+(@menu_x, @menu_y+1, menu_w, 2+@items*22) {
+  use panel_menu
+  repeat @items {
+    use menu_item (1, 1+@i*22, @W-2, 22) text @item hit item hit_index @open*10+@i
+  }
+}

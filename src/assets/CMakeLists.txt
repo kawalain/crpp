@@ -109,7 +109,7 @@ if(WIN32)
 
   # Writes a catalog: the development one beside the exe, and the official Repository's.
   add_executable(crpp_catalog tools/catalog_tool.cpp)
-  target_link_libraries(crpp_catalog PRIVATE crpp_assets_windows crpp_update_built_in crpp_store)
+  target_link_libraries(crpp_catalog PRIVATE crpp_assets_windows crpp_update_built_in crpp_store crpp_skin)
   crpp_target_defaults(crpp_catalog)
 
   add_executable(crpp_assets_windows_platform_test tests/windows_platform_test.cpp)

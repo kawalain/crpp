@@ -1,0 +1,11 @@
+// .btn-notice: its right edge meets the button's, and it rises 4 px as it fades in.
+report ms = 150
+let shown = ease(@up, 150ms) again @again
+let text_w = textw(bubble_text, @text, 420-30)
+let text_h = texth(bubble_text, @text, 420-30)
+let box_w = text_w+30
+let box_h = text_h+10
+(@anchor_right-box_w, @anchor_y-@gap-box_h+4*(1-shown), box_w, box_h) {
+  fill alpha(hl, shown) radius 11
+  text @text (15, 5, @W-30+1, text_h) style bubble_text color alpha(on_accent, shown)
+}

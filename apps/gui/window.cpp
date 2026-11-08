@@ -482,7 +482,11 @@ void frame_changed(Shell& s) {
     if (own) save_window_size(s, s.hwnd);
     else save_screen_size(s, s.hwnd);
     s.own_frame = own;
-    update_region(s, s.hwnd);
+  }
+  // A Theme of the same frame may round its corners by another radius, at the same size.
+  update_region(s, s.hwnd);
+  recut_pane_regions(s);
+  if (frame_differs) {
     // The frame is measured again now, which WM_NCCALCSIZE answers.
     SetWindowPos(s.hwnd, nullptr, 0, 0, 0, 0, SWP_NOMOVE | SWP_NOSIZE | SWP_NOZORDER | SWP_NOACTIVATE | SWP_FRAMECHANGED);
   }

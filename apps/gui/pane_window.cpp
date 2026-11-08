@@ -300,6 +300,13 @@ void drop_pane_targets(Shell& s) {
   for (PaneWindow& w : s.panes) w.target.reset();
 }
 
+void recut_pane_regions(Shell& s) {
+  const float radius = s.app.frame_metrics().radius;
+  for (const PaneWindow& w : s.panes) {
+    if (w.hwnd) set_frame_region(w.hwnd, w.dpi, radius);
+  }
+}
+
 void request_pane_sync(Shell& s) {
   PaneState wanted = s.app.pane_state();
   wanted.hidden = s.hidden;

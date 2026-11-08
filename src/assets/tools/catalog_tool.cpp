@@ -123,9 +123,27 @@ class Writer {
       const auto id = pack ? pack->find("id") : nullptr;
       const auto format = pack ? pack->find("format") : nullptr;
       const auto parent = pack ? pack->find("extends") : nullptr;
+      const auto version = pack ? pack->find("version") : nullptr;
+      const auto pinned = pack ? pack->find("parent") : nullptr;
       if (!id || !id->as_string() || !format || !format->as_i64()) return fail("no id or format in " + generic(folder / "pack.cskin"));
       assets::SkinPack skin{.id = std::string(*id->as_string()), .format = static_cast<int>(*format->as_i64())};
-      if (parent && parent->as_string()) skin.parent = *parent->as_string();
+      if (version && version->as_string()) skin.version = *version->as_string();
+      if (parent && parent->as_string()) {
+        // Its parent is here when this folder has it and the pack names no other Repository; otherwise
+        // the program finds it by the fingerprint, or in the official Repository.
+        assets::ParentPin pin{.id = std::string(*parent->as_string())};
+        const auto field = [&](std::string_view key) {
+          const Json* value = pinned ? pinned->find(key) : nullptr;
+          return value && value->as_string() ? std::string(*value->as_string()) : std::string();
+        };
+        pin.fingerprint = field("fingerprint");
+        pin.repository = field("repository");
+        pin.version = field("version");
+        pin.sha256 = field("sha256");
+        const bool here = pin.fingerprint.empty() && fs::exists(options_.skins / pin.id / "pack.cskin");
+        if (here) skin.parent = pin.id;
+        if (!here || pinned) skin.pin = std::move(pin);
+      }
       if (skin.id != generic(folder.filename())) return fail("the folder of pack " + skin.id + " has another name");
       // Its own names and Themes, so that the program can list them before the pack is installed. The
       // Themes of a parent are the parent's lines.
@@ -255,12 +273,32 @@ int verify(int argc, char** argv) {
   return 0;
 }
 
+// The digest a pack that extends this one pins it by.
+int digest(char** argv) {
+  const auto text = read_text(argv[2]);
+  const auto catalog = text ? assets::parse_catalog(*text) : std::unexpected(assets::CatalogError{0, "cannot be read"});
+  if (!catalog) {
+    std::fprintf(stderr, "crpp_catalog: line %zu: %s\n", catalog.error().line, catalog.error().what.c_str());
+    return 1;
+  }
+  if (!catalog->skin(argv[3])) {
+    std::fprintf(stderr, "crpp_catalog: no skin %s\n", argv[3]);
+    return 1;
+  }
+  assets::WindowsPlatform platform;
+  std::printf("%s\n", assets::own_digest(*catalog, argv[3], platform).c_str());
+  return 0;
+}
+
 int main(int argc, char** argv) {
   if (argc >= 3 && std::string_view(argv[1]) == "--verify") return verify(argc, argv);
+  if (argc == 4 && std::string_view(argv[1]) == "--digest") return digest(argv);
   const auto options = parse_options(argc, argv);
   if (!options) {
     std::fprintf(stderr, "usage: crpp_catalog <out-dir> --remote <file> [--assets <dir>] [--skins <dir>] [--ref <ref>] "
-                         "[--default-skin <id>] [--key <hex>] [--copy <cache dir>]\n");
+                         "[--default-skin <id>] [--key <hex>] [--copy <cache dir>]\n"
+                         "       crpp_catalog --verify <catalog.txt> [--key <hex>]\n"
+                         "       crpp_catalog --digest <catalog.txt> <skin id>\n");
     return 2;
   }
   Writer writer(*options);

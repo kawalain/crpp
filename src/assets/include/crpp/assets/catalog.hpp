@@ -7,7 +7,10 @@
 //   crpp-catalog 1
 //   key <128 lowercase hex>                    the P-256 key that signs it
 //   source <name> <url>                        another address for files; ends with '/'
-//   skin <id> <format> [<parent>]
+//   skin <id> <format> [<parent>]              a parent here is one of this catalog
+//   skin-version <skin> <0.y.z>
+//   parent <skin> <id> [fingerprint <hex>] [repository <address>] [version <0.y[.z]>] [sha256 <hex>]
+//                                              the pack it extends, when it is in another catalog or pinned
 //   skin-name <skin> <locale> <words>          what a user calls it, for Themes not installed
 //   theme <skin> <id> [dark]                   a Theme it offers, and whether it has a dark variant
 //   theme-name <skin> <theme> <locale> <words>
@@ -59,10 +62,22 @@ struct CatalogTheme {
   Names names;
 };
 
+// What a pack says of the pack it extends: with no fingerprint, one of the same catalog or else of
+// the official Repository's; with one, of the Repository of that key.
+struct ParentPin {
+  std::string id;
+  std::string fingerprint;  // 64 lowercase hex, or empty
+  std::string repository;   // the address to add that Repository by, or empty
+  std::string version;      // 0.y or 0.y.z, or empty
+  std::string sha256;       // own_digest of it, or empty
+};
+
 struct SkinPack {
   std::string id;
   int format = 0;
-  std::string parent;  // empty: it extends none
+  std::string parent;  // one of this catalog it extends; empty: none here
+  std::string version;
+  std::optional<ParentPin> pin;  // set when it extends one elsewhere, or pins the one here
   Names names;
   std::vector<CatalogTheme> themes;
 
@@ -101,6 +116,14 @@ struct CatalogError {
 [[nodiscard]] std::vector<std::string> skin_chain(const Catalog& catalog, std::string_view id);
 
 [[nodiscard]] std::string skin_group(std::string_view id);
+
+// Whether a version holds to a pin: "0.3" takes any 0.3.z, "0.3.2" only that, and an empty pin any.
+// A pack with no version holds to none but the empty one.
+[[nodiscard]] bool version_matches(std::string_view pin, std::string_view version);
+
+// What own_digest hashes: a line "<path> <size> <sha256>" per file of the pack's own group, sorted
+// by path as bytes, each ending with LF.
+[[nodiscard]] std::string digest_text(const Catalog& catalog, std::string_view skin);
 
 // The folder of a Repository's catalog, from what a user typed: an HTTPS folder or the
 // address of its catalog, or github:owner/repo[@ref], whose files raw.githubusercontent.com

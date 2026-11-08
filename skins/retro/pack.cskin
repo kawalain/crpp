@@ -1,4 +1,4 @@
-pack retro format 1
+pack retro format 1 version 0.1.0
 
 names ko "레트로" en "Retro"
 

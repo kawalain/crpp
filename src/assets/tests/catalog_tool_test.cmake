@@ -13,6 +13,8 @@ foreach(expected
     "\nsource crpp https://raw.githubusercontent.com/kawalain/crpp/v0.0.0/\n"
     "\nskin cloud 1\n"
     "\nskin retro 1\n"
+    "\nskin-version cloud 0.1.0\n"
+    "\nskin-version retro 0.1.0\n"
     "\nskin-name cloud ko 구름\n"
     "\ntheme cloud cumulus dark\n"
     "\ntheme cloud pastel\n"
@@ -36,6 +38,19 @@ foreach(absent "README.md" "signature ")
     message(FATAL_ERROR "the catalog lists '${absent}'")
   endif()
 endforeach()
+# The digest a pack pins its parent by: a SHA-256 of the parent's own files.
+execute_process(COMMAND ${TOOL} --digest ${OUT}/catalog.txt retro RESULT_VARIABLE result OUTPUT_VARIABLE digest ERROR_VARIABLE error)
+if(NOT result EQUAL 0 OR NOT digest MATCHES "^[0-9a-f]+\n$")
+  message(FATAL_ERROR "crpp_catalog --digest failed (${result}): ${digest}${error}")
+endif()
+string(LENGTH "${digest}" length)
+if(NOT length EQUAL 65)
+  message(FATAL_ERROR "crpp_catalog --digest printed '${digest}'")
+endif()
+execute_process(COMMAND ${TOOL} --digest ${OUT}/catalog.txt nothing RESULT_VARIABLE result OUTPUT_QUIET ERROR_QUIET)
+if(result EQUAL 0)
+  message(FATAL_ERROR "crpp_catalog --digest found a skin that is not listed")
+endif()
 # What the tool wrote is not signed yet, so checking it as the program does fails.
 execute_process(COMMAND ${TOOL} --verify ${OUT}/catalog.txt RESULT_VARIABLE result OUTPUT_QUIET ERROR_QUIET)
 if(result EQUAL 0)

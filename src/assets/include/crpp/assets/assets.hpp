@@ -63,6 +63,9 @@ struct Fetched {
 [[nodiscard]] std::string fingerprint(const update::PublicKey& key, Platform& platform);
 inline constexpr std::size_t short_fingerprint = 16;
 
+// The SHA-256 of digest_text: what a pin's sha256 says of the pack it extends.
+[[nodiscard]] std::string own_digest(const Catalog& catalog, std::string_view skin, Platform& platform);
+
 // The catalog in a folder no key is known for yet, signed by the key it states. Nothing vouches
 // for that key: the user is shown its fingerprint before it is trusted. One that offers more than
 // packs (offers_only_packs) is BadContent.

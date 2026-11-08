@@ -1,4 +1,4 @@
-pack cloud format 1
+pack cloud format 1 version 0.1.0
 
 names ko "구름" en "Cloud"
 

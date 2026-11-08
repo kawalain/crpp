@@ -186,6 +186,60 @@ void another_repository_offers_only_packs() {
   CHECK(!offers_only_packs(catalog));
 }
 
+// A pack's version, and the pack it extends in another catalog or pinned in this one.
+void reads_versions_and_parents() {
+  const std::string fp(64, 'c');
+  const std::string text = head + "skin base 1\nskin-version base 0.1.0\nskin child 1 base\nparent child base version 0.1 sha256 " + hash +
+                           "\nskin far 1\nskin-version far 0.12.3\nparent far retro fingerprint " + fp + " repository github:someone/skins\n" +
+                           file_line("skin:base", "skins/base/pack.cskin");
+  const auto catalog = parse_catalog(text);
+  CHECK(catalog.has_value());
+  if (!catalog) return;
+  CHECK(catalog->skins[0].version == "0.1.0" && !catalog->skins[0].pin);
+  const SkinPack& child = catalog->skins[1];
+  CHECK(child.parent == "base" && child.version.empty() && child.pin && child.pin->id == "base" && child.pin->version == "0.1" && child.pin->sha256 == hash);
+  const SkinPack& far = catalog->skins[2];
+  CHECK(far.parent.empty() && far.pin && far.pin->id == "retro" && far.pin->fingerprint == fp && far.pin->repository == "github:someone/skins");
+  CHECK((skin_chain(*catalog, "far") == std::vector<std::string>{"far"}));  // the rest is in another catalog
+  CHECK(write_catalog(*catalog) == text);
+
+  const std::string skins = head + "skin a 1\nskin b 1 a\n";
+  refuses(skins + "skin-version a 1.0.0\n", 5);
+  refuses(skins + "skin-version a 0.1\n", 5);
+  refuses(skins + "skin-version a 0.1.0\nskin-version a 0.1.1\n", 6);
+  refuses(skins + "skin-version c 0.1.0\n", 5);
+  refuses(skins + "parent a a\n", 5);
+  refuses(skins + "parent b c\n", 5);  // the skin line names another
+  refuses(skins + "parent b a fingerprint " + fp + "\n", 5);  // one here has no other key
+  refuses(skins + "parent a c fingerprint ABC\n", 5);
+  refuses(skins + "parent a c repository github:a/b\n", 5);
+  refuses(skins + "parent a c version 1.0\n", 5);
+  refuses(skins + "parent a c version\n", 5);
+  refuses(skins + "parent a c colour red\n", 5);
+  refuses(skins + "parent a c version 0.1 version 0.2\n", 5);
+  refuses(skins + "parent a c\nparent a c\n", 6);
+}
+
+void a_version_holds_to_a_pin() {
+  CHECK(version_matches("", "") && version_matches("", "0.1.0"));
+  CHECK(version_matches("0.3", "0.3.0") && version_matches("0.3", "0.3.12") && version_matches("0.3.2", "0.3.2"));
+  CHECK(!version_matches("0.3", "0.30.1") && !version_matches("0.3", "0.4.0") && !version_matches("0.3.2", "0.3.20"));
+  CHECK(!version_matches("0.3", "") && !version_matches("0.3.2", "0.3"));
+}
+
+// The digest covers the pack's own files only, in an order that does not depend on the catalog's.
+void a_digest_lists_the_packs_own_files() {
+  Catalog catalog;
+  catalog.files = {{.group = "skin:a", .path = "skins/a/z.cskin", .size = 2, .sha256 = std::string(64, '2')},
+                   {.group = "shared", .path = "emoji/a.svg", .size = 9, .sha256 = hash},
+                   {.group = "skin:a", .path = "skins/a/Pack.cskin", .size = 1, .sha256 = std::string(64, '1')},
+                   {.group = "skin:ab", .path = "skins/ab/pack.cskin", .size = 3, .sha256 = hash}};
+  CHECK(digest_text(catalog, "a") == "skins/a/Pack.cskin 1 " + std::string(64, '1') + "\nskins/a/z.cskin 2 " + std::string(64, '2') + "\n");
+  std::swap(catalog.files[0], catalog.files[2]);
+  CHECK(digest_text(catalog, "a") == "skins/a/Pack.cskin 1 " + std::string(64, '1') + "\nskins/a/z.cskin 2 " + std::string(64, '2') + "\n");
+  CHECK(digest_text(catalog, "none").empty());
+}
+
 }  // namespace
 
 int main() {
@@ -202,5 +256,8 @@ int main() {
   lists_the_picker_and_the_sounds();
   an_address_names_a_folder();
   another_repository_offers_only_packs();
+  reads_versions_and_parents();
+  a_version_holds_to_a_pin();
+  a_digest_lists_the_packs_own_files();
   return crpp_test_result();
 }

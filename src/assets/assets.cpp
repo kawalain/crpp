@@ -115,6 +115,10 @@ std::expected<Fetched, Error> fetch_catalog(const Repository& repository, Platfo
 
 std::string fingerprint(const update::PublicKey& key, Platform& platform) { return platform.sha256(key); }
 
+std::string own_digest(const Catalog& catalog, std::string_view skin, Platform& platform) {
+  return platform.sha256(as_bytes(digest_text(catalog, skin)));
+}
+
 std::expected<Fetched, Error> fetch_new_catalog(const std::string& folder, Platform& platform) {
   const std::string url = folder + std::string(catalog_name);
   const auto bytes = with_retries(platform, [&] { return platform.fetch(url, max_catalog_size, nullptr); });

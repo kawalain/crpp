@@ -70,6 +70,22 @@ bool is_path(std::string_view s) {
   }
 }
 
+// Digits with no leading zero, `parts` of them between dots.
+bool dotted(std::string_view s, std::size_t parts) {
+  for (std::size_t i = 0; i < parts; ++i) {
+    const std::size_t dot = s.find('.');
+    const std::string_view part = s.substr(0, dot);
+    if (part.empty() || part.size() > 9 || (part.size() > 1 && part[0] == '0') || !std::ranges::all_of(part, [](char c) { return c >= '0' && c <= '9'; })) return false;
+    if (i + 1 == parts) return dot == std::string_view::npos;
+    if (dot == std::string_view::npos) return false;
+    s.remove_prefix(dot + 1);
+  }
+  return false;
+}
+
+bool is_version(std::string_view s) { return s.starts_with("0.") && dotted(s, 3); }
+bool is_version_pin(std::string_view s) { return s.starts_with("0.") && (dotted(s, 2) || dotted(s, 3)); }
+
 bool is_local_host(std::string_view rest) {
   return rest.starts_with("127.0.0.1:") || rest.starts_with("127.0.0.1/") || rest.starts_with("localhost:") ||
          rest.starts_with("localhost/");
@@ -183,6 +199,28 @@ std::expected<Catalog, CatalogError> parse_catalog(std::string_view text) {
       skin.id = f[1];
       if (f.size() == 4) skin.parent = f[3];
       catalog.skins.push_back(std::move(skin));
+    } else if (f[0] == "skin-version") {
+      SkinPack* skin = f.size() == 3 ? skin_of(f[1]) : nullptr;
+      if (!skin || !is_version(f[2])) return fail("a skin-version is a skin listed above and 0.y.z");
+      if (!skin->version.empty()) return fail("a second version of that skin");
+      skin->version = f[2];
+    } else if (f[0] == "parent") {
+      SkinPack* skin = f.size() >= 3 && f.size() % 2 == 1 ? skin_of(f[1]) : nullptr;
+      if (!skin || !is_id(f[2]) || f[2] == f[1] || skin->pin) return fail("a parent is a skin listed above, the id it extends and its pins");
+      ParentPin pin{.id = std::string(f[2])};
+      for (std::size_t i = 3; i + 1 < f.size(); i += 2) {
+        std::string* field = f[i] == "fingerprint" ? &pin.fingerprint : f[i] == "repository" ? &pin.repository
+                           : f[i] == "version"     ? &pin.version
+                           : f[i] == "sha256"      ? &pin.sha256
+                                                   : nullptr;
+        if (!field || !field->empty()) return fail("a parent's pins are fingerprint, repository, version and sha256, once each");
+        *field = f[i + 1];
+      }
+      const bool good = (pin.fingerprint.empty() || is_hex(pin.fingerprint, 64)) && (pin.sha256.empty() || is_hex(pin.sha256, 64)) &&
+                        (pin.version.empty() || is_version_pin(pin.version)) && (pin.repository.empty() || (!pin.fingerprint.empty() && pin.repository.size() <= max_url));
+      if (!good) return fail("a parent's fingerprint and sha256 are 64 hex digits, its version 0.y or 0.y.z, and a repository needs a fingerprint");
+      if (!skin->parent.empty() && (skin->parent != pin.id || !pin.fingerprint.empty())) return fail("a parent is the one the skin line names");
+      skin->pin = std::move(pin);
     } else if (f[0] == "skin-name") {
       SkinPack* skin = f.size() >= 4 ? skin_of(f[1]) : nullptr;
       const auto words = words_after(line, 3);
@@ -265,6 +303,15 @@ std::string write_catalog(const Catalog& catalog) {
   for (const SourceUrl& source : catalog.sources) text += "source " + source.name + " " + source.url + "\n";
   for (const SkinPack& skin : catalog.skins) {
     text += "skin " + skin.id + " " + std::to_string(skin.format) + (skin.parent.empty() ? "" : " " + skin.parent) + "\n";
+    if (!skin.version.empty()) text += "skin-version " + skin.id + " " + skin.version + "\n";
+    if (const auto& pin = skin.pin) {
+      text += "parent " + skin.id + " " + pin->id;
+      if (!pin->fingerprint.empty()) text += " fingerprint " + pin->fingerprint;
+      if (!pin->repository.empty()) text += " repository " + pin->repository;
+      if (!pin->version.empty()) text += " version " + pin->version;
+      if (!pin->sha256.empty()) text += " sha256 " + pin->sha256;
+      text += "\n";
+    }
     for (const auto& [locale, words] : skin.names) text += "skin-name " + skin.id + " " + locale + " " + words + "\n";
     for (const CatalogTheme& theme : skin.themes) {
       text += "theme " + skin.id + " " + theme.id + (theme.dark ? " dark" : "") + "\n";
@@ -337,6 +384,25 @@ bool offers_only_packs(const Catalog& catalog) {
 }
 
 std::string skin_group(std::string_view id) { return "skin:" + std::string(id); }
+
+bool version_matches(std::string_view pin, std::string_view version) {
+  if (pin.empty()) return true;
+  if (version == pin) return true;
+  // 0.3 takes 0.3.z: the version goes on past the pin with a dot.
+  return std::ranges::count(pin, '.') == 1 && version.size() > pin.size() && version.starts_with(pin) && version[pin.size()] == '.';
+}
+
+std::string digest_text(const Catalog& catalog, std::string_view skin) {
+  const std::string group = skin_group(skin);
+  std::vector<std::string> lines;
+  for (const File& file : catalog.files) {
+    if (file.group == group) lines.push_back(file.path + " " + std::to_string(file.size) + " " + file.sha256 + "\n");
+  }
+  std::ranges::sort(lines);
+  std::string text;
+  for (const std::string& line : lines) text += line;
+  return text;
+}
 
 std::vector<std::string> picker_emoji(const Catalog& catalog) {
   constexpr std::string_view folder = "emoji/", suffix = ".svg";

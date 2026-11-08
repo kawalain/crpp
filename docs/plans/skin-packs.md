@@ -185,7 +185,14 @@ before step 7, which removes what Cloud's pack is compared with.
      localhost with throwaway keys: a pack of one added Repository extending one of another that extends the
      official Retro was fetched into three folders and loaded; Retro 0.2.0 was held for a pack pinning 0.1, then
      taken, and not held again; a wrong digest asked first; and a changed key asked again.
-   - **6e.** Sound packs of other Repositories.
+   - **6e.** Sound packs of other Repositories. Done: the catalog names Sound packs (`sound`, `sound-name`), and
+     `crpp_catalog --sounds` lists another Repository's in groups of their own. The sound tab offers them under each
+     kind they have, a pick fetches one at once and a failure goes back to the pack before and takes back what
+     arrived; the system tab lists and removes them under "받은 스킨과 소리". The engine reads the official packs
+     first, so the default another member's missing pack plays as stays official. Seen on a hidden desktop against
+     localhost with throwaway keys: a Repository of two Sound packs was added, one was picked and fetched for the
+     keyboard and the mouse, the other failed and left nothing, its Repository could not be removed while in use,
+     and removing the pack offered it again. A member hearing another Repository's pack has not run in a Room.
 7. **Remove the C++.** Delete Luna's and Cloud's layouts and `Skin`, and fix ADR 0004 and the module design. Measure
    again.
 8. **Release path.** `docs/releases/README.md` and its script fill `dist/repository`, sign the catalog with the

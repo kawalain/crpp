@@ -216,6 +216,29 @@ void an_open_list_scrolls_to_the_keyboard() {
   CHECK(whole(first));
 }
 
+// More members than the list shows: the one the keyboard goes to comes into view.
+void the_member_list_scrolls_to_the_keyboard(const char* pack) {
+  UiHarness h;
+  CHECK(h.start(951, 692, pack));
+  h.app.show_session("ABC234");
+  RoomScreen& room = h.app.room();
+  std::vector<MemberView> members;
+  for (std::uint32_t i = 0; i < 40; ++i) members.push_back({i, "m" + std::to_string(i), "", false, "c" + std::to_string(i)});
+  room.set_room(members, 0, 0, false, true);
+  h.render();
+  h.render();
+  const auto whole = [&](std::uint32_t slot) {
+    const Ui::Hit* hit = h.app.ui().find_hit(&room, RoomScreen::MemberBase + static_cast<int>(slot));
+    return hit && hit->rect.h >= hit->whole.h - 0.5f;
+  };
+  CHECK(!whole(39));
+  CHECK(tab_to(h, room, RoomScreen::MemberBase));
+  press(h, VK_END);
+  CHECK(whole(39));
+  press(h, VK_HOME);
+  CHECK(whole(0));
+}
+
 void ctrl_tab_and_the_arrows_go_through_the_tabs(const char* pack) {
   UiHarness h;
   CHECK(h.start(951, 692, pack));
@@ -438,6 +461,7 @@ int main() {
     a_panel_opens_on_its_tab_and_closes_back(pack);
     the_messages_and_the_members_take_the_arrows(pack);
     the_menu_bar_takes_alt_and_its_letters(pack);
+    the_member_list_scrolls_to_the_keyboard(pack);
   }
   an_open_list_scrolls_to_the_keyboard();
   return crpp_test_result();

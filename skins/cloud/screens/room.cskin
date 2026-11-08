@@ -37,19 +37,21 @@ note members_area (@stage_x+stage_left*k, @stage_y+top*k, cols*col_w+(cols-1)*24
       set came = rising
     }
     let row_y = pad+floor(@i/cols)*49+1-@members_scroll+8*(1-came)
-    hit member note member ((@i-floor(@i/cols)*cols)*(col_w+24), row_y, col_w, 47) hit_index @member_slot opacity came
-        if row_y+47>0 && row_y<@H {
-      fill alpha(hl, 0.2) radius 14 if @hot
-      // Only this much changes while someone types.
-      note member_disc (6, 1.5, 44, 44)
-      let size = 36*(1+(0.8-1)*quiet)
-      // .emoji-ring::before fades in and grows from .82.
-      let ring = 22*(0.82+0.18*@member_level) if @member_level>0
-      fill alpha(hl, @member_level) (28-ring, 23.5-ring, 2*ring, 2*ring) ellipse if @member_level>0
-      picture muted (28-size/2, 23.5-size/2, size, size) opacity @member_offline ? 0.55 : 1 gray quiet if @member_muted
-      picture member (28-size/2, 23.5-size/2, size, size) opacity @member_offline ? 0.55 : 1 gray quiet
-          if !@member_muted
-      text @member_name (58, 10.5, @W-58-12, 26) style member_name color @member_offline ? alpha(hl_text, 0.5) : hl_text
+    // Every member has its hit, for the keyboard to go to; only those in view are drawn.
+    hit member note member ((@i-floor(@i/cols)*cols)*(col_w+24), row_y, col_w, 47) hit_index @member_slot opacity came {
+      if row_y+47>0 && row_y<members_h {
+        fill alpha(hl, 0.2) radius 14 if @hot
+        // Only this much changes while someone types.
+        note member_disc (6, 1.5, 44, 44)
+        let size = 36*(1+(0.8-1)*quiet)
+        // .emoji-ring::before fades in and grows from .82.
+        let ring = 22*(0.82+0.18*@member_level) if @member_level>0
+        fill alpha(hl, @member_level) (28-ring, 23.5-ring, 2*ring, 2*ring) ellipse if @member_level>0
+        picture muted (28-size/2, 23.5-size/2, size, size) opacity @member_offline ? 0.55 : 1 gray quiet if @member_muted
+        picture member (28-size/2, 23.5-size/2, size, size) opacity @member_offline ? 0.55 : 1 gray quiet
+            if !@member_muted
+        text @member_name (58, 10.5, @W-58-12, 26) style member_name color @member_offline ? alpha(hl_text, 0.5) : hl_text
+      }
     }
   }
 }

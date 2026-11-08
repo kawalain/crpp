@@ -338,6 +338,7 @@ bool RoomScreen::stop_key(int id, unsigned vk, bool ctrl, bool, bool) {
     }
     member_key_ = members_[static_cast<std::size_t>(to)].slot;
     ui_.move_stop_to(this, MemberBase + static_cast<int>(*member_key_));
+    if (const Ui::Hit* hit = ui_.find_stop(this, MemberBase + static_cast<int>(*member_key_))) reveal(hit->whole);
     return true;
   }
   if (id != VolumeSlider || ctrl) return false;
@@ -347,6 +348,17 @@ bool RoomScreen::stop_key(int id, unsigned vk, bool ctrl, bool, bool) {
     volume_ = *value;
     if (on_volume) on_volume(volume_);
   }
+  return true;
+}
+
+bool RoomScreen::reveal(Rect whole) {
+  const Rect& area = members_area_;
+  const float middle = whole.x + whole.w / 2;
+  if (members_scroll_.max_offset() <= 0 || middle < area.x || middle >= area.right()) return false;
+  // The area is in window coordinates and the offset in the pack's.
+  if (whole.y < area.y) members_scroll_.go_to(ui_, std::min(members_scroll_.target, members_scroll_.offset - (area.y - whole.y) / ui_.scale));
+  else if (whole.bottom() > area.bottom()) members_scroll_.go_to(ui_, std::max(members_scroll_.target, members_scroll_.offset + (whole.bottom() - area.bottom()) / ui_.scale));
+  else return false;
   return true;
 }
 

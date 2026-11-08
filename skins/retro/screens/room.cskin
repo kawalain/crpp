@@ -30,19 +30,22 @@ let cols = @chat ? 1 : max(1, floor((main_w-scrollbar_w)/112))
     report members_content = rows*62
     let list_w = @W-(@members_overflow ? scrollbar_w : 0)
     let col_w = floor(list_w/cols)
+    let view_h = @H
     clip w list_w {
       repeat @members {
         let top = floor(@i/cols)*62-@members_scroll
-        hit member note member ((@i-floor(@i/cols)*cols)*col_w, top, col_w, 62) hit_index @member_slot
-            if top+62>0 && top<@H {
-          fill hl_pale if @hot
-          let disc_x = floor(@X+(@W-36)/2)-@X
-          // Only this much changes while someone types, so nothing else may depend on what is drawn under it.
-          fill @hot ? hl_pale : field (disc_x-3, 2, 42, 42) note member_disc
-          use picture_frame(glow = @member_level) (disc_x, 5, 36, 36)
-          picture muted (disc_x+2, 7, 32, 32) opacity @member_offline ? 0.55 : 1 gray @muted_all if @member_muted
-          picture member (disc_x+2, 7, 32, 32) opacity @member_offline ? 0.55 : 1 gray @muted_all if !@member_muted
-          text @member_name (3, 44, @W-6, 16) style body_center color @member_offline ? ink_soft : ink
+        // Every member has its hit, for the keyboard to go to; only those in view are drawn.
+        hit member note member ((@i-floor(@i/cols)*cols)*col_w, top, col_w, 62) hit_index @member_slot {
+          if top+62>0 && top<view_h {
+            fill hl_pale if @hot
+            let disc_x = floor(@X+(@W-36)/2)-@X
+            // Only this much changes while someone types, so nothing else may depend on what is drawn under it.
+            fill @hot ? hl_pale : field (disc_x-3, 2, 42, 42) note member_disc
+            use picture_frame(glow = @member_level) (disc_x, 5, 36, 36)
+            picture muted (disc_x+2, 7, 32, 32) opacity @member_offline ? 0.55 : 1 gray @muted_all if @member_muted
+            picture member (disc_x+2, 7, 32, 32) opacity @member_offline ? 0.55 : 1 gray @muted_all if !@member_muted
+            text @member_name (3, 44, @W-6, 16) style body_center color @member_offline ? ink_soft : ink
+          }
         }
       }
     }

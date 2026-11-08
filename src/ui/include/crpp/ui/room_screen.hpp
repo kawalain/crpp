@@ -64,6 +64,8 @@ class RoomScreen final : public Surface {
   // The members are one stop, on the one the keyboard is on: the arrows go from one to the next, Enter
   // opens a profile and the menu key the member's menu.
   [[nodiscard]] int stop_for(int id) const override { return id >= MemberBase ? MemberBase + static_cast<int>(key_slot()) : id; }
+  // A member the list cuts off scrolls into view.
+  bool reveal(Rect whole) override;
 
   [[nodiscard]] ChatPanel& chat() { return chat_panel_; }
   [[nodiscard]] ProfileCard& profile_card() { return profile_; }

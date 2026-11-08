@@ -5,6 +5,7 @@
 
 #include "areas.hpp"
 #include "crpp/assets/windows_platform.hpp"
+#include "crpp/skin/pack.hpp"
 #include "shell.hpp"
 
 using namespace crpp::ui;
@@ -151,21 +152,12 @@ std::vector<std::string> open_files(const Shell& s, std::size_t shelf) {
   return held;
 }
 
-// The paths of a pack held back: its folder and its files in the catalog it was installed by.
-void hold_pack(std::vector<std::string>& held, std::string_view pack, const assets::Catalog* installed_by) {
-  held.push_back("skins/" + std::string(pack) + "/");
-  if (!installed_by) return;
-  for (const assets::File& file : installed_by->files) {
-    if (file.group == assets::skin_group(pack)) held.push_back(file.path);
-  }
-}
-
 // What an install on that shelf leaves alone: open files, and the packs held back.
 std::vector<std::string> left_alone(const Shell& s, std::size_t shelf) {
   std::vector<std::string> held = open_files(s, shelf);
   for (const Hold& hold : s.holds) {
     const auto at = area::repositories::place(s, hold.parent);
-    if (at && at->first == shelf) hold_pack(held, at->second, shelf == 0 && s.catalog ? &*s.catalog : nullptr);
+    if (at && at->first == shelf) assets::hold_skin(held, at->second, shelf == 0 && s.catalog ? &*s.catalog : nullptr);
   }
   return held;
 }
@@ -331,7 +323,15 @@ Installed install(Shell& s, const InstallJob& job, const std::atomic<bool>& canc
       if (accepted != job.accepted.end() && accepted->second == assets::own_digest(parent, link.pack, platform)) continue;
       done.holds.push_back({full(link), child});
       const assets::Catalog* installed_by = link.shelf == 0 ? (s.catalog ? &*s.catalog : nullptr) : job.others[link.shelf - 1].catalog ? &*job.others[link.shelf - 1].catalog : nullptr;
-      hold_pack(held[link.shelf], link.pack, installed_by);
+      assets::hold_skin(held[link.shelf], link.pack, installed_by);
+    }
+  }
+  // A pack in a format this exe does not read stays as it was installed, for a release that reads it.
+  assets::hold_unreadable(held[0], *catalog, s.catalog ? &*s.catalog : nullptr, skin::pack_format, skin::pack_format);
+  for (std::size_t i = 0; i < job.others.size(); ++i) {
+    if (const assets::Catalog* latest_of = shelves[i + 1].catalog) {
+      const assets::Catalog* installed_by = job.others[i].catalog ? &*job.others[i].catalog : nullptr;
+      assets::hold_unreadable(held[i + 1], *latest_of, installed_by, skin::pack_format, skin::pack_format);
     }
   }
   const auto groups = assets::wanted_groups(*catalog, s.assets_dir);
@@ -496,6 +496,8 @@ InstallJob pack_job(Shell& s, std::span<const assets::Shelf> shelves, const asse
       job.parts.push_back({std::make_shared<const assets::Catalog>(*shelves[link.shelf].catalog), area::repositories::base_of(s, link.shelf),
                            area::repositories::install_dir(s, link.shelf), {}, area::repositories::needed_groups(s, shelves, link.shelf),
                            left_alone(s, link.shelf)});
+      assets::hold_unreadable(job.parts.back().held, *shelves[link.shelf].catalog, link.shelf == 0 && s.catalog ? &*s.catalog : nullptr,
+                              skin::pack_format, skin::pack_format);
       it = of_part.end() - 1;
     }
     job.parts[static_cast<std::size_t>(it - of_part.begin())].groups.push_back(assets::skin_group(link.pack));

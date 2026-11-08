@@ -362,6 +362,28 @@ std::expected<void, Error> install(const Catalog& catalog, std::string_view base
   return {};
 }
 
+void hold_skin(std::vector<std::string>& held, std::string_view id, const Catalog* installed_by) {
+  held.push_back("skins/" + std::string(id) + "/");
+  if (!installed_by) return;
+  const std::string group = skin_group(id);
+  for (const File& file : installed_by->files) {
+    if (file.group == group) held.push_back(file.path);
+  }
+}
+
+void hold_unreadable(std::vector<std::string>& held, const Catalog& latest, const Catalog* installed_by, int min_format,
+                     int max_format) {
+  for (const SkinPack& skin : latest.skins) {
+    if (skin.format >= min_format && skin.format <= max_format) continue;
+    hold_skin(held, skin.id, installed_by);
+    // What the latest lists of it outside its folder is not fetched either.
+    const std::string group = skin_group(skin.id);
+    for (const File& file : latest.files) {
+      if (file.group == group) held.push_back(file.path);
+    }
+  }
+}
+
 std::expected<void, Error> uninstall(const Catalog& catalog, std::span<const std::string> groups, const fs::path& dir) {
   std::unordered_set<std::string> going;
   for (const File& file : catalog.files) {

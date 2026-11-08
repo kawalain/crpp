@@ -150,6 +150,15 @@ std::expected<void, Error> install(const Catalog& catalog, std::string_view base
                                    const std::filesystem::path& dir, Platform& platform, const OnProgress& progress,
                                    const std::atomic<bool>* cancel = nullptr, std::span<const std::string> held = {});
 
+// Adds to `held` what holds back a Skin: its folder, skins/<id>/, and the files of its group that
+// `installed_by`, the catalog it was installed from, lists elsewhere.
+void hold_skin(std::vector<std::string>& held, std::string_view id, const Catalog* installed_by);
+
+// Holds back every Skin of `latest` in a format outside [min_format, max_format], which this exe
+// could not read: the one installed stays as it is, and the latest is never fetched.
+void hold_unreadable(std::vector<std::string>& held, const Catalog& latest, const Catalog* installed_by, int min_format,
+                     int max_format);
+
 // Removes what is installed of these groups: the files the catalog lists for them, and for a
 // Skin's group whatever is listed under its folder, skins/<id>/, which an older catalog may have
 // put there. Folders left empty go too. A file that cannot be removed only takes up space, and is

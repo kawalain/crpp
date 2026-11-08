@@ -325,8 +325,9 @@ hands-on check of Cloud on a real desktop, 7 and 8.
   - Installed Sound packs follow the latest catalog behind the app as Skins do. They extend nothing, so they have no
     version or pin until one is needed.
   - The add question lists Sound packs too, with their sizes.
-- **Open risk:** the exe up to v0.2.0 fetches a pack in a format it does not take and overwrites the installed one;
-  the fix and format 2 are planned in [text-and-keyboard.md](text-and-keyboard.md) and ADR 0009.
+- **Format guard:** an exe holds back a pack in a format it does not take, so the installed one stays
+  (`assets::hold_unreadable`). Up to v0.2.0 it fetched and overwrote it, which is why ADR 0009 freezes the
+  format-1 catalog's address.
 
 ## Testing
 

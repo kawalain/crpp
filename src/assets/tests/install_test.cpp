@@ -195,6 +195,45 @@ void a_held_folder_stays_as_it_is() {
   CHECK(read(dir.path / "skins/retro/pack.cskin") == "RR" && !fs::exists(dir.path / "skins/retro/screens/home.cskin"));
 }
 
+// A Skin of a format this exe does not read is never fetched: the one installed stays, files
+// outside its folder included, while the rest follows the catalog.
+void a_pack_in_an_unreadable_format_keeps_the_installed_one() {
+  TempDir dir;
+  Catalog old = two_skins();
+  old.files.push_back(file("skin:retro", "skins/retro/screens/home.cskin", "hh", "gh"));
+  Fake fake;
+  serve(fake, old);
+  const std::vector<std::string> all{"shared", "skin:cloud", "skin:retro", "skin:plain"};
+  CHECK(install(old, base, all, dir.path, fake, nullptr));
+
+  Catalog latest = two_skins();
+  latest.skins[0].format = 2;  // cloud
+  latest.skins[1].format = 2;  // retro
+  latest.files = {file("shared", "emoji/a.svg", "AAA", "gh"), file("skin:cloud", "fonts/f.ttf", "FFFFF", "gh"),
+                  file("skin:retro", "skins/retro/pack.cskin", "RR", "gh"),
+                  file("skin:retro", "skins/retro/screens/menu.cskin", "mm", "gh"),
+                  file("skin:plain", "skins/plain/pack.cskin", "PP", "gh")};
+  serve(fake, latest);
+  fake.asked.clear();
+  std::vector<std::string> held;
+  hold_unreadable(held, latest, &old, 1, 1);
+  CHECK(install(latest, base, wanted_groups(latest, dir.path), dir.path, fake, nullptr, nullptr, held));
+  CHECK((fake.asked == std::vector<std::string>{"https://repo/emoji/a.svg", "https://repo/skins/plain/pack.cskin"} ||
+         fake.asked == std::vector<std::string>{"https://repo/skins/plain/pack.cskin", "https://repo/emoji/a.svg"}));
+  CHECK(read(dir.path / "fonts/f.ttf") == "ffff");
+  CHECK(read(dir.path / "skins/retro/pack.cskin") == "rr" && read(dir.path / "skins/retro/screens/home.cskin") == "hh");
+  CHECK(!fs::exists(dir.path / "skins/retro/screens/menu.cskin"));
+  CHECK(read(dir.path / "skins/plain/pack.cskin") == "PP" && read(dir.path / "emoji/a.svg") == "AAA");
+
+  // An exe that reads format 2 takes it.
+  held.clear();
+  hold_unreadable(held, latest, &old, 1, 2);
+  CHECK(held.empty());
+  CHECK(install(latest, base, wanted_groups(latest, dir.path), dir.path, fake, nullptr, nullptr, held));
+  CHECK(read(dir.path / "fonts/f.ttf") == "FFFFF" && read(dir.path / "skins/retro/pack.cskin") == "RR");
+  CHECK(!fs::exists(dir.path / "skins/retro/screens/home.cskin"));
+}
+
 // A pack removed goes with its folder, and is no longer kept current; the rest stays.
 void a_removed_pack_is_no_longer_installed() {
   TempDir dir;
@@ -570,6 +609,7 @@ int main() {
   keeps_only_what_is_installed();
   a_held_file_waits_for_the_next_start();
   a_held_folder_stays_as_it_is();
+  a_pack_in_an_unreadable_format_keeps_the_installed_one();
   a_removed_pack_is_no_longer_installed();
   a_group_not_asked_for_stays_listed_while_it_matches();
   a_group_not_asked_for_stays_wanted_when_it_changes();

@@ -28,8 +28,10 @@ A smaller exe and less memory are not goals.
   the update key (decided 2026-11-08, replacing a key of its own); another Repository's key is remembered when it is
   added, and a change refuses it. The verifying code is the update module's. Files are fetched one by one, with no
   archive format.
-- **Compatibility.** A pack states a `format` number and the exe refuses any outside its range. The catalog offers
-  a pack per format. A newly required screen raises the number and updates the official packs together.
+- **Compatibility.** A pack states a `format` number and the exe refuses any outside its range. Each format of the
+  official Repository has a catalog address of its own, and the old one is frozen
+  ([ADR 0009](../adr/0009-a-catalog-address-per-pack-format.md)). A new name a pack may use raises the number and
+  updates the official packs together.
 - **Managing.** The display tab lists Themes not yet installed. Picking one shows progress and applies it when done;
   a failure stays on the current Skin and says why. Unused packs can be removed there, but not the one in use or
   its parents. Updates: the catalog is read
@@ -323,8 +325,8 @@ hands-on check of Cloud on a real desktop, 7 and 8.
   - Installed Sound packs follow the latest catalog behind the app as Skins do. They extend nothing, so they have no
     version or pin until one is needed.
   - The add question lists Sound packs too, with their sizes.
-- **Open risk:** a pack per `format` in one catalog is designed when format 2 is needed. Until then a pack in a format
-  the exe does not take is not updated and the installed one stays.
+- **Open risk:** the exe up to v0.2.0 fetches a pack in a format it does not take and overwrites the installed one;
+  the fix and format 2 are planned in [text-and-keyboard.md](text-and-keyboard.md) and ADR 0009.
 
 ## Testing
 

@@ -46,7 +46,6 @@ class Toasts final : public Surface {
   };
   void paint_toast(Painter& p);
   void paint_bubble(Painter& p);
-  [[nodiscard]] float visibility(const Message& m, float duration_ms) const;
   [[nodiscard]] bool up(const Message& m) const { return !ui_.animations || !m.hide_at || ui_.now_ms < m.hide_at; }
   [[nodiscard]] bool moving(const Message& m, float duration_ms, unsigned long long now) const;
 

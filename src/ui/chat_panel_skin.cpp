@@ -354,7 +354,6 @@ void ChatPanel::paint_messages(Painter& p, Rect inner) {
         link_tip_spec_.text = tr().chat_link_tip;
         link_tip_spec_.look = HoverTip::Look::Link;
         link_tip_spec_.gap = 2;
-        link_tip_spec_.slide = 0;
         show_link_tip_ = true;
       }
     }

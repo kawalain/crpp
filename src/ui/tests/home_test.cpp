@@ -2,7 +2,6 @@
 
 #include "check.hpp"
 #include "crpp/ui/home_logic.hpp"
-#include "crpp/ui/hover.hpp"
 #include "ui_harness.hpp"
 
 using namespace crpp::ui;
@@ -218,26 +217,6 @@ void test_seat_expiry_needs_no_paint_and_no_spinning() {
   CHECK(!home.tick(at + 1));
 }
 
-void test_tween_runs_turns_around_and_settles() {
-  Tween t(100);
-  CHECK(t.value(0) == 0);
-  CHECK(!t.moving(false, 0));
-  CHECK(t.moving(true, 0));  // wanted but not aimed yet: the frame timer must start
-  t.aim(true, 1000, true);
-  CHECK(t.value(1000) == 0);
-  CHECK(t.moving(true, 1050));
-  const float mid = t.value(1050);
-  CHECK(mid > 0.5f && mid < 1);  // CSS ease is past half at half time
-  t.aim(false, 1050, true);
-  CHECK(t.value(1050) == mid);  // no jump
-  CHECK(t.moving(false, 1050 + 50));
-  CHECK(!t.moving(false, 1050 + 100));  // takes only as long as the way back is
-  CHECK(t.value(1050 + 100) == 0);
-  t.aim(true, 2000, false);
-  CHECK(t.value(2000) == 1);
-  CHECK(!t.moving(true, 2000));
-}
-
 // Waits out every transition the way the frame timer does.
 void settle(UiHarness& h) {
   for (int i = 0; i < 60 && h.app.animating(); ++i) {
@@ -304,7 +283,6 @@ void test_bubble_mutes_the_search_label_until_it_is_gone() {
 }  // namespace
 
 int main() {
-  test_tween_runs_turns_around_and_settles();
   test_hover_animates_then_goes_idle();
   test_focus_and_droplet_animate_then_go_idle();
   test_bubble_mutes_the_search_label_until_it_is_gone();

@@ -8,7 +8,6 @@
 namespace crpp::ui {
 
 namespace {
-constexpr float list_fade_ms = 120;
 
 enum ListNumberId : int { Items, Selected, Up, Offset, FadeTop, FadeBottom, Heading };
 enum ListReportId : int { View, Content };
@@ -30,18 +29,6 @@ float transition(const Ui& ui, unsigned long long start, float duration_ms) {
   return ease(static_cast<float>(ui.now_ms - start) / duration_ms);
 }
 
-void paint_switch(Painter& p, const Theme& t, Rect r, bool on, bool disabled, bool hot) {
-  paint_switch_at(p, t, r, on, on ? 1.0f : 0.0f, disabled, hot);
-}
-
-void paint_switch_at(Painter& p, const Theme& t, Rect r, bool on, float at, bool disabled, bool hot) {
-  skin_of(t).switch_at(p, t, r, on, at, disabled, hot);
-}
-
-void paint_slider(Painter& p, const Theme& t, Rect r, int value, int min, int max) {
-  skin_of(t).slider(p, t, r, static_cast<float>(value - min) / static_cast<float>(max - min));
-}
-
 int slider_value(Rect r, float x, int min, int max) {
   const float at = std::clamp((x - r.x - slider_thumb / 2) / (r.w - slider_thumb), 0.0f, 1.0f);
   return min + static_cast<int>(std::lround(at * static_cast<float>(max - min)));
@@ -54,86 +41,42 @@ void Dropdown::paint_button(Ui& ui, Surface* owner, Painter& p, Rect r) const {
 }
 
 void Dropdown::paint_list(Ui& ui, Surface* owner, Painter& p, Rect r) {
-  if (!open) {
-    was_open_ = false;
-    return;
-  }
-  if (const skin::Screen* screen = ui.pack_screen("dropdown")) {
-    class Shown final : public skin::Source {
-     public:
-      Shown(Dropdown& dropdown, Ui& ui, Rect& list, Scroll& scroll) : d_(dropdown), ui_(ui), list_(list), scroll_(scroll) {}
-      std::string_view text(int, int index) override { return d_.options[static_cast<std::size_t>(index)]; }
-      float number(int id, int index) override {
-        switch (id) {
-          case Items: return static_cast<float>(d_.options.size());
-          case Selected: return index == d_.selected ? 1.0f : 0.0f;
-          case Up: return d_.up ? 1.0f : 0.0f;
-          case FadeTop: return scroll_.fade_top();
-          case FadeBottom: return scroll_.fade_bottom();
-          case Heading: return d_.heading(static_cast<std::size_t>(index)) ? 1.0f : 0.0f;
-          default: return scroll_.drawn();
-        }
+  const skin::Screen* screen = ui.pack_screen("dropdown");
+  if (!open || !screen) return;
+  class Shown final : public skin::Source {
+   public:
+    Shown(Dropdown& dropdown, Ui& ui, Rect& list, Scroll& scroll) : d_(dropdown), ui_(ui), list_(list), scroll_(scroll) {}
+    std::string_view text(int, int index) override { return d_.options[static_cast<std::size_t>(index)]; }
+    float number(int id, int index) override {
+      switch (id) {
+        case Items: return static_cast<float>(d_.options.size());
+        case Selected: return index == d_.selected ? 1.0f : 0.0f;
+        case Up: return d_.up ? 1.0f : 0.0f;
+        case FadeTop: return scroll_.fade_top();
+        case FadeBottom: return scroll_.fade_bottom();
+        case Heading: return d_.heading(static_cast<std::size_t>(index)) ? 1.0f : 0.0f;
+        default: return scroll_.drawn();
       }
-      void report(int id, float value) override {
-        if (id == View) {
-          scroll_.view_h = value;
-        } else {
-          scroll_.content_h = value;
-          scroll_.clamp();
-          scroll_.advance(ui_);
-        }
-      }
-      void note(int, int, skin::Box box) override { list_ = rect_of(box); }
-
-     private:
-      Dropdown& d_;
-      Ui& ui_;
-      Rect& list_;
-      Scroll& scroll_;
-    } shown(*this, ui, list_, scroll_);
-    SkinCanvas canvas(ui, p, owner, id_base);
-    skin::draw(*ui.pack, *screen, ui.palette, {r.x, r.y, r.w, r.h}, canvas, shown);
-    return;
-  }
-  const Theme& t = ui.theme;
-  const auto [pad, item_h, gap, max_h, margin] = ui.skin().list_metrics();
-  const float content = static_cast<float>(options.size()) * (item_h + gap) - gap + 2 * pad;
-  const float h = std::min(content, max_h);
-  list_ = {r.x, up ? r.y - margin - h : r.bottom() + margin, r.w, h};
-  scroll_.view_h = h;
-  scroll_.content_h = content;
-  scroll_.clamp();
-  scroll_.advance(ui);
-  if (!was_open_) {
-    was_open_ = true;
-    opened_at_ = ui.now_ms;
-  }
-  const float shown = transition(ui, opened_at_, list_fade_ms);
-  const float blur = t.dark ? 38.0f : 16.0f, drop = t.dark ? 12.0f : 4.0f;
-  if (shown < 1) {
-    ui.more_frames = true;
-    p.push_opacity(shown, {list_.x - blur, list_.y - blur, list_.w + 2 * blur, list_.h + 2 * blur + drop});
-  }
-  ui.skin().panel(p, t, list_, PanelKind::List);
-  ui.push_hit_clip(ui.to_window(list_));
-  p.rt()->PushAxisAlignedClip(D2D1::RectF(list_.x, list_.y, list_.right(), list_.bottom()),
-                              D2D1_ANTIALIAS_MODE_PER_PRIMITIVE);
-  const bool fade = push_edge_fade(ui, p, list_, scroll_.fade_top(), scroll_.fade_bottom());
-  float y = list_.y + pad - scroll_.drawn();
-  for (std::size_t i = 0; i < options.size(); ++i, y += item_h + gap) {
-    const int id = id_base + 1 + static_cast<int>(i);
-    const Rect item{list_.x + pad, y, list_.w - 2 * pad, item_h};
-    if (heading(i)) {
-      ui.skin().list_heading(p, t, item, options[i]);
-      continue;
     }
-    ui.skin().list_item(p, t, item, options[i], static_cast<int>(i) == selected, ui.hot(owner, id));
-    ui.add_hit(owner, item, id);
-  }
-  pop_edge_fade(p, fade);
-  p.rt()->PopAxisAlignedClip();
-  ui.pop_hit_clip();
-  if (shown < 1) p.pop_opacity();
+    void report(int id, float value) override {
+      if (id == View) {
+        scroll_.view_h = value;
+      } else {
+        scroll_.content_h = value;
+        scroll_.clamp();
+        scroll_.advance(ui_);
+      }
+    }
+    void note(int, int, skin::Box box) override { list_ = rect_of(box); }
+
+   private:
+    Dropdown& d_;
+    Ui& ui_;
+    Rect& list_;
+    Scroll& scroll_;
+  } shown(*this, ui, list_, scroll_);
+  SkinCanvas canvas(ui, p, owner, id_base);
+  skin::draw(*ui.pack, *screen, ui.palette, {r.x, r.y, r.w, r.h}, canvas, shown);
 }
 
 bool Dropdown::click(int id) {
@@ -234,11 +177,6 @@ void Scroll::drag_thumb(Rect track, float y) {
   const float room = track.h - t.h;
   if (room <= 0) return;
   jump_to((y - t.h / 2 - track.y) / room * max_offset());
-}
-
-void paint_scrollbar(Painter& p, const Theme& t, const Scroll& scroll, Rect track, bool hot) {
-  if (scroll.max_offset() <= 0) return;
-  skin_of(t).scrollbar(p, t, scroll.thumb(track), hot ? 1.0f : 0.0f, 1);
 }
 
 Rect paint_modal(Ui& ui, Surface* owner, Painter& p, float w, float h, float shown, int backdrop_id, int card_id) {

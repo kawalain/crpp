@@ -41,11 +41,9 @@ class Dialogs final : public Surface {
   bool wheel(float x, float y, float delta) override;
   bool escape() override;
   [[nodiscard]] Cursor cursor(int id) const override;
-  [[nodiscard]] bool animating() const override;
   bool tick(unsigned long long now_ms) override;
 
  private:
-  [[nodiscard]] float width_here() const;
   std::optional<Dialog> dialog_;
   unsigned revision_ = 0;
   unsigned long long opened_at_ = 0;

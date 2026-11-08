@@ -24,9 +24,6 @@ constexpr skin::Name hit_names[] = {{"backdrop", ProfileCard::Backdrop}, {"card"
 constexpr skin::Name report_names[] = {{"width", Width}, {"height", Height}};
 constexpr skin::Name note_names[] = {{"icon", 0}};
 
-constexpr float card_w = 380, pad_top = 24, pad_x = 25, pad_bottom = 20;
-constexpr float icon_size = 72, icon_emoji = 46, head_gap = 18, head_bottom = 20;
-constexpr float stat_line = 17 * 1.9f;
 
 std::string format_date(std::int64_t seconds) {
   const auto t = static_cast<std::time_t>(seconds);
@@ -120,72 +117,24 @@ void ProfileCard::close() {
 }
 
 D2D1_SIZE_F ProfileCard::content_size() const {
-  if (const skin::Screen* screen = ui_.pack_screen("profile")) {
-    ShownProfile shown(profile_, mine_, ui_, nullptr, nullptr);
-    measure_screen(ui_, *screen, ui_.content, shown);
-    return shown.size;
-  }
-  const int rows = profile_.created ? 3 : 2;
-  return {card_w, pad_top + icon_size + head_bottom + static_cast<float>(rows) * stat_line + pad_bottom};
+  const skin::Screen* screen = ui_.pack_screen("profile");
+  if (!screen) return {0, 0};
+  ShownProfile shown(profile_, mine_, ui_, nullptr, nullptr);
+  measure_screen(ui_, *screen, ui_.content, shown);
+  return shown.size;
 }
 
 void ProfileCard::paint(Painter& p) {
-  if (!open_) return;
-  if (const skin::Screen* screen = ui_.pack_screen("profile")) {
-    p.set_base(D2D1::Matrix3x2F::Identity());
-    Rect icon;
-    ShownProfile shown(profile_, mine_, ui_, &p, &icon);
-    draw_layer(ui_, p, this, *screen, ui_.content, shown);
-    HoverTip::Spec spec;
-    spec.text = tr().profile_change_icon;
-    spec.anchor = icon;
-    tip_.paint(ui_, p, mine_ && ui_.hot(this, Icon) ? &spec : nullptr);
-    return;
-  }
-  const Theme& t = ui_.theme;
-  const float w = ui_.window != 0 ? card_w : std::min(card_w, ui_.width - 40);
-  const float h = content_size().height;
-  const float shown = transition(ui_, opened_at_, modal_pop_ms);
-  const Rect card = paint_modal(ui_, this, p, w, h, shown, Backdrop, Card);
-
-  const Rect icon{card.x + pad_x, card.y + pad_top, icon_size, icon_size};
-  const bool hot = mine_ && ui_.hot(this, Icon);
-  const float grow = hot ? 1.05f : 1.0f;
-  const float cx = icon.x + icon_size / 2, cy = icon.y + icon_size / 2;
-  ui_.skin().avatar(p, t, icon, grow, hot, shown);
-  const float emoji = icon_emoji * grow;
-  draw_svg(p, ui_.emoji_image(profile_.emoji), {cx - emoji / 2, cy - emoji / 2, emoji, emoji}, shown);
-  if (mine_) ui_.add_hit_window(this, icon, Icon);
-
-  const std::string nick = profile_.nick.empty() ? tr().guest : profile_.nick;
-  const float names_x = icon.right() + head_gap;
-  const float names_w = card.right() - pad_x - names_x;
-  const Color ink = with_alpha(t.hl_text, shown);
-  const bool two_lines = profile_.handle && nick != "@" + *profile_.handle;
-  if (two_lines) {
-    const float top = icon.y + (icon_size - (30 + 2 + 20)) / 2;
-    p.text(nick, {names_x, top, names_w, 30}, {.size = 24, .weight = 700, .line_height = 30, .ellipsis = true}, ink);
-    p.text("@" + *profile_.handle, {names_x, top + 32, names_w, 20}, {.size = 16, .line_height = 20, .ellipsis = true},
-           with_alpha(t.hl_text_soft, shown));
-  } else {
-    p.text(nick, {names_x, icon.y + (icon_size - 34) / 2, names_w, 34},
-           {.size = 28, .weight = 700, .line_height = 34, .ellipsis = true}, ink);
-  }
-
-  float y = icon.bottom() + head_bottom;
-  const TextStyle stat{.size = 17, .line_height = stat_line, .ellipsis = true};
-  const auto row = [&](const std::string& text) {
-    p.text(text, {card.x + pad_x, y, w - 2 * pad_x, stat_line}, stat, ink);
-    y += stat_line;
-  };
-  if (profile_.created) row(locale::fill(tr().profile_joined, {format_date(*profile_.created)}));
-  row(locale::fill(tr().profile_stayed, {locale::format_stay(profile_.stayed)}));
-  row(locale::fill(tr().profile_inputs, {locale::format_times(profile_.events)}));
-
+  const skin::Screen* screen = ui_.pack_screen("profile");
+  if (!open_ || !screen) return;
+  p.set_base(D2D1::Matrix3x2F::Identity());
+  Rect icon;
+  ShownProfile shown(profile_, mine_, ui_, &p, &icon);
+  draw_layer(ui_, p, this, *screen, ui_.content, shown);
   HoverTip::Spec spec;
   spec.text = tr().profile_change_icon;
   spec.anchor = icon;
-  tip_.paint(ui_, p, hot ? &spec : nullptr);
+  tip_.paint(ui_, p, mine_ && ui_.hot(this, Icon) ? &spec : nullptr);
 }
 
 void ProfileCard::click(int id, float, float, bool) {
@@ -199,14 +148,13 @@ bool ProfileCard::escape() {
   return true;
 }
 
-bool ProfileCard::animating() const { return open_ && ((ui_.animations && was_animating_) || tip_.animating(ui_)); }
+bool ProfileCard::animating() const { return open_ && tip_.animating(ui_); }
 
 bool ProfileCard::tick(unsigned long long now_ms) {
   bool changed = open_ && tip_.animating(ui_);
-  if (was_animating_) {
+  if (was_animating_) {  // the card's own transition asks for its frames from the one this brings
     changed = true;
-    // A pack's card asks for its own frames from the one this brings.
-    if (ui_.pack_screen("profile") || static_cast<float>(now_ms - std::min(now_ms, opened_at_)) >= modal_pop_ms) was_animating_ = false;
+    was_animating_ = false;
   }
   if (pending_ && now_ms >= give_up_at_) {
     pending_.reset();

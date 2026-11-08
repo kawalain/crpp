@@ -31,7 +31,6 @@ class OfflinePopup final : public Surface {
   void paint(Painter& p);
   bool wheel(float x, float y, float delta) override;
   [[nodiscard]] Cursor cursor(int id) const override;
-  [[nodiscard]] bool animating() const override;
   bool tick(unsigned long long now_ms) override;
   [[nodiscard]] unsigned long long wake_at() const override { return retry_at_; }
 

@@ -86,7 +86,6 @@ class ChangelogView final : public Surface {
     TextStyle heading, item;
   };
   void show(std::size_t index, bool at_bottom);
-  void build(float width);
   void lay_out_body(const BodyLook& look, float width);
   void scroll_body();
   void paint_body(Painter& p, Rect body, const TextStyle& item, float marker_h, Color ink);
@@ -96,13 +95,11 @@ class ChangelogView final : public Surface {
   bool open_ = false;
   std::vector<ChangelogEntry> entries_;
   std::size_t index_ = 0;
-  unsigned long long opened_at_ = 0;
   bool was_animating_ = false;
 
   std::vector<Line> lines_;
-  ComPtr<IDWriteTextLayout> tagline_, date_, version_;
   bool built_ = false;
-  float built_width_ = 0, head_h_ = 0, body_h_ = 0, first_line_ = 0;
+  float built_width_ = 0, body_h_ = 0, first_line_ = 0;
   Scroll scroll_;
   bool start_at_bottom_ = false;
   Rect bar_track_;
@@ -110,7 +107,7 @@ class ChangelogView final : public Surface {
 
   ChangelogOverscroll overscroll_;
   int hint_ = 0, hint_shown_ = 0;  // the wanted direction; the one being drawn or fading
-  unsigned long long hint_changed_at_ = 0, idle_at_ = 0, ignore_until_ = 0;
+  unsigned long long idle_at_ = 0, ignore_until_ = 0;
   unsigned long long synthetic_steps_ = 0;  // with animations off, each wheel event is time passing
 };
 

@@ -17,11 +17,6 @@ constexpr skin::Name number_names[] = {{"self", Self}, {"muted", Muted}, {"volum
 constexpr skin::Name hit_names[] = {{"card", MemberMenu::Card}, {"profile", MemberMenu::Profile}, {"slider", MemberMenu::Slider}, {"mute", MemberMenu::Mute}};
 constexpr skin::Name note_names[] = {{"track", 0}};
 
-constexpr float menu_pad = 6, menu_item_h = 38;
-constexpr float menu_row_h = 6 + 22 + 8 + 14 + 10;  // .menu-volume: padding, label, margin, slider
-// .member-menu's min-width; one with a volume row is a fifth wider, for the slider.
-constexpr float self_w = 128, other_w = 154;
-
 }  // namespace
 
 skin::ScreenSchema MemberMenu::schema() { return {.screen = "member_menu", .texts = text_names, .numbers = number_names, .hits = hit_names, .notes = note_names}; }
@@ -49,41 +44,7 @@ void MemberMenu::paint(Painter& p) {
   }
   window_w_ = ui_.width;
   window_h_ = ui_.height;
-  if (const skin::Screen* screen = ui_.pack_screen("member_menu")) {
-    paint_pack(p, *screen);
-    return;
-  }
-  const Theme& t = ui_.theme;
-  const bool plain = !ui_.skin().moves();
-  const float pad = plain ? 1 : menu_pad, item_h = plain ? 22 : menu_item_h, row_h = plain ? 46 : menu_row_h;
-  const float w = self_ ? self_w : other_w;
-  const float h = 2 * pad + 2 * item_h + (self_ ? 0 : row_h);
-  const Rect r{std::max(8.0f, std::min(x_, ui_.width - w - 8)), std::max(8.0f, std::min(y_, ui_.height - h - 8)), w, h};
-  ui_.skin().panel(p, t, r, PanelKind::Menu);
-  ui_.add_hit_window(this, r, Card);
-
-  const auto item = [&](Rect box, std::string_view text, int id, bool active, bool disabled) {
-    ui_.skin().menu_item(p, t, box, text, active, !disabled && ui_.hot(this, id), disabled);
-    if (!disabled) ui_.add_hit_window(this, box, id);
-  };
-
-  float y = r.y + pad;
-  item({r.x + pad, y, w - 2 * pad, item_h}, tr().member_profile, Profile, false, false);
-  y += item_h;
-  HoverTip::Spec tip;
-  bool show_tip = false;
-  if (!self_) {
-    p.text(tr().member_volume, {r.x + pad + 12, y + 6, w - 2 * pad - 24, 22}, {.size = 17, .weight = 700, .line_height = 22}, t.hl_text);
-    track_ = {r.x + pad + 12, y + 6 + 22 + 8, w - 2 * pad - 24, 14};
-    paint_slider(p, t, track_, volume_, 0, 100);
-    ui_.add_hit_window(this, track_, Slider);
-    y += row_h;
-    show_tip = ui_.hot(this, Slider) || ui_.capture == this;
-    if (show_tip) tip = volume_tip();
-  }
-  const bool muted_now = muted();
-  item({r.x + pad, y, w - 2 * pad, item_h}, muted_now ? tr().unmute : tr().mute, Mute, muted_now, self_);
-  tooltip_.paint(ui_, p, show_tip ? &tip : nullptr);
+  if (const skin::Screen* screen = ui_.pack_screen("member_menu")) paint_pack(p, *screen);
 }
 
 HoverTip::Spec MemberMenu::volume_tip() const {
@@ -94,17 +55,7 @@ HoverTip::Spec MemberMenu::volume_tip() const {
   tip.text = std::to_string(volume_) + "%";
   tip.anchor = {track_.x + thumb / 2 + (track_.w - thumb) * at, track_.y, 0, track_.h};
   tip.look = HoverTip::Look::Volume;
-  tip.size = 15;
-  tip.weight = 400;
-  tip.line_height = 20;
   tip.gap = 11;
-  tip.slide = 0;
-  tip.in_ms = tip.out_ms = 120;
-  tip.pad_x = 9;
-  tip.pad_y = 3;
-  tip.radius = 13;
-  tip.fill = rgb(0x75ccff);
-  tip.ink = rgb(0xFFFFFF);
   return tip;
 }
 

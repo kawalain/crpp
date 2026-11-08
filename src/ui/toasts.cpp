@@ -54,12 +54,6 @@ void Toasts::clear() {
   on_action_ = nullptr;
 }
 
-float Toasts::visibility(const Message& m, float duration_ms) const {
-  if (!ui_.animations) return 1;
-  if (m.hide_at && ui_.now_ms >= m.hide_at) return 1 - transition(ui_, m.hide_at, duration_ms);
-  return transition(ui_, m.shown_at, duration_ms);
-}
-
 void Toasts::paint(Painter& p) {
   p.set_base(D2D1::Matrix3x2F::Identity());
   if (toast_.active()) paint_toast(p);
@@ -81,37 +75,6 @@ void Toasts::paint_toast(Painter& p) {
       float& ms_;
     } shown(toast_.text, action_, up(toast_), toast_ms_);
     draw_layer(ui_, p, this, *screen, ui_.content, shown);
-    return;
-  }
-  const Theme& t = ui_.theme;
-  const bool plain = !ui_.skin().moves();
-  const float pad_x = plain ? 10 : 18, pad_y = plain ? 7 : 11, gap = plain ? 10 : 16, action_pad_x = plain ? 12 : 13, action_h = plain ? 23 : 32;
-  const float max_w = ui_.width - 32;
-  const TextStyle body{.size = 15, .weight = 700, .line_height = 22, .wrap = true};
-  const TextStyle action_style{.size = 15, .weight = 700, .line_height = action_h, .align = Align::Center};
-  float action_w = 0;
-  if (!action_.empty()) {
-    DWRITE_TEXT_METRICS m{};
-    if (const auto layout = ui_.gfx.layout(widen(action_), action_style, max_w)) layout->GetMetrics(&m);
-    action_w = m.widthIncludingTrailingWhitespace + 2 * action_pad_x;
-  }
-  const float text_max = std::max(40.0f, max_w - 2 * pad_x - (action_w > 0 ? action_w + gap : 0));
-  DWRITE_TEXT_METRICS size{};
-  if (const auto layout = ui_.gfx.layout(widen(toast_.text), body, text_max)) layout->GetMetrics(&size);
-  const float inner_h = std::max(size.height, action_w > 0 ? action_h : 0.0f);
-  const float w = size.widthIncludingTrailingWhitespace + 2 * pad_x + (action_w > 0 ? action_w + gap : 0);
-  const float h = inner_h + 2 * pad_y;
-  const float shown = visibility(toast_, toast_ms_);
-  // Slides from above the window to 8 below its top (translate(-50%, -150%)).
-  const float y = ui_.content.y + 8 - (h * 1.5f + 8) * (1 - shown);
-  const Rect card{(ui_.width - w) / 2, y, w, h};
-  ui_.skin().panel(p, t, card, PanelKind::Toast, shown);
-  p.text(toast_.text, {card.x + pad_x, card.y + (h - size.height) / 2, size.widthIncludingTrailingWhitespace + 1, size.height},
-         body, with_alpha(t.hl_text, shown));
-  if (action_w > 0) {
-    const Rect button{card.right() - pad_x - action_w, card.y + (h - action_h) / 2, action_w, action_h};
-    ui_.skin().button(p, t, button, action_, {.kind = ButtonKind::Toast, .hot = ui_.hot(this, Action), .shown = shown});
-    ui_.add_hit_window(this, button, Action);
   }
 }
 
@@ -141,19 +104,7 @@ void Toasts::paint_bubble(Painter& p) {
       float& ms_;
     } shown(bubble_.text, anchor_, gap_, up(bubble_), bubbles_, bubble_ms_);
     draw_layer(ui_, p, this, *screen, {0, 0, ui_.width, ui_.height}, shown);
-    return;
   }
-  const Theme& t = ui_.theme;
-  const bool plain = !ui_.skin().moves();
-  const float pad_x = plain ? 4 : 15, pad_y = plain ? 2 : 5;
-  const TextStyle body{.size = 16, .weight = 700, .line_height = 22, .align = Align::Center, .wrap = true};
-  DWRITE_TEXT_METRICS size{};
-  if (const auto layout = ui_.gfx.layout(widen(bubble_.text), body, 420 - 2 * pad_x)) layout->GetMetrics(&size);
-  const float w = size.widthIncludingTrailingWhitespace + 2 * pad_x, h = size.height + 2 * pad_y;
-  const float shown = visibility(bubble_, bubble_ms_);
-  const Rect r{anchor_.right() - w, anchor_.y - gap_ - h + 4 * (1 - shown), w, h};
-  const Color written = ui_.skin().bubble(p, t, r, 11, t.hl, t.on_accent, shown);
-  p.text(bubble_.text, {r.x + pad_x, r.y + pad_y, w - 2 * pad_x + 1, size.height}, body, written);
 }
 
 void Toasts::click(int id, float, float, bool) {

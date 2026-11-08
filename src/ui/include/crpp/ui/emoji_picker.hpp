@@ -42,18 +42,16 @@ class EmojiPicker final : public Surface {
   bool wheel(float x, float y, float delta) override;
   bool escape() override;
   [[nodiscard]] Cursor cursor(int id) const override;
-  [[nodiscard]] bool animating() const override;
   bool tick(unsigned long long now_ms) override;
   [[nodiscard]] unsigned long long wake_at() const override;
 
  private:
   void reveal_thumb();
-  void paint_shown(Painter& p);
   void paint_pack(Painter& p, const skin::Screen& screen);
   void release_shown();
 
   bool open_ = false;
-  unsigned long long opened_at_ = 0, closed_at_ = 0;  // closed_at_: fading out since then
+  unsigned long long closed_at_ = 0;  // fading out since then
   float shown_left_ = 0;  // what a pack's screen said of its fade
   std::string current_;
   std::function<void(std::string id)> on_pick_;
@@ -63,7 +61,7 @@ class EmojiPicker final : public Surface {
   Rect track_;
   // The thumb shows while scrolling and under the pointer, then fades (.emoji-scrollbar).
   bool thumb_on_ = false;
-  unsigned long long thumb_since_ = 0, thumb_hide_at_ = 0;
+  unsigned long long thumb_hide_at_ = 0;
 };
 
 }  // namespace crpp::ui

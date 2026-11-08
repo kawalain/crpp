@@ -15,13 +15,7 @@ namespace crpp::ui {
 // CSS's `ease`, for t from 0 to 1.
 [[nodiscard]] float ease(float t);
 
-// A toggle (.switch, .toggle-row input). The knob is inset 3 from the track's edges.
-void paint_switch(Painter& p, const Theme& t, Rect r, bool on, bool disabled, bool hot);
-// The same with the knob on its way: `at` runs from 0 at the off end to 1 at the on end.
-void paint_switch_at(Painter& p, const Theme& t, Rect r, bool on, float at, bool disabled, bool hot);
-
-// A slider (.volume-slider): r is the hit area, the track runs through its middle.
-void paint_slider(Painter& p, const Theme& t, Rect r, int value, int min, int max);
+// Where on a slider (.volume-slider) x is: r is the hit area, the track runs through its middle.
 [[nodiscard]] int slider_value(Rect r, float x, int min, int max);
 
 // A scrolled column of content; the owner draws it at y - drawn(). The wheel sets where
@@ -87,12 +81,7 @@ class Dropdown {
  private:
   Rect list_;  // stage coordinates
   Scroll scroll_;
-  bool was_open_ = false;
-  unsigned long long opened_at_ = 0;
 };
-
-// The thumb only (.settings-scroll-thumb); nothing when the content fits.
-void paint_scrollbar(Painter& p, const Theme& t, const Scroll& scroll, Rect track, bool hot);
 
 // A modal card (.modal-backdrop, .modal-card) in window coordinates. `shown` is the
 // transition's progress: the backdrop fades and the card rises 6 px as it appears.

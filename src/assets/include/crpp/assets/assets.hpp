@@ -2,6 +2,7 @@
 // Keeps a folder of assets equal to a Repository's signed catalog (ADR 0008). Every file
 // is checked against the catalog before it is kept, so whoever serves the files cannot
 // change what the app loads.
+#include <atomic>
 #include <chrono>
 #include <cstdint>
 #include <expected>
@@ -88,8 +89,10 @@ using OnProgress = std::function<void(const Progress&)>;
 // A file that fails does not stop the others, but no answer from anywhere or a full disk
 // does, as the rest would only fail the same way. What arrived is kept and listed either
 // way, and the first error is returned; calling again fetches the rest. progress is called
-// in turn, from the working threads, and only moves forward.
+// in turn, from the working threads, and only moves forward. Once `cancel` is set no file is
+// begun, and what arrived is kept as after a failure.
 std::expected<void, Error> install(const Catalog& catalog, std::string_view base, std::span<const std::string> groups,
-                                   const std::filesystem::path& dir, Platform& platform, const OnProgress& progress);
+                                   const std::filesystem::path& dir, Platform& platform, const OnProgress& progress,
+                                   const std::atomic<bool>* cancel = nullptr);
 
 }  // namespace crpp::assets

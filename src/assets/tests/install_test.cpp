@@ -258,6 +258,25 @@ void an_empty_base_goes_straight_to_the_sources() {
   CHECK(fake.count("https://repo/") == 0);
 }
 
+// Set while the first file arrives: nothing more begins, and what arrived is listed.
+void a_cancel_begins_no_more_files_and_keeps_what_arrived() {
+  TempDir dir;
+  const Catalog catalog = two_skins();
+  Fake fake;
+  serve(fake, catalog);
+  std::atomic<bool> cancel{false};
+  const std::vector<std::string> shared{"shared"};
+  CHECK(install(catalog, base, shared, dir.path, fake, [&](const Progress& p) {
+    if (p.files_done == 1) cancel = true;
+  }, &cancel));
+  CHECK(missing(catalog, shared, dir.path).empty());
+  cancel = true;
+  fake.asked.clear();
+  (void)install(catalog, base, shared_and_cloud, dir.path, fake, nullptr, &cancel);
+  CHECK(fake.asked.empty());
+  CHECK(missing(catalog, shared_and_cloud, dir.path).size() == 1);
+}
+
 void a_failed_run_keeps_what_arrived() {
   TempDir dir;
   const Catalog catalog = two_skins();
@@ -402,6 +421,7 @@ int main() {
   a_passing_failure_is_tried_again();
   the_sources_take_over_when_the_repository_does_not_answer();
   an_empty_base_goes_straight_to_the_sources();
+  a_cancel_begins_no_more_files_and_keeps_what_arrived();
   a_failed_run_keeps_what_arrived();
   a_bad_file_does_not_stop_the_others();
   no_answer_from_anywhere_stops_soon();

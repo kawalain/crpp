@@ -162,7 +162,8 @@ std::vector<const File*> missing(const Catalog& catalog, std::span<const std::st
 }
 
 std::expected<void, Error> install(const Catalog& catalog, std::string_view base, std::span<const std::string> groups,
-                                   const fs::path& dir, Platform& platform, const OnProgress& progress) {
+                                   const fs::path& dir, Platform& platform, const OnProgress& progress,
+                                   const std::atomic<bool>* cancel) {
   const auto needed = missing(catalog, groups, dir);
   Progress state{.files = needed.size()};
   for (const File* file : needed) state.bytes += file->size;
@@ -184,6 +185,7 @@ std::expected<void, Error> install(const Catalog& catalog, std::string_view base
     if (error == Error::Network || error == Error::Disk) stop = true;
   };
   const auto stopped = [&] {
+    if (cancel && cancel->load()) return true;
     const std::lock_guard lock(mutex);
     return stop;
   };

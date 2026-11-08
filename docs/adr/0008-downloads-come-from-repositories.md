@@ -2,8 +2,7 @@
 
 This replaces where files come from in ADR 0002 and ADR 0004, and the list of files built into the exe. Their other
 reasons hold: files are fetched one by one at first run, each is checked by its hash, and nothing but a Skin Pack is
-required (ADR 0007). It also changes two points of ADR 0007: the official catalog is signed with the update key, and
-packs may come from Repositories other than the official one.
+required (ADR 0007).
 
 A first run stood at 0% for a long time: this repository's files were pinned to a commit that was not on GitHub yet,
 so jsDelivr answered 404 for each of them before the font, 85% of the bytes, started. A list built into the exe ties

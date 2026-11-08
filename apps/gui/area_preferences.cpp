@@ -347,10 +347,12 @@ bool scene(Shell& s, std::string_view name) {
 }
 
 void pref_changed(Shell& s, std::string_view key) {
-  if (key == "theme" || key == "systemTheme" || key == "lightTheme" || key == "darkTheme" || key == pref::skin_theme.name || key == pref::dark_mode.name) {
+  if (key == "theme" || key == "systemTheme" || key == "lightTheme" || key == "darkTheme" || key == pref::skin.name || key == pref::skin_theme.name || key == pref::dark_mode.name) {
     apply_theme(s);
+    repositories::show_packs(s);  // which one is in use
   } else if (key == "language") {
     apply_language(s);
+    repositories::show_packs(s);  // their names
     s.app.room().chat().locale_changed();
     sound::language_changed(s);
     InvalidateRect(s.hwnd, nullptr, FALSE);

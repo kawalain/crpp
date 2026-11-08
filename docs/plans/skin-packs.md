@@ -190,8 +190,8 @@ hands-on check of Cloud on a real desktop, 7 and 8.
   little (3.5 ms, 183 KB), so only the front end changes: a small language of our own, with nodes, positional
   arguments, `key value`, braces for children, expressions as syntax, and units such as `150ms` and `40%`. The engine,
   the loaded tree and the compiled expressions stay. A Home screen written in it beside its JSONC comes first, for
-  the user to judge. Syntax highlighting for Vim, Neovim and VS Code comes later, when the user asks.
-  Names the exe defines keep a sigil, `@` for app state and built-ins (`@dark`, `@hot`) and `#` for wording, so a
+  the user to judge (`pack-language-draft.md`, accepted with its three open points). Colours are `#rrggbb`. Syntax highlighting for Vim, Neovim and VS Code comes later, when the user asks.
+  Names the exe defines carry `@`: app state, built-ins (`@dark`, `@hot`, `@w`) and wording (`@tr.home_create`), so a
   later exe cannot collide with a pack; a pack's own names (Palette, constants, parts, `let`) are bare, and a clash
   among them is an error. Files are `.cskin` (`pack.cskin`, `screens/home.cskin`). The JSON Schemas and
   `crpp_skin_schema` go; `crpp_skin check <dir>` runs the app's loader and prints `file:line:col`, with a guess at

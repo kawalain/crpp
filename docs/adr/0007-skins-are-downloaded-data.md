@@ -8,8 +8,8 @@ Smaller memory and a smaller exe are not the goal. Measured before this decision
 
 A pack is written in a small language of its own, in `.cskin` files: nodes with positional arguments, `key value`
 pairs and children in braces, with expressions and units such as `150ms` as part of the syntax. Names the exe defines
-carry a sigil, `@` for its state and `#` for its wording, so a later exe adds names without breaking a pack; a pack's
-own names are bare. `crpp_skin check` reports a mistake by file, line and column with the app's own loader. Only the
+carry `@`, as its state, its built-ins and its wording (`@tr.home_create`) do, so a later exe adds names without breaking a pack; a pack's
+own names are bare, and `#rrggbb` is a colour. `crpp_skin check` reports a mistake by file, line and column with the app's own loader. Only the
 front end is the language's: what it reads is the tree the engine draws, with expressions compiled as before.
 
 ## Considered options

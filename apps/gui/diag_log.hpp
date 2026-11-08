@@ -35,6 +35,7 @@ enum class DiagEvent : std::uint8_t {
   AssetsBadContent,
   AssetsDisk,
   AssetsBadSignature,
+  ParentAccepted,
   Count,
 };
 
@@ -44,7 +45,7 @@ enum class DiagEvent : std::uint8_t {
       "in room",          "leaving",            "waiting to reconnect", "failed: unauthorized",
       "failed: connect",  "failed: room gone",  "failed: server error", "failed: invalid argument",
       "assets: no answer", "assets: not found", "assets: bad content", "assets: disk",
-      "assets: bad signature",
+      "assets: bad signature", "skin: parent accepted",
   };
   return names[static_cast<std::size_t>(event)];
 }
@@ -68,13 +69,18 @@ class DiagLog {
     }
   }
 
-  void note(DiagEvent event) {
+  // With a detail of no input, as which packs.
+  void note(DiagEvent event, std::string_view detail = {}) {
     if (!enabled_ || file_.empty()) return;
     std::error_code ec;
     std::filesystem::create_directories(file_.parent_path(), ec);
     std::string line = timestamp();
     line += ' ';
     line += diag_name(event);
+    if (!detail.empty()) {
+      line += ": ";
+      line += detail;
+    }
     line += '\n';
     const auto size = std::filesystem::file_size(file_, ec);
     if (!ec && size + line.size() > limit_bytes) drop_older_half();

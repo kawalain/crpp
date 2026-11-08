@@ -254,6 +254,27 @@ std::vector<std::string> needed_groups(const Shell& s, std::span<const assets::S
   return groups;
 }
 
+namespace {
+
+// A key of this client's own: each pack's id, and the digest of its parent the user accepted.
+constexpr std::string_view accepted_key = "acceptedParents";
+
+}  // namespace
+
+std::string accepted(const Shell& s, std::string_view child) {
+  const store::Json* all = s.store ? s.store->find(accepted_key) : nullptr;
+  const store::Json* one = all ? all->find(child) : nullptr;
+  return one && one->as_string() ? std::string(*one->as_string()) : std::string();
+}
+
+void accept(Shell& s, std::string_view child, const std::string& digest) {
+  const store::Json* all = s.store->find(accepted_key);
+  store::Json updated = all && all->as_object() ? *all : store::Json::object();
+  updated.set(child, store::Json(digest));
+  s.store->set(accepted_key, std::move(updated));
+  (void)s.store->save();
+}
+
 std::optional<fs::path> parent_dir(const Shell& s, std::string_view id, std::string_view fingerprint, const fs::path& from) {
   const fs::path name(widen(id));
   if (fingerprint.empty()) {

@@ -111,6 +111,10 @@ void show_packs(Shell& s);
 [[nodiscard]] std::string base_of(const Shell& s, std::size_t shelf);
 // The groups of a shelf the installed packs and the default one need.
 [[nodiscard]] std::vector<std::string> needed_groups(const Shell& s, std::span<const assets::Shelf> shelves, std::size_t shelf);
+// The digest of a parent the user went ahead with for this pack, though its pin did not hold; empty
+// for none. Asked again when the parent changes again.
+[[nodiscard]] std::string accepted(const Shell& s, std::string_view child);
+void accept(Shell& s, std::string_view child, const std::string& digest);
 // Where the pack a pack in `from` extends is: beside it or in the official Repository without a
 // fingerprint, else in the Repository of that key.
 [[nodiscard]] std::optional<std::filesystem::path> parent_dir(const Shell& s, std::string_view id, std::string_view fingerprint,

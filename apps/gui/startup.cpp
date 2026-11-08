@@ -412,12 +412,73 @@ InstallJob pack_job(Shell& s, std::span<const assets::Shelf> shelves, const asse
 
 void start_install(Shell& s, bool wait) { queue_install(s, {wait ? InstallJob::Kind::First : InstallJob::Kind::Behind, {}}); }
 
+namespace {
+
+// A pack in a chain whose pin on the pack it extends does not hold, and was not accepted as it is.
+struct Broken {
+  std::string child, parent;  // as settings name them
+  std::string digest;         // of the parent now
+  assets::PinCheck check;
+  const assets::ParentPin* pin;
+  const assets::SkinPack* child_pack;
+  const assets::SkinPack* parent_pack;
+};
+
+std::vector<Broken> broken_pins(const Shell& s, std::span<const assets::Shelf> shelves, const assets::Chain& chain) {
+  assets::WindowsPlatform platform;
+  std::vector<Broken> broken;
+  for (std::size_t i = 1; i < chain.links.size(); ++i) {
+    const assets::Chain::Link& link = chain.links[i];
+    if (!link.pin) continue;
+    const assets::Catalog& catalog = *shelves[link.shelf].catalog;
+    const assets::PinCheck check = assets::check_pin(*link.pin, catalog, link.pack, platform);
+    if (check == assets::PinCheck::Holds) continue;
+    std::string child = area::repositories::full_id(s, chain.links[i - 1].shelf, chain.links[i - 1].pack);
+    std::string digest = assets::own_digest(catalog, link.pack, platform);
+    if (area::repositories::accepted(s, child) == digest) continue;
+    broken.push_back({std::move(child), area::repositories::full_id(s, link.shelf, link.pack), std::move(digest), check, link.pin,
+                      shelves[chain.links[i - 1].shelf].catalog->skin(chain.links[i - 1].pack), catalog.skin(link.pack)});
+  }
+  return broken;
+}
+
+// What the user is told of the gravest: content that is not what was pinned, or another version.
+std::string pin_question(std::span<const Broken> broken) {
+  const auto worst = std::ranges::find(broken, assets::PinCheck::Digest, &Broken::check);
+  const Broken& one = worst != broken.end() ? *worst : broken.front();
+  const std::string_view locale = locale::current().id;
+  const std::string child(name_in(one.child_pack->names, locale, one.child_pack->id));
+  const std::string parent(name_in(one.parent_pack->names, locale, one.parent_pack->id));
+  if (one.check == assets::PinCheck::Digest) return locale::fill(tr().pin_question_digest, {child, parent});
+  if (one.parent_pack->version.empty()) return locale::fill(tr().pin_question_unversioned, {child, parent, one.pin->version});
+  return locale::fill(tr().pin_question_version, {child, parent, one.pin->version, one.parent_pack->version});
+}
+
+}  // namespace
+
 bool fetch_pack(Shell& s, const std::string& skin) {
   const auto shelves = area::repositories::shelves(s);
   const assets::Chain chain = area::repositories::chain_of(s, shelves, skin);
   if (chain.gap != assets::Chain::Gap::None) return false;
   const auto same = [&](const InstallJob& queued) { return queued.kind == InstallJob::Kind::Pack && queued.skin == skin; };
   if ((s.install_running && same(*s.install_running) && !s.install_cancel->load()) || std::ranges::any_of(s.install_queue, same)) return true;
+  // A parent that is no longer what its child was made for: asked first, with cancel as the
+  // answer that keeps things as they are.
+  if (const auto broken = broken_pins(s, shelves, chain); !broken.empty()) {
+    std::vector<std::array<std::string, 3>> accepted;
+    for (const Broken& one : broken) accepted.push_back({one.child, one.parent, one.digest});
+    Shell* sp = &s;
+    s.app.dialogs().show({pin_question(broken), tr().pin_anyway, tr().cancel, true,
+                          [sp, skin, accepted] {
+                            for (const auto& [child, parent, digest] : accepted) {
+                              area::repositories::accept(*sp, child, digest);
+                              sp->log.note(DiagEvent::ParentAccepted, child + " " + parent + " " + digest);
+                            }
+                            if (!fetch_pack(*sp, skin)) area::preferences::pack_fetched(*sp, skin, false, std::unexpected(assets::Error::Unavailable));
+                          },
+                          [sp, skin] { area::preferences::pack_fetched(*sp, skin, true, {}); }});
+    return true;
+  }
   queue_install(s, pack_job(s, shelves, chain, skin));
   return true;
 }

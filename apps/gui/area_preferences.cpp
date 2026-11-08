@@ -233,8 +233,10 @@ void pack_progress(Shell& s, const std::string& skin, int percent) {
 void pack_fetched(Shell& s, const std::string& skin, bool cancelled, const std::expected<void, assets::Error>& result) {
   ThemeFetch& f = s.app.ui().theme_fetch;
   const bool current = f.state == ThemeFetch::State::Fetching && f.skin == skin;
-  // A cancelled one left the row already, and one picked again since has a job of its own.
+  // A cancelled one left the row already, and one picked again since has a job of its own; one
+  // the user said no to before it began is still in it.
   if (cancelled) {
+    if (current && f.percent == 0) f = {};
     offer_packs(s);
     return;
   }

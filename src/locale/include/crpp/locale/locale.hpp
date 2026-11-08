@@ -211,6 +211,10 @@ struct Strings {
   const char* display_theme_fetch;
   const char* display_theme_needs;
   const char* display_needs_repository;
+  const char* pin_question_digest;
+  const char* pin_question_version;
+  const char* pin_question_unversioned;
+  const char* pin_anyway;
   const char* display_fetching;
   const char* display_fetch_failed;
   const char* display_fetch_retry;

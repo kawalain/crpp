@@ -327,11 +327,11 @@ Installed install(Shell& s, const InstallJob& job, const std::atomic<bool>& canc
     }
   }
   // A pack in a format this exe does not read stays as it was installed, for a release that reads it.
-  assets::hold_unreadable(held[0], *catalog, s.catalog ? &*s.catalog : nullptr, skin::pack_format, skin::pack_format);
+  assets::hold_unreadable(held[0], *catalog, s.catalog ? &*s.catalog : nullptr, skin::oldest_pack_format, skin::pack_format);
   for (std::size_t i = 0; i < job.others.size(); ++i) {
     if (const assets::Catalog* latest_of = shelves[i + 1].catalog) {
       const assets::Catalog* installed_by = job.others[i].catalog ? &*job.others[i].catalog : nullptr;
-      assets::hold_unreadable(held[i + 1], *latest_of, installed_by, skin::pack_format, skin::pack_format);
+      assets::hold_unreadable(held[i + 1], *latest_of, installed_by, skin::oldest_pack_format, skin::pack_format);
     }
   }
   const auto groups = assets::wanted_groups(*catalog, s.assets_dir);
@@ -497,7 +497,7 @@ InstallJob pack_job(Shell& s, std::span<const assets::Shelf> shelves, const asse
                            area::repositories::install_dir(s, link.shelf), {}, area::repositories::needed_groups(s, shelves, link.shelf),
                            left_alone(s, link.shelf)});
       assets::hold_unreadable(job.parts.back().held, *shelves[link.shelf].catalog, link.shelf == 0 && s.catalog ? &*s.catalog : nullptr,
-                              skin::pack_format, skin::pack_format);
+                              skin::oldest_pack_format, skin::pack_format);
       it = of_part.end() - 1;
     }
     job.parts[static_cast<std::size_t>(it - of_part.begin())].groups.push_back(assets::skin_group(link.pack));

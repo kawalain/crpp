@@ -94,8 +94,12 @@
 
 namespace crpp::skin {
 
-// What a pack says it is written for; another number is refused.
-inline constexpr int pack_format = 1;
+// What a pack says it is written for. This exe reads the formats from oldest_pack_format to
+// pack_format, and the official packs are written in pack_format. Each format has a catalog
+// address of its own (ADR 0009), so an older exe never meets a pack it would refuse.
+inline constexpr int oldest_pack_format = 1;
+inline constexpr int pack_format = 2;
+[[nodiscard]] constexpr bool reads_format(std::int64_t format) { return format >= oldest_pack_format && format <= pack_format; }
 
 // A pack can be a download, so nothing in one is taken without a limit.
 inline constexpr std::size_t max_file_bytes = 1024 * 1024;

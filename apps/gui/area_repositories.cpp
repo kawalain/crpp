@@ -73,7 +73,7 @@ std::string offer_text(const assets::Catalog& catalog) {
   const std::string_view locale = locale::current().id;
   std::string lines;
   for (const assets::SkinPack& pack : catalog.skins) {
-    if (pack.format != skin::pack_format) continue;
+    if (!skin::reads_format(pack.format)) continue;
     std::vector<std::string> groups;
     for (const std::string& id : assets::skin_chain(catalog, pack.id)) groups.push_back(assets::skin_group(id));
     std::uint64_t bytes = 0;

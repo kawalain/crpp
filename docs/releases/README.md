@@ -40,7 +40,11 @@ It refuses a tree that differs from `origin/main`, then builds an official exe i
 `docs/signing-key.md`) and verifies the result against the key built into it. It fills
 `dist/repository` with the official Repository (ADR 0008) through
 `.github/scripts/build-repository.sh`, signing its catalog with the same key, from `assets/`,
-`skins/` and the third-party files a development build caches in `.cache/remote-assets`. Then it
+`skins/` and the third-party files a development build caches in `.cache/remote-assets`. Each
+pack format has its own catalog (ADR 0009): this release's goes in `dist/repository/<format>/`,
+and the older ones are rebuilt from the last tag of each, at the address their exes know, and
+must hash as they did then. When a release raises `pack_format`, add the format it leaves to
+`frozen` in `build-repository.sh` with its last tag and that hash. Then it
 pushes the tag, deploys the Repository with `npx --yes wrangler@4.152.0 deploy`
 (`wrangler.jsonc`, your own `CLOUDFLARE_API_TOKEN` or `wrangler login`) and publishes the
 Release. `--dry-run` stops before the tag and leaves the result in `dist/`. A run that fails

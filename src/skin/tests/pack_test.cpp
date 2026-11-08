@@ -522,7 +522,9 @@ std::expected<Pack, std::string> load_with(std::string_view from, std::string_vi
 
 void a_bad_pack_is_refused() {
   CHECK(load_with("format 1", "format 1").has_value());
-  CHECK(!load_with("format 1", "format 2"));
+  CHECK(load_with("format 1", "format 2").has_value());
+  CHECK(!load_with("format 1", "format 3"));
+  CHECK(!load_with("format 1", "format 0"));
   CHECK(!load_with(" format 1", ""));
   CHECK(!load_with("pack test format 1", ""));
   CHECK(!load_with("#ff0000", "red"));

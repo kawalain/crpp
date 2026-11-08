@@ -217,7 +217,10 @@ class Loader final : public Names {
 
   bool right_format(const Json& root) {
     const Json* format = root.find("format");
-    return format && format->as_i64() == pack_format ? true : fail("this exe reads format " + std::to_string(pack_format));
+    const std::optional<std::int64_t> number = format ? format->as_i64() : std::nullopt;
+    return number && reads_format(*number)
+               ? true
+               : fail("this exe reads formats " + std::to_string(oldest_pack_format) + " to " + std::to_string(pack_format));
   }
 
   // Lays what `over` names on top of what `base` has.

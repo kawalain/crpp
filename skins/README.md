@@ -49,8 +49,12 @@ notes. A screen with no file is drawn by the program itself, so a pack can grow 
 
 ## pack.cskin
 
+The first line says the format the pack is written in. This version of the program reads formats 1 and 2 and the
+official packs are written in 2; an exe from before format 2 reads only 1, and takes its packs from a catalog of
+their own (ADR 0009), so a pack of format 1 still reaches it.
+
 ```
-pack cloud format 1
+pack cloud format 2
 names ko "구름" en "Cloud"
 theme cumulus names ko "뭉게구름" en "Cumulus" dark darkcloud
 default_theme cumulus
@@ -123,7 +127,7 @@ holds replaces whatever the pack has by the same name, whole: a constant, style,
 `cursors`. A pack is read for one overlay at a time, and holds only the Palettes of that overlay's Themes, so those
 need not share entries with the others.
 
-A pack can extend another with `pack <id> format 1 extends <id>`, in the same way: it gets everything that pack has
+A pack can extend another with `pack <id> format 2 extends <id>`, in the same way: it gets everything that pack has
 and replaces by name. It is another download, and can itself extend one, up to four levels. Nothing inside a part or
 screen can be patched: copy it and change it.
 
@@ -132,7 +136,7 @@ else of the official one. One of another Repository, or one that must be a certa
 with a `parent` block after the pack line:
 
 ```
-pack aurora format 1 version 0.2.1 extends retro
+pack aurora format 2 version 0.2.1 extends retro
 
 parent retro {
   repository "github:someone/skins"

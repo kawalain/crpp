@@ -11,8 +11,8 @@ endif()
 file(READ ${OUT}/catalog.txt catalog)
 foreach(expected
     "\nsource crpp https://raw.githubusercontent.com/kawalain/crpp/v0.0.0/\n"
-    "\nskin cloud 1\n"
-    "\nskin retro 1\n"
+    "\nskin cloud 2\n"
+    "\nskin retro 2\n"
     "\nskin-version cloud 0.1.0\n"
     "\nskin-version retro 0.1.0\n"
     "\nskin-name cloud ko 구름\n"

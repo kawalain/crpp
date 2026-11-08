@@ -7,7 +7,7 @@ namespace crpp::assets {
 
 std::optional<Repository> official_repository() {
   const auto key = update::built_in_key();
-  constexpr std::string_view url = "@CRPP_REPOSITORY_URL@";
+  constexpr std::string_view url = "@CRPP_REPOSITORY_FOLDER@";
   if (!key || url.empty()) return std::nullopt;
   return Repository{std::string(url), "@CRPP_REPOSITORY_MIRROR@", *key};
 }

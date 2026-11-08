@@ -18,13 +18,33 @@ crpp_assets_test(catalog)
 # Static files on Cloudflare Workers (wrangler.jsonc), under a domain of our own, so the Worker
 # can move without a release.
 set(CRPP_REPOSITORY_URL "https://crpp.kawala.in/" CACHE STRING "The official Repository's folder, ending with '/'")
+# Each pack format has a catalog of its own (ADR 0009): format 1 at the folder itself, which
+# the exes before format 2 know, and every later one in a subfolder named by its number. The
+# number is the one the pack loader writes for, read here so that it is said once.
+file(STRINGS "${PROJECT_SOURCE_DIR}/src/skin/include/crpp/skin/pack.hpp" format_line
+     REGEX "^inline constexpr int pack_format = [0-9]+")
+# A ; in the line would split it as a list, so the pattern stops before it.
+string(REGEX REPLACE "^.* = ([0-9]+).*$" "\\1" CRPP_PACK_FORMAT "${format_line}")
+if(NOT CRPP_PACK_FORMAT MATCHES "^[0-9]+$")
+  message(FATAL_ERROR "pack_format was not found in src/skin/include/crpp/skin/pack.hpp.")
+endif()
+if(CRPP_PACK_FORMAT EQUAL 1)
+  set(format_folder "")
+else()
+  set(format_folder "${CRPP_PACK_FORMAT}/")
+endif()
 if(CRPP_OFFICIAL_BUILD)
   if(NOT CRPP_REPOSITORY_URL MATCHES "^https://.+/$")
     message(FATAL_ERROR "An official build needs CRPP_REPOSITORY_URL, an https:// folder ending with '/'.")
   endif()
-  set(CRPP_REPOSITORY_MIRROR "https://raw.githubusercontent.com/kawalain/crpp/v${CRPP_VERSION}/repository/")
+  set(CRPP_REPOSITORY_MIRROR "https://raw.githubusercontent.com/kawalain/crpp/v${CRPP_VERSION}/repository/${format_folder}")
 else()
   set(CRPP_REPOSITORY_MIRROR "")
+endif()
+if(CRPP_REPOSITORY_URL STREQUAL "")
+  set(CRPP_REPOSITORY_FOLDER "")
+else()
+  set(CRPP_REPOSITORY_FOLDER "${CRPP_REPOSITORY_URL}${format_folder}")
 endif()
 configure_file(built_in.cpp.in built_in.cpp @ONLY)
 add_library(crpp_assets_built_in STATIC ${CMAKE_CURRENT_BINARY_DIR}/built_in.cpp)

@@ -168,7 +168,7 @@ void offer_from(const Shell& s, std::span<const assets::Shelf> shelves, std::siz
   const auto& installed = s.app.ui().skins;
   for (const assets::SkinPack& pack : shelves[shelf].catalog->skins) {
     std::string id = repositories::full_id(s, shelf, pack.id);
-    if (pack.format != skin::pack_format || std::ranges::any_of(installed, [&](const SkinInfo& info) { return info.id == id; })) continue;
+    if (!skin::reads_format(pack.format) || std::ranges::any_of(installed, [&](const SkinInfo& info) { return info.id == id; })) continue;
     const assets::Chain chain = assets::pack_chain(shelves, 0, shelf, pack.id);
     if (chain.gap != assets::Chain::Gap::None && chain.gap != assets::Chain::Gap::Repository) continue;
     SkinInfo info{.id = std::move(id), .names = pack.names};

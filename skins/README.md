@@ -48,7 +48,9 @@ is `context_menu`, the menu of what can be done with text: without it no menu sh
 
 Tab goes through a screen's controls in the order the pack has their hits, a hit before what is inside it. Which
 hits are controls is the program's to say, the same in every pack. `tab_order` on a node puts its hit elsewhere: lower
-goes first, and those without it count as 0. A hit that is not `live` is passed over.
+goes first, and those without it count as 0. A hit that is not `live` is passed over. While the keyboard's place shows,
+the program draws the part `focus_ring` over that control, in its hit's box; a hit with `hit_path` gets none, so the
+pack draws its edge where `@focused` says. Without the part only `@focused` shows it.
 
 `report width = …` tells the program what a screen found out. A screen of a panel that has a window of its own reports
 `width` and `height`, and the window takes that size: the program walks the screen without drawing to learn it.

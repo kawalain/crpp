@@ -188,6 +188,22 @@ part bevel(top_out = 0, low_out = 0, top_in = 0, low_in = 0) snap {
   fill top_in (@u, @u, @u, @H-3*@u)
 }
 
+// Where the keyboard is, as the dotted rectangle of the time: inside a button, around a smaller thing.
+// The program draws it over the control, in the control's box, and only while that shows.
+part focus_ring {
+  let inset = @H >= 20 ? 3 : -1
+  (inset, inset, @W-2*inset, @H-2*inset) snap {
+    repeat ceil(@W/2) {
+      fill ink (2*@i, 0, 1, 1)
+      fill ink (2*@i, @H-1, 1, 1)
+    }
+    repeat ceil(@H/2) {
+      fill ink (0, 2*@i, 1, 1)
+      fill ink (@W-1, 2*@i, 1, 1)
+    }
+  }
+}
+
 part raised {
   use bevel(top_out = edge_light, low_out = edge_out, top_in = edge_soft, low_in = edge_dark)
 }

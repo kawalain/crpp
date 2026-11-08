@@ -111,7 +111,21 @@ int run_shot(Shell& s, int argc, char** argv, float dpi) {
     const ScreenSize screen = s.app.screen_size();
     if (!save_png(s.app, widen(argv[2]), static_cast<unsigned>(screen.w), static_cast<unsigned>(screen.h), dpi)) return 1;
   }
-  if (argc >= 6) (void)apply_scene(s, argv[5]);
+  // focus-<scene>-<n>: the scene, and Tab pressed n times after its first frame.
+  std::string_view scene = argc >= 6 ? std::string_view(argv[5]) : std::string_view();
+  int tabs = 0;
+  if (scene.starts_with("focus-") && scene.find_last_of('-') > 5) {
+    const std::size_t dash = scene.find_last_of('-');
+    tabs = std::atoi(std::string(scene.substr(dash + 1)).c_str());
+    scene = scene.substr(6, dash - 6);
+  }
+  const auto press_tabs = [&] {
+    for (int i = 0; i < tabs; ++i) {
+      s.app.key_down(VK_TAB, false, false);
+      s.app.char_input(L'\t', false);
+    }
+  };
+  if (!scene.empty()) (void)apply_scene(s, scene);
   if (sized_by_screen) {
     const ScreenSize screen = s.app.screen_size();
     w = static_cast<unsigned>(screen.w);
@@ -121,13 +135,18 @@ int run_shot(Shell& s, int argc, char** argv, float dpi) {
     s.app.notice().set(Notice{tr().notice_shared, tr().notice_move, tr().notice_close});
   }
   if (!save_png(s.app, widen(argv[2]), w, h, dpi)) return 1;
-  if (argc >= 6 && area::room::after_frame(s, argv[5]) && !save_png(s.app, widen(argv[2]), w, h, dpi)) return 1;
+  if (!scene.empty() && area::room::after_frame(s, scene) && !save_png(s.app, widen(argv[2]), w, h, dpi)) return 1;
   // A panel with a window of its own is the picture: the one on top.
   const std::vector<Pane> panes = s.app.open_panes();
-  if (panes.empty()) return 0;
+  if (panes.empty()) {
+    if (tabs == 0) return 0;
+    press_tabs();
+    return save_png(s.app, widen(argv[2]), w, h, dpi) ? 0 : 1;
+  }
   const PaneScope scope(s.app, panes.back());
   const PaneInfo info = s.app.pane_info(panes.back());
   if (!save_png(s.app, widen(argv[2]), static_cast<unsigned>(info.w), static_cast<unsigned>(info.h), dpi)) return 1;
+  press_tabs();
   return save_png(s.app, widen(argv[2]), static_cast<unsigned>(info.w), static_cast<unsigned>(info.h), dpi) ? 0 : 1;
 }
 

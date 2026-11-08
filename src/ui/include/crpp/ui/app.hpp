@@ -231,6 +231,8 @@ class App {
   void paint_screens(Painter& p);
   void paint_cursor_sheet(Painter& p);
   void paint_layers(Painter& p);
+  // The pack's focus_ring over the stop the keyboard is on, while that shows.
+  void paint_focus(Painter& p);
 
   Ui ui_;
   [[nodiscard]] std::expected<void, std::string> read_pack(const std::string& overlay);

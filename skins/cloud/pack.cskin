@@ -238,9 +238,18 @@ part cloud(scale = 1, shadow = 0, sigma = 0) {
       color cloud_base scale scale
   path "M388.527 317.44H101.915C54.679 317.44 16.386 279.073 16.386 231.744c0-42.356 30.678-77.512 70.979-84.436-.747-4.387-1.158-8.888-1.158-13.489 0-44 35.6-79.669 79.513-79.669 14.343 0 27.786 3.824 39.404 10.482C226.646 30.651 264.524 8.095 307.663 8.095c63.092 0 114.932 48.241 120.801 109.916 37.233 15.702 63.375 52.597 63.375 95.613 0 57.208-46.238 103.593-103.312 103.69Z"
       color cloud_gradient scale scale from_y 8 to_y 318
+  // Where the keyboard is, along its edge: the program draws no ring around a shape.
+  path "M388.527 317.44H101.915C54.679 317.44 16.386 279.073 16.386 231.744c0-42.356 30.678-77.512 70.979-84.436-.747-4.387-1.158-8.888-1.158-13.489 0-44 35.6-79.669 79.513-79.669 14.343 0 27.786 3.824 39.404 10.482C226.646 30.651 264.524 8.095 307.663 8.095c63.092 0 114.932 48.241 120.801 109.916 37.233 15.702 63.375 52.597 63.375 95.613 0 57.208-46.238 103.593-103.312 103.69Z"
+      color ink_strong width 3/scale scale scale if @focused
 }
 
 // .tip: its box is the label's own, and it rises 4 px as it fades in.
+// Where the keyboard is. The program draws it over the control, in the control's box, as a browser draws
+// its outline, and only while that shows.
+part focus_ring {
+  stroke ink_strong (-3, -3, @W+6, @H+6) radius min(@H/2+3, 13) width 2
+}
+
 part tip(shown = 1) {
   fill alpha(hl, shown) radius 11
   text @label (15, 5, @W-29, 22) style tip color alpha(on_accent, shown)

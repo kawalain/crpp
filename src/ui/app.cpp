@@ -497,7 +497,28 @@ void App::paint_pane(Painter& p, float width, float height) {
   }
   p.set_base(D2D1::Matrix3x2F::Identity());
   pane_frame_.paint(p);
+  paint_focus(p);
   context_menu_.paint(p);
+}
+
+void App::paint_focus(Painter& p) {
+  if (!ui_.stop_owner || !(ui_.cues || ui_.always_cues) || !ui_.pack) return;
+  const skin::Part* part = ui_.pack->part("focus_ring");
+  if (!part) return;
+  for (const Ui::Hit* stop : ui_.tab_stops()) {
+    if (stop->owner != ui_.stop_owner || stop->id != ui_.stop_id) continue;
+    // A shape's box is not its edge: a pack draws that itself, with @focused.
+    if (!stop->shown || !stop->shape.empty()) return;
+    // On the stage, so that it grows with what it is around.
+    p.set_base(D2D1::Matrix3x2F::Scale(ui_.scale, ui_.scale) * D2D1::Matrix3x2F::Translation(ui_.ox, ui_.oy));
+    const Rect r = stop->rect;
+    SkinCanvas canvas(ui_, p, nullptr);
+    skin::Source nothing;
+    skin::draw_part(*ui_.pack, *part, ui_.palette, {ui_.to_stage_x(r.x), ui_.to_stage_y(r.y), r.w / ui_.scale, r.h / ui_.scale}, canvas, nothing,
+                    {.focused = true});
+    p.set_base(D2D1::Matrix3x2F::Identity());
+    return;
+  }
 }
 
 void App::paint(ID2D1RenderTarget* rt, float width, float height) {
@@ -540,6 +561,7 @@ void App::paint(ID2D1RenderTarget* rt, float width, float height) {
   if (own) frame_.paint(p);
   paint_layers(p);
   if (own) frame_.paint_menu(p);
+  paint_focus(p);
   context_menu_.paint(p);
 }
 

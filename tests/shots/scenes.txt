@@ -85,3 +85,9 @@ motion-member --at 150
 motion-scroll --at 80
 motion-stretch --at 120
 menu-open
+focus-home-1
+focus-home-3
+focus-dialog-1
+focus-room-options-2
+focus-settings-sound-3
+focus-settings-system-2

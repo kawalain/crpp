@@ -57,7 +57,8 @@ int main(int argc, char** argv) {
   h.render();
   const double first_paint = seconds() - paint_start;
   const std::size_t after = private_bytes();
-  std::printf("first load %.2f ms, first paint %.2f ms, private bytes +%zu KB\n", first_load * 1e3, first_paint * 1e3, (after - before) / 1024);
+  const long long grew = static_cast<long long>(after) - static_cast<long long>(before);  // the heap may give pages back
+  std::printf("first load %.2f ms, first paint %.2f ms, private bytes %+lld KB\n", first_load * 1e3, first_paint * 1e3, grew / 1024);
 
   std::vector<double> loads;
   for (int i = 0; i < 50; ++i) {

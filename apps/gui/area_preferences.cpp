@@ -147,11 +147,104 @@ void apply_language(Shell& s) {
 void skins_installed(Shell& s) {
   (void)s.app.find_skins(s.skins_dir);
   apply_theme(s);
+  offer_packs(s);
+}
+
+void offer_packs(Shell& s) {
+  std::vector<SkinInfo>& offered = s.app.ui().offered;
+  offered.clear();
+  if (!s.offered) return;
+  const auto& installed = s.app.ui().skins;
+  for (const assets::SkinPack& pack : s.offered->skins) {
+    if (pack.format != skin::pack_format || std::ranges::any_of(installed, [&](const SkinInfo& info) { return info.id == pack.id; })) continue;
+    SkinInfo info{.id = pack.id, .names = pack.names};
+    std::vector<std::string> groups;
+    // Its Themes, then those it inherits from what it extends.
+    for (const std::string& id : assets::skin_chain(*s.offered, pack.id)) {
+      groups.push_back(assets::skin_group(id));
+      for (const assets::CatalogTheme& theme : s.offered->skin(id)->themes) {
+        if (std::ranges::any_of(info.themes, [&](const skin::PackTheme& t) { return t.id == theme.id; })) continue;
+        info.themes.push_back({.id = theme.id, .dark = theme.dark ? "dark" : "", .names = theme.names});  // only whether it has one
+      }
+    }
+    for (const assets::File* file : assets::missing(*s.offered, groups, s.assets_dir)) info.to_fetch += file->size;
+    if (!info.themes.empty()) offered.push_back(std::move(info));
+  }
+}
+
+namespace {
+
+const char* reason_of(assets::Error error) {
+  switch (error) {
+    case assets::Error::Network: return tr().fetch_reason_network;
+    case assets::Error::Unavailable: return tr().fetch_reason_unavailable;
+    case assets::Error::BadContent:
+    case assets::Error::BadSignature: return tr().fetch_reason_bad;
+    case assets::Error::Disk: return tr().fetch_reason_disk;
+  }
+  return tr().fetch_reason_network;
+}
+
+void fetch(Shell& s, const std::string& skin, const std::string& theme) {
+  ThemeFetch& f = s.app.ui().theme_fetch;
+  if (!(f.state == ThemeFetch::State::Fetching && f.skin == skin)) f.percent = 0;
+  f.skin = skin;
+  f.theme = theme;
+  f.apply = true;
+  f.reason.clear();
+  f.state = ThemeFetch::State::Fetching;
+  if (!fetch_pack(s, skin)) {
+    f.state = ThemeFetch::State::Failed;
+    f.reason = tr().fetch_reason_unavailable;
+  }
+}
+
+}  // namespace
+
+void pack_progress(Shell& s, const std::string& skin, int percent) {
+  ThemeFetch& f = s.app.ui().theme_fetch;
+  if (f.state == ThemeFetch::State::Fetching && f.skin == skin) f.percent = std::max(f.percent, percent);
+}
+
+void pack_fetched(Shell& s, const std::string& skin, bool cancelled, const std::expected<void, assets::Error>& result) {
+  ThemeFetch& f = s.app.ui().theme_fetch;
+  const bool current = f.state == ThemeFetch::State::Fetching && f.skin == skin;
+  // A cancelled one left the row already, and one picked again since has a job of its own.
+  if (cancelled) {
+    offer_packs(s);
+    return;
+  }
+  if (!result) {
+    if (current) {
+      f.state = ThemeFetch::State::Failed;
+      f.reason = reason_of(result.error());
+      // Settings may have closed since it was picked; then the row is not there to say so.
+      if (!s.app.settings().is_open()) {
+        std::string name(theme_name(s.app.ui().offered, skin, f.theme, locale::current().id));
+        s.app.toasts().toast(locale::fill(tr().display_fetch_failed, {name.empty() ? f.theme : name, f.reason}));
+      }
+    }
+    offer_packs(s);
+    return;
+  }
+  const bool apply = current && f.apply;
+  const std::string theme = f.theme;
+  if (current) f = {};
+  skins_installed(s);
+  if (apply) s.app.settings().display().use_theme(skin, theme);
 }
 
 void wire(Shell& s) {
   follow_system_animations(s);
   wire_tabs(s);
+  Shell* sp = &s;
+  DisplayTab& display = s.app.settings().display();
+  display.on_fetch = [sp](const std::string& skin, const std::string& theme) { fetch(*sp, skin, theme); };
+  display.on_cancel_fetch = [sp] {
+    ThemeFetch& f = sp->app.ui().theme_fetch;
+    cancel_pack(*sp, f.skin);
+    f = {};
+  };
   log_connection(s);
   apply_theme(s);
   apply_chat(s);
@@ -200,6 +293,8 @@ bool scene(Shell& s, std::string_view name) {
   };
   if (suffix("-dark")) dark();
   if (suffix("-pastel")) pastel();
+  const bool fetching = suffix("-fetching");
+  const bool failed = suffix("-failed");
   const bool tip = suffix("-tip");
   const bool to_end = suffix("-end");
   const bool on = suffix("-on");
@@ -209,6 +304,13 @@ bool scene(Shell& s, std::string_view name) {
     if (on) prefs.set(pref::system_theme, true);
     if (big) prefs.set(pref::chat_scale, 150);
     if (tip) panel.display().click(!s.app.ui().skins.empty() ? DisplayTab::SkinThemeList : on ? DisplayTab::LightList : DisplayTab::ThemeList, 0, 0, false);
+    if (fetching || failed) {
+      // A pack a Repository offers, picked before it is installed.
+      Ui& ui = s.app.ui();
+      ui.offered = {{.id = "aurora", .names = {{"ko", "오로라"}, {"en", "Aurora"}}, .themes = {{.id = "dawn", .names = {{"ko", "새벽"}, {"en", "Dawn"}}}}, .to_fetch = 2'400'000}};
+      ui.theme_fetch = {.state = fetching ? ThemeFetch::State::Fetching : ThemeFetch::State::Failed, .skin = "aurora", .theme = "dawn", .percent = 42,
+                        .reason = failed ? tr().fetch_reason_network : ""};
+    }
   } else if (rest == "notify") {
     open(SettingsPage::Notify);
     if (tip) {

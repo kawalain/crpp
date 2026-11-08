@@ -45,6 +45,8 @@ settings-display-on
 settings-display-tip
 settings-display-big
 settings-display-end
+settings-display-fetching
+settings-display-failed
 settings-notify
 settings-notify-dark
 settings-notify-tip

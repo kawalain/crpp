@@ -6,8 +6,12 @@
 // scene(): sets up a named --shot scene; false if the name is not this area's.
 #include <windows.h>
 
+#include <expected>
 #include <functional>
+#include <string>
 #include <string_view>
+
+#include "crpp/assets/assets.hpp"
 
 namespace crpp::gui {
 struct Shell;
@@ -66,6 +70,11 @@ namespace preferences {  // display, notification and system tabs
 void apply_language(Shell& s);
 // Packs arrived in the Skin folder: offers them and draws what the settings choose.
 void skins_installed(Shell& s);
+// What the latest catalog offers that is not installed, for the display tab to list.
+void offer_packs(Shell& s);
+// A pack picked in the display tab, on its way and when it has come, failed or was cancelled.
+void pack_progress(Shell& s, const std::string& skin, int percent);
+void pack_fetched(Shell& s, const std::string& skin, bool cancelled, const std::expected<void, assets::Error>& result);
 void wire(Shell& s);
 [[nodiscard]] bool scene(Shell& s, std::string_view name);
 void pref_changed(Shell& s, std::string_view key);

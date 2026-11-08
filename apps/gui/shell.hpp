@@ -138,6 +138,17 @@ struct MadeCursor {
   HCURSOR cursor;
 };
 
+// What the asset worker does, one at a time.
+struct InstallJob {
+  enum class Kind : std::uint8_t {
+    First,   // a first start: the catalog and the default Skin, with the progress screen up
+    Behind,  // a later start: the latest catalog, and what is missing, behind the app
+    Pack     // a pack picked in the display tab, with what it extends
+  };
+  Kind kind = Kind::Behind;
+  std::string skin;  // Pack
+};
+
 struct Shell {
   ui::App app;
   std::vector<MadeCursor> cursors;
@@ -162,7 +173,9 @@ struct Shell {
   std::optional<assets::Catalog> catalog;        // the kept one, verified, which the installed files follow
   std::optional<assets::Catalog> offered;        // the latest, read behind the app at start: what can be picked
   std::thread assets_worker;
-  std::deque<bool> install_queue;  // installs waiting for the worker, by `wait`
+  std::optional<InstallJob> install_running;
+  std::shared_ptr<std::atomic<bool>> install_cancel;  // of the one running
+  std::deque<InstallJob> install_queue;               // waiting for the worker
   std::vector<std::string> expected_sounds;  // what the catalog promises, on disk or not
   std::filesystem::path data_dir;  // the Protected store's folder
   std::wstring data_override;      // --data, so a restart keeps it
@@ -201,6 +214,11 @@ void enter_app(Shell& s);
 // for the next start, after reading the Repository's latest catalog for what can be picked and
 // for the next start to follow. While one runs, the next waits its turn.
 void start_install(Shell& s, bool wait);
+// Queues a pack of the latest catalog, unless it is queued or on its way. False when no
+// Repository offers it.
+bool fetch_pack(Shell& s, const std::string& skin);
+// Takes it off the queue, or lets it begin no more files.
+void cancel_pack(Shell& s, const std::string& skin);
 // A nickname like the upstream one: "<adjective> <animal>".
 std::string random_nickname(const std::filesystem::path& words);
 

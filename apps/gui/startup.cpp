@@ -183,45 +183,49 @@ struct Installed {
 
 // On the worker thread. A first start fetches the catalog and follows it. A later one reads the
 // latest and keeps it for the start after, and meanwhile fetches what is missing of its own: a
-// file that is about to change may be open, as a font is.
-Installed install(Shell& s, bool wait, const std::function<void(const assets::Progress&)>& progress) {
+// file that is about to change may be open, as a font is. A pack picked in the display tab comes
+// from the latest, with what it extends.
+Installed install(Shell& s, const InstallJob& job, const std::atomic<bool>& cancel,
+                  const std::function<void(const assets::Progress&)>& progress) {
   assets::WindowsPlatform platform;
   Installed done;
   std::string base = s.repository->url;
-  const assets::Catalog* catalog = s.catalog ? &*s.catalog : nullptr;
-  if (!wait) {
-    auto fetched = assets::fetch_catalog(*s.repository, platform);
-    if (fetched && !assets::save_catalog(s.assets_dir, fetched->text)) fetched = std::unexpected(assets::Error::Disk);
-    if (fetched) {
-      if (fetched->from_mirror) base.clear();
-      done.offered = std::move(fetched->catalog);
-    } else {
-      done.offered_error = fetched.error();
-    }
-    if (!catalog) return done;
+  if (job.kind == InstallJob::Kind::Pack) {
+    std::vector<std::string> groups;
+    for (const std::string& id : assets::skin_chain(*s.offered, job.skin)) groups.push_back(assets::skin_group(id));
+    done.result = assets::install(*s.offered, base, groups, s.assets_dir, platform, progress, &cancel);
+    return done;
   }
-  if (wait) {
-    auto fetched = assets::fetch_catalog(*s.repository, platform);
+  const bool wait = job.kind == InstallJob::Kind::First;
+  const assets::Catalog* catalog = s.catalog ? &*s.catalog : nullptr;
+  auto fetched = assets::fetch_catalog(*s.repository, platform);
+  if (fetched && !assets::save_catalog(s.assets_dir, fetched->text)) fetched = std::unexpected(assets::Error::Disk);
+  if (fetched && fetched->from_mirror) base.clear();  // the Repository did not answer: its files would not either
+  if (!wait) {
+    if (fetched) done.offered = std::move(fetched->catalog);
+    else done.offered_error = fetched.error();
+    if (!catalog) return done;
+  } else {
     if (!fetched) {
       done.result = std::unexpected(fetched.error());
       return done;
     }
-    if (!assets::save_catalog(s.assets_dir, fetched->text)) {
-      done.result = std::unexpected(assets::Error::Disk);
-      return done;
-    }
-    if (fetched->from_mirror) base.clear();  // the Repository did not answer: its files would not either
     done.catalog = std::move(fetched->catalog);
     catalog = &*done.catalog;
   }
   const auto groups = assets::wanted_groups(*catalog, s.assets_dir);
   if (!wait && assets::missing(*catalog, groups, s.assets_dir).empty()) return done;
-  done.result = assets::install(*catalog, base, groups, s.assets_dir, platform, progress);
+  done.result = assets::install(*catalog, base, groups, s.assets_dir, platform, progress, &cancel);
   return done;
 }
 
 // On the UI thread, once the worker has ended.
-void finish_install(Shell& s, bool wait, Installed installed) {
+void finish_install(Shell& s, const InstallJob& job, bool cancelled, Installed installed) {
+  if (job.kind == InstallJob::Kind::Pack) {
+    area::preferences::pack_fetched(s, job.skin, cancelled, installed.result);
+    return;
+  }
+  const bool wait = job.kind == InstallJob::Kind::First;
   if (installed.catalog) {
     s.offered = *installed.catalog;
     use_catalog(s, std::move(*installed.catalog));
@@ -240,50 +244,75 @@ void finish_install(Shell& s, bool wait, Installed installed) {
     s.app.reload_assets(s.assets_dir);
     area::preferences::skins_installed(s);
     enter_app(s);
+  } else {
+    area::preferences::offer_packs(s);
   }
   report_assets(s, installed.result);
 }
 
-void run_install(Shell& s, bool wait) {
-  if (wait) {
+void run_install(Shell& s, InstallJob job) {
+  if (job.kind == InstallJob::Kind::First) {
     s.app.show_setup({});
     s.app.setup().on_retry = [&s] {
       if (!s.assets_worker.joinable() && s.install_queue.empty()) start_install(s, true);
     };
     s.app.setup().on_quit = [&s] { DestroyWindow(s.hwnd); };
   }
-  s.assets_worker = std::thread([&s, wait] {
+  s.install_running = job;
+  s.install_cancel = std::make_shared<std::atomic<bool>>(false);
+  s.assets_worker = std::thread([&s, job, cancel = s.install_cancel] {
     int shown = -1;
     std::size_t files_shown = 0;
-    auto installed = install(s, wait, [&](const assets::Progress& p) {
+    auto installed = install(s, job, *cancel, [&](const assets::Progress& p) {
       // A redraw for each step the eye can see: a percent, or a file.
       const int percent = p.bytes == 0 ? 100 : static_cast<int>(p.bytes_done * 100 / p.bytes);
-      if (!wait || (percent == shown && p.files_done == files_shown)) return;
+      if (job.kind == InstallJob::Kind::Behind || (percent == shown && p.files_done == files_shown)) return;
       shown = percent;
       files_shown = p.files_done;
-      s.tasks.post([&s, p] { s.app.show_setup({p.files_done, p.files, p.bytes_done, p.bytes}); });
+      if (job.kind == InstallJob::Kind::First) {
+        s.tasks.post([&s, p] { s.app.show_setup({p.files_done, p.files, p.bytes_done, p.bytes}); });
+      } else {
+        s.tasks.post([&s, skin = job.skin, percent] { area::preferences::pack_progress(s, skin, percent); });
+      }
     });
-    s.tasks.post([&s, wait, installed = std::move(installed)]() mutable {
+    s.tasks.post([&s, job, cancel, installed = std::move(installed)]() mutable {
       s.assets_worker.join();
-      finish_install(s, wait, std::move(installed));
+      s.install_running.reset();
+      finish_install(s, job, cancel->load(), std::move(installed));
       if (s.install_queue.empty() || s.assets_worker.joinable()) return;
-      const bool next = s.install_queue.front();
+      InstallJob next = std::move(s.install_queue.front());
       s.install_queue.pop_front();
-      run_install(s, next);
+      run_install(s, std::move(next));
     });
   });
 }
 
-}  // namespace
-
-void start_install(Shell& s, bool wait) {
-  // One install at a time: a second thread would race the first over the same files, and
-  // assigning to a running std::thread ends the program.
+// One install at a time: a second thread would race the first over the same files, and
+// assigning to a running std::thread ends the program.
+void queue_install(Shell& s, InstallJob job) {
   if (s.assets_worker.joinable() || !s.install_queue.empty()) {
-    s.install_queue.push_back(wait);
+    s.install_queue.push_back(std::move(job));
     return;
   }
-  run_install(s, wait);
+  run_install(s, std::move(job));
+}
+
+}  // namespace
+
+void start_install(Shell& s, bool wait) { queue_install(s, {wait ? InstallJob::Kind::First : InstallJob::Kind::Behind, {}}); }
+
+bool fetch_pack(Shell& s, const std::string& skin) {
+  if (!s.repository || !s.offered || assets::skin_chain(*s.offered, skin).empty()) return false;
+  const auto same = [&](const InstallJob& job) { return job.kind == InstallJob::Kind::Pack && job.skin == skin; };
+  if ((s.install_running && same(*s.install_running) && !s.install_cancel->load()) || std::ranges::any_of(s.install_queue, same)) return true;
+  queue_install(s, {InstallJob::Kind::Pack, skin});
+  return true;
+}
+
+void cancel_pack(Shell& s, const std::string& skin) {
+  const auto same = [&](const InstallJob& job) { return job.kind == InstallJob::Kind::Pack && job.skin == skin; };
+  std::erase_if(s.install_queue, same);
+  if (s.install_running && same(*s.install_running)) *s.install_cancel = true;
 }
 
 }  // namespace crpp::gui

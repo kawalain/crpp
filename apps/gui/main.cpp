@@ -87,16 +87,6 @@ bool another_instance_running() {
   return true;
 }
 
-// The manifest's sounds, relative to the sounds folder.
-std::vector<std::string> expected_sounds(const assets::Manifest& manifest) {
-  constexpr std::string_view folder = "sounds/";
-  std::vector<std::string> paths;
-  for (const assets::Entry& entry : manifest.entries) {
-    if (entry.path.starts_with(folder)) paths.emplace_back(entry.path.substr(folder.size()));
-  }
-  return paths;
-}
-
 void wire_areas(Shell& s) {
   area::connection::wire(s);
   area::home::wire(s);
@@ -135,11 +125,12 @@ int main(int argc, char** argv) {
     updated_from = std::strtoul(argv[argc - 1], nullptr, 10);
     argc -= 2;
   }
-  shell.asset_manifest = assets::built_in_manifest();
-  shell.asset_url = assets::published_url();
+  shell.repository = assets::official_repository();
   if (argc >= 3 && std::string(argv[argc - 2]) == "--asset-url") {
-    shell.asset_url = argv[argc - 1];
-    shell.asset_manifest.sources = {};  // everything under its own path there
+    // A Repository signed with this build's key, as a test key makes possible.
+    std::string url = argv[argc - 1];
+    if (!url.ends_with('/')) url += '/';
+    if (const auto key = update::built_in_key()) shell.repository = assets::Repository{std::move(url), "", *key};
     argc -= 2;
   }
   std::filesystem::path skin_dir;
@@ -169,15 +160,25 @@ int main(int argc, char** argv) {
                        ? std::expected<store::Locations, store::Error>(beside_exe)
                        : store::default_locations();
   if (!locations) locations = beside_exe;
-  const bool assets_beside_exe = std::filesystem::exists(exe_dir() / "assets" / "fonts");
+  // A development build runs from the folders its build put beside it, and installs nothing.
+  const bool assets_beside_exe = std::filesystem::exists(exe_dir() / "assets" / assets::catalog_name);
   shell.assets_dir = assets_beside_exe ? exe_dir() / "assets" : locations->protected_dir / "assets";
-  const auto absent = assets_beside_exe ? std::vector<const assets::Entry*>{} : assets::missing(shell.asset_manifest, shell.assets_dir);
-  // Only a first start waits for the files: a network that keeps them out would otherwise
-  // hold up every start.
-  const bool first_install = !assets_beside_exe && !assets::tried(shell.assets_dir);
+  shell.skins_dir = assets_beside_exe ? exe_dir() / "skins" : shell.assets_dir / "skins";
+  if (assets_beside_exe) {
+    shell.catalog = assets::load_local_catalog(shell.assets_dir);
+  } else if (shell.repository) {
+    assets::WindowsPlatform platform;
+    shell.catalog = assets::load_catalog(shell.assets_dir, shell.repository->key, platform);
+  }
+  const auto absent = assets_beside_exe || !shell.catalog
+                          ? std::vector<const assets::File*>{}
+                          : assets::missing(*shell.catalog, assets::wanted_groups(*shell.catalog, shell.assets_dir), shell.assets_dir);
+  // Only a start without its Skin Pack waits for files: a network that keeps the others out
+  // would otherwise hold up every start.
+  const bool first_install = !assets_beside_exe && shell.repository && !skin_installed(shell);
   const auto& assets = shell.assets_dir;
   // Windows refuses to replace an open font file, so one about to change stays closed.
-  const bool font_pending = std::ranges::any_of(absent, [](const assets::Entry* entry) { return entry->path.ends_with(".ttf"); });
+  const bool font_pending = std::ranges::any_of(absent, [](const assets::File* file) { return file->path.ends_with(".ttf"); });
   const auto failed_to_start = [&](const std::string& reason) {
     if (on_a_desktop_someone_sees()) {
       // There is no console to report to, and the app has no way to draw yet.
@@ -195,9 +196,9 @@ int main(int argc, char** argv) {
   if (!skin_dir.empty()) {
     if (const auto loaded = shell.app.load_skin_dir(skin_dir); !loaded) return failed_to_start(loaded.error());
   } else if (std::string_view(argc >= 2 ? argv[1] : "") != "--shot") {  // a shot without --skin-dir is the C++ layouts, to compare with
-    (void)shell.app.find_skins(exe_dir() / "skins");
+    (void)shell.app.find_skins(shell.skins_dir);
   }
-  for (const std::string_view id : assets::picker_emoji()) shell.app.ui().emoji_ids.emplace_back(id);
+  if (shell.catalog) shell.app.ui().emoji_ids = assets::picker_emoji(*shell.catalog);
   std::time_t now = std::time(nullptr);
   std::tm local{};
   localtime_s(&local, &now);
@@ -222,7 +223,7 @@ int main(int argc, char** argv) {
 
   shell.audio = load_audio_settings(data);
   shell.app.room().set_volume(shell.audio.volume);
-  shell.expected_sounds = expected_sounds(shell.asset_manifest);
+  if (shell.catalog) shell.expected_sounds = assets::sound_files(*shell.catalog);
   shell.engine = std::make_unique<sound::Engine>(shell.audio_device, assets / "sounds", shell.expected_sounds);
   shell.engine->set_settings(shell.audio);
   shell.engine->start();

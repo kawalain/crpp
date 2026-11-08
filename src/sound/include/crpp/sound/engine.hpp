@@ -88,7 +88,7 @@ struct Member {
 
 class Engine final : private Renderer {
  public:
-  // `expected`: see Catalog::scan. It must outlive the engine.
+  // `expected`: see Catalog::scan.
   Engine(AudioDevice& device, std::filesystem::path sounds_dir, std::span<const std::string> expected = {});
   ~Engine();
   Engine(const Engine&) = delete;
@@ -98,6 +98,8 @@ class Engine final : private Renderer {
   void stop();  // idempotent; the device is closed
 
   void set_settings(Settings settings);
+  // What the packs should hold, once a first install has said: see Catalog::scan.
+  void set_expected(std::vector<std::string> expected);
   void set_members(std::vector<Member> members);
   // One member's volume, on top of the others. It outlives set_members, so it holds
   // across reconnects; 100 is what everyone starts with.
@@ -157,7 +159,7 @@ class Engine final : private Renderer {
 
   AudioDevice& device_;
   std::filesystem::path sounds_dir_;
-  std::span<const std::string> expected_;
+  std::vector<std::string> expected_;
 
   // Shared with the callers; guarded by mutex_.
   std::mutex mutex_;
@@ -167,6 +169,7 @@ class Engine final : private Renderer {
   bool stopping_ = false, device_changed_ = false;
   std::optional<Settings> new_settings_;
   std::optional<std::vector<Member>> new_members_;
+  std::optional<std::vector<std::string>> new_expected_;
   std::vector<VolumeChange> new_volumes_;
   std::vector<Cue> new_cues_;
   bool check_device_ = false;

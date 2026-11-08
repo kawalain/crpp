@@ -261,10 +261,10 @@ void App::finish_leaving_room() {
   room_leaving_ = false;
 }
 
-void App::show_setup(int percent) {
+void App::show_setup(const SetupScreen::Status& status) {
   const View from = view_;
   view_ = View::Setup;
-  setup_.set(percent);
+  setup_.set(status);
   view_left(from);
 }
 

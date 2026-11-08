@@ -261,6 +261,10 @@ const Strings english{
     .system_autostart_failed = "Couldn't change the setting to start with the system.",
 
     .setup_message = "Getting the files needed for the first run",
+    .setup_detail = "{0} of {1} files · {2} of {3} MB",
+    .setup_failed = "The files the app needs couldn't be fetched. Check your internet connection and try again.",
+    .setup_retry = "Try again",
+    .setup_quit = "Quit",
     .notice_moved = "Moved to the safe store. Also erase the login and chat history left in the old Cloudroom files? "
                     "You'd have to log in to the old Cloudroom client again.",
     .notice_erase = "Erase",

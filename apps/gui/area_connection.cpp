@@ -99,7 +99,11 @@ void demo_room(Shell& s) {
 
 bool scene(Shell& s, std::string_view name) {
   if (name == "setup") {
-    s.app.show_setup(42);
+    s.app.show_setup({.files_done = 76, .files = 180, .bytes_done = 7'046'430, .bytes = 16'777'216});
+    return true;
+  }
+  if (name == "setup-failed") {
+    s.app.show_setup({.files_done = 76, .files = 180, .bytes_done = 7'046'430, .bytes = 16'777'216, .failed = true});
     return true;
   }
   if (name == "offline" || name == "offline-dark") {

@@ -144,6 +144,11 @@ void apply_language(Shell& s) {
   s.app.ui().gfx.set_language(ui::widen(chosen.tag));
 }
 
+void skins_installed(Shell& s) {
+  (void)s.app.find_skins(s.skins_dir);
+  apply_theme(s);
+}
+
 void wire(Shell& s) {
   follow_system_animations(s);
   wire_tabs(s);

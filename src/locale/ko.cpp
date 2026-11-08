@@ -262,6 +262,10 @@ const Strings korean{
     .system_autostart_failed = "시스템과 함께 자동 실행 설정을 바꾸지 못했어요.",
 
     .setup_message = "처음 실행에 필요한 파일을 받고 있어요",
+    .setup_detail = "파일 {0}/{1} · {2}/{3} MB",
+    .setup_failed = "필요한 파일을 받지 못했어요. 인터넷 연결을 확인하고 다시 시도해 주세요.",
+    .setup_retry = "다시 시도",
+    .setup_quit = "끝내기",
     .notice_moved = "안전한 저장소로 옮겼어요. 기존 Cloudroom 파일에 남은 로그인 정보와 채팅 기록도 지울까요? "
                     "지우면 기존 Cloudroom 클라이언트에서 다시 로그인해야 해요.",
     .notice_erase = "지우기",

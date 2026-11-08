@@ -1,5 +1,7 @@
-# The exe pins every asset's SHA-256, so checkouts must keep their exact bytes.
+# A catalog pins every downloaded file's SHA-256, and GitHub serves the committed bytes as a
+# second source, so checkouts must keep them exact.
 assets/** -text
+skins/** -text
 *.sh text eol=lf
 *.cmd text eol=crlf
 .github/workflows/*.yml text eol=lf

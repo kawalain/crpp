@@ -89,7 +89,7 @@ void the_popup_sits_at_the_top_left_on_every_view() {
   check_placed();
   h.app.show_session("ABC123");
   check_placed();
-  h.app.show_setup(30);
+  h.app.show_setup({.files_done = 3, .files = 10});
   check_placed();
   h.app.show_home();
   h.app.settings().open(SettingsPage::Sound);

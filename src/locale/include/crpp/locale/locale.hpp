@@ -280,6 +280,10 @@ struct Strings {
 
   // Starting up.
   const char* setup_message;
+  const char* setup_detail;  // {0} files of {1}, {2} of {3} MB
+  const char* setup_failed;
+  const char* setup_retry;
+  const char* setup_quit;
   const char* notice_moved;
   const char* notice_erase;
   const char* notice_keep;

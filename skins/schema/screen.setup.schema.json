@@ -1,7 +1,7 @@
 {
   "$schema": "http://json-schema.org/draft-07/schema#",
   "title": "The screen setup of a Skin Pack",
-  "description": "A screen of a Skin Pack, as {\"draw\": [nodes]}. With no file for a screen, the program draws it itself.\nNumbers: @percent.\nTexts: @message, @percent_text.\nHits: none.\nPictures: none.\nFields: none.\nSlots: none.\nReports: none.\nNotes: none.",
+  "description": "A screen of a Skin Pack, as {\"draw\": [nodes]}. With no file for a screen, the program draws it itself.\nNumbers: @percent, @failed.\nTexts: @message, @percent_text, @detail.\nHits: retry, quit, backdrop, card.\nPictures: none.\nFields: none.\nSlots: none.\nReports: none.\nNotes: none.",
   "allowComments": true,
   "allowTrailingCommas": true,
   "type": "object",
@@ -23,7 +23,8 @@
         {
           "enum": [
             "@message",
-            "@percent_text"
+            "@percent_text",
+            "@detail"
           ]
         },
         {
@@ -44,7 +45,14 @@
         }
       ],
       "properties": {
-        "hit": false,
+        "hit": {
+          "enum": [
+            "retry",
+            "quit",
+            "backdrop",
+            "card"
+          ]
+        },
         "note": false,
         "picture": false,
         "field": false,

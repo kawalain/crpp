@@ -1,6 +1,6 @@
 # Assets
 
-The app fetches these through jsDelivr, each file pinned by SHA-256 in the exe. Twemoji and the font are not here: `cmake/remote_assets.txt` lists them, and they come from their own repositories at the versions in `src/assets/CMakeLists.txt`.
+The official Repository serves these (ADR 0008), each pinned by SHA-256 in its signed catalog, and GitHub serves them as a second source. Twemoji and the font are not here: `cmake/remote_assets.txt` lists them with their licence texts, pinned by hash, and their own repositories are their second source.
 
 - `emoji/`: the hand-made emoji `01`-`07` and `1f422`, from upstream.
 - Twemoji, fetched into `emoji/`: [Twemoji](https://github.com/jdecked/twemoji) © Twitter, Inc. and contributors, under [CC BY 4.0](https://creativecommons.org/licenses/by/4.0/).

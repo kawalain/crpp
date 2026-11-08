@@ -64,6 +64,8 @@ void own_input(Shell& s);
 namespace preferences {  // display, notification and system tabs
 // Makes the saved language, or the OS's, what the program speaks.
 void apply_language(Shell& s);
+// Packs arrived in the Skin folder: offers them and draws what the settings choose.
+void skins_installed(Shell& s);
 void wire(Shell& s);
 [[nodiscard]] bool scene(Shell& s, std::string_view name);
 void pref_changed(Shell& s, std::string_view key);

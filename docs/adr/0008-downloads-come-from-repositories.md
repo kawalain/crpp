@@ -16,7 +16,7 @@ deployed with Wrangler from the developer's machine by the release script, which
 static files there are free and unlimited, and a file may be up to 25 MiB. When it is blocked, the same files come from
 `raw.githubusercontent.com` at the release's tag; the repository is public.
 
-A user may add other Repositories in the system tab, by an HTTPS address of a folder holding `catalog.json` or by
+A user may add other Repositories in the system tab, by an HTTPS address of a folder holding `catalog.txt` or by
 `github:owner/repo@ref`. Their catalogs must be signed too: the app shows the fingerprint of the key a catalog states,
 remembers it, and refuses the Repository if it changes. Unsigned ones are refused, and a small tool writes and signs a
 catalog for anyone who hosts one.

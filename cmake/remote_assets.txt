@@ -1,8 +1,19 @@
-# Third-party assets the app fetches from their own repositories, pinned by hash.
-# <source> <installed path> <size> <sha256> [nopick]
-# Sources are in src/assets/CMakeLists.txt. nopick: not offered in the emoji picker.
-# To add an emoji, add its line; the hash is that of the file at the pinned commit.
-pretendard fonts/PretendardGOVVariable.ttf 13386352 4fd4391c698344496a13dadb3792e3b4cba592425f387e41ce59d68f904ae854
+# Third-party assets, pinned by hash. The official Repository serves them, and these sources
+# are their second source (ADR 0008); a development build fetches them from there.
+#   source <name> <url>                              a folder, ending with '/'
+#   <source>[:<path>] <installed path> <size> <sha256> [nopick | <group>]
+# The file is at <path> under the source, or else at its installed name. nopick: not offered
+# in the emoji picker. A group other than shared: only that Skin Pack needs it. To add an
+# emoji, add its line; the hash is that of the file at the pinned commit.
+source twemoji https://raw.githubusercontent.com/jdecked/twemoji/b6b55fef1e8636b540a6d016a4729ca8cdf2e60b/assets/svg/
+source twemoji-root https://raw.githubusercontent.com/jdecked/twemoji/b6b55fef1e8636b540a6d016a4729ca8cdf2e60b/
+# By tag, as jsDelivr refused this large repository by commit. The hash still pins it.
+source pretendard https://raw.githubusercontent.com/orioncactus/pretendard/v1.3.9/packages/pretendard-gov/dist/public/variable/
+source pretendard-root https://raw.githubusercontent.com/orioncactus/pretendard/v1.3.9/
+# The licences travel with their files.
+twemoji-root:LICENSE-GRAPHICS licenses/twemoji.txt 18524 8ae9438818c26e4873b91d8c6ad620526c011e27e125677f13031eda903f007c
+pretendard-root:LICENSE licenses/pretendard.txt 4418 d31ddd9f2bed32fd7e302a205cf2380ba0de6529152d239ef99cfb6f261bfc04 skin:cloud
+pretendard fonts/PretendardGOVVariable.ttf 13386352 4fd4391c698344496a13dadb3792e3b4cba592425f387e41ce59d68f904ae854 skin:cloud
 twemoji emoji/1f400.svg 1470 8bfbece3bc1d503247a8f7ba2ea9539534998fdc196b1aab974eef66a1f97a61
 twemoji emoji/1f401.svg 980 e92c81d0ebb0224b43a552386602d8a41dc3e6220514b4d365495025bdedfbf0
 twemoji emoji/1f402.svg 622 9947bfcc98da440c447886ef433af3064ac224a9a06429b5b678b33e92bc6670

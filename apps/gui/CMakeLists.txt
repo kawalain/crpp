@@ -35,11 +35,15 @@ if(WIN32)
   # Per-Monitor v2 starts at Windows 10 1703, which the UI's font loading needs too.
   target_compile_definitions(crpp PRIVATE _CRT_SECURE_NO_WARNINGS _WIN32_WINNT=0x0A00)
   crpp_target_defaults(crpp)
-  # A development build runs from an assets folder next to the exe. A release is
-  # the exe alone, and fetches them into the user's data folder.
+  # A development build runs from an assets folder next to the exe, with an unsigned catalog
+  # that says what the folder holds, and installs nothing. A release is the exe alone, and
+  # fetches the official Repository's files into the user's data folder.
+  add_dependencies(crpp crpp_catalog)
   add_custom_command(TARGET crpp POST_BUILD
     COMMAND ${CMAKE_COMMAND} -E copy_directory ${PROJECT_SOURCE_DIR}/assets $<TARGET_FILE_DIR:crpp>/assets
-    COMMAND ${CMAKE_COMMAND} -E copy_directory ${PROJECT_SOURCE_DIR}/skins $<TARGET_FILE_DIR:crpp>/skins)
+    COMMAND ${CMAKE_COMMAND} -E copy_directory ${PROJECT_SOURCE_DIR}/skins $<TARGET_FILE_DIR:crpp>/skins
+    COMMAND $<TARGET_FILE:crpp_catalog> $<TARGET_FILE_DIR:crpp>/assets --remote ${CRPP_REMOTE_ASSETS}
+            --assets ${PROJECT_SOURCE_DIR}/assets --skins ${PROJECT_SOURCE_DIR}/skins --default-skin cloud)
   if(CRPP_FETCH_DEV_ASSETS)
     add_custom_command(TARGET crpp POST_BUILD
       COMMAND ${CMAKE_COMMAND} -E make_directory ${CRPP_ASSET_CACHE}

@@ -131,6 +131,13 @@ void enter_app(Shell& s) {
   (void)data.save();
 }
 
+bool skin_installed(const Shell& s) {
+  if (!s.catalog) return false;
+  std::vector<std::string> groups;
+  for (const std::string& id : assets::skin_chain(*s.catalog, s.catalog->default_skin)) groups.push_back(assets::skin_group(id));
+  return !groups.empty() && assets::missing(*s.catalog, groups, s.assets_dir).empty();
+}
+
 namespace {
 
 DiagEvent diag_of(assets::Error error) {
@@ -138,6 +145,7 @@ DiagEvent diag_of(assets::Error error) {
     case assets::Error::Network: return DiagEvent::AssetsNetwork;
     case assets::Error::Unavailable: return DiagEvent::AssetsUnavailable;
     case assets::Error::BadContent: return DiagEvent::AssetsBadContent;
+    case assets::Error::BadSignature: return DiagEvent::AssetsBadSignature;
     case assets::Error::Disk: return DiagEvent::AssetsDisk;
   }
   return DiagEvent::AssetsNetwork;
@@ -158,27 +166,82 @@ void report_assets(Shell& s, const std::expected<void, assets::Error>& result) {
   }
 }
 
+// What a newly installed catalog brings: the emoji to pick, the sounds to expect, the packs.
+void use_catalog(Shell& s, assets::Catalog catalog) {
+  s.catalog = std::move(catalog);
+  s.app.ui().emoji_ids = assets::picker_emoji(*s.catalog);
+  s.expected_sounds = assets::sound_files(*s.catalog);
+  s.engine->set_expected(s.expected_sounds);
+}
+
+struct Installed {
+  std::optional<assets::Catalog> catalog;  // a newly fetched one
+  std::expected<void, assets::Error> result;
+};
+
+// On the worker thread. A first start fetches the catalog; a later one keeps its own, as
+// files arrive behind the app for the start after.
+Installed install(Shell& s, bool wait, const std::function<void(const assets::Progress&)>& progress) {
+  assets::WindowsPlatform platform;
+  Installed done;
+  std::string base = s.repository->url;
+  const assets::Catalog* catalog = s.catalog ? &*s.catalog : nullptr;
+  if (wait) {
+    auto fetched = assets::fetch_catalog(*s.repository, platform);
+    if (!fetched) {
+      done.result = std::unexpected(fetched.error());
+      return done;
+    }
+    if (!assets::save_catalog(s.assets_dir, fetched->text)) {
+      done.result = std::unexpected(assets::Error::Disk);
+      return done;
+    }
+    if (fetched->from_mirror) base.clear();  // the Repository did not answer: its files would not either
+    done.catalog = std::move(fetched->catalog);
+    catalog = &*done.catalog;
+  }
+  const auto groups = assets::wanted_groups(*catalog, s.assets_dir);
+  done.result = assets::install(*catalog, base, groups, s.assets_dir, platform, progress);
+  return done;
+}
+
 }  // namespace
 
 void start_install(Shell& s, bool wait) {
-  if (wait) s.app.show_setup(0);
+  if (wait) {
+    s.app.show_setup({});
+    s.app.setup().on_retry = [&s] {
+      if (!s.assets_worker.joinable()) start_install(s, true);
+    };
+    s.app.setup().on_quit = [&s] { DestroyWindow(s.hwnd); };
+  }
   s.assets_worker = std::thread([&s, wait] {
-    assets::WindowsPlatform platform(s.asset_url);
-    int shown = 0;
-    const auto result = assets::install(s.asset_manifest, s.assets_dir, platform,
-                                        [&](std::uint64_t done, std::uint64_t total) {
-                                          const int percent = static_cast<int>(done * 100 / total);
-                                          if (!wait || percent == shown) return;
-                                          shown = percent;
-                                          s.tasks.post([&s, percent] { s.app.show_setup(percent); });
-                                        });
-    s.tasks.post([&s, wait, result] {
+    int shown = -1;
+    std::size_t files_shown = 0;
+    auto installed = install(s, wait, [&](const assets::Progress& p) {
+      // A redraw for each step the eye can see: a percent, or a file.
+      const int percent = p.bytes == 0 ? 100 : static_cast<int>(p.bytes_done * 100 / p.bytes);
+      if (!wait || (percent == shown && p.files_done == files_shown)) return;
+      shown = percent;
+      files_shown = p.files_done;
+      s.tasks.post([&s, p] { s.app.show_setup({p.files_done, p.files, p.bytes_done, p.bytes}); });
+    });
+    s.tasks.post([&s, wait, installed = std::move(installed)]() mutable {
       s.assets_worker.join();
+      if (installed.catalog) use_catalog(s, std::move(*installed.catalog));
       if (wait) {
+        if (!skin_installed(s)) {
+          s.log.note(diag_of(installed.result ? assets::Error::BadContent : installed.result.error()));
+          auto status = s.app.setup().status();
+          status.failed = true;
+          s.app.show_setup(status);
+          return;
+        }
         s.app.reload_assets(s.assets_dir);
+        area::preferences::skins_installed(s);
         enter_app(s);
       }
-      report_assets(s, result);
+      report_assets(s, installed.result);
     });
   });
 }

@@ -227,8 +227,11 @@ the default server. A running exe cannot be linked over (LNK1104): build into an
 server; seed `serverUrl` in its `crpp/settings.json` to test the offline popup. That covers only
 `/health`: a click on creating or joining a Room still goes to the default server, which is production,
 so a run that clicks needs a `serverUrl` on localhost. An exe with an
-`assets/` folder beside it, as every build has, runs from that folder; copy the
-exe elsewhere to test fetching, with `--asset-url` for a local server.
+`assets/` folder holding a `catalog.txt` beside it, as every build has, runs from that folder and
+`skins/` and installs nothing. To test installing, build with `-DCRPP_UPDATE_TEST_KEY=<hex>`, write a
+Repository with `crpp_catalog`, sign it with `.github/scripts/sign-catalog.ps1` and the test key, serve it
+on localhost and copy the exe elsewhere: `--asset-url <folder>` uses it, signed with the build's key.
+Rebuild without the test key afterwards.
 
 Scripted runs of the app go on a hidden Win32 desktop (`CreateDesktop`,
 `STARTUPINFO.lpDesktop`, `EnumDesktopWindows`), so no window reaches the user's
@@ -275,10 +278,13 @@ exist (real + test).
   `keys.hpp` lists what a node may have, for the loader and for the JSON Schemas in `skins/schema`, which `crpp_skin_schema` writes and a test compares.
   A panel with a window of its own reports its size, and `measure_screen` walks the screen without drawing to learn it. What the
   program itself must know of a look, as a frame's sizes and each window's, is in constants that `required_constants` lists; fonts and cursors have sections of their own.
-- `assets`: fetch and verify files against the manifest CMake builds into the
-  exe from `assets/` and `cmake/remote_assets.txt`. This repository's files are pinned
-  to the commit that last changed `assets/`, which must be on GitHub before a release
-  can install them. `Platform` is the seam for WinHTTP and BCrypt.
+- `assets`: a Repository's signed catalog (`catalog.hpp`, ADR 0008) and the files it lists in groups:
+  shared, one per Skin Pack and per Sound pack. `install` fetches the groups asked for from the
+  Repository, or a file's second source when the Repository fails, verifies each and keeps what
+  already matches. The exe holds only the official Repository's address and the update key
+  (`built_in.hpp`); `crpp_catalog` writes a catalog from `assets/`, `skins/` and
+  `cmake/remote_assets.txt`, and `.github/scripts/build-repository.ps1` fills and signs the official
+  one. `Platform` is the seam for WinHTTP and BCrypt.
 - `api`: the account HTTP API as pure requests and responses, and `Flow`, the
   prompt's steps. `HttpClient` is the seam for WinHTTP; `Worker` keeps its blocking
   calls off the UI thread. `apps/gui/account_controller` joins it to `ui`.
@@ -431,8 +437,11 @@ exist (real + test).
 - Motion has been compared frame by frame and measured, not felt: how scrolling and
   transitions feel needs the user's own hands, on a real display.
 - The generated stand-in sounds need ears: `crpp_soundtest --synth`.
-- jsDelivr has only served the files pinned so far. Files of this repository 404 there
-  until their commit is on GitHub, so a first real install needs that push.
+- Installing from a Repository has run against a local server only, on a hidden desktop: a first start,
+  a second that fetched nothing, a failure with no server, and "다시 시도" once it was back. The
+  official Repository is not deployed yet, so `CRPP_REPOSITORY_URL` is empty and a build without
+  `assets/` beside it has nowhere to install from. Its second source needs the release's tag and its
+  committed catalog on GitHub, and raw.githubusercontent.com has not been tried as one.
 - v0.1.0 updated itself to v0.1.1 from GitHub on one Windows 10 PC with Defender. The cause
   of the detection in `docs/releases/README.md` is unknown, and it may come back with any
   release. The exe has no code signature, so try another machine and SmartScreen.

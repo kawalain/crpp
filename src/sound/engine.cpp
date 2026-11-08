@@ -35,7 +35,7 @@ std::vector<float> load_recording(const std::filesystem::path& path, std::uint32
 }
 
 Engine::Engine(AudioDevice& device, std::filesystem::path sounds_dir, std::span<const std::string> expected)
-    : device_(device), sounds_dir_(std::move(sounds_dir)), expected_(expected), random_(std::random_device{}()) {
+    : device_(device), sounds_dir_(std::move(sounds_dir)), expected_(expected.begin(), expected.end()), random_(std::random_device{}()) {
   device_.set_on_changed([this] {
     {
       std::lock_guard lock(mutex_);
@@ -90,6 +90,14 @@ void Engine::set_member_volume(std::string cid, int percent) {
   {
     std::lock_guard lock(mutex_);
     new_volumes_.push_back({std::move(cid), std::clamp(percent, 0, 100)});
+  }
+  wake_.notify_one();
+}
+
+void Engine::set_expected(std::vector<std::string> expected) {
+  {
+    std::lock_guard lock(mutex_);
+    new_expected_ = std::move(expected);
   }
   wake_.notify_one();
 }
@@ -153,7 +161,7 @@ void Engine::run() {
     {
       std::unique_lock lock(mutex_);
       const auto ready = [&] {
-        return stopping_ || device_changed_ || pending_count_ > 0 || new_settings_ || new_members_ ||
+        return stopping_ || device_changed_ || pending_count_ > 0 || new_settings_ || new_members_ || new_expected_ ||
                !new_volumes_.empty() || !new_cues_.empty() || check_device_;
       };
       // Asleep with no timer unless a stream is running and must be stopped later.
@@ -166,6 +174,10 @@ void Engine::run() {
       changed = std::exchange(device_changed_, false);
       settings = std::exchange(new_settings_, std::nullopt);
       members = std::exchange(new_members_, std::nullopt);
+      if (new_expected_) {
+        expected_ = std::move(*std::exchange(new_expected_, std::nullopt));
+        catalog_ = {};  // read again at the next sound
+      }
       volumes.swap(new_volumes_);
       cues.swap(new_cues_);
       check = std::exchange(check_device_, false);

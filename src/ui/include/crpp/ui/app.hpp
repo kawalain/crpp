@@ -121,7 +121,7 @@ class App {
   [[nodiscard]] float window_size(std::string_view name, std::string_view side, float code) const;
   // Whether the system or the caller wants motion; a Skin may have none anyway.
   void set_animations(bool wanted);
-  void show_setup(int percent);
+  void show_setup(const SetupScreen::Status& status);
   void show_home();
   void show_session(std::string room_code);
   [[nodiscard]] View view() const { return view_; }

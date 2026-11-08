@@ -1,11 +1,27 @@
 {
   "$schema": "../../schema/screen.setup.schema.json",
   "draw": [
-    {"let": "col_w", "value": "min(380, W-32)"},
-    {"x": "(W-col_w)/2", "y": "H/2-60", "w": "col_w", "group": [
+    {"if": "!@failed", "let": "col_w", "value": "min(380, W-32)"},
+    {"if": "!@failed", "x": "(W-col_w)/2", "y": "H/2-60", "w": "col_w", "group": [
       {"text": "@message", "style": "paragraph_center", "color": "$ink", "h": 26},
       {"use": "progress", "y": 46, "h": 8, "args": {"percent": "@percent"}},
-      {"text": "@percent_text", "style": "body_center", "color": "$ink", "y": 64, "h": 22}
+      {"text": "@percent_text", "style": "body_center", "color": "$ink", "y": 64, "h": 22},
+      {"text": "@detail", "style": "body_center", "color": "$ink", "y": 88, "h": 22}
+    ]},
+    // A question with two answers, as dialog.jsonc lays one out, on a raised box of its own.
+    {"if": "@failed", "let": "card_w", "value": "min(dialog_wide_width, W-40)"},
+    {"if": "@failed", "let": "text_w", "value": "card_w-2*dialog_pad_x"},
+    {"if": "@failed", "let": "text_h", "value": "texth('paragraph', '@message', text_w)"},
+    {"if": "@failed", "let": "card_h", "value": "dialog_pad_top+text_h+dialog_gap+dialog_button_h+dialog_pad_bottom"},
+    {"if": "@failed", "snap": true, "x": "round((W-card_w)/2)", "y": "round((H-card_h)/2)", "w": "card_w", "h": "card_h", "group": [
+      {"fill": "$face"},
+      {"use": "raised"},
+      {"hit": "card", "group": []},
+      {"text": "@message", "style": "paragraph", "color": "$ink", "x": "dialog_pad_x", "y": "dialog_pad_top", "w": "text_w", "h": "text_h"},
+      {"let": "row_x", "value": "(card_w-2*dialog_button_w-dialog_button_gap)/2"},
+      {"let": "row_y", "value": "H-dialog_pad_bottom-dialog_button_h"},
+      {"use": "button", "text": "#setup_retry", "hit": "retry", "x": "row_x", "y": "row_y", "w": "dialog_button_w", "h": "dialog_button_h", "args": {"primary": 1}},
+      {"use": "button", "text": "#setup_quit", "hit": "quit", "x": "row_x+dialog_button_w+dialog_button_gap", "y": "row_y", "w": "dialog_button_w", "h": "dialog_button_h"}
     ]}
   ]
 }

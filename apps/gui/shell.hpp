@@ -157,10 +157,11 @@ struct Shell {
   ui::PaneState panes_made;
   bool panes_posted = false;
   std::filesystem::path assets_dir;
-  assets::Manifest asset_manifest;
-  std::string asset_url;
+  std::filesystem::path skins_dir;              // the Skin Packs: beside the exe, or installed
+  std::optional<assets::Repository> repository;  // where files come from; empty: nowhere
+  std::optional<assets::Catalog> catalog;        // the kept one, verified
   std::thread assets_worker;
-  std::vector<std::string> expected_sounds;  // what the manifest promises, on disk or not
+  std::vector<std::string> expected_sounds;  // what the catalog promises, on disk or not
   std::filesystem::path data_dir;  // the Protected store's folder
   std::wstring data_override;      // --data, so a restart keeps it
   std::string update_url;          // --update-url, only for builds that are not official
@@ -191,8 +192,11 @@ struct Shell {
 // --- startup.cpp ---
 void start_client(Shell& s);
 void enter_app(Shell& s);
-// Fetches what is missing. With wait, the first start's progress screen stays until that
-// is done; otherwise it goes on behind the app, for the next start.
+// Whether the catalog's default Skin Pack and those it extends are all in place.
+[[nodiscard]] bool skin_installed(const Shell& s);
+// Fetches what is missing. With wait, the first start's progress screen stays until the
+// Skin Pack is in place, and says so if it cannot be; otherwise it goes on behind the app,
+// for the next start.
 void start_install(Shell& s, bool wait);
 // A nickname like the upstream one: "<adjective> <animal>".
 std::string random_nickname(const std::filesystem::path& words);

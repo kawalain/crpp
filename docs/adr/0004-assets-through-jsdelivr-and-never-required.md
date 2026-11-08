@@ -1,6 +1,7 @@
 # Assets come through jsDelivr, and none of them is required
 
-ADR 0007 makes one exception: a Skin Pack is required, and has a second source.
+ADR 0007 makes one exception: a Skin Pack is required, and has a second source. ADR 0008 replaces the source:
+Repositories with signed catalogs, not jsDelivr and a list in the exe.
 
 This replaces the source and the failure handling in ADR 0002; its reasons for fetching at first run still hold.
 

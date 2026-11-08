@@ -19,12 +19,15 @@ A smaller exe and less memory are not goals.
   choice must be heard. Emoji and word lists stay shared too.
 - **First run.** The exe has one small screen in a system font: progress, failure, retry and exit. Nothing else
   works until one pack is installed; once it is, it keeps working. The default Cloud pack comes first, others
-  when picked. GitHub is a second source for when jsDelivr is blocked.
-- **Who publishes.** Only official packs through the app. `--skin-dir` loads an unsigned folder for development.
-  The parser limits sizes and depth from the start, so opening this to others later stays possible.
-- **Trust.** A signed catalog lists packs and file hashes, and each file is checked. It uses an ECDSA P-256 key of
-  its own, so a leaked Skin key cannot sign an exe; the verifying code is the update module's. Files are fetched
-  one by one, with no archive format.
+  when picked. Superseded in part on 2026-11-08 by Repositories (ADR 0008): the official one is on Cloudflare
+  Workers, with `raw.githubusercontent.com` at the release tag as its second source. The screen counts files and
+  bytes, reads 64 KB at a time so the bar moves, and retries a passing failure twice after a short wait.
+- **Who publishes.** The official Repository, and any Repository a user adds whose catalog is signed (ADR 0008).
+  Others may offer only Skin Packs and Sound packs. `--skin-dir` loads an unsigned folder for development.
+- **Trust.** A signed catalog lists packs and file hashes, and each file is checked. The official one is signed with
+  the update key (decided 2026-11-08, replacing a key of its own); another Repository's key is remembered when it is
+  added, and a change refuses it. The verifying code is the update module's. Files are fetched one by one, with no
+  archive format.
 - **Compatibility.** A pack states a `format` number and the exe refuses any outside its range. The catalog offers
   a pack per format. A newly required screen raises the number and updates the official packs together.
 - **Managing.** The display tab lists Themes not yet installed. Picking one shows progress and applies it when done;
@@ -147,13 +150,20 @@ before step 7, which removes what Cloud's pack is compared with.
    `--skin-dir` before step 7.
 5. **Choosing.** The Skin, Theme and dark mode rows, their keys, and the list of Themes read from packs, which needs
    Cloud's pack first.
-6. **Packs and download.** `skins/` in this repository, catalog and signature, the second key, the first-run screen,
-   the second source, the display tab's list, removal and background updates. Generating the key is the user's step,
-   as in `docs/signing-key.md`. The Cloud pack refers to Pretendard at its own pinned source.
+6. **Repositories and download** (ADR 0008), in three commits' worth of parts, tested with a test key and a local
+   server. A build with `skins/` beside it downloads nothing; an exe without one installs a pack first.
+   - **6a.** The catalog for everything downloaded, its signature, the tool that writes and signs one, the official
+     Repository and its second source, the first-run screen with the 0% fix, and keeping installed files whose hash
+     matches. The font comes with the Cloud pack only. Then, after asking, a first `wrangler deploy` from here.
+   - **6b.** The display tab lists Themes not yet installed; picking one shows progress and applies it. The system
+     tab's "저장소" row adds and removes Repositories and shows their fingerprints. A Sound pack another member lacks
+     plays as the default pack.
+   - **6c.** Removing unused packs, and updates fetched behind the app and applied on the next start.
 7. **Remove the C++.** Delete Luna's and Cloud's layouts and `Skin`, and fix ADR 0004 and the module design. Measure
    again.
-8. **Release path.** `docs/releases/README.md` and its script publish the catalog. A clean install is tried with a
-   local server, then for real once the files are on GitHub.
+8. **Release path.** `docs/releases/README.md` and its script fill `dist/repository`, sign the catalog with the
+   update key and deploy it with `npx --yes wrangler@4.152.0 deploy` (`wrangler.jsonc`). A clean install is tried with
+   a local server, then for real, and the second source once the tag is on GitHub.
 
 ## Testing
 

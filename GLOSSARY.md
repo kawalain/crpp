@@ -46,6 +46,8 @@
 
 **Skin Pack** (스킨 팩): what is downloaded to get a Skin: all of the above with its Themes, fonts, pictures and notification sounds. It holds no code, and may extend one other Skin Pack, its parent, changing only what differs. Sound packs are not part of one, because another member's pack must be heard whichever Skin is in use.
 
+**Repository** (저장소): a place that serves a signed catalog and the files it lists: Skin Packs, Sound packs and the other files the program downloads. The official Repository always comes first; a user may add others by address. Not a git repository, though a GitHub repository can serve as one.
+
 **Palette**: the colours of one Theme, or of its dark variant. A dark variant has the same shapes as its Theme and differs only in its Palette.
 
 **Cloud**: the Skin of the upstream client, with clouds as its panels. 구름, 먹구름 and 파스텔 are its Themes.

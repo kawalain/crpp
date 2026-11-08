@@ -1,6 +1,7 @@
 # A Skin is data, downloaded as a Skin Pack
 
-This replaces how ADR 0005 makes a Skin; what a Skin owns stays as that ADR says.
+This replaces how ADR 0005 makes a Skin; what a Skin owns stays as that ADR says. ADR 0008 changes two points below:
+the official catalog is signed with the update key, and packs may come from Repositories other than the official one.
 
 A Skin was C++ compiled into the exe, so a new look needed a release and a first run fetched the Cloud font even for someone using another Skin. Screens, control shapes, motion and cursors now become data in a Skin Pack, drawn by one engine in the exe, and the exe holds no Skin's look. The goal is that nobody downloads a look they do not use, and that a Skin can be added or changed without a release.
 

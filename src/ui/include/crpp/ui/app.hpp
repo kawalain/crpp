@@ -110,7 +110,7 @@ class App {
   void set_theme(std::string_view id);
   // The Skin's own notification sounds: 0 none, 1 small bells, 2 plain tones.
   [[nodiscard]] int notification_style() const;
-  // Every folder with a pack.jsonc in `dir` can be chosen. False when there is none.
+  // Every folder with a pack.cskin or pack.jsonc in `dir` can be chosen. False when there is none.
   bool find_skins(const std::filesystem::path& dir);
   // Draws what the settings choose, among the packs found.
   void apply_skin_choice(bool system_dark);

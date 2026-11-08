@@ -5,6 +5,7 @@
 #include <utility>
 
 #include "crpp/locale/locale.hpp"
+#include "crpp/skin/cskin.hpp"
 #include "crpp/store/json.hpp"
 #include "keys.hpp"
 
@@ -69,13 +70,13 @@ class Loader final : public Names {
     auto merged = gather();
     if (!merged) return false;
     Json& root = *merged;
-    where_ = "pack.jsonc";
+    where_ = pack_file();
     if (!load_themes(root) || !keep_palettes(root) || (layers_.size() > 1 && !order_parts(root))) return false;
-    where_ = "pack.jsonc";
+    where_ = pack_file();
     if (const Json* constants = root.find("constants"); constants && !load_constants(*constants)) return false;
     if (const Json* fonts = root.find("fonts"); fonts && !load_fonts(*fonts)) return false;
     if (!load_palettes(root.find("palettes")) || !load_styles(root.find("styles")) || !load_parts(root.find("parts"))) return false;
-    where_ = "pack.jsonc";
+    where_ = pack_file();
     if (const Json* cursors = root.find("cursors"); cursors && !load_cursors(*cursors)) return false;
     for (const ScreenSchema& schema : schemas) {
       if (!load_screen(schema)) return false;
@@ -172,6 +173,8 @@ class Loader final : public Names {
     return false;
   }
 
+  [[nodiscard]] std::string pack_file() const { return "pack" + ext_; }
+
   // --- Extending ---
 
   bool right_format(const Json& root) {
@@ -203,9 +206,17 @@ class Loader final : public Names {
     };
     std::vector<Level> levels;  // nearest first
     ReadFile reader = read_;
-    std::string label = "pack.jsonc";
+    // A pack written in the pack language says so by its pack.cskin, and so do its parents and overlays.
+    auto text = reader("pack.cskin");
+    if (text) {
+      syntax_ = Syntax::Pack;
+      ext_ = ".cskin";
+    } else {
+      text = reader("pack.jsonc");
+    }
+    std::string label = pack_file();
     while (true) {
-      auto root = parse_file(label, reader("pack.jsonc"));
+      auto root = parse_file(label, text);
       if (!root || !right_format(*root)) return std::nullopt;
       const Json* id = root->find("id");
       if (!id || !id->as_string()) {
@@ -238,7 +249,8 @@ class Loader final : public Names {
         return std::nullopt;
       }
       reader = std::move(*found);
-      label = next + "/pack.jsonc";
+      label = next + "/" + pack_file();
+      text = reader(pack_file());
     }
     pack_.id = levels.front().id;
     pack_.overlay = options_.overlay;
@@ -250,16 +262,16 @@ class Loader final : public Names {
       layers_.push_back(level->read);
       if (options_.overlay.empty()) continue;
       const std::string prefix = "overlays/" + options_.overlay + "/";
-      const auto text = level->read(prefix + "pack.jsonc");
-      if (!text) continue;
-      const auto root = parse_file(prefix + "pack.jsonc", text);
+      const auto overlay = level->read(prefix + pack_file());
+      if (!overlay) continue;
+      const auto root = parse_file(prefix + pack_file(), overlay);
       if (!root || !right_format(*root)) return std::nullopt;
       merge_into(merged, *root);
       layers_.push_back([read = level->read, prefix](std::string_view path) { return read(prefix + std::string(path)); });
       overlay_found = true;
     }
     if (!options_.overlay.empty() && !overlay_found) {
-      where_ = "pack.jsonc";
+      where_ = pack_file();
       fail("no overlay \"" + options_.overlay + "\"");
       return std::nullopt;
     }
@@ -412,6 +424,15 @@ class Loader final : public Names {
     if (text->size() > max_file_bytes) {
       fail("is larger than " + std::to_string(max_file_bytes) + " bytes");
       return std::nullopt;
+    }
+    if (syntax_ == Syntax::Pack) {
+      auto read = read_cskin(*text, where_.ends_with("pack.cskin") ? SourceKind::Pack : SourceKind::Screen);
+      if (!read) {
+        where_ += ":" + std::to_string(read.error().line) + ":" + std::to_string(read.error().column);
+        fail(read.error().what);
+        return std::nullopt;
+      }
+      return std::move(*read);
     }
     store::JsonPosition at;
     auto json = Json::parse(*text, &at);
@@ -581,7 +602,7 @@ class Loader final : public Names {
     // A style can be read by anything, so it knows no local names; its sizes are worked out
     // for each node that uses it, in that node's box.
     for (const Json::Member& m : *all) {
-      where_ = "pack.jsonc: style \"" + m.key + "\"";
+      where_ = pack_file() + ": style \"" + m.key + "\"";
       Style style;
       if (!m.value.is_object()) return fail("is not an object");
       if (!expr_of(m.value, "size", style.size) || !expr_of(m.value, "line_height", style.line_height)) return false;
@@ -634,7 +655,7 @@ class Loader final : public Names {
     }
     const auto text = value.as_string();
     if (!text) return fail("a value is neither a number nor an expression");
-    auto compiled = compile(*text, *this, pack_.code);
+    auto compiled = compile(*text, *this, pack_.code, syntax_);
     if (!compiled) return fail(compiled.error());
     if (pack_.code.size() > max_instructions) return fail("too many expressions");
     out = *compiled;
@@ -1091,7 +1112,7 @@ class Loader final : public Names {
     const Json::Object* all = parts ? parts->as_object() : nullptr;
     if (!all) return fail("no parts");
     for (const Json::Member& m : *all) {
-      where_ = "pack.jsonc: part \"" + m.key + "\"";
+      where_ = pack_file() + ": part \"" + m.key + "\"";
       if (!m.value.is_object()) return fail("is not an object");
       const Json* draw = m.value.find("draw");
       if (!draw) return fail("has no \"draw\"");
@@ -1129,12 +1150,18 @@ class Loader final : public Names {
   // --- Screens ---
 
   bool load_screen(const ScreenSchema& schema) {
-    const std::string path = "screens/" + std::string(schema.screen) + ".jsonc";
+    const std::string path = "screens/" + std::string(schema.screen) + ext_;
     std::optional<std::string> text;
     for (auto layer = layers_.rbegin(); layer != layers_.rend() && !text; ++layer) text = (*layer)(path);
     if (!text) return true;
     const auto root = parse_file(path, text);
     if (!root) return false;
+    if (syntax_ == Syntax::Pack) {
+      // Both are @name in a pack, so the exe must not name one of a screen's numbers like one of its own.
+      for (const Name& number : schema.numbers) {
+        if (var_named(number.name)) return fail("the exe names a number of this screen @" + std::string(number.name) + ", which is its own already");
+      }
+    }
     const Json* draw = root->find("draw");
     if (!draw) return fail("has no \"draw\"");
     Screen screen;
@@ -1155,6 +1182,8 @@ class Loader final : public Names {
   std::vector<ReadFile> layers_;  // what lies on top comes last
   Pack pack_;
   std::string error_, where_;
+  Syntax syntax_ = Syntax::Jsonc;  // how its expressions are written: by pack.cskin or pack.jsonc
+  std::string ext_ = ".jsonc";
   std::vector<std::string> paint_names_, style_names_;
   Scope* scope_ = nullptr;
   const ScreenSchema* schema_ = nullptr;

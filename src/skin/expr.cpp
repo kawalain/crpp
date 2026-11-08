@@ -16,7 +16,8 @@ constexpr int max_nesting = 16;
 
 class Compiler {
  public:
-  Compiler(std::string_view source, Names& names, std::vector<Instr>& code) : s_(source), names_(names), code_(code) {}
+  Compiler(std::string_view source, Names& names, std::vector<Instr>& code, Syntax syntax)
+      : s_(source), names_(names), code_(code), pack_(syntax == Syntax::Pack) {}
 
   bool run() {
     if (!ternary()) return false;
@@ -34,7 +35,7 @@ class Compiler {
   }
 
   void skip_space() {
-    while (at_ < s_.size() && (s_[at_] == ' ' || s_[at_] == '\t')) ++at_;
+    while (at_ < s_.size() && (s_[at_] == ' ' || s_[at_] == '\t' || s_[at_] == '\n' || s_[at_] == '\r')) ++at_;
   }
 
   bool eat(std::string_view token) {
@@ -139,6 +140,7 @@ class Compiler {
       if (!unary()) return false;
       if (!code_.empty() && code_.back().op == Op::Const && last_is_literal_) {  // -1 stays one number
         code_.back().value = -code_.back().value;
+        if (percent_at_ + 1 == code_.size()) percent_of_ = -percent_of_;
         return true;
       }
       return emit(Op::Neg, 0);
@@ -164,6 +166,7 @@ class Compiler {
     }
     if (is_digit(c) || c == '.') return number();
     if (c == '$') {
+      if (pack_) return fail("a Palette entry is written without $");
       ++at_;
       const std::string_view name = name_at();
       const auto paint = names_.paint(name);
@@ -174,6 +177,10 @@ class Compiler {
     if (c == '@') {
       ++at_;
       const std::string_view name = name_at();
+      if (pack_) {
+        if (name == "tr") return fail("@tr is a text, for text and textw");
+        if (const auto var = var_named(name)) return emit(Op::Var, 1, *var);
+      }
       const auto bound = names_.number(name);
       if (!bound) return fail("this screen has no number \"" + std::string(name) + "\"");
       return emit(Op::Number, 1, *bound);
@@ -188,22 +195,44 @@ class Compiler {
     const auto [end, ec] = std::from_chars(first, s_.data() + s_.size(), value);
     if (ec != std::errc{}) return fail("a bad number");
     at_ += static_cast<std::size_t>(end - first);
-    if (!emit(Op::Const, 1, 0, value)) return false;
+    bool percent = false;
+    if (pack_ && at_ < s_.size() && s_[at_] == '%') {
+      ++at_;
+      percent = true;
+    } else if (pack_ && s_.substr(at_, 2) == "ms" && (at_ + 2 == s_.size() || !(is_name_start(s_[at_ + 2]) || is_digit(s_[at_ + 2])))) {
+      at_ += 2;
+    }
+    if (!emit(Op::Const, 1, 0, percent ? value / 100 : value)) return false;
     last_is_literal_ = true;
+    if (percent) {
+      percent_at_ = code_.size() - 1;
+      percent_of_ = value;
+    }
     return true;
   }
 
   bool name() {
     const std::string_view word = name_at();
-    skip_space();
+    if (!pack_) skip_space();  // in a pack, `name (` is a name and then something else, not a call
     if (at_ < s_.size() && s_[at_] == '(') return call(word);
     if (at_ < s_.size() && s_[at_] == '.') {
       ++at_;
       return member(word, name_at());
     }
-    if (const auto var = var_named(word)) return emit(Op::Var, 1, *var);
-    if (const auto slot = names_.slot(word)) return emit(Op::Slot, 1, *slot);
-    if (const auto constant = names_.constant(word)) return emit(Op::Const, 1, 0, *constant);
+    if (!pack_) {
+      if (const auto var = var_named(word)) return emit(Op::Var, 1, *var);
+    }
+    const auto slot = names_.slot(word);
+    const auto constant = slot ? std::nullopt : names_.constant(word);
+    if (pack_ && (slot || constant) && names_.paint(word)) {
+      return fail("\"" + std::string(word) + "\" is both a Palette entry and a " + (slot ? "let or argument" : "constant"));
+    }
+    if (slot) return emit(Op::Slot, 1, *slot);
+    if (constant) return emit(Op::Const, 1, 0, *constant);
+    if (pack_) {
+      if (const auto paint = names_.paint(word)) return emit(Op::Const, 1, 0, static_cast<float>(*paint));
+      if (var_named(word)) return fail("\"" + std::string(word) + "\" is the exe's: write @" + std::string(word));
+    }
     return fail("no name \"" + std::string(word) + "\"");
   }
 
@@ -231,6 +260,43 @@ class Compiler {
     return s_.substr(from, end - from);
   }
 
+  // A style's or a hit's name: bare in a pack, 'quoted' in the older form.
+  std::optional<std::string> word_arg() {
+    if (!pack_) {
+      const auto q = quoted();
+      return q ? std::optional<std::string>(*q) : std::nullopt;
+    }
+    skip_space();
+    if (at_ >= s_.size() || !is_name_start(s_[at_])) return std::nullopt;
+    return std::string(name_at());
+  }
+
+  // A text as a node's text takes it: in a pack @tr.key, @label or "words", which the loader
+  // knows as #key, @label and the words.
+  std::optional<std::string> text_arg() {
+    if (!pack_) {
+      const auto q = quoted();
+      return q ? std::optional<std::string>(*q) : std::nullopt;
+    }
+    skip_space();
+    if (at_ >= s_.size()) return std::nullopt;
+    if (s_[at_] == '"') {
+      const std::size_t from = ++at_;
+      const std::size_t end = s_.find('"', from);
+      if (end == std::string_view::npos) return std::nullopt;
+      at_ = end + 1;
+      return std::string(s_.substr(from, end - from));
+    }
+    if (s_[at_] != '@') return std::nullopt;
+    ++at_;
+    const std::string_view name = name_at();
+    if (name == "tr" && at_ < s_.size() && s_[at_] == '.') {
+      ++at_;
+      return "#" + std::string(name_at());
+    }
+    return "@" + std::string(name);
+  }
+
   bool call(std::string_view word) {
     ++at_;  // the (
     const auto one = [&](Op op) { return ternary() && (eat(")") || fail("a ( has no )")) && emit(op, 0); };
@@ -252,20 +318,29 @@ class Compiler {
       return ternary() && (eat(")") || fail("a ( has no )")) && emit(Op::Bezier, -4);
     }
     if (word == "mix") {
-      return ternary() && (eat(",") || fail("mix takes two colours and a percent")) && ternary() && (eat(",") || fail("mix takes two colours and a percent")) && ternary() &&
-             (eat(")") || fail("a ( has no )")) && emit(Op::MixColor, -2);
+      const char* const takes = pack_ ? "mix takes two colours and how much of the first" : "mix takes two colours and a percent";
+      if (!(ternary() && (eat(",") || fail(takes)) && ternary() && (eat(",") || fail(takes)) && ternary() && (eat(")") || fail("a ( has no )")))) return false;
+      if (pack_) {
+        // A fraction here and a percent to the colours: 40% goes as 40 itself, so it stays exact.
+        if (percent_at_ + 1 == code_.size() && code_.back().op == Op::Const) {
+          code_.back().value = percent_of_;
+        } else if (!emit(Op::Const, 1, 0, 100) || !emit(Op::Mul, -1)) {
+          return false;
+        }
+      }
+      return emit(Op::MixColor, -2);
     }
     if (word == "hit" || word == "note") {
-      const auto named = quoted();
-      if (!named || !eat(")")) return fail(std::string(word) + " takes 'name'");
+      const auto named = word_arg();
+      if (!named || !eat(")")) return fail(std::string(word) + (pack_ ? " takes a name" : " takes 'name'"));
       const auto id = word == "hit" ? names_.hit(*named) : names_.note(*named);
       if (!id) return fail("this screen has no " + std::string(word) + " \"" + std::string(*named) + "\"");
       return emit(Op::Const, 1, 0, static_cast<float>(*id));
     }
     if (word == "textw") {
-      const auto style = quoted();
+      const auto style = word_arg();
       if (!style || !eat(",")) return fail("textw takes 'style', 'text' and maybe a width");
-      const auto text = quoted();
+      const auto text = text_arg();
       if (!text) return fail("textw takes 'style', 'text' and maybe a width");
       const auto style_id = names_.style(*style);
       if (!style_id) return fail("no style \"" + std::string(*style) + "\"");
@@ -276,9 +351,9 @@ class Compiler {
       return emit(Op::TextWidth, 1, *style_id, static_cast<float>(*text_id));
     }
     if (word == "texth") {
-      const auto style = quoted();
+      const auto style = word_arg();
       if (!style || !eat(",")) return fail("texth takes 'style', 'text', width");
-      const auto text = quoted();
+      const auto text = text_arg();
       if (!text || !eat(",")) return fail("texth takes 'style', 'text', width");
       const auto style_id = names_.style(*style);
       if (!style_id) return fail("no style \"" + std::string(*style) + "\"");
@@ -296,6 +371,9 @@ class Compiler {
   std::size_t at_ = 0;
   int stack_ = 0, nesting_ = 0;
   bool last_is_literal_ = false;
+  bool pack_ = false;
+  std::size_t percent_at_ = static_cast<std::size_t>(-1);  // the last N% emitted, and its N
+  float percent_of_ = 0;
 };
 
 }  // namespace
@@ -308,10 +386,10 @@ std::optional<Var> var_named(std::string_view name) {
   return std::nullopt;
 }
 
-std::expected<Expr, std::string> compile(std::string_view source, Names& names, std::vector<Instr>& code) {
+std::expected<Expr, std::string> compile(std::string_view source, Names& names, std::vector<Instr>& code, Syntax syntax) {
   if (source.size() > max_expr_chars) return std::unexpected("an expression longer than " + std::to_string(max_expr_chars) + " characters");
   const std::size_t start = code.size();
-  Compiler compiler(source, names, code);
+  Compiler compiler(source, names, code, syntax);
   if (!compiler.run()) {
     code.resize(start);
     return std::unexpected(compiler.error());

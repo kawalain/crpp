@@ -63,6 +63,12 @@ std::span<const skin::ScreenSchema> screen_schemas() {
 
 namespace {
 
+// A folder holds a pack when it has its pack.cskin, or the older pack.jsonc.
+bool holds_pack(const std::filesystem::path& dir) {
+  std::error_code error;
+  return std::filesystem::is_regular_file(dir / "pack.cskin", error) || std::filesystem::is_regular_file(dir / "pack.jsonc", error);
+}
+
 skin::ReadFile files_of(std::filesystem::path dir) {
   return [dir = std::move(dir)](std::string_view path) -> std::optional<std::string> {
     std::error_code error;
@@ -86,13 +92,12 @@ std::expected<void, std::string> App::read_pack(const std::string& overlay) {
   // What a pack extends is a folder beside it.
   options.parent = [folders = pack_dir_.parent_path()](std::string_view id) -> std::optional<skin::ReadFile> {
     const std::filesystem::path dir = folders / std::filesystem::path(id);
-    std::error_code error;
-    if (!std::filesystem::is_regular_file(dir / "pack.jsonc", error)) return std::nullopt;
+    if (!holds_pack(dir)) return std::nullopt;
     return files_of(dir);
   };
   auto pack = skin::load_pack(files_of(pack_dir_), screen_schemas(), options);
   if (!pack) return std::unexpected(std::move(pack.error()));
-  if (const auto missing = skin::missing_constant(*pack)) return std::unexpected("pack.jsonc: no constant \"" + std::string(*missing) + "\"");
+  if (const auto missing = skin::missing_constant(*pack)) return std::unexpected("pack: no constant \"" + std::string(*missing) + "\"");
   ui_.forget_render_target();  // brushes are kept by the address of their stops
   previous_pack_ = std::move(pack_);  // a hit of the last frame can still point into it
   pack_ = std::move(*pack);
@@ -127,15 +132,14 @@ bool App::find_skins(const std::filesystem::path& dir) {
   std::error_code error;
   std::vector<std::filesystem::path> folders;
   for (const auto& entry : std::filesystem::directory_iterator(dir, error)) {
-    if (entry.is_directory(error) && std::filesystem::is_regular_file(entry.path() / "pack.jsonc", error)) folders.push_back(entry.path());
+    if (entry.is_directory(error) && holds_pack(entry.path())) folders.push_back(entry.path());
   }
   std::ranges::sort(folders);
   for (const std::filesystem::path& folder : folders) {
     skin::LoadOptions options;
     options.parent = [parents = dir](std::string_view id) -> std::optional<skin::ReadFile> {
       const std::filesystem::path other = parents / std::filesystem::path(id);
-      std::error_code missing;
-      if (!std::filesystem::is_regular_file(other / "pack.jsonc", missing)) return std::nullopt;
+      if (!holds_pack(other)) return std::nullopt;
       return files_of(other);
     };
     // One that cannot be read is not offered, and the others still are.

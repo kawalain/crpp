@@ -31,6 +31,7 @@ class TestNames final : public Names {
   std::optional<std::uint16_t> paint(std::string_view name) override {
     if (name == "ink") return 3;
     if (name == "face") return 4;
+    if (name == "ten") return 5;  // also a constant: in a pack, the two cannot share a name
     return std::nullopt;
   }
   std::optional<std::uint16_t> style(std::string_view name) override {
@@ -39,6 +40,12 @@ class TestNames final : public Names {
   }
   std::optional<std::uint32_t> text(std::string_view source) override {
     if (source == "#ok") return 9;
+    if (source == "@label") return 8;
+    if (source == "words") return 7;
+    return std::nullopt;
+  }
+  std::optional<int> hit(std::string_view name) override {
+    if (name == "close") return 12;
     return std::nullopt;
   }
 };
@@ -49,9 +56,10 @@ class TestEnv final : public Env {
   float text_width(std::uint16_t style, std::uint32_t text, float width) override { return static_cast<float>(style) * 100 + static_cast<float>(text) + (width == unlimited_text_width ? 0 : width); }
   float text_height(std::uint16_t style, std::uint32_t text, float width) override { return static_cast<float>(style) * 100 + static_cast<float>(text) + width; }
   float snap(float value) override { return std::round(value * 2) / 2; }
+  float mix_colors(float, float, float percent) override { return percent; }
 };
 
-float run(std::string_view source) {
+float run(std::string_view source, Syntax syntax = Syntax::Jsonc) {
   TestNames names;
   TestEnv env;
   const float frame[] = {6, 10, 20, 30, 40};  // gap, then field's x y w h
@@ -60,15 +68,17 @@ float run(std::string_view source) {
   env.vars[VarH] = 100;
   env.vars[VarHot] = 1;
   std::vector<Instr> code;
-  const auto compiled = compile(source, names, code);
+  const auto compiled = compile(source, names, code, syntax);
   CHECK(compiled.has_value());
   return compiled ? eval(code, *compiled, env) : NAN;
 }
 
-bool refused(std::string_view source) {
+float run_pack(std::string_view source) { return run(source, Syntax::Pack); }
+
+bool refused(std::string_view source, Syntax syntax = Syntax::Jsonc) {
   TestNames names;
   std::vector<Instr> code{{Op::Const, 0, 1}};
-  const auto compiled = compile(source, names, code);
+  const auto compiled = compile(source, names, code, syntax);
   CHECK(code.size() == 1);  // a refused expression leaves nothing behind
   return !compiled;
 }
@@ -167,6 +177,44 @@ void bad_expressions_are_refused() {
   }
 }
 
+void a_pack_writes_the_exes_names_with_at() {
+  CHECK(run_pack("@W") == 200);
+  CHECK(run_pack("@W-2*@H") == 0);
+  CHECK(run_pack("@hot ? 1 : 2") == 1);
+  CHECK(run_pack("@seats") == 5);
+  CHECK(run_pack("gap") == 6);
+  CHECK(run_pack("field.right") == 40);
+  CHECK(run_pack("ink") == 3);  // a Palette entry is bare
+  CHECK(run_pack("@hot ? ink : face") == 3);
+  CHECK(refused("W", Syntax::Pack));  // the exe's own name without its @
+  CHECK(refused("$ink", Syntax::Pack));
+  CHECK(refused("ten", Syntax::Pack));  // a constant and a Palette entry of one name
+  CHECK(refused("@tr.ok", Syntax::Pack));
+}
+
+void a_pack_writes_units_and_fractions() {
+  CHECK(run_pack("40%") == 0.4f);
+  CHECK(run_pack("150ms") == 150);
+  CHECK(run_pack("150ms+1") == 151);
+  CHECK(run_pack("mix(ink, face, 40%)") == 40);  // the percent itself, as exact as before
+  CHECK(run_pack("mix(ink, face, -40%)") == -40);
+  CHECK(run_pack("mix(ink, face, @hot)") == 100);
+  CHECK(run_pack("mix(ink, face, 0.25)") == 25);
+  CHECK(run("mix($ink, $face, 40)") == 40);  // the older form takes a percent
+  CHECK(refused("150mss", Syntax::Pack));
+}
+
+void a_pack_calls_with_bare_names_and_texts() {
+  CHECK(run_pack("textw(body, @tr.ok)") == 209);
+  CHECK(run_pack("textw(body, @label, 50)") == 258);
+  CHECK(run_pack("texth(body, \"words\", @W)") == 407);
+  CHECK(run_pack("hit(close)") == 12);
+  CHECK(run_pack("min(3, 4)") == 3);
+  CHECK(refused("min (3, 4)", Syntax::Pack));  // a call's ( comes right after its name
+  CHECK(refused("textw('body', '#ok')", Syntax::Pack));
+  CHECK(run("min (3, 4)") == 3);
+}
+
 void sizes_are_limited() {
   CHECK(refused(std::string(max_expr_chars + 1, '1')));
   // Too many values waiting at once: 1+(1+(1+...
@@ -193,6 +241,9 @@ int main() {
   functions();
   names_read_what_they_mean();
   a_lone_number_needs_no_program();
+  a_pack_writes_the_exes_names_with_at();
+  a_pack_writes_units_and_fractions();
+  a_pack_calls_with_bare_names_and_texts();
   bad_expressions_are_refused();
   sizes_are_limited();
   return crpp_test_result();

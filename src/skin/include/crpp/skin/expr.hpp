@@ -94,8 +94,17 @@ class Names {
 inline constexpr std::size_t max_expr_chars = 400;
 inline constexpr int max_expr_stack = 32;
 
+// How an expression is written. In a pack's .cskin files every name the exe defines carries @, as
+// @hot or @dark beside the screen's own numbers; a pack's own names are bare, Palette entries
+// included; a number may say 40% (0.4) or 150ms (150); mix takes a fraction; a function's ( follows
+// its name at once; and textw and the others take a style's or hit's bare name and a text as a
+// node's text is written, @tr.key, @label or "words". Jsonc is the older form, where Palette
+// entries are $name, the exe's own names are bare and mix takes a percent.
+enum class Syntax : std::uint8_t { Jsonc, Pack };
+
 // Adds to `code`. The error says what is wrong, in words for whoever writes packs.
-[[nodiscard]] std::expected<Expr, std::string> compile(std::string_view source, Names& names, std::vector<Instr>& code);
+[[nodiscard]] std::expected<Expr, std::string> compile(std::string_view source, Names& names, std::vector<Instr>& code,
+                                                       Syntax syntax = Syntax::Jsonc);
 
 // What a running expression reads.
 class Env {

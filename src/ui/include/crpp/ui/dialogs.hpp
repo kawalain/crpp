@@ -16,6 +16,8 @@ struct Dialog {
   bool wide = false;    // 380 wide instead of 320 (.modal-card.wide)
   std::function<void()> on_confirm;
   std::function<void()> on_cancel;
+  // What it confirms cannot be undone, as leaving or removing: the keyboard starts on Cancel.
+  bool cannot_undo = false;
 };
 
 class Dialogs final : public Surface {
@@ -25,7 +27,11 @@ class Dialogs final : public Surface {
   [[nodiscard]] std::optional<Role> role(int id) const override {
     return id == Confirm || id == Cancel ? std::optional(Role::Button) : std::nullopt;
   }
-  [[nodiscard]] bool holds_keys(int id) const override { return id == Backdrop; }
+  // The card too: in a window of its own a question has no backdrop.
+  [[nodiscard]] bool holds_keys(int id) const override { return id == Backdrop || id == Card; }
+  [[nodiscard]] std::optional<int> opening_stop() const override {
+    return dialog_ && dialog_->cannot_undo && !dialog_->cancel.empty() ? Cancel : Confirm;
+  }
 
   [[nodiscard]] static skin::ScreenSchema schema();
 

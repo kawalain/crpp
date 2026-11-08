@@ -497,6 +497,7 @@ void App::paint_pane(Painter& p, float width, float height) {
   }
   p.set_base(D2D1::Matrix3x2F::Identity());
   pane_frame_.paint(p);
+  settle_stop();
   paint_focus(p);
   context_menu_.paint(p);
 }
@@ -561,6 +562,7 @@ void App::paint(ID2D1RenderTarget* rt, float width, float height) {
   if (own) frame_.paint(p);
   paint_layers(p);
   if (own) frame_.paint_menu(p);
+  settle_stop();
   paint_focus(p);
   context_menu_.paint(p);
 }
@@ -752,14 +754,54 @@ bool App::move_stop(int step) {
   const auto n = static_cast<std::ptrdiff_t>(stops.size());
   const std::ptrdiff_t from = at - stops.begin();
   const std::ptrdiff_t next = at == stops.end() ? (step > 0 ? 0 : n - 1) : ((from + step) % n + n) % n;
-  Surface* const owner = stops[static_cast<std::size_t>(next)]->owner;
-  const int id = stops[static_cast<std::size_t>(next)]->id;
-  ui_.set_stop(owner, id);
+  go_to_stop(stops[static_cast<std::size_t>(next)]->owner, stops[static_cast<std::size_t>(next)]->id);
   ui_.cues = true;
+  return true;
+}
+
+void App::go_to_stop(Surface* owner, int id) {
+  ui_.set_stop(owner, id);
   ui_.set_focus(nullptr, nullptr);
   ui_.caret_on = true;
+  if (!owner) return;
   owner->focus(id);
-  return true;
+  // What a clip cut, in part or whole, is brought fully into view.
+  const Ui::Hit* hit = ui_.find_stop(owner, id);
+  if (!hit || (hit->shown && hit->rect.h >= hit->whole.h - 0.5f && hit->rect.w >= hit->whole.w - 0.5f)) return;
+  for (Surface* s : layers()) {
+    if (s->reveal(hit->whole)) return;
+  }
+}
+
+void App::settle_stop() {
+  const Ui::Hit* const holding = ui_.holding_hit();
+  const Surface* const holder = holding ? holding->owner : nullptr;
+  if (holder == ui_.keys_holder) return;
+  const auto below = std::ranges::find_if(ui_.held_stops, [&](const Ui::HeldStop& h) { return h.holder == holder; });
+  if (below != ui_.held_stops.end()) {
+    // The layer over it closed: the keyboard goes back to the control that opened it.
+    Surface* const owner = below->owner;
+    const int id = below->id;
+    ui_.held_stops.erase(below, ui_.held_stops.end());
+    ui_.keys_holder = holder;
+    ui_.set_stop(owner, id);
+    if (owner && !ui_.focus && owner->role(id) == Role::Field) owner->focus(id);
+    return;
+  }
+  // A layer opened over what had the keyboard, which waits for it to close.
+  ui_.held_stops.push_back({ui_.keys_holder, ui_.stop_owner, ui_.stop_id});
+  ui_.keys_holder = holder;
+  const std::vector<const Ui::Hit*> stops = ui_.tab_stops();
+  const std::optional<int> opening = holder ? holder->opening_stop() : std::nullopt;
+  const auto named = std::ranges::find_if(stops, [&](const Ui::Hit* s) { return opening && s->owner == holder && s->id == *opening; });
+  const Ui::Hit* const first = named != stops.end() ? *named : stops.empty() ? nullptr : stops.front();
+  if (!first) {
+    ui_.set_stop(nullptr, 0);
+    return;
+  }
+  // A field in it takes the keys at once, as a dialog's first edit box does; anything else only the keyboard.
+  ui_.set_stop(first->owner, first->id);
+  if (first->owner->role(first->id) == Role::Field) first->owner->focus(first->id);
 }
 
 bool App::stop_key(unsigned vk, bool ctrl, bool shift, bool alt) {

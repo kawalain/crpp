@@ -44,6 +44,8 @@ class Shown final : public skin::Source {
 skin::ScreenSchema Dialogs::schema() { return {.screen = "dialog", .texts = text_names, .numbers = number_names, .hits = hit_names, .reports = report_names}; }
 
 void Dialogs::show(Dialog dialog) {
+  // A question that follows another at once keeps its layer: the keyboard starts on its own default.
+  if (dialog_ && ui_.stop_owner == this) ui_.set_stop(this, dialog.cannot_undo && !dialog.cancel.empty() ? Cancel : Confirm);
   dialog_ = std::move(dialog);
   ++revision_;
   opened_at_ = clock_ms();

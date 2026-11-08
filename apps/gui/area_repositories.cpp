@@ -504,12 +504,12 @@ void wire(Shell& s) {
     if (id.starts_with(sound_mark)) {
       const std::string sound = id.substr(sound_mark.size());
       sp->app.dialogs().show({locale::fill(tr().sound_remove_question, {sound::pack_name(*sp, sound)}), tr().system_pack_remove, tr().cancel, false,
-                              [sp, sound] { remove_sound(*sp, sound); }, nullptr});
+                              [sp, sound] { remove_sound(*sp, sound); }, nullptr, true});
       return;
     }
     const std::string name(sp->app.settings().system().packs()[index].name);
     sp->app.dialogs().show({locale::fill(tr().pack_remove_question, {name}), tr().system_pack_remove, tr().cancel, false,
-                            [sp, id] { remove_pack(*sp, id); }, nullptr});
+                            [sp, id] { remove_pack(*sp, id); }, nullptr, true});
   };
   tab.on_update_pack = [sp](std::size_t index) {
     if (index >= sp->listed_packs.size()) return;
@@ -530,7 +530,7 @@ void wire(Shell& s) {
     if (index < first || index - first >= sp->added.size()) return;
     const AddedRepository& added = sp->added[index - first];
     sp->app.dialogs().show({locale::fill(tr().repository_remove_question, {added.address}), tr().system_repository_remove, tr().cancel, false,
-                            [sp, id = added.id] { remove(*sp, id); }, nullptr});
+                            [sp, id = added.id] { remove(*sp, id); }, nullptr, true});
   };
   show_rows(s);
   show_packs(s);

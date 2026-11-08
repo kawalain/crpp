@@ -184,7 +184,7 @@ void AccountController::logout() {
                          sign_out_locally();
                          start(Step::Username, {}, {}, false, false);
                        },
-                       nullptr});
+                       nullptr, true});
 }
 
 void AccountController::sign_out_locally() {

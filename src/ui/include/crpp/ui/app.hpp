@@ -271,6 +271,10 @@ class App {
   bool act_on_stop(unsigned vk);
   // A key the stop the keyboard is on takes itself, with Alt when it came as a key of the system.
   bool stop_key(unsigned vk, bool ctrl, bool shift, bool alt);
+  // After a frame: a layer that opened takes the keyboard, and one that closed gives it back.
+  void settle_stop();
+  // The keyboard goes to this stop, which takes the keys if it is a field and comes into view.
+  void go_to_stop(Surface* owner, int id);
   PromptScreen prompt_{ui_};
   WindowFrame frame_{ui_};
   WindowFrame pane_frame_{ui_};

@@ -106,6 +106,7 @@ void SettingsPanel::click(int id, float, float y, bool) {
     else open(page_);
   } else if (id >= TabBase && id < TabBase + static_cast<int>(tab_buttons.size())) {
     select(static_cast<SettingsPage>(id - TabBase));
+    ui_.set_stop(this, id);  // the row's stop is the tab shown, which this is now
   } else if (id == Thumb) {
     ui_.capture = this;
     grab_y_ = ui_.to_stage_y(y);
@@ -152,6 +153,20 @@ bool SettingsPanel::stop_key(int id, unsigned vk, bool ctrl, bool, bool) {
   // Arrows on a row of tabs choose as they go, as a property sheet's do.
   select(static_cast<SettingsPage>(to));
   ui_.move_stop_to(this, TabBase + to);
+  return true;
+}
+
+bool SettingsPanel::reveal(Rect whole) {
+  if (!open_) return false;
+  const Rect view = ui_.to_window(content_area_);
+  if (whole.x < view.x || whole.right() > view.right()) return false;  // not in the tab's area
+  constexpr float margin = 8;
+  const float top = view.y + margin, bottom = view.bottom() - margin;
+  float by = 0;
+  if (whole.y < top) by = whole.y - top;
+  else if (whole.bottom() > bottom) by = std::min(whole.bottom() - bottom, whole.y - top);
+  if (by == 0) return false;
+  scroll_.go_to(ui_, scroll_.target + by / ui_.scale);
   return true;
 }
 

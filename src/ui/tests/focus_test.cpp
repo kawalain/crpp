@@ -255,6 +255,46 @@ void the_emoji_grid_is_one_stop_and_its_arrows_go_by_rows(const char* pack) {
   CHECK(picked == chosen);
 }
 
+void a_question_starts_on_cancel_and_gives_the_keyboard_back(const char* pack) {
+  UiHarness h;
+  CHECK(h.start(951, 692, pack));
+  open_settings(h, SettingsPage::System);
+  SystemTab& tab = h.app.settings().system();
+  // At the end of the tab, out of view: Tab brings it in.
+  CHECK(!h.drawn(tab, SystemTab::Reset) || h.app.own_frame());
+  CHECK(tab_to(h, tab, SystemTab::Reset));
+  h.render();
+  CHECK(h.drawn(tab, SystemTab::Reset));
+  // Resetting cannot be undone: the question starts on Cancel.
+  press(h, VK_RETURN);
+  CHECK(h.app.dialogs().is_open());
+  if (h.app.own_frame()) h.on_pane(Pane::Dialog);
+  h.render();
+  CHECK(h.app.ui().stop_owner == &h.app.dialogs() && h.app.ui().stop_id == Dialogs::Cancel);
+  press(h, VK_RETURN);
+  CHECK(!h.app.dialogs().is_open());
+  // Closed, the keyboard is back on what opened it.
+  if (h.app.own_frame()) h.on_pane(Pane::Options);
+  h.render();
+  CHECK(h.app.ui().stop_owner == &tab && h.app.ui().stop_id == SystemTab::Reset);
+}
+
+void a_panel_opens_on_its_tab_and_closes_back(const char* pack) {
+  UiHarness h;
+  CHECK(h.start(951, 692, pack));
+  h.app.show_home();
+  h.render();
+  tab(h);
+  const Surface* before = h.app.ui().stop_owner;
+  const int before_id = h.app.ui().stop_id;
+  open_settings(h, SettingsPage::Display);
+  CHECK(h.app.ui().stop_owner == &h.app.settings() && h.app.ui().stop_id == SettingsPanel::TabBase + 1);
+  press(h, VK_ESCAPE);
+  if (h.app.own_frame()) h.app.use_pane(Pane::Main);
+  h.render();
+  CHECK(h.app.ui().stop_owner == before && h.app.ui().stop_id == before_id);
+}
+
 }  // namespace
 
 int main() {
@@ -268,6 +308,8 @@ int main() {
     a_dropdown_picks_closed_and_open(pack);
     ctrl_tab_and_the_arrows_go_through_the_tabs(pack);
     the_emoji_grid_is_one_stop_and_its_arrows_go_by_rows(pack);
+    a_question_starts_on_cancel_and_gives_the_keyboard_back(pack);
+    a_panel_opens_on_its_tab_and_closes_back(pack);
   }
   return crpp_test_result();
 }

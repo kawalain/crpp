@@ -224,7 +224,7 @@ void SystemTab::click(int id, float x, float y, bool shift) {
     if (on_remove_repository) on_remove_repository(static_cast<std::size_t>(id - RemoveRepository));
   } else if (id == Reset) {
     Ui* ui = &ui_;
-    ui_.dialogs->show({tr().system_reset_question, tr().system_reset_confirm, tr().cancel, false, [ui] { ui->prefs->reset(); }, nullptr});
+    ui_.dialogs->show({tr().system_reset_question, tr().system_reset_confirm, tr().cancel, false, [ui] { ui->prefs->reset(); }, nullptr, true});
   } else if (release_.owns(id)) {
     if (release_.click(id)) prefs.set(pref::release_graphics_after, release_seconds[static_cast<std::size_t>(release_.selected)]);
     if (release_.open) place_dropdown(ui_, release_, release_rect_);

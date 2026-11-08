@@ -49,6 +49,7 @@ void Ui::add_hit(Surface* owner, Rect r, int id, const skin::HitPlace* place) { 
 void Ui::add_hit_window(Surface* owner, Rect r, int id, const skin::HitPlace* place) {
   if (!hits_enabled) return;
   Hit hit{r, owner, id};
+  hit.whole = r;
   if (place) {
     hit.number = place->number;
     hit.tab_order = place->tab_order;
@@ -148,16 +149,19 @@ const Ui::Hit* Ui::current_stop() const {
   return nullptr;
 }
 
+const Ui::Hit* Ui::holding_hit() const {
+  const Hit* top = nullptr;
+  for (const Hit& hit : hits_) {
+    if (hit.owner && hit.owner->holds_keys(hit.id) && (!top || hit.number > top->number)) top = &hit;
+  }
+  return top;
+}
+
 std::vector<const Ui::Hit*> Ui::tab_stops() const {
   // A modal's backdrop is read before what is on it, and after everything under it.
-  std::uint32_t floor = 0;
-  bool held = false;
-  for (const Hit& hit : hits_) {
-    if (hit.owner && hit.owner->holds_keys(hit.id) && (!held || hit.number > floor)) {
-      floor = hit.number;
-      held = true;
-    }
-  }
+  const Hit* const holding = holding_hit();
+  const bool held = holding != nullptr;
+  const std::uint32_t floor = held ? holding->number : 0;
   std::vector<const Hit*> stops;
   for (const Hit& hit : hits_) {
     if (!hit.owner || !hit.live || (held && hit.number <= floor) || !hit.owner->role(hit.id)) continue;

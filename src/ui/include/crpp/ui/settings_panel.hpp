@@ -21,7 +21,8 @@ class SettingsPanel final : public Surface {
 
   enum Id : int { Droplet, Overlay, Thumb, Version, Track, BarUp, BarDown, TabBase = 100 };
   [[nodiscard]] std::optional<Role> role(int id) const override {
-    if (id >= TabBase) return Role::Tab;
+    // The row of tabs is one stop, on the tab shown; the arrows go along it.
+    if (id >= TabBase) return id == TabBase + static_cast<int>(page_) ? std::optional(Role::Tab) : std::nullopt;
     if (id == Droplet) return Role::Button;
     if (id == Version) return Role::Link;
     return std::nullopt;
@@ -30,6 +31,9 @@ class SettingsPanel final : public Surface {
   bool stop_key(int id, unsigned vk, bool ctrl, bool shift, bool alt) override;
   // Ctrl+Tab and Ctrl+Page Down go to the next tab, with Shift or Page Up the one before, wherever the keyboard is.
   bool layer_key(unsigned vk, bool ctrl, bool shift) override;
+  // It opens with the keyboard on the tab it shows.
+  [[nodiscard]] std::optional<int> opening_stop() const override { return TabBase + static_cast<int>(page_); }
+  bool reveal(Rect whole) override;
 
   // What a Skin Pack can name on this panel.
   [[nodiscard]] static skin::ScreenSchema schema();

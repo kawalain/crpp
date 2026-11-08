@@ -114,6 +114,11 @@ against a real `server/` yet; do that once a local build of it is available.
 - Text has a context menu, where upstream suppresses every one: by a right-click, the menu key or Shift+F10, drawn
   from the Skin Pack. A field offers Cut, Copy, Paste, Delete and Select all, read-only text Copy and Select all, and
   a link in chat its address first. What cannot be done is greyed. Cloud's fades in over 120 ms.
+- The keyboard alone works the controls, where upstream has no keyboard navigation. Tab and Shift+Tab go from control
+  to control, staying inside what is open on top, and Enter and Space act. The arrows, Page keys, Home and End move
+  sliders, dropdowns, tabs and the emoji grid, and Ctrl+Tab changes the settings tab, as in Windows. Where the keyboard
+  is shows after Tab, an arrow or Alt, drawn by the Skin Pack. A layer that opens takes the keyboard and gives it back
+  when it closes; a question that cannot be undone starts on Cancel.
 - A link in chat has a colour of its own, the Palette's `link`, where upstream's is the text's and shows only by
   an underline under the pointer.
 - The channel balance is explained: "자리에 따라 좌우로 듣기" and "좌우 차이", in words

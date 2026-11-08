@@ -95,6 +95,15 @@ struct WindowState {
   Surface* stop_owner = nullptr;
   int stop_id = 0;
   bool cues = false;
+  // Whose backdrop holds the keys now, and where the keyboard was under each layer that opened since:
+  // it goes back there when the layer closes.
+  const Surface* keys_holder = nullptr;
+  struct HeldStop {
+    const Surface* holder;
+    Surface* owner;
+    int id;
+  };
+  std::vector<HeldStop> held_stops;
 
   // A surface that set this in click(), on a hit that acts on the press, gets drag() until the button goes up.
   Surface* capture = nullptr;
@@ -129,6 +138,7 @@ struct WindowState {
     std::uint32_t number = 0;
     float tab_order = 0;
     bool live = true, shown = true;
+    Rect whole;  // before any clip, to scroll it into view
   };
 
  protected:
@@ -233,6 +243,8 @@ class Ui : public WindowState {
   [[nodiscard]] std::vector<const Hit*> tab_stops() const;
   // The stop the keyboard is on, if it is one of those now.
   [[nodiscard]] const Hit* current_stop() const;
+  // The backdrop of the top layer, read last of those that hold the keys; none when no layer is open.
+  [[nodiscard]] const Hit* holding_hit() const;
   // The keyboard goes to this stop of the same surface, and that shows, as an arrow moves it in a list.
   void move_stop_to(Surface* owner, int id) {
     set_stop(owner, id);
@@ -317,6 +329,11 @@ class Surface {
   // A key the whole layer takes while it is open, wherever the keyboard is in it, as Ctrl+Tab in a
   // panel of tabs. Offered top layer first.
   virtual bool layer_key(unsigned /*vk*/, bool /*ctrl*/, bool /*shift*/) { return false; }
+  // Where the keyboard goes when this layer opens: one of its stops, or the first when it says none.
+  [[nodiscard]] virtual std::optional<int> opening_stop() const { return std::nullopt; }
+  // A stop at this place in the window, scrolled out of view, came to have the keyboard: true if this
+  // layer scrolled to show it. Offered top layer first.
+  virtual bool reveal(Rect /*whole*/) { return false; }
 
   // A running effect that needs frames.
   [[nodiscard]] virtual bool animating() const { return false; }

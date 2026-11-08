@@ -363,7 +363,7 @@ void RoomScreen::ask_leave() {
        [this] {
          if (on_leave) on_leave();
        },
-       nullptr});
+       nullptr, true});
 }
 
 // The public and chat notices show once each. The first answer to either brings the

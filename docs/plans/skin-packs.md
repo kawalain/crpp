@@ -32,7 +32,7 @@ A smaller exe and less memory are not goals.
   a pack per format. A newly required screen raises the number and updates the official packs together.
 - **Managing.** The display tab lists Themes not yet installed. Picking one shows progress and applies it when done;
   a failure stays on the current Skin and says why. Unused packs can be removed there, but not the one in use or
-  one the system sync points to. A sync target still fetching keeps the current Skin. Updates: the catalog is read
+  its parents. Updates: the catalog is read
   once at start, files arrive behind the app and apply on the next start, with no polling.
 - **Cursors.** Part of a pack, drawn as vectors, made into `HCURSOR` at run time with `SetCursor` only, so they
   stop at the app's windows. Seven: arrow, hand, I-beam and four for resizing. Cloud's pack has none and uses the
@@ -156,14 +156,88 @@ before step 7, which removes what Cloud's pack is compared with.
      Repository and its second source, the first-run screen with the 0% fix, and keeping installed files whose hash
      matches. The font comes with the Cloud pack only. Then, after asking, a first `wrangler deploy` from here.
    - **6b.** The display tab lists Themes not yet installed; picking one shows progress and applies it. The system
-     tab's "저장소" row adds and removes Repositories and shows their fingerprints. A Sound pack another member lacks
-     plays as the default pack.
+     tab's "저장소" row adds and removes Repositories and shows their fingerprints. Details under "Downloading,
+     decided" below. A Sound pack another member lacks already plays as the device's first pack.
    - **6c.** Removing unused packs, and updates fetched behind the app and applied on the next start.
+   - **6d.** A parent in another Repository, and pinning it.
+   - **6e.** Sound packs of other Repositories.
 7. **Remove the C++.** Delete Luna's and Cloud's layouts and `Skin`, and fix ADR 0004 and the module design. Measure
    again.
 8. **Release path.** `docs/releases/README.md` and its script fill `dist/repository`, sign the catalog with the
    update key and deploy it with `npx --yes wrangler@4.152.0 deploy` (`wrangler.jsonc`). A clean install is tried with
    a local server, then for real, and the second source once the tag is on GitHub.
+
+## Downloading, decided
+
+Agreed with the user on 2026-11-08, after 6a. Work that is not pushed needs no migration: the catalog grammar, keys
+and paths below change in place until the push that publishes them.
+
+Order: the documents below, then Retro's cursors, then the install queue, the pack language, 6b, a push (after asking), 6c, 6d, 6e, the
+hands-on check of Cloud on a real desktop, 7 and 8.
+
+- **Documents first**, each its own `docs:` commit: both READMEs describe Retro and Cloud and Repositories, not the old
+  Messenger Themes; ADR 0005 and 0007, never pushed, are rewritten in place to say what holds now (one key, other
+  Repositories, no jsDelivr, the pack language; 0005 loses "a new Skin is large, on purpose" and the per-Skin
+  implementations); ADR 0004, pushed with v0.1.x, only marks each sentence ADR 0008 replaces (jsDelivr, "the retry
+  screen is gone"); `CLAUDE.md` says the official Sound packs sit
+  in `shared`, not one group each.
+- **Retro's cursors.** Render the `cursors` sheet beside the real ones for the user to point at what differs.
+- **Install queue**, a `fix:` before 6b. `start_install` while `assets_worker` is joinable assigns to a joinable
+  `std::thread` and terminates. One queue runs one install at a time, always reports progress to the UI, and rereads
+  the Skins when it ends.
+- **Pack language.** JSONC is costly to write for people and agents alike: 13.6% of the packs' 181 KB is quotes,
+  expressions hide in strings where nothing checks them, three sigils mix and `group` nests deeply. Reading costs
+  little (3.5 ms, 183 KB), so only the front end changes: a small language of our own, with nodes, positional
+  arguments, `key value`, braces for children, expressions as syntax, and units such as `150ms` and `40%`. The engine,
+  the loaded tree and the compiled expressions stay. A Home screen written in it beside its JSONC comes first, for
+  the user to judge. Syntax highlighting for Vim, Neovim and VS Code comes later, when the user asks.
+  Names the exe defines keep a sigil, `@` for app state and built-ins (`@dark`, `@hot`) and `#` for wording, so a
+  later exe cannot collide with a pack; a pack's own names (Palette, constants, parts, `let`) are bare, and a clash
+  among them is an error. Files are `.cskin` (`pack.cskin`, `screens/home.cskin`). The JSON Schemas and
+  `crpp_skin_schema` go; `crpp_skin check <dir>` runs the app's loader and prints `file:line:col`, with a guess at
+  the name meant, and tests check the official packs with it. `keys.hpp` stays the list of what may be written. A
+  one-off converter writes the packs from the loaded JSONC, comments before a node included; every scene must keep
+  its hash (`render.sh`, `compare.sh`), then the JSONC loader and the converter go. Nothing of this was released, so
+  ADR 0007 is edited in place to name the language; there is no superseding ADR.
+- **Catalog.** The catalog tool copies each Theme from `pack.jsonc` into a `theme` line with its dark variant and its
+  names per Locale, so Themes not installed can be listed. The parser skips lines it does not know and still refuses a
+  known line that is wrong. `crpp-catalog 1` stays. The catalog is read behind the app at every start, files are not;
+  if it cannot be read the saved one is used silently, the cause going to the diagnostic log. Fetching updates of
+  installed packs stays in 6c.
+- **Names.** A Theme or Skin name missing in the current Locale shows the English one, then the id. A test checks the
+  official packs have Korean and English. A pack id is `a-z0-9_-`, at most 32 characters, checked by the tool and the
+  app, so that with a Repository's prefix it stays within the server's 64 bytes for a Sound pack.
+- **Picking a Theme not installed.** The row shows progress and a cancel; fetching goes on when settings close or the
+  screen changes. When done it applies only if that Theme is still the last one picked, otherwise it stays installed.
+  A failure keeps the current Skin and shows the reason and "다시 시도" in the row, and a toast if settings were
+  closed. A cancel keeps the files already fetched, as their hashes match; 6c cleans them up.
+- **Repositories.** Known by the key that signs the catalog: on disk and in keys a pack of the official Repository is
+  its id (`cloud`, `retro`) and one of another is `<first 16 hex of the fingerprint>/<id>`. Two Repositories with one
+  key offering one id offer the same pack. Adding one fetches its catalog, checks the signature and asks in a dialog
+  showing the fingerprint, packs and sizes; "추가" remembers the key (trust on first use). An address is an HTTPS
+  folder or `github:owner/repo[@ref]`, any ref, `HEAD` when left out (check that raw.githubusercontent.com takes it).
+  A key that changes shows the warning of 6d; going ahead registers it as a new Repository and keeps packs fetched
+  under the old key. A Repository with a pack in use cannot be removed and says why; its unused packs go with it.
+- **6c.** Removing a pack is refused for the one in use and for its parents. (The rule about the system sync's target
+  is gone: a dark variant is in the same Theme and pack.)
+- **6d, a parent elsewhere.** A pack names its parent in `pack.jsonc`, the tool copies it into the catalog's `skin`
+  line, so the app checks it before fetching. `"extends": "retro"` is a pack of the same or the official Repository;
+  `"extends": {"repository", "key", "pack", "version"?, "sha256"?}` one of another. The key is always pinned; a pack
+  gets a `version` (`0.y.z`), and `"0.3"` accepts 0.3.x, `"0.3.2"` only that; `sha256` is a digest of the parent's
+  sorted file lines (path, size, hash) in its catalog. Both given, both must hold. A parent's Repository not yet added
+  is asked for in the same dialog as adding one.
+  When a pin fails, as a Repository serves only its latest files:
+  - Another key or digest: a warning that the screens may break and the pack may be made by someone other than the one
+    pinned. A pack holds no code, so it says no more than that. Cancel is the default; going ahead is not on Enter.
+  - The same key and another version: a plain question, "update or hold" with hold as the default, or "install anyway".
+  - Going ahead remembers the digest accepted, and asks again when the parent changes again. A held update stays held
+    and the display tab says which child holds it back.
+  - A pack that then fails to load keeps the current Skin, shows why, and logs the choice and the reason.
+- **6e, Sound packs of other Repositories.** The official Repository's are all fetched as now; others only when picked
+  in the sound tab, listed from `sound` name lines as Themes are. A member's pack another lacks plays silently as the
+  device's first pack, with no mark on the profile card: only the fingerprint and id travel, not an address.
+- **Open risk:** a pack per `format` in one catalog is designed when format 2 is needed. Until then a pack in a format
+  the exe does not take is not updated and the installed one stays.
 
 ## Testing
 

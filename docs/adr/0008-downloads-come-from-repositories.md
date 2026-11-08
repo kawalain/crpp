@@ -34,7 +34,17 @@ catalog for anyone who hosts one.
 
 - A Repository other than the official one may offer only Skin Packs and Sound packs. Emoji, word lists and the shared
   fonts come from the official one, so the members of a Room see the same pictures.
-- Packs are named by Repository and name, so two Repositories never collide. A member who lacks another's Sound pack
+- A Repository is known by the key that signs its catalog, not by its address, so it may move. A pack of the official
+  Repository is named by its id; one of another by the first 16 hex digits of its key's fingerprint, a slash and its
+  id, and an id is at most 32 characters of `a-z0-9_-`, so a Sound pack's name stays within the server's 64 bytes.
+  Packs are named by Repository and name, so two Repositories never collide.
+- A key that changes, or a pinned parent whose key or content differs, is not refused outright: a warning says the
+  screens may break and the pack may come from someone else than the one trusted or pinned, and the user may go ahead.
+  A pack holds no code, so that is the whole risk. A parent may be in another Repository; the key is always pinned,
+  and a version or the digest of its files may be pinned too. A Repository serves only its latest files, so a
+  failed pin cannot be met by fetching an older one.
+- Sound packs of the official Repository are all fetched; those of others only when the user picks one, so adding a
+  Repository never fetches a member's whole collection. A member who lacks another's Sound pack
   hears the default pack for that device in its place. The official Repository comes first and cannot be removed.
 - Files already installed whose hash matches the catalog are kept, so an update of v0.1.x fetches only what changed.
 - The Pretendard and Twemoji licence texts travel with their files. The sounds keep the status they have in the public

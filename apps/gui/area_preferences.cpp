@@ -188,6 +188,8 @@ void offer_from(const Shell& s, std::span<const assets::Shelf> shelves, std::siz
       const assets::ParentPin& wanted = *chain.wanted;
       info.needs = locale::fill(tr().display_needs_repository,
                                 {wanted.repository.empty() ? wanted.fingerprint.substr(0, assets::short_fingerprint) : wanted.repository});
+      // What it inherits is not known yet: one row under its name says what it waits for.
+      if (info.themes.empty()) info.themes.push_back({.names = info.names});
     }
     if (!info.themes.empty()) offered.push_back(std::move(info));
   }

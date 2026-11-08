@@ -94,6 +94,7 @@ inline constexpr KeyDoc text_keys[] = {
     {"color", KeyType::Expr, "A Palette entry."},
     {"size", KeyType::Expr, "Instead of the style's, where it depends on the screen."},
     {"line_height", KeyType::Expr, "Instead of the style's, where it depends on the screen."},
+    {"underline", KeyType::Expr, "Underlines the letter at this place, counted from 0 as the screen counts it; none below 0. For a menu's access key."},
 };
 inline constexpr KeyDoc picture_keys[] = {
     {"opacity", KeyType::Expr, "From 0 to 1."},

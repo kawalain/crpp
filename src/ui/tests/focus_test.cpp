@@ -390,9 +390,13 @@ void the_menu_bar_takes_alt_and_its_letters(const char* pack) {
   CHECK(h.start(951, 692, pack));
   h.app.show_home();
   h.render();
+  // Tab shows where the keyboard is and Alt the underlines of access keys too, as in Windows.
+  tab(h);
+  CHECK(h.app.ui().cues && !h.app.ui().access_cues);
   if (!h.app.own_frame()) {
     // A frame of the system's keeps Alt's way into its own menu.
     CHECK(!alone(h, VK_MENU));
+    CHECK(h.app.ui().access_cues);
     return;
   }
   WindowFrame& frame = h.app.frame();
@@ -401,7 +405,7 @@ void the_menu_bar_takes_alt_and_its_letters(const char* pack) {
   frame.on_changelog = [&] { ++changelog; };
   // Alt alone is on the first title; Right goes to Tools, Down opens it on Options, Enter runs it.
   CHECK(alone(h, VK_MENU));
-  CHECK(frame.keyboard_in_menus());
+  CHECK(frame.keyboard_in_menus() && h.app.ui().access_cues);
   press(h, VK_RIGHT);
   press(h, VK_DOWN);
   press(h, VK_RETURN);

@@ -76,9 +76,12 @@ void a_field_offers_what_can_be_done_with_its_text(const char* pack) {
   // Select All, by its access key; the menu goes.
   CHECK(r.h.app.key_down('A', false, false));
   CHECK(!menu.is_open());
-  // Then the keys open it at the caret, on the first item that can act, and Enter cuts.
+  // Then the keys open it at the caret, on the first item that can act, and Enter cuts. Opened by the
+  // keys it underlines the access keys, which a right-click's menu does not.
+  CHECK(!menu.underlined() || r.h.app.ui().always_cues);
   r.h.render();
   CHECK(r.h.app.key_down(VK_APPS, false, false) && menu.is_open() && menu.chosen() == 0);
+  CHECK(menu.underlined());
   CHECK(r.h.app.key_down(VK_RETURN, false, false));
   CHECK(r.clipboard.held == L"hello" && r.chat->input().text().empty());
   // Paste is there now, and the arrows skip what cannot act.

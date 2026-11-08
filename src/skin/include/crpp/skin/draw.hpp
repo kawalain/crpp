@@ -19,6 +19,7 @@ struct TextLook {
   int weight = 400;
   std::uint8_t align = 0, role = 0;
   bool wrap = false, ellipsis = false, exact = false, keep_words = false;
+  int underline = -1;  // the UTF-16 unit of the text that is underlined, or none
 };
 
 // Where a hit stands for the keyboard: its number in the walk, the pack's tab_order, and whether it

@@ -40,7 +40,9 @@ use tip(shown = 1) text @tr.ok hit create
   `name.x`, `.right`, `.bottom` and so on.
 - Text is `@tr.key`, `@name`, or `"words"`. A colour is `#rrggbb` or `#rrggbbaa`.
   The wording of a menu marks its access key with `&`, as `파일(&F)`, which `@tr.key` shows as it is: a screen with
-  a menu offers its words without the mark, as `@menu_file` on `frame`.
+  a menu offers its words without the mark, as `@menu_file` on `frame`, and where the key's letter is, as
+  `@access_file`, for `underline`: `text @menu_file style body underline @access_file`. It is -1 while the
+  underlines do not show, as in Windows until Alt is pressed.
 
 The node kinds and their keys are listed at the top of `src/skin/include/crpp/skin/pack.hpp`, and in `src/skin/keys.hpp`,
 which is what the reader checks against. `crpp_skin names` lists the screens, and `crpp_skin names <screen>` what the

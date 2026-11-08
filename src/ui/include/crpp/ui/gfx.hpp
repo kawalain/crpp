@@ -46,6 +46,7 @@ struct TextStyle {
   // With classic fonts: a line of Hangul breaks only between words. Character positions in the
   // layout then differ from the text's, so it is not for text with ranges or a caret.
   bool keep_words = false;
+  int underline = -1;  // the UTF-16 unit underlined, as an access key is; none below 0
 };
 
 std::wstring widen(std::string_view utf8);

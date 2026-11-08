@@ -368,9 +368,9 @@ part list_heading {
 }
 
 // chosen: the item the keys are on, which looks as one under the pointer does.
-part menu_item(active = 0, off = 0, chosen = 0) {
+part menu_item(active = 0, off = 0, chosen = 0, key = -1) {
   fill select if @hot || chosen
-  text @label style body color off ? off_ink : @hot || chosen ? select_ink : ink x 20 w @W-24
+  text @label style body color off ? off_ink : @hot || chosen ? select_ink : ink x 20 w @W-24 underline key
   path "M3.5 6.5 5.5 8.5 9.5 4" (2, round(@Y+(@H-13)/2)-@Y) color off ? off_ink : @hot || chosen ? select_ink : ink width 2
       caps flat if active
 }
@@ -448,9 +448,9 @@ part frame_ring(at = 0, thick = 0, top = 0, left = 0, right = 0, bottom = 0) {
   fill bottom (at, @H-at-thick, @W-2*at, thick)
 }
 
-part menu_title(open = 0) w ceil(textw(body_center, @label))+14 h menu_h-1 {
+part menu_title(open = 0, key = -1) w ceil(textw(body_center, @label))+14 h menu_h-1 {
   fill select if open || @hot
-  text @label style body_center color open || @hot ? select_ink : ink
+  text @label style body_center color open || @hot ? select_ink : ink underline key
 }
 
 part caption_button(is_close = 0) snap {

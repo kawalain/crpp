@@ -710,6 +710,9 @@ void Painter::fill_text_range(IDWriteTextLayout* layout, float x, float y, std::
 D2D1_SIZE_F Painter::text(std::wstring_view s, Rect r, const TextStyle& style, Color c) {
   const auto layout = gfx_.layout(s, style, r.w, style.wrap ? 10000 : r.h);
   if (!layout) return {0, 0};
+  if (style.underline >= 0 && static_cast<std::size_t>(style.underline) < s.size()) {
+    (void)layout->SetUnderline(TRUE, {static_cast<UINT32>(style.underline), 1});
+  }
   brush_->SetColor(to_d2d(c));
   rt_->DrawTextLayout(D2D1::Point2F(r.x, r.y), layout.get(), brush_.get());
   DWRITE_TEXT_METRICS m{};

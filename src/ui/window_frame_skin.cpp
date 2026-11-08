@@ -8,18 +8,19 @@ namespace crpp::ui {
 namespace {
 
 enum TextId : int { Title, MenuFile, MenuTools, MenuHelp };
-enum NumberId : int { Active, HasMinimize, HasClose, MenuShown, OpenMenu, KeyMenu };
-enum MenuNumberId : int { Items, MenuX, MenuY, Open, Chosen };
+enum NumberId : int { Active, HasMinimize, HasClose, MenuShown, OpenMenu, KeyMenu, AccessFile, AccessTools, AccessHelp };
+enum MenuNumberId : int { Items, MenuX, MenuY, Open, Chosen, Access };
 
 // A menu's words are given without the mark of their access key.
 constexpr skin::Name text_names[] = {{"title", Title}, {"menu_file", MenuFile}, {"menu_tools", MenuTools}, {"menu_help", MenuHelp}};
-constexpr skin::Name number_names[] = {{"active", Active}, {"minimize", HasMinimize}, {"close", HasClose}, {"menu_shown", MenuShown}, {"open_menu", OpenMenu}, {"key_menu", KeyMenu}};
+constexpr skin::Name number_names[] = {{"active", Active}, {"minimize", HasMinimize}, {"close", HasClose}, {"menu_shown", MenuShown}, {"open_menu", OpenMenu}, {"key_menu", KeyMenu},
+                                       {"access_file", AccessFile}, {"access_tools", AccessTools}, {"access_help", AccessHelp}};
 constexpr skin::Name picture_names[] = {{"droplet", 0}};
 constexpr skin::Name hit_names[] = {{"minimize", WindowFrame::Minimize}, {"close", WindowFrame::Close}, {"menu", WindowFrame::MenuBase}};
 constexpr skin::Name note_names[] = {{"menu_0", 0}, {"menu_1", 1}, {"menu_2", 2}};
 
 constexpr skin::Name menu_text_names[] = {{"item", 0}};
-constexpr skin::Name menu_number_names[] = {{"items", Items}, {"menu_x", MenuX}, {"menu_y", MenuY}, {"open", Open}, {"chosen", Chosen}};
+constexpr skin::Name menu_number_names[] = {{"items", Items}, {"menu_x", MenuX}, {"menu_y", MenuY}, {"open", Open}, {"chosen", Chosen}, {"access", Access}};
 constexpr skin::Name menu_hit_names[] = {{"item", WindowFrame::ItemBase}};
 
 }  // namespace
@@ -57,6 +58,9 @@ void WindowFrame::paint_pack(Painter& p, const skin::Screen& screen) {
         case MenuShown: return f_.menu_shown_ ? 1.0f : 0.0f;
         case OpenMenu: return static_cast<float>(f_.open_);
         case KeyMenu: return f_.open_ < 0 ? static_cast<float>(f_.bar_) : -1.0f;
+        case AccessFile:
+        case AccessTools:
+        case AccessHelp: return f_.underlined() ? static_cast<float>(locale::access_index(title_of(id - AccessFile))) : -1.0f;
         default: return 0;
       }
     }
@@ -89,18 +93,22 @@ void WindowFrame::paint_menu_pack(Painter& p, const skin::Screen& screen) {
   class Shown final : public skin::Source {
    public:
     explicit Shown(WindowFrame& frame) : f_(frame) {
-      for (const Item& item : frame.items_of(frame.open_)) labels_.push_back(locale::label(item.text));
+      for (const Item& item : frame.items_of(frame.open_)) {
+        labels_.push_back(locale::label(item.text));
+        access_.push_back(frame.underlined() ? locale::access_index(item.text) : -1);
+      }
     }
 
     std::string_view text(int, int index) override { return static_cast<std::size_t>(index) < labels_.size() ? std::string_view(labels_[static_cast<std::size_t>(index)]) : ""; }
 
-    float number(int id, int) override {
+    float number(int id, int index) override {
       switch (id) {
         case Items: return static_cast<float>(labels_.size());
         case MenuX: return f_.titles_[f_.open_].x;
         case MenuY: return f_.titles_[f_.open_].bottom();
         case Open: return static_cast<float>(f_.open_);
         case Chosen: return static_cast<float>(f_.item_);
+        case Access: return static_cast<std::size_t>(index) < access_.size() ? static_cast<float>(access_[static_cast<std::size_t>(index)]) : -1.0f;
         default: return 0;
       }
     }
@@ -108,6 +116,7 @@ void WindowFrame::paint_menu_pack(Painter& p, const skin::Screen& screen) {
    private:
     WindowFrame& f_;
     std::vector<std::string> labels_;
+    std::vector<int> access_;
   } shown(*this);
 
   SkinCanvas canvas(ui_, p, this);

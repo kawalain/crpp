@@ -17,7 +17,7 @@ let top = @point_y+box_h > @H ? @point_y-box_h : @point_y
   hit card
   repeat @items {
     (1, 1+@i*item_h, @W-2, item_h) hit item hit_index @i live @enabled {
-      use menu_item(off = !@enabled, chosen = @chosen == @i) text @label
+      use menu_item(off = !@enabled, chosen = @chosen == @i, key = @access) text @label
       text @shortcut style body_right color !@enabled ? off_ink : @hot || @chosen == @i ? select_ink : ink x 20 w @W-32
     }
   }

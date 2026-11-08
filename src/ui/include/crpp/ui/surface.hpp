@@ -95,6 +95,8 @@ struct WindowState {
   Surface* stop_owner = nullptr;
   int stop_id = 0;
   bool cues = false;
+  // The underlines of access keys, which only Alt shows, as UISF_HIDEACCEL apart from the focus.
+  bool access_cues = false;
   // Whose backdrop holds the keys now, and where the keyboard was under each layer that opened since:
   // it goes back there when the layer closes.
   const Surface* keys_holder = nullptr;

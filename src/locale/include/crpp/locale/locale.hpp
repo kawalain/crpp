@@ -398,6 +398,8 @@ void set_current(const Locale& locale) noexcept;
 // and && is a plain &. `label` is the wording as shown, `access_key` that key in upper case, or 0.
 [[nodiscard]] std::string label(std::string_view wording);
 [[nodiscard]] char access_key(std::string_view wording) noexcept;
+// Where that key stands in the label, in UTF-16 units as text is drawn, or -1.
+[[nodiscard]] int access_index(std::string_view wording) noexcept;
 
 // A field of Strings by its name, for what refers to wording from outside the code. The index
 // counts the fields in their order.

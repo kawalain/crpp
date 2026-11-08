@@ -24,6 +24,8 @@ class ContextMenu final : public Surface {
   [[nodiscard]] int window() const { return window_; }
   [[nodiscard]] const std::vector<MenuItem>& items() const { return items_; }
   [[nodiscard]] int chosen() const { return chosen_; }
+  // The access keys are underlined: opened from the keyboard, or once Alt showed them, as in Windows.
+  [[nodiscard]] bool underlined() const { return from_keyboard_ || ui_.access_cues || ui_.always_cues; }
 
   void paint(Painter& p);
   void before_click(const Surface* owner, int id) override;
@@ -49,6 +51,7 @@ class ContextMenu final : public Surface {
   float x_ = 0, y_ = 0;
   int window_ = 0;
   int chosen_ = -1;
+  bool from_keyboard_ = false;
   float width_ = 0, height_ = 0;  // of the window when it opened: another size closes it
 };
 

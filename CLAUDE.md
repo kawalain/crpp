@@ -118,8 +118,9 @@ against a real `server/` yet; do that once a local build of it is available.
   to control, staying inside what is open on top, and Enter and Space act. The arrows, Page keys, Home and End move
   sliders, dropdowns, tabs and the emoji grid, and Ctrl+Tab changes the settings tab, as in Windows. Where the keyboard
   is shows after Tab, an arrow or Alt, drawn by the Skin Pack. A layer that opens takes the keyboard and gives it back
-  when it closes; a question that cannot be undone starts on Cancel. A menu's access keys work but are not
-  underlined: in Korean the letter shows in the words, as 복사(C).
+  when it closes; a question that cannot be undone starts on Cancel. A menu's access keys are underlined once
+  Alt was pressed or when the menu opened from the keyboard, as in Windows; in Korean the letter is in the words too,
+  as 복사(C).
 - A link in chat has a colour of its own, the Palette's `link`, where upstream's is the text's and shows only by
   an underline under the pointer.
 - The channel balance is explained: "자리에 따라 좌우로 듣기" and "좌우 차이", in words
@@ -207,7 +208,7 @@ against a real `server/` yet; do that once a local build of it is available.
   - Home lists the Seats to return to, where Cloud asks once in a dialog.
   - A menu bar holds only commands that work. Alt or F10 alone goes into it and Alt with a title's letter opens
     that menu, as in Windows: the arrows, Enter, an item's letter and Escape work inside. The letter shows in
-    the words, as "파일(F)", but is not underlined.
+    the words, as "파일(F)", and is underlined once Alt was pressed.
   - Only links show the hand cursor, and none of the motion listed above runs.
   - Text is in the fonts of the time on this system, not Pretendard.
   - A message and someone entering sound as tones made in `synth`, not the pack's recordings: plain tones

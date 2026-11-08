@@ -17,7 +17,7 @@ let blur = 16
     use panel_info
     hit card
     repeat @items {
-      use menu_item(off = !@enabled, chosen = @chosen == @i) (6, 6+@i*item_h, @W-12, item_h) text @label hit item
+      use menu_item(off = !@enabled, chosen = @chosen == @i, key = @access) (6, 6+@i*item_h, @W-12, item_h) text @label hit item
           hit_index @i live @enabled
     }
   }

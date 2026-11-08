@@ -88,6 +88,12 @@ void test_access_keys() {
   CHECK(access_key("Plain") == 0);
   CHECK(label("end&") == "end&");
   CHECK(access_key("end&") == 0);
+  CHECK(access_index("&File") == 0);
+  CHECK(access_index("E&xit") == 1);
+  CHECK(access_index("파일(&F)") == 3);
+  CHECK(access_index("Salt && &Pepper") == 7);
+  CHECK(access_index("😀&A") == 2);
+  CHECK(access_index("Plain") == -1);
 }
 
 void test_korean_formats() {

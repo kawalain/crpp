@@ -1113,7 +1113,10 @@ class Loader final : public Names {
       }
       case NodeKind::Text:
         if (!text_of(json, "text", out.text) || !style_of(json, out) || !expr_of(json, "color", out.paint)) return false;
-        if (!optional_expr(json, "size", out.size, &out.has_size) || !optional_expr(json, "line_height", out.line_height, &out.has_line_height)) return false;
+        if (!optional_expr(json, "size", out.size, &out.has_size) || !optional_expr(json, "line_height", out.line_height, &out.has_line_height) ||
+            !optional_expr(json, "underline", out.extra, &out.has_underline)) {
+          return false;
+        }
         break;
       case NodeKind::Picture:
         if (!bound_of(json, "picture", schema_ ? schema_->pictures : std::span<const Name>{}, out.bound)) return false;

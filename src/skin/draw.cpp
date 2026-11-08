@@ -210,6 +210,10 @@ class Walker final : public Env {
         TextLook look = look_of(n.style);
         if (n.has_size) look.size = value(n.size);
         if (n.has_line_height) look.line_height = value(n.line_height);
+        if (n.has_underline) {
+          const float at = value(n.extra);
+          look.underline = at >= 0 && at < 65536 ? static_cast<int>(at) : -1;
+        }
         canvas_.text(text_of(n.text), box, look, color_of(n));
         break;
       }

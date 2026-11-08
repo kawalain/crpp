@@ -10,9 +10,9 @@ namespace crpp::ui {
 namespace {
 
 enum TextId : int { Label, Shortcut };
-enum NumberId : int { Items, Enabled, Chosen, PointX, PointY };
+enum NumberId : int { Items, Enabled, Chosen, PointX, PointY, Access };
 constexpr skin::Name text_names[] = {{"label", Label}, {"shortcut", Shortcut}};
-constexpr skin::Name number_names[] = {{"items", Items}, {"enabled", Enabled}, {"chosen", Chosen}, {"point_x", PointX}, {"point_y", PointY}};
+constexpr skin::Name number_names[] = {{"items", Items}, {"enabled", Enabled}, {"chosen", Chosen}, {"point_x", PointX}, {"point_y", PointY}, {"access", Access}};
 constexpr skin::Name hit_names[] = {{"card", ContextMenu::Card}, {"item", ContextMenu::Item}};
 
 // The Locale's wording, with & before the access key as Windows writes it.
@@ -60,6 +60,7 @@ void ContextMenu::open(Surface* target, std::vector<MenuItem> items, float x, fl
   width_ = ui_.width;
   height_ = ui_.height;
   chosen_ = -1;
+  from_keyboard_ = from_keyboard;
   if (from_keyboard) choose(-1, 1);
 }
 
@@ -156,6 +157,7 @@ void ContextMenu::paint_pack(Painter& p, const skin::Screen& screen) {
         case Enabled: return at < m_.items_.size() && m_.items_[at].enabled ? 1.0f : 0.0f;
         case Chosen: return static_cast<float>(m_.chosen_);
         case PointX: return m_.x_;
+        case Access: return at < m_.items_.size() && m_.underlined() ? static_cast<float>(locale::access_index(wording(m_.items_[at].command))) : -1.0f;
         default: return m_.y_;
       }
     }

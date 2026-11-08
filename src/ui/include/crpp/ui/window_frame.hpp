@@ -74,6 +74,8 @@ class WindowFrame final : public Surface {
   [[nodiscard]] static const char* title_of(int menu);
   void open_menu(int menu, int item) { open_ = bar_ = menu, item_ = item; }
   void run(int menu, int index);
+  // The access keys are underlined once Alt showed them, as in Windows.
+  [[nodiscard]] bool underlined() const { return ui_.access_cues || ui_.always_cues; }
   void paint_pack(Painter& p, const skin::Screen& screen);
   void paint_menu_pack(Painter& p, const skin::Screen& screen);
 

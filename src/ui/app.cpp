@@ -761,13 +761,13 @@ bool App::sys_key(unsigned vk, bool shift) {
   if (vk == VK_F10 && shift) return context_key();
   if (own_frame() && pane_ == Pane::Main && vk >= 'A' && vk <= 'Z' && frame_.open_by_key(static_cast<char>(vk))) {
     taken_sys_char_ = static_cast<wchar_t>(vk);
-    ui_.cues = true;
+    ui_.cues = ui_.access_cues = true;
     return true;
   }
   if ((vk == VK_DOWN || vk == VK_UP) && !ui_.focus && stop_key(vk, false, shift, true)) return true;
-  // Alt shows where the keyboard is, as it shows a dialog's underlines.
-  if (vk == VK_MENU && !ui_.cues) {
-    ui_.cues = true;
+  // Alt shows where the keyboard is, and the underlines of access keys.
+  if (vk == VK_MENU && !(ui_.cues && ui_.access_cues)) {
+    ui_.cues = ui_.access_cues = true;
     return true;
   }
   return false;
@@ -778,7 +778,7 @@ bool App::sys_key_up(unsigned vk) {
   if ((vk != VK_MENU && vk != VK_F10) || !own_frame() || pane_ != Pane::Main) return false;
   if (alone == vk) {
     frame_.enter_menus();
-    ui_.cues = true;
+    ui_.cues = ui_.access_cues = true;
   }
   return true;
 }
@@ -896,7 +896,7 @@ bool App::mouse_down(float x, float y, bool shift) {
   // The keyboard goes on from what was clicked, without showing it; a click on nothing it can stop at clears it.
   if (owner && owner->role(id)) ui_.set_stop(owner, id);
   else ui_.set_stop(nullptr, 0);
-  ui_.cues = false;
+  ui_.cues = ui_.access_cues = false;
   if (ui_.selection_owner && ui_.selection_owner != owner) {
     ui_.selection_owner->drop_selection();
     ui_.selection_owner = nullptr;

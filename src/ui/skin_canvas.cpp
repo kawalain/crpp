@@ -16,7 +16,8 @@ TextStyle text_style_of(const skin::TextLook& look) {
           .letter_spacing = look.letter_spacing,
           .exact = look.exact,
           .role = static_cast<FontRole>(look.role),
-          .keep_words = look.keep_words};
+          .keep_words = look.keep_words,
+          .underline = look.underline};
 }
 
 namespace {

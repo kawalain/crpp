@@ -22,7 +22,8 @@
 //           of the path's own coordinates. With blur it is that shape's shadow, dy further down. With scale_y it is
 //           filled at that size downward and scale across. Data that starts with F1 fills where its shapes overlap
 //   text    a text: #locale_key, @bound, or the words themselves, in a style and a color, and
-//           size and line_height to change the style's where it depends on the screen
+//           size and line_height to change the style's where it depends on the screen, and
+//           underline for the letter of an access key
 //   picture a picture the screen supplies, with opacity and gray
 //   field   a text field the screen owns, with style, color, placeholder, placeholder_color,
 //           caret and selection
@@ -142,6 +143,7 @@ struct Node {
   bool stretched = false;   // Path: it has scale_y
   bool has_note_by = false;
   bool has_size = false, has_line_height = false;  // Text. Let: has_size says it has again
+  bool has_underline = false;  // Text
   bool has_alpha = false;   // Let: it has a key
   bool has_down_to = false;  // Fill
   bool across = false;       // Fill
@@ -161,7 +163,7 @@ struct Node {
   std::uint32_t hit_shape = no_text;  // index into hit_shapes
   Expr when, x, y, w, h;
   Expr paint;  // Fill, Frame, Stroke, Line, Path, Text
-  Expr extra;  // Fill, Stroke, Shadow: radius. Line: x2. Path: scale. Picture: opacity. Repeat: how many. Let: value, or to. Report: value
+  Expr extra;  // Text: underline. Fill, Stroke, Shadow: radius. Line: x2. Path: scale. Picture: opacity. Repeat: how many. Let: value, or to. Report: value
   Expr width;  // Stroke, Line, Path. Fill: down_to. Picture: gray. Let: ms. Shadow: blur
   Expr extra2;  // Line: y2. Let: ms_off. Shadow: dy
   Expr after, hit_index, live, hit_if, alpha, note_by, tab_order;

@@ -17,7 +17,7 @@ use caption_button(is_close = 1) (button_left, frame_button_top, frame_button, f
 (frame_w, caption_h, @W-2*frame_w, menu_h) if @menu_shown {
   fill face
   fill edge_dark y @H-1 h 1
-  use menu_title(open = @open_menu==0 || @key_menu==0) id one text @menu_file hit menu hit_index 0 note menu_0
-  use menu_title(open = @open_menu==1 || @key_menu==1) id two text @menu_tools hit menu hit_index 1 note menu_1 x one.right
-  use menu_title(open = @open_menu==2 || @key_menu==2) text @menu_help hit menu hit_index 2 note menu_2 x two.right
+  use menu_title(open = @open_menu==0 || @key_menu==0, key = @access_file) id one text @menu_file hit menu hit_index 0 note menu_0
+  use menu_title(open = @open_menu==1 || @key_menu==1, key = @access_tools) id two text @menu_tools hit menu hit_index 1 note menu_1 x one.right
+  use menu_title(open = @open_menu==2 || @key_menu==2, key = @access_help) text @menu_help hit menu hit_index 2 note menu_2 x two.right
 }

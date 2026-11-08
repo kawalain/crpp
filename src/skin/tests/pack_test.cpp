@@ -118,7 +118,8 @@ class Log final : public Canvas {
   void line(float x1, float y1, float x2, float y2, Color c, float w) override { add("line " + str(x1) + "," + str(y1) + " " + str(x2) + "," + str(y2) + " " + str(c) + " " + str(w)); }
   void path(std::string_view d, float x, float y, float s, Color c, float w, bool round_caps, bool) override { add("path " + std::string(d) + " " + str(x) + "," + str(y) + " x" + str(s) + " " + str(c) + " " + str(w) + (round_caps ? " round" : " flat")); }
   void text(std::string_view t, Box b, const TextLook& l, Color c) override {
-    add("text " + std::string(t) + " " + str(b) + " " + str(l.size) + "/" + str(l.line_height) + "/" + std::to_string(l.weight) + " " + str(c));
+    add("text " + std::string(t) + " " + str(b) + " " + str(l.size) + "/" + str(l.line_height) + "/" + std::to_string(l.weight) + " " + str(c) +
+        (l.underline >= 0 ? " u" + std::to_string(l.underline) : ""));
   }
   void push_clip(Box b) override { add("clip " + str(b)); }
   void push_soft_clip(Box b) override { add("softclip " + str(b)); }
@@ -270,6 +271,12 @@ void a_part_takes_its_hit_and_note_from_the_screen() {
 
 void a_text_can_set_its_size() {
   CHECK(walk(R"C(text "x" style body color face h 10 size @h+5 line_height @h+9)C") == "text x 100,200,300,10 15/19/400 1/0/0/1\n");
+}
+
+// An access key's letter is underlined where the screen says; below 0 nothing is.
+void a_text_can_underline_a_letter() {
+  CHECK(walk(R"C(text "File" style body color face h 10 size 12 line_height 10 underline 1)C") == "text File 100,200,300,10 12/10/400 1/0/0/1 u1\n");
+  CHECK(walk(R"C(text "File" style body color face h 10 size 12 line_height 10 underline 0-1)C") == "text File 100,200,300,10 12/10/400 1/0/0/1\n");
 }
 
 void a_set_changes_a_name_from_further_in() {
@@ -1145,6 +1152,7 @@ int main() {
   a_let_is_read_further_on_and_inside();
   a_set_changes_a_name_from_further_in();
   a_text_can_set_its_size();
+  a_text_can_underline_a_letter();
   a_part_takes_its_hit_and_note_from_the_screen();
   conditions_skip_what_they_guard();
   palettes_choose_colours_and_gradients();

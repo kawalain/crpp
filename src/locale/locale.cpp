@@ -84,6 +84,19 @@ char access_key(std::string_view wording) noexcept {
   return 0;
 }
 
+int access_index(std::string_view wording) noexcept {
+  int units = 0;
+  for (std::size_t i = 0; i < wording.size(); ++i) {
+    if (wording[i] == '&' && i + 1 < wording.size()) {
+      if (wording[i + 1] != '&') return units;
+      ++i;  // && is one plain &
+    }
+    const auto byte = static_cast<unsigned char>(wording[i]);
+    if ((byte & 0xC0) != 0x80) units += byte >= 0xF0 ? 2 : 1;  // a character beyond the BMP takes two
+  }
+  return -1;
+}
+
 std::string format_stay(std::int64_t seconds) {
   const Strings& s = tr();
   std::int64_t minutes = std::max<std::int64_t>(0, seconds / 60);

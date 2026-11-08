@@ -164,7 +164,16 @@ before step 7, which removes what Cloud's pack is compared with.
      system tab's own rows and the advanced section. Only a Skin Pack and the C++ Cloud layout draw them; Luna's
      C++ layout goes in step 7. Not yet: a key that changes behind the app is only logged, as 6d settles its
      warning, and the add dialog has no Cancel by default.
-   - **6c.** Removing unused packs, and updates fetched behind the app and applied on the next start.
+   - **6c.** Removing unused packs, and updates fetched behind the app and applied on the next start. Done:
+     the downloaded Skins are listed under the Repositories in the system tab, not the display tab, as where
+     they came from is said there; each has its size and source, or why it stays (in use, the default, or
+     another installed pack's parent), and a removal waits its turn in the install queue. Behind the app the
+     installed files now follow the latest catalog at the start that read it, where they waited a start more,
+     and an open font waits for a start that does not open it; the Repositories the user added keep what was
+     picked from them current the same way. A cancel removes what arrived, as the next start would otherwise
+     finish it. Seen on a hidden desktop against localhost with a throwaway key: an update of each Repository
+     arrived behind the app and showed at the next start, and a removed pack left no folder and was offered
+     again.
    - **6d.** A parent in another Repository, and pinning it.
    - **6e.** Sound packs of other Repositories.
 7. **Remove the C++.** Delete Luna's and Cloud's layouts and `Skin`, and fix ADR 0004 and the module design. Measure
@@ -222,7 +231,7 @@ hands-on check of Cloud on a real desktop, 7 and 8.
 - **Picking a Theme not installed.** The row shows progress and a cancel; fetching goes on when settings close or the
   screen changes. When done it applies only if that Theme is still the last one picked, otherwise it stays installed.
   A failure keeps the current Skin and shows the reason and "다시 시도" in the row, and a toast if settings were
-  closed. A cancel keeps the files already fetched, as their hashes match; 6c cleans them up.
+  closed. A cancel removes the files already fetched (6c), unless an installed pack needs them.
 - **Repositories.** Known by the key that signs the catalog: on disk and in keys a pack of the official Repository is
   its id (`cloud`, `retro`) and one of another is `<first 16 hex of the fingerprint>/<id>`. Two Repositories with one
   key offering one id offer the same pack. Adding one fetches its catalog, checks the signature and asks in a dialog

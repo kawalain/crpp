@@ -305,7 +305,10 @@ exist (real + test).
   one, and `sign-catalog.sh` prints its key's fingerprint. A Repository the user adds (`folder_of` reads
   its address) offers only packs, in folders of their own, and is trusted by the key its catalog states
   (`fetch_new_catalog`) once the user has seen the fingerprint; `apps/gui/area_repositories.cpp` keeps each
-  in `repositories/<first 16 digits>/` of the Protected store. `Platform` is the seam for WinHTTP and BCrypt.
+  in `repositories/<first 16 digits>/` of the Protected store. Behind the app at every start what is
+  installed follows each Repository's latest catalog, used from the next start (`held` keeps an open font for
+  then); `kept_groups` is what an added one keeps, and `uninstall` removes a pack. `Platform` is the seam for
+  WinHTTP and BCrypt.
 - `api`: the account HTTP API as pure requests and responses, and `Flow`, the
   prompt's steps. `HttpClient` is the seam for WinHTTP; `Worker` keeps its blocking
   calls off the UI thread. `apps/gui/account_controller` joins it to `ui`.
@@ -463,8 +466,9 @@ exist (real + test).
   official Repository (deployed 2026-11-08, on `https://crpp.kawala.in/` since) a first start that took
   14 s for 15.3 MB on one connection. Its second source needs the release's tag and its committed
   catalog on GitHub, and raw.githubusercontent.com has not been tried as one.
-- Adding a Repository, fetching a Theme of it and removing it have run on a hidden desktop against localhost
-  only, driven by a throwaway build, not by hand. A `github:` address has not been added from a real
+- Adding a Repository, fetching a Theme of it and removing it, updates behind the app and removing a
+  downloaded Skin have run on a hidden desktop against localhost only, driven by a throwaway build, not by
+  hand. An update of the font itself, which waits a start, has only run in tests. A `github:` address has not been added from a real
   repository (raw.githubusercontent.com answered `HEAD` and a tag without a redirect), and the field, the
   dialog's long fingerprint and a pack's progress have not been seen on a real desktop.
 - v0.1.0 updated itself to v0.1.1 from GitHub on one Windows 10 PC with Defender. The cause

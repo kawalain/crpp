@@ -71,17 +71,19 @@ constexpr skin::Name notify_numbers[] = {{"tray", TrayN}, {"flash", FlashN}, {"s
 constexpr skin::Name notify_hits[] = {{"tray", NotifyTab::TrayToggle}, {"flash", NotifyTab::FlashToggle}, {"sound", NotifyTab::SoundBase}, {"preview", NotifyTab::PreviewBase}};
 
 // --- system ---
-enum SystemText : int { RepoAddressT, RepoFingerprintT, RepoStatusT };
-constexpr skin::Name system_texts[] = {{"repo_address", RepoAddressT}, {"repo_fingerprint", RepoFingerprintT}, {"repo_status", RepoStatusT}};
-enum SystemNumber : int { AutostartN, SystemTrayN, DetailN, LoggingN, RepositoriesN, RepoOfficialN, RepoStateN, AddressFocusN, AddressEmptyN };
+enum SystemText : int { RepoAddressT, RepoFingerprintT, RepoStatusT, PackNameT, PackDetailT };
+constexpr skin::Name system_texts[] = {{"repo_address", RepoAddressT}, {"repo_fingerprint", RepoFingerprintT}, {"repo_status", RepoStatusT},
+                                       {"pack_name", PackNameT}, {"pack_detail", PackDetailT}};
+enum SystemNumber : int { AutostartN, SystemTrayN, DetailN, LoggingN, RepositoriesN, RepoOfficialN, RepoStateN, AddressFocusN, AddressEmptyN, PacksN, PackRemovableN };
 constexpr skin::Name system_numbers[] = {{"autostart", AutostartN}, {"tray", SystemTrayN}, {"detail", DetailN}, {"logging", LoggingN},
                                          {"repositories", RepositoriesN}, {"repo_official", RepoOfficialN}, {"repo_state", RepoStateN},
-                                         {"address_focus", AddressFocusN}, {"address_empty", AddressEmptyN}};
+                                         {"address_focus", AddressFocusN}, {"address_empty", AddressEmptyN}, {"packs", PacksN}, {"pack_removable", PackRemovableN}};
 enum SystemSlot : int { ReleaseSlot, AddressSlot };
 constexpr skin::Name system_slots[] = {{"release_list", ReleaseSlot}, {"address", AddressSlot}};
 constexpr skin::Name system_hits[] = {{"autostart", SystemTab::Autostart}, {"tray", SystemTab::Tray}, {"detail", SystemTab::Detail}, {"logging", SystemTab::Logging},
                                       {"open_logs", SystemTab::OpenLogs}, {"reset", SystemTab::Reset}, {"address", SystemTab::Address},
-                                      {"add_repository", SystemTab::AddRepository}, {"remove_repository", SystemTab::RemoveRepository}};
+                                      {"add_repository", SystemTab::AddRepository}, {"remove_repository", SystemTab::RemoveRepository},
+                                      {"remove_pack", SystemTab::RemovePack}};
 
 // --- account ---
 enum AccountText : int { NicknameT, HandleT, DisplayT };
@@ -469,6 +471,8 @@ void SystemTab::paint_pack(Painter& p, const skin::Screen& screen, Rect area) {
         case RepoAddressT: return at < s_.repositories_.size() ? std::string_view(s_.repositories_[at].address) : std::string_view();
         case RepoFingerprintT: return at < fingerprints_.size() ? std::string_view(fingerprints_[at]) : std::string_view();
         case RepoStatusT: return status_;
+        case PackNameT: return at < s_.packs_.size() ? std::string_view(s_.packs_[at].name) : std::string_view();
+        case PackDetailT: return at < s_.packs_.size() ? std::string_view(s_.packs_[at].detail) : std::string_view();
         default: return {};
       }
     }
@@ -486,6 +490,8 @@ void SystemTab::paint_pack(Painter& p, const skin::Screen& screen, Rect area) {
         case RepoStateN: return static_cast<float>(s_.adding_.state);
         case AddressFocusN: return yes(s_.ui_.focus == &s_.address_);
         case AddressEmptyN: return yes(s_.address_.text().empty() && !s_.address_.composing());
+        case PacksN: return static_cast<float>(s_.packs_.size());
+        case PackRemovableN: return yes(at < s_.packs_.size() && s_.packs_[at].removable);
         default: return 0;
       }
     }

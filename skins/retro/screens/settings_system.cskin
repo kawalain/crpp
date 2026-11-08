@@ -20,6 +20,13 @@ column id form y 10 {
       use button text @tr.system_repository_add hit add_repository right @W
     }
     use form_hint text @repo_status after 2 if @repo_state>0
+    // The Skin Packs fetched from them, each with its size and where from, or why it stays.
+    text @tr.system_packs style bold color ink h 16 after 4 if @packs>0
+    repeat @packs h @packs*38 after 4 {
+      text @pack_name style body color ink y @i*38 w @W-87 h 16
+      text @pack_detail style body color ink_soft y @i*38+16 w @W-87 h 16
+      use button text @tr.system_pack_remove hit remove_pack right @W y @i*38+4 if @pack_removable>0
+    }
   }
   use form_group text @tr.system_advanced {
     use form_combo text @tr.system_release after 4 {

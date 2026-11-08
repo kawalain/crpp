@@ -235,6 +235,14 @@ struct Strings {
   const char* repository_key_changed;
   const char* repository_remove_question;
   const char* repository_in_use;
+  const char* system_packs;
+  const char* system_pack_detail;
+  const char* system_pack_official;
+  const char* system_pack_remove;
+  const char* system_pack_in_use;
+  const char* system_pack_default;
+  const char* system_pack_needed;
+  const char* pack_remove_question;
   const char* display_general;
   const char* display_chat_size;
   const char* display_chat_sample;

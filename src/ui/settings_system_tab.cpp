@@ -22,6 +22,9 @@ constexpr float buttons_x = 381, buttons_w = 140, buttons_h = 38;
 constexpr float address_w = 355;
 
 float add_top(std::size_t rows) { return repository_rows_top + static_cast<float>(rows) * repository_step + 4; }
+// Below the field and why the last address could not be added: the packs, when there are any.
+float packs_top(float repositories_end) { return repositories_end + 24; }
+float pack_row_top(float repositories_end, std::size_t i) { return packs_top(repositories_end) + 40 + static_cast<float>(i) * repository_step; }
 float release_top(float advanced) { return advanced + 51; }  // not upstream's
 float logging_top(float advanced) { return release_top(advanced) + row_step; }
 float open_logs_top(float advanced) { return logging_top(advanced) + row_step; }
@@ -61,7 +64,8 @@ void SystemTab::sync_release() {
 }
 
 float SystemTab::advanced_top() const {
-  return add_top(repositories_.size()) + buttons_h + (adding_.state != Adding::State::None ? 30 : 0) + 36;
+  const float repositories_end = add_top(repositories_.size()) + buttons_h + (adding_.state != Adding::State::None ? 30 : 0);
+  return (packs_.empty() ? repositories_end : pack_row_top(repositories_end, packs_.size()) - 12) + 36;
 }
 
 float SystemTab::content_height() const {
@@ -141,6 +145,17 @@ void SystemTab::paint(Painter& p, Rect area) {
   if (adding_.state != Adding::State::None) {
     p.text(status_text(), {area.x + 16, box.y + 44, 505, 22}, hint, adding_.state == Adding::State::Failed ? t.error_text : t.hl_text_soft);
   }
+  const float repositories_end = box.y - area.y + buttons_h + (adding_.state != Adding::State::None ? 30 : 0);
+  if (!packs_.empty()) paint_subheading(p, t, area, packs_top(repositories_end), tr().system_packs);
+  remove_pack_.resize(packs_.size());
+  for (std::size_t i = 0; i < packs_.size(); ++i) {
+    const float top = area.y + pack_row_top(repositories_end, i);
+    p.text(packs_[i].name, {area.x + 16, top, address_w, 26}, label, t.hl_text);
+    p.text(packs_[i].detail, {area.x + 16, top + 26, address_w, 20}, hint, t.hl_text_soft);
+    if (packs_[i].removable) {
+      paint_text_button(ui_, this, p, {area.x + buttons_x, top + 4, buttons_w, buttons_h}, tr().system_pack_remove, RemovePack + static_cast<int>(i), remove_pack_[i]);
+    }
+  }
 
   const float advanced = advanced_top();
   paint_heading(p, t, area, advanced, tr().system_advanced);
@@ -182,6 +197,8 @@ void SystemTab::click(int id, float x, float, bool shift) {
     address_.click_at(ui_.gfx, address_style_, ui_.to_stage_x(x) - address_x_ + address_scroll_, shift);
   } else if (id == AddRepository) {
     add();
+  } else if (id >= RemovePack && static_cast<std::size_t>(id - RemovePack) < packs_.size()) {
+    if (on_remove_pack && packs_[static_cast<std::size_t>(id - RemovePack)].removable) on_remove_pack(static_cast<std::size_t>(id - RemovePack));
   } else if (id >= RemoveRepository && static_cast<std::size_t>(id - RemoveRepository) < repositories_.size()) {
     if (on_remove_repository) on_remove_repository(static_cast<std::size_t>(id - RemoveRepository));
   } else if (id == Reset) {
@@ -214,7 +231,8 @@ bool SystemTab::animating() const {
     if (toggle.running(ui_)) return true;
   }
   return open_logs_.running(ui_) || reset_.running(ui_) || add_.running(ui_) ||
-         std::ranges::any_of(remove_, [&](const Fade& fade) { return fade.running(ui_); });
+         std::ranges::any_of(remove_, [&](const Fade& fade) { return fade.running(ui_); }) ||
+         std::ranges::any_of(remove_pack_, [&](const Fade& fade) { return fade.running(ui_); });
 }
 
 }  // namespace crpp::ui

@@ -21,8 +21,18 @@ let add_top = 348+@repositories*58+4
 }
 use text_button (381, add_top, 140, 38) text @tr.system_repository_add hit add_repository
 text @repo_status (16, add_top+44, 505, 22) style row_hint color @repo_state>1 ? error_text : hl_text_soft if @repo_state>0
+// The Skin Packs fetched from them, each with its size and where from, or why it stays.
+let repositories_end = add_top+38+(@repo_state>0 ? 30 : 0)
+let packs_top = repositories_end+24
+text @tr.system_packs (12, packs_top, @W-12, 28) style subheading color @dark ? hl_text_dark : hl if @packs>0
+repeat @packs {
+  let top = packs_top+40+@i*58
+  text @pack_name (16, top, 355, 26) style row_label color hl_text
+  text @pack_detail (16, top+26, 355, 20) style row_hint color hl_text_soft
+  use text_button (381, top+4, 140, 38) text @tr.system_pack_remove hit remove_pack if @pack_removable>0
+}
 // Time and language are on the display tab.
-let advanced_top = add_top+38+(@repo_state>0 ? 30 : 0)+36
+let advanced_top = (@packs>0 ? packs_top+40+@packs*58-12 : repositories_end)+36
 text @tr.system_advanced (9, advanced_top, @W-9, 32) style heading color hl_text
 text @tr.system_release (16, advanced_top+56, 300, 26) style row_label color hl_text
 slot release_list (285, advanced_top+50, 246, 38)

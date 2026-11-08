@@ -200,6 +200,9 @@ void test_a_repository_is_added_and_removed_by_the_shell() {
   std::vector<std::size_t> removed;
   tab.on_add_repository = [&](std::string address) { added.push_back(std::move(address)); };
   tab.on_remove_repository = [&](std::size_t index) { removed.push_back(index); };
+  tab.set_packs({{"Retro", "1.2 MB", true}, {"Cloud", "In use", false}});
+  std::vector<std::size_t> packs_removed;
+  tab.on_remove_pack = [&](std::size_t index) { packs_removed.push_back(index); };
   h.app.settings().scroll_to(250);
   h.render();
   CHECK(!h.drawn(tab, SystemTab::RemoveRepository));  // the official one stays
@@ -219,6 +222,12 @@ void test_a_repository_is_added_and_removed_by_the_shell() {
   tab.set_adding({SystemTab::Adding::State::Checking, {}});
   CHECK(h.click(tab, SystemTab::AddRepository));
   CHECK(added.size() == 2);
+
+  h.app.settings().scroll_to(480);
+  h.render();
+  CHECK(h.click(tab, SystemTab::RemovePack));
+  CHECK(packs_removed == std::vector<std::size_t>{0});
+  CHECK(!h.drawn(tab, SystemTab::RemovePack + 1));  // the one in use has none
 }
 
 void test_language_dropdown_saves_the_locale() {

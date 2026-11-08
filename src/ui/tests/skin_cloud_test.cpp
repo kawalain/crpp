@@ -103,6 +103,7 @@ void test_the_repositories_stand_where_the_code_puts_them() {
     SystemTab& system = h.app.settings().system();
     system.set_repositories({{"https://crpp.kawala.in/", "0123456789abcdef", true}, {"github:someone/skins", "1a2b3c4d5e6f7a8b", false}});
     system.set_adding({SystemTab::Adding::State::Failed, "Why."});
+    system.set_packs({{"Retro", "1.2 MB", true}, {"Cloud", "In use", false}});
     h.app.settings().open(SettingsPage::System);
     h.render();
     h.app.settings().scroll_to(scroll);
@@ -110,8 +111,10 @@ void test_the_repositories_stand_where_the_code_puts_them() {
     for (const int id : ids) places.push_back({&system, id});
     same_places(h, places);
     CHECK(!h.app.ui().find_hit(&system, SystemTab::RemoveRepository));
+    CHECK(!h.app.ui().find_hit(&system, SystemTab::RemovePack + 1));
   };
   place(260, {SystemTab::RemoveRepository + 1, SystemTab::Address, SystemTab::AddRepository});
+  place(480, {SystemTab::RemovePack});
   place(10000, {SystemTab::ReleaseList, SystemTab::Reset});
 }
 

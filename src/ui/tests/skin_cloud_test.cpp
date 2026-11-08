@@ -87,8 +87,8 @@ void test_a_list_stands_where_the_code_puts_it() {
   h.app.show_home();
   h.app.settings().open(SettingsPage::System);
   SystemTab& system = h.app.settings().system();
-  system.click(SystemTab::IdleList, 0, 0, false);
-  same_places(h, {{&system, SystemTab::IdleList + 1}, {&system, SystemTab::IdleList + 2}});
+  system.click(SystemTab::ReleaseList, 0, 0, false);
+  same_places(h, {{&system, SystemTab::ReleaseList + 1}, {&system, SystemTab::ReleaseList + 2}});
 }
 
 void test_the_rows_choose_a_skin_a_theme_and_a_dark_mode() {
@@ -286,8 +286,7 @@ void test_every_tab_stands_where_the_code_puts_it() {
     same_places(other, list);
   };
   compare(SettingsPage::Notify, {NotifyTab::TrayToggle, NotifyTab::FlashToggle, NotifyTab::SoundBase, NotifyTab::SoundBase + 1, NotifyTab::PreviewBase, NotifyTab::PreviewBase + 1});
-  compare(SettingsPage::System, {SystemTab::Autostart, SystemTab::Tray, SystemTab::Detail, SystemTab::Use24h, SystemTab::IdleList});
-  compare(SettingsPage::System, {SystemTab::ReleaseList, SystemTab::Logging, SystemTab::Reset}, 10000);
+  compare(SettingsPage::System, {SystemTab::Autostart, SystemTab::Tray, SystemTab::Detail, SystemTab::ReleaseList, SystemTab::Logging, SystemTab::Reset});
   compare(SettingsPage::Account, {AccountTab::Emoji, AccountTab::Nickname, AccountTab::Handle, AccountTab::Logout});
 }
 
@@ -324,7 +323,7 @@ void test_a_scroll_asked_before_the_first_frame_waits_for_the_height() {
   CHECK(h.app.load_skin_dir(cloud_pack).has_value());
   h.render();
   SettingsPanel& panel = h.app.settings();
-  panel.open(SettingsPage::System);
+  panel.open(SettingsPage::Display);
   panel.scroll_to(10000);
   h.render();
   CHECK(panel.scroll_offset() > 0);

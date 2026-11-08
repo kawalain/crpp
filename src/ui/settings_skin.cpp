@@ -50,13 +50,14 @@ constexpr skin::Name sound_hits[] = {{"speaker_volume", SoundTab::SpeakerVolume}
 
 // --- display ---
 enum DisplayText : int { SampleSays, PercentText, SampleNick, SampleTime };
-enum DisplayNumber : int { Percent, HasCursors, ThemeCursorOn, DisplayScale, Dragging };
+enum DisplayNumber : int { Percent, HasCursors, ThemeCursorOn, DisplayScale, Dragging, DisplayUse24h };
+enum DisplaySlot : int { SkinSlot = 3, ThemeSlot, DarkModeSlot, IdleSlot, LanguageSlot };
 constexpr skin::Name display_texts[] = {{"sample_says", SampleSays}, {"percent_text", PercentText}, {"sample_nick", SampleNick}, {"sample_time", SampleTime}};
-constexpr skin::Name display_numbers[] = {{"percent", Percent}, {"has_cursors", HasCursors}, {"theme_cursor", ThemeCursorOn}, {"scale", DisplayScale}, {"dragging", Dragging}};
+constexpr skin::Name display_numbers[] = {{"percent", Percent}, {"has_cursors", HasCursors}, {"theme_cursor", ThemeCursorOn}, {"scale", DisplayScale}, {"dragging", Dragging}, {"use_24h", DisplayUse24h}};
 constexpr skin::Name display_pictures[] = {{"sample_emoji", 0}};
-constexpr skin::Name display_slots[] = {{"skin_list", 3}, {"theme_list", 4}, {"dark_mode_list", 5}};
+constexpr skin::Name display_slots[] = {{"skin_list", SkinSlot}, {"theme_list", ThemeSlot}, {"dark_mode_list", DarkModeSlot}, {"idle_list", IdleSlot}, {"language_list", LanguageSlot}};
 constexpr skin::Name display_notes[] = {{"slider", 0}};
-constexpr skin::Name display_hits[] = {{"scale_slider", DisplayTab::ScaleSlider}, {"theme_cursor", DisplayTab::ThemeCursor}};
+constexpr skin::Name display_hits[] = {{"scale_slider", DisplayTab::ScaleSlider}, {"theme_cursor", DisplayTab::ThemeCursor}, {"use_24h", DisplayTab::Use24h}};
 
 // --- notifications ---
 enum NotifyNumber : int { TrayN, FlashN, Sounds, SoundOn };
@@ -65,10 +66,10 @@ constexpr skin::Name notify_numbers[] = {{"tray", TrayN}, {"flash", FlashN}, {"s
 constexpr skin::Name notify_hits[] = {{"tray", NotifyTab::TrayToggle}, {"flash", NotifyTab::FlashToggle}, {"sound", NotifyTab::SoundBase}, {"preview", NotifyTab::PreviewBase}};
 
 // --- system ---
-enum SystemNumber : int { AutostartN, SystemTrayN, DetailN, Use24hN, LoggingN };
-constexpr skin::Name system_numbers[] = {{"autostart", AutostartN}, {"tray", SystemTrayN}, {"detail", DetailN}, {"use_24h", Use24hN}, {"logging", LoggingN}};
-constexpr skin::Name system_slots[] = {{"idle_list", 0}, {"language_list", 1}, {"release_list", 2}};
-constexpr skin::Name system_hits[] = {{"autostart", SystemTab::Autostart}, {"tray", SystemTab::Tray}, {"detail", SystemTab::Detail}, {"use_24h", SystemTab::Use24h}, {"logging", SystemTab::Logging}, {"open_logs", SystemTab::OpenLogs}, {"reset", SystemTab::Reset}};
+enum SystemNumber : int { AutostartN, SystemTrayN, DetailN, LoggingN };
+constexpr skin::Name system_numbers[] = {{"autostart", AutostartN}, {"tray", SystemTrayN}, {"detail", DetailN}, {"logging", LoggingN}};
+constexpr skin::Name system_slots[] = {{"release_list", 0}};
+constexpr skin::Name system_hits[] = {{"autostart", SystemTab::Autostart}, {"tray", SystemTab::Tray}, {"detail", SystemTab::Detail}, {"logging", SystemTab::Logging}, {"open_logs", SystemTab::OpenLogs}, {"reset", SystemTab::Reset}};
 
 // --- account ---
 enum AccountText : int { NicknameT, HandleT, DisplayT };
@@ -327,6 +328,8 @@ void DisplayTab::paint_pack(Painter& p, const skin::Screen& screen, Rect area) {
       if (&one == choice.theme) skin_theme_.selected = static_cast<int>(i);
     }
   }
+  sync_idle();
+  sync_language();
   dark_mode_.options = {tr().display_dark_off, tr().display_dark_on, tr().display_dark_system};
   dark_mode_.selected = static_cast<int>(choice.dark);
   // Locked while this Theme has none, which leaves the choice as it is for the next Theme.
@@ -355,14 +358,21 @@ void DisplayTab::paint_pack(Painter& p, const skin::Screen& screen, Rect area) {
         case ThemeCursorOn: return yes(s_.ui_.prefs->get(pref::theme_cursor));
         case DisplayScale: return s_.ui_.scale;
         case Dragging: return yes(s_.ui_.capture == &s_);
+        case DisplayUse24h: return yes(s_.ui_.prefs->get(pref::use_24h));
         default: return static_cast<float>(percent_);
       }
     }
 
     void slot(int id, int, skin::Box box, const skin::SlotValues&) override {
       const Rect r = rect_of(box);
+      if (id == IdleSlot || id == LanguageSlot) {
+        Rect& rect = id == IdleSlot ? s_.idle_rect_ : s_.language_rect_;
+        rect = r;
+        (id == IdleSlot ? s_.idle_ : s_.language_).paint_button(s_.ui_, &s_, p_, rect);
+        return;
+      }
       s_.list_rect_[id] = r;
-      Dropdown& list = id == 3 ? s_.skin_list_ : id == 4 ? s_.skin_theme_ : s_.dark_mode_;
+      Dropdown& list = id == SkinSlot ? s_.skin_list_ : id == ThemeSlot ? s_.skin_theme_ : s_.dark_mode_;
       list.paint_button(s_.ui_, &s_, p_, r);
     }
 
@@ -411,9 +421,6 @@ void NotifyTab::paint_pack(Painter& p, const skin::Screen& screen, Rect area) {
 }
 
 void SystemTab::paint_pack(Painter& p, const skin::Screen& screen, Rect area) {
-  idle_.options = {tr().system_idle_15, tr().system_idle_30, tr().system_idle_60};
-  sync_idle();
-  sync_language();
   sync_release();
 
   class Shown final : public skin::Source {
@@ -426,17 +433,14 @@ void SystemTab::paint_pack(Painter& p, const skin::Screen& screen, Rect area) {
         case AutostartN: return yes(prefs.get(pref::start_with_system));
         case SystemTrayN: return yes(prefs.get(pref::minimize_to_tray));
         case DetailN: return yes(prefs.get(pref::input_detail));
-        case Use24hN: return yes(prefs.get(pref::use_24h));
         case LoggingN: return yes(prefs.get(pref::log_enabled));
         default: return 0;
       }
     }
 
-    void slot(int id, int, skin::Box box, const skin::SlotValues&) override {
-      const Rect r = rect_of(box);
-      Dropdown& list = id == 0 ? s_.idle_ : id == 1 ? s_.language_ : s_.release_;
-      (id == 0 ? s_.idle_rect_ : id == 1 ? s_.language_rect_ : s_.release_rect_) = r;
-      list.paint_button(s_.ui_, &s_, p_, r);
+    void slot(int, int, skin::Box box, const skin::SlotValues&) override {
+      s_.release_rect_ = rect_of(box);
+      s_.release_.paint_button(s_.ui_, &s_, p_, s_.release_rect_);
     }
 
     void report(int, float value) override { s_.flow_height_ = value; }

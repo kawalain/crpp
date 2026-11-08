@@ -261,6 +261,13 @@ void DisplayTab::paint_luna(Painter& p, Rect area) {
   p.text(tr().display_chat_sample, {sample.x + 18, sample.y + 6 + name.line_height, sample.w - 24, name.line_height}, name, t.luna.ink);
   form.add(sample.h + 8);
   slider_ = form.slider(tr().display_chat_size, percent, 80, 150, ScaleSlider, nullptr, nullptr, std::to_string(percent) + "%");
+  form.group(tr().system_time);
+  form.check(tr().system_24h, prefs.get(pref::use_24h), Use24h);
+  sync_idle();
+  idle_rect_ = form.combo(tr().system_idle, idle_);
+  form.group(tr().system_language);
+  sync_language();
+  language_rect_ = form.combo(tr().system_language_row, language_);
   flow_height_ = form.finish();
 }
 
@@ -287,19 +294,11 @@ void NotifyTab::paint_luna(Painter& p, Rect area) {
 
 void SystemTab::paint_luna(Painter& p, Rect area) {
   const Prefs& prefs = *ui_.prefs;
-  idle_.options = {tr().system_idle_15, tr().system_idle_30, tr().system_idle_60};
   Form form(ui_, this, p, area);
   form.group(tr().system_heading);
   form.check(tr().system_autostart, prefs.get(pref::start_with_system), Autostart);
   form.check(tr().system_tray, prefs.get(pref::minimize_to_tray), Tray);
   form.check(tr().system_detail, prefs.get(pref::input_detail), Detail, tr().system_detail_hint);
-  form.group(tr().system_time);
-  form.check(tr().system_24h, prefs.get(pref::use_24h), Use24h);
-  sync_idle();
-  idle_rect_ = form.combo(tr().system_idle, idle_);
-  form.group(tr().system_language);
-  sync_language();
-  language_rect_ = form.combo(tr().system_language_row, language_);
   form.group(tr().system_advanced);
   sync_release();
   release_rect_ = form.combo(tr().system_release, release_);

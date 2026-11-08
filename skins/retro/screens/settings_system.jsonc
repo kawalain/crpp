@@ -8,13 +8,6 @@
         {"use": "form_check", "text": "#system_detail", "hit": "detail", "args": {"on": "@detail"}},
         {"use": "form_hint", "text": "#system_detail_hint", "x": 18, "w": "W-18", "after": 4}
       ]},
-      {"use": "form_group", "text": "#system_time", "draw": [
-        {"use": "form_check", "text": "#system_24h", "hit": "use_24h", "args": {"on": "@use_24h"}},
-        {"use": "form_combo", "text": "#system_idle", "after": 4, "draw": [{"slot": "idle_list"}]}
-      ]},
-      {"use": "form_group", "text": "#system_language", "draw": [
-        {"use": "form_combo", "text": "#system_language_row", "after": 4, "draw": [{"slot": "language_list"}]}
-      ]},
       {"use": "form_group", "text": "#system_advanced", "draw": [
         {"use": "form_combo", "text": "#system_release", "after": 4, "draw": [{"slot": "release_list"}]},
         {"use": "form_check", "text": "#system_logging", "hit": "logging", "args": {"on": "@logging"}},

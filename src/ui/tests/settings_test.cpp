@@ -192,18 +192,18 @@ void test_system_rows() {
 void test_language_dropdown_saves_the_locale() {
   UiHarness h;
   CHECK(h.start());
-  open(h, SettingsPage::System);
-  SystemTab& tab = h.app.settings().system();
+  open(h, SettingsPage::Display);
+  DisplayTab& tab = h.app.settings().display();
   Prefs& prefs = *h.app.ui().prefs;
-  h.app.settings().scroll_to(300);
+  h.app.settings().scroll_to(10000);
   h.render();
   CHECK(prefs.get(pref::language).empty());  // follows the OS until someone chooses
-  CHECK(h.click(tab, SystemTab::LanguageList));
-  CHECK(h.click(tab, SystemTab::LanguageList + 3));  // Dropdown ids: button, then options
+  CHECK(h.click(tab, DisplayTab::LanguageList));
+  CHECK(h.click(tab, DisplayTab::LanguageList + 3));  // Dropdown ids: button, then options
   CHECK(prefs.get(pref::language) == "en");
   h.render();
-  CHECK(h.click(tab, SystemTab::LanguageList));
-  CHECK(h.click(tab, SystemTab::LanguageList + 1));
+  CHECK(h.click(tab, DisplayTab::LanguageList));
+  CHECK(h.click(tab, DisplayTab::LanguageList + 1));
   CHECK(prefs.get(pref::language).empty());
 }
 
@@ -223,18 +223,18 @@ void test_the_detail_hint_keeps_three_lines_in_every_locale() {
 void test_idle_dropdown_saves_minutes() {
   UiHarness h;
   CHECK(h.start());
-  open(h, SettingsPage::System);
-  SystemTab& tab = h.app.settings().system();
+  open(h, SettingsPage::Display);
+  DisplayTab& tab = h.app.settings().display();
   Prefs& prefs = *h.app.ui().prefs;
-  h.app.settings().scroll_to(150);
+  h.app.settings().scroll_to(10000);
   h.render();
-  CHECK(h.click(tab, SystemTab::IdleList));
-  CHECK(h.click(tab, SystemTab::IdleList + 3));
+  CHECK(h.click(tab, DisplayTab::IdleList));
+  CHECK(h.click(tab, DisplayTab::IdleList + 3));
   CHECK(prefs.get(pref::idle_minutes) == 60);
   prefs.set(pref::idle_minutes, 7);  // not a choice: taken as 30 minutes, as upstream does
   h.render();
-  CHECK(h.click(tab, SystemTab::IdleList));
-  CHECK(h.click(tab, SystemTab::IdleList + 2));  // already selected, so nothing changes
+  CHECK(h.click(tab, DisplayTab::IdleList));
+  CHECK(h.click(tab, DisplayTab::IdleList + 2));  // already selected, so nothing changes
   CHECK(prefs.get(pref::idle_minutes) == 7);
 }
 
@@ -292,7 +292,7 @@ void test_reset_goes_through_its_dialog() {
 void test_scrollbar_shows_on_scrolling_and_hides_after_a_pause() {
   UiHarness h;
   CHECK(h.start());
-  open(h, SettingsPage::System);
+  open(h, SettingsPage::Display);
   SettingsPanel& panel = h.app.settings();
   CHECK(!panel.scrollbar_shown());
   CHECK(panel.wake_at() == 0);
@@ -313,7 +313,7 @@ void test_scrollbar_shows_on_scrolling_and_hides_after_a_pause() {
 void test_scrollbar_stays_under_the_pointer() {
   UiHarness h;
   CHECK(h.start());
-  open(h, SettingsPage::System);
+  open(h, SettingsPage::Display);
   SettingsPanel& panel = h.app.settings();
   const Ui::Hit* track = h.app.ui().find_hit(&panel, SettingsPanel::Track);
   CHECK(track != nullptr);

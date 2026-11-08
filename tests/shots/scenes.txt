@@ -44,6 +44,7 @@ settings-display-pastel
 settings-display-on
 settings-display-tip
 settings-display-big
+settings-display-end
 settings-notify
 settings-notify-dark
 settings-notify-tip

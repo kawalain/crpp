@@ -182,15 +182,17 @@ void test_what_cannot_wait_acts_on_the_press(Look look) {
 
   // A list opens at once, and an option is picked when the button comes up on it.
   SettingsPanel& panel = h.app.settings();
-  panel.open(SettingsPage::System);
+  panel.open(SettingsPage::Display);
   if (std::ranges::contains(h.app.open_panes(), Pane::Options)) h.on_pane(Pane::Options);
   h.render();
-  SystemTab& system = panel.system();
+  panel.scroll_to(10000);
+  h.render();
+  DisplayTab& system = panel.display();
   std::string before = std::string(h.app.ui().prefs->get(pref::language));
-  down_on(system, SystemTab::LanguageList);
+  down_on(system, DisplayTab::LanguageList);
   h.app.mouse_cancel();
   h.render();
-  const Ui::Hit* option = h.app.ui().find_hit(&system, SystemTab::LanguageList + 3);
+  const Ui::Hit* option = h.app.ui().find_hit(&system, DisplayTab::LanguageList + 3);
   CHECK(option != nullptr);
   if (!option) return;
   const float x = option->rect.x + 2, y = option->rect.y + 2;

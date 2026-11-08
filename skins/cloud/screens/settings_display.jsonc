@@ -44,6 +44,18 @@
         ]}
       ]}
     ]},
-    {"report": "height", "value": "chat_top+sample_h+14+26+8+14+25"}
+
+    // Upstream's time and language sections, as they are on its system tab.
+    {"let": "time_top", "value": "label_y+26+8+14+32"},
+    {"text": "#system_time", "style": "heading", "color": "$hl_text", "x": 9, "y": "time_top", "w": "W-9", "h": 32},
+    {"use": "toggle", "text": "#system_24h", "x": 16, "y": "time_top+51", "w": 505, "h": 36, "args": {"on": "@use_24h", "hit": "hit('use_24h')"}},
+    {"text": "#system_idle", "style": "row_label", "color": "$hl_text", "x": 16, "y": "time_top+100", "w": 300, "h": 26},
+    {"slot": "idle_list", "x": 285, "y": "time_top+94", "w": 246, "h": 38},
+
+    {"let": "language_top", "value": "time_top+166"},
+    {"text": "#system_language", "style": "heading", "color": "$hl_text", "x": 9, "y": "language_top", "w": "W-9", "h": 32},
+    {"text": "#system_language_row", "style": "row_label", "color": "$hl_text", "x": 16, "y": "language_top+56", "w": 300, "h": 26},
+    {"slot": "language_list", "x": 285, "y": "language_top+50", "w": 246, "h": 38},
+    {"report": "height", "value": "language_top+50+38+25"}
   ]
 }

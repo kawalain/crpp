@@ -142,7 +142,20 @@ class DisplayTab final : public SettingsTab {
  public:
   explicit DisplayTab(Ui& ui);
   [[nodiscard]] static skin::ScreenSchema schema();
-  enum Id : int { SystemTheme = 1, ScaleSlider, ThemeCursor, ThemeList = 100, LightList = 110, DarkList = 120, SkinList = 130, SkinThemeList = 160, DarkModeList = 190 };
+  enum Id : int {
+    SystemTheme = 1,
+    ScaleSlider,
+    ThemeCursor,
+    Use24h,
+    ThemeList = 100,
+    LightList = 110,
+    DarkList = 120,
+    SkinList = 130,
+    SkinThemeList = 160,
+    DarkModeList = 190,
+    IdleList = 300,
+    LanguageList = 330
+  };
 
   // Asked whenever the tab comes on screen, for who the chat sample shows.
   std::function<void()> on_shown;
@@ -166,14 +179,19 @@ class DisplayTab final : public SettingsTab {
   void paint_pack(Painter& p, const skin::Screen& screen, Rect area);
   void paint_sample(Painter& p, Rect box, float zoom);
   [[nodiscard]] float chat_top() const;
+  [[nodiscard]] float time_top() const;
+  void sync_idle();
+  void sync_language();
 
   void choose_skin(int index);
   void choose_theme(int index);
   void choose_dark(int index);
   Dropdown theme_, light_, dark_;
   Dropdown skin_list_, skin_theme_, dark_mode_;
+  Dropdown idle_, language_;
   Rect list_rect_[6];
-  ToggleAnim system_anim_;
+  Rect idle_rect_, language_rect_;
+  ToggleAnim system_anim_, use_24h_anim_;
   Fade slider_tip_;
   Rect slider_;  // stage coordinates
   std::string sample_nick_, sample_emoji_;
@@ -217,7 +235,7 @@ class SystemTab final : public SettingsTab {
  public:
   explicit SystemTab(Ui& ui);
   [[nodiscard]] static skin::ScreenSchema schema();
-  enum Id : int { Autostart = 1, Tray, Detail, Use24h, Logging, OpenLogs, Reset, IdleList = 100, LanguageList = 200, ReleaseList = 300 };
+  enum Id : int { Autostart = 1, Tray, Detail, Logging, OpenLogs, Reset, ReleaseList = 300 };
 
   std::function<void()> on_open_logs;
 
@@ -234,12 +252,10 @@ class SystemTab final : public SettingsTab {
  private:
   void paint_luna(Painter& p, Rect area);
   void paint_pack(Painter& p, const skin::Screen& screen, Rect area);
-  void sync_idle();
-  void sync_language();
   void sync_release();
-  Dropdown idle_, language_, release_;
-  Rect idle_rect_, language_rect_, release_rect_;
-  std::array<ToggleAnim, 5> toggles_;
+  Dropdown release_;
+  Rect release_rect_;
+  std::array<ToggleAnim, 4> toggles_;
   Fade open_logs_, reset_;
 };
 

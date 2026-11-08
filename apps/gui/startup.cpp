@@ -251,7 +251,8 @@ Installed install(Shell& s, const InstallJob& job, const std::atomic<bool>& canc
       before += share;
       if (!done.result) break;
     }
-    if (cancel) {
+    // A Sound pack that failed goes back to the one before, so what arrived of it goes too.
+    if (cancel || (job.kind == InstallJob::Kind::Sound && !done.result)) {
       // Not wanted after all: the next start would otherwise finish it behind the app.
       for (const InstallPart& part : job.parts) {
         std::vector<std::string> going;

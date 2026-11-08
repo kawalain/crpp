@@ -24,7 +24,7 @@ bool apply_scene(Shell& s, std::string_view name) {
     return true;
   }
   return area::connection::scene(s, name) || area::home::scene(s, name) || area::room::scene(s, name) ||
-         area::sound::scene(s, name) || area::preferences::scene(s, name) || area::os::scene(s, name) ||
+         area::sound::scene(s, name) || area::preferences::scene(s, name) || area::repositories::scene(s, name) || area::os::scene(s, name) ||
          area::account::scene(s, name) || area::update::scene(s, name);
 }
 

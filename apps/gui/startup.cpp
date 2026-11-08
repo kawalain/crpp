@@ -178,24 +178,35 @@ struct Installed {
   std::optional<assets::Catalog> catalog;  // a newly fetched one, which the files now follow
   std::optional<assets::Catalog> offered;  // a newly read one, kept for the next start
   std::optional<assets::Error> offered_error;
+  std::vector<std::pair<std::string, assets::Catalog>> others;  // the latest of those the user added, by id
+  std::vector<assets::Error> other_errors;
   std::expected<void, assets::Error> result;
 };
 
 // On the worker thread. A first start fetches the catalog and follows it. A later one reads the
 // latest and keeps it for the start after, and meanwhile fetches what is missing of its own: a
-// file that is about to change may be open, as a font is. A pack picked in the display tab comes
-// from the latest, with what it extends.
+// file that is about to change may be open, as a font is. It reads the latest catalogs of the
+// Repositories the user added too. A pack picked in the display tab comes from the latest of its
+// Repository, with what it extends.
 Installed install(Shell& s, const InstallJob& job, const std::atomic<bool>& cancel,
                   const std::function<void(const assets::Progress&)>& progress) {
   assets::WindowsPlatform platform;
   Installed done;
-  std::string base = s.repository->url;
   if (job.kind == InstallJob::Kind::Pack) {
     std::vector<std::string> groups;
-    for (const std::string& id : assets::skin_chain(*s.offered, job.skin)) groups.push_back(assets::skin_group(id));
-    done.result = assets::install(*s.offered, base, groups, s.assets_dir, platform, progress, &cancel);
+    for (const std::string& id : assets::skin_chain(*job.catalog, job.pack)) groups.push_back(assets::skin_group(id));
+    done.result = assets::install(*job.catalog, job.base, groups, job.dir, platform, progress, &cancel);
     return done;
   }
+  for (const AddedRepository& other : job.others) {
+    auto fetched = assets::fetch_catalog(other.repository, platform);
+    if (fetched && assets::offers_only_packs(fetched->catalog) && assets::save_catalog(other.dir, fetched->text)) {
+      done.others.emplace_back(other.id, std::move(fetched->catalog));
+    } else {
+      done.other_errors.push_back(fetched ? assets::Error::BadContent : fetched.error());
+    }
+  }
+  std::string base = s.repository->url;
   const bool wait = job.kind == InstallJob::Kind::First;
   const assets::Catalog* catalog = s.catalog ? &*s.catalog : nullptr;
   auto fetched = assets::fetch_catalog(*s.repository, platform);
@@ -221,6 +232,15 @@ Installed install(Shell& s, const InstallJob& job, const std::atomic<bool>& canc
 
 // On the UI thread, once the worker has ended.
 void finish_install(Shell& s, const InstallJob& job, bool cancelled, Installed installed) {
+  // A Repository removed while its pack was coming goes now that nothing writes there.
+  for (const std::filesystem::path& dir : std::exchange(s.remove_after_install, {})) {
+    std::error_code ec;
+    std::filesystem::remove_all(dir, ec);
+  }
+  for (auto& [id, catalog] : installed.others) {
+    if (AddedRepository* added = area::repositories::of(s, id + "/")) added->catalog = std::move(catalog);
+  }
+  for (const assets::Error error : installed.other_errors) s.log.note(diag_of(error));
   if (job.kind == InstallJob::Kind::Pack) {
     area::preferences::pack_fetched(s, job.skin, cancelled, installed.result);
     return;
@@ -258,6 +278,7 @@ void run_install(Shell& s, InstallJob job) {
     };
     s.app.setup().on_quit = [&s] { DestroyWindow(s.hwnd); };
   }
+  if (job.kind == InstallJob::Kind::Behind) job.others = s.added;  // as they are now; the worker reads only its own
   s.install_running = job;
   s.install_cancel = std::make_shared<std::atomic<bool>>(false);
   s.assets_worker = std::thread([&s, job, cancel = s.install_cancel] {
@@ -302,10 +323,24 @@ void queue_install(Shell& s, InstallJob job) {
 void start_install(Shell& s, bool wait) { queue_install(s, {wait ? InstallJob::Kind::First : InstallJob::Kind::Behind, {}}); }
 
 bool fetch_pack(Shell& s, const std::string& skin) {
-  if (!s.repository || !s.offered || assets::skin_chain(*s.offered, skin).empty()) return false;
-  const auto same = [&](const InstallJob& job) { return job.kind == InstallJob::Kind::Pack && job.skin == skin; };
+  InstallJob job{.kind = InstallJob::Kind::Pack, .skin = skin};
+  if (AddedRepository* other = area::repositories::of(s, skin)) {
+    if (!other->catalog) return false;
+    job.catalog = std::make_shared<const assets::Catalog>(*other->catalog);
+    job.base = other->repository.url;
+    job.dir = other->dir;
+    job.pack = skin.substr(other->id.size() + 1);
+  } else {
+    if (!s.repository || !s.offered || skin.find('/') != std::string::npos) return false;
+    job.catalog = std::make_shared<const assets::Catalog>(*s.offered);
+    job.base = s.repository->url;
+    job.dir = s.assets_dir;
+    job.pack = skin;
+  }
+  if (assets::skin_chain(*job.catalog, job.pack).empty()) return false;
+  const auto same = [&](const InstallJob& queued) { return queued.kind == InstallJob::Kind::Pack && queued.skin == skin; };
   if ((s.install_running && same(*s.install_running) && !s.install_cancel->load()) || std::ranges::any_of(s.install_queue, same)) return true;
-  queue_install(s, {InstallJob::Kind::Pack, skin});
+  queue_install(s, std::move(job));
   return true;
 }
 

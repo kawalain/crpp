@@ -12,9 +12,11 @@
 #include <string_view>
 
 #include "crpp/assets/assets.hpp"
+#include "crpp/ui/app.hpp"
 
 namespace crpp::gui {
 struct Shell;
+struct AddedRepository;
 }  // namespace crpp::gui
 
 namespace crpp::gui::area {
@@ -83,6 +85,17 @@ void pref_changed(Shell& s, std::string_view key);
 // WM_SETTINGCHANGE: the OS's light or dark setting may have changed.
 void system_settings_changed(Shell& s);
 }  // namespace preferences
+
+namespace repositories {  // where Skins come from: the official Repository and those the user added
+// Reads those added from their folders. Before the packs are looked for.
+void load(Shell& s);
+// Where the packs are: the official ones, then each added Repository's.
+[[nodiscard]] std::vector<ui::App::SkinFolder> skin_folders(const Shell& s);
+// The Repository that offers this pack id, or null for the official one.
+[[nodiscard]] AddedRepository* of(Shell& s, std::string_view skin);
+void wire(Shell& s);
+[[nodiscard]] bool scene(Shell& s, std::string_view name);
+}  // namespace repositories
 
 namespace os {  // tray, chat notifications, taskbar flash, autostart, reopening
 // The registered message another start of the app posts to this window.

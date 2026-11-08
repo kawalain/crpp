@@ -93,6 +93,7 @@ void wire_areas(Shell& s) {
   area::room::wire(s);
   area::sound::wire(s);
   area::preferences::wire(s);
+  area::repositories::wire(s);
   area::os::wire(s);
   area::account::wire(s);
   area::update::wire(s);
@@ -164,6 +165,7 @@ int main(int argc, char** argv) {
   const bool assets_beside_exe = std::filesystem::exists(exe_dir() / "assets" / assets::catalog_name);
   shell.assets_dir = assets_beside_exe ? exe_dir() / "assets" : locations->protected_dir / "assets";
   shell.skins_dir = assets_beside_exe ? exe_dir() / "skins" : shell.assets_dir / "skins";
+  shell.repositories_dir = locations->protected_dir / "repositories";
   if (assets_beside_exe) {
     shell.catalog = assets::load_local_catalog(shell.assets_dir);
   } else if (shell.repository) {
@@ -197,7 +199,8 @@ int main(int argc, char** argv) {
   if (!skin_dir.empty()) {
     if (const auto loaded = shell.app.load_skin_dir(skin_dir); !loaded) return failed_to_start(loaded.error());
   } else if (std::string_view(argc >= 2 ? argv[1] : "") != "--shot") {  // a shot without --skin-dir is the C++ layouts, to compare with
-    (void)shell.app.find_skins(shell.skins_dir);
+    area::repositories::load(shell);
+    (void)shell.app.find_skins(area::repositories::skin_folders(shell));
   }
   if (shell.catalog) shell.app.ui().emoji_ids = assets::picker_emoji(*shell.catalog);
   std::time_t now = std::time(nullptr);
@@ -261,6 +264,6 @@ int main(int argc, char** argv) {
   area::update::shutdown(shell);
   // A blocked download may take long to give up, and files are only ever replaced whole,
   // so there is nothing to finish.
-  if (shell.assets_worker.joinable()) ExitProcess(0);
+  if (shell.assets_worker.joinable() || shell.repository_worker.joinable()) ExitProcess(0);
   return 0;
 }

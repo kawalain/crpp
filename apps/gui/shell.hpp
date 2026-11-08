@@ -139,14 +139,29 @@ struct MadeCursor {
 };
 
 // What the asset worker does, one at a time.
+// A Repository the user added (ADR 0008), known by its key.
+struct AddedRepository {
+  std::string id;       // the first digits of its key's fingerprint, before its packs' ids
+  std::string address;  // as the user typed it
+  assets::Repository repository;
+  std::filesystem::path dir;               // its catalog, its address and its packs
+  std::optional<assets::Catalog> catalog;  // the latest read
+};
+
 struct InstallJob {
   enum class Kind : std::uint8_t {
     First,   // a first start: the catalog and the default Skin, with the progress screen up
-    Behind,  // a later start: the latest catalog, and what is missing, behind the app
+    Behind,  // a later start: the latest catalogs, and what is missing, behind the app
     Pack     // a pack picked in the display tab, with what it extends
   };
   Kind kind = Kind::Behind;
-  std::string skin;  // Pack
+  std::string skin;  // Pack: as the display tab names it, with its Repository's digits for another one
+  // Pack: where it comes from and goes, taken when it was asked for.
+  std::shared_ptr<const assets::Catalog> catalog;
+  std::string base, pack;  // the Repository's folder, and its id there
+  std::filesystem::path dir;
+  // Behind: the Repositories the user added, whose latest catalogs are read too.
+  std::vector<AddedRepository> others;
 };
 
 struct Shell {
@@ -176,6 +191,10 @@ struct Shell {
   std::optional<InstallJob> install_running;
   std::shared_ptr<std::atomic<bool>> install_cancel;  // of the one running
   std::deque<InstallJob> install_queue;               // waiting for the worker
+  std::filesystem::path repositories_dir;  // those the user added, a folder each
+  std::vector<AddedRepository> added;
+  std::thread repository_worker;  // reads the catalog of one being added
+  std::vector<std::filesystem::path> remove_after_install;  // of a Repository removed while its pack was coming
   std::vector<std::string> expected_sounds;  // what the catalog promises, on disk or not
   std::filesystem::path data_dir;  // the Protected store's folder
   std::wstring data_override;      // --data, so a restart keeps it

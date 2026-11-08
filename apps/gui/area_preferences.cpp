@@ -145,30 +145,44 @@ void apply_language(Shell& s) {
 }
 
 void skins_installed(Shell& s) {
-  (void)s.app.find_skins(s.skins_dir);
+  (void)s.app.find_skins(repositories::skin_folders(s));
   apply_theme(s);
   offer_packs(s);
 }
 
-void offer_packs(Shell& s) {
-  std::vector<SkinInfo>& offered = s.app.ui().offered;
-  offered.clear();
-  if (!s.offered) return;
-  const auto& installed = s.app.ui().skins;
-  for (const assets::SkinPack& pack : s.offered->skins) {
-    if (pack.format != skin::pack_format || std::ranges::any_of(installed, [&](const SkinInfo& info) { return info.id == pack.id; })) continue;
-    SkinInfo info{.id = pack.id, .names = pack.names};
+namespace {
+
+// The packs of one Repository's catalog that are not installed, under the ids the display tab knows
+// them by: with the Repository's digits before them, unless it is the official one.
+void offer_from(const assets::Catalog& catalog, const std::filesystem::path& dir, const std::string& prefix, const std::vector<SkinInfo>& installed,
+                std::vector<SkinInfo>& offered) {
+  for (const assets::SkinPack& pack : catalog.skins) {
+    std::string id = prefix.empty() ? pack.id : prefix + "/" + pack.id;
+    if (pack.format != skin::pack_format || std::ranges::any_of(installed, [&](const SkinInfo& info) { return info.id == id; })) continue;
+    SkinInfo info{.id = std::move(id), .names = pack.names};
     std::vector<std::string> groups;
     // Its Themes, then those it inherits from what it extends.
-    for (const std::string& id : assets::skin_chain(*s.offered, pack.id)) {
-      groups.push_back(assets::skin_group(id));
-      for (const assets::CatalogTheme& theme : s.offered->skin(id)->themes) {
+    for (const std::string& chain_id : assets::skin_chain(catalog, pack.id)) {
+      groups.push_back(assets::skin_group(chain_id));
+      for (const assets::CatalogTheme& theme : catalog.skin(chain_id)->themes) {
         if (std::ranges::any_of(info.themes, [&](const skin::PackTheme& t) { return t.id == theme.id; })) continue;
         info.themes.push_back({.id = theme.id, .dark = theme.dark ? "dark" : "", .names = theme.names});  // only whether it has one
       }
     }
-    for (const assets::File* file : assets::missing(*s.offered, groups, s.assets_dir)) info.to_fetch += file->size;
+    for (const assets::File* file : assets::missing(catalog, groups, dir)) info.to_fetch += file->size;
     if (!info.themes.empty()) offered.push_back(std::move(info));
+  }
+}
+
+}  // namespace
+
+void offer_packs(Shell& s) {
+  std::vector<SkinInfo>& offered = s.app.ui().offered;
+  offered.clear();
+  const auto& installed = s.app.ui().skins;
+  if (s.offered) offer_from(*s.offered, s.assets_dir, {}, installed, offered);
+  for (const AddedRepository& added : s.added) {
+    if (added.catalog) offer_from(*added.catalog, added.dir, added.id, installed, offered);
   }
 }
 

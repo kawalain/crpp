@@ -26,6 +26,8 @@ The interface is in Korean and English. In these screenshots, the names and mess
 - **Accounts are optional:** join as a Guest, or sign in to get a unique `@handle`.
 - **Skins:** Cloud, the look of the official client, and Retro, in the look of the desktops of the
   1990s and early 2000s, with its own window and notification sounds. Pick a Theme of either Skin and a dark mode.
+- **Repositories:** a Skin is data, not code: a Skin Pack downloaded from a signed Repository, so a new
+  look needs no new release.
 - **Windows integration:** tray icon, chat notifications, taskbar flash and start with Windows.
 - **Light on resources:** native Win32 and Direct2D with no browser engine. While idle, the
   app draws nothing and doesn't poll.
@@ -79,6 +81,9 @@ Start the app:
 ```bat
 build-msvc\apps\gui\crpp.exe
 ```
+
+A release downloads the default Skin, the sounds and the emoji from the official Repository the
+first time it starts. A build of your own uses the files in its build folder and downloads nothing.
 
 On the first run it asks you to choose a nickname or sign in. Then, on the Home screen:
 

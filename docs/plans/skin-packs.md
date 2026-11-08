@@ -255,6 +255,26 @@ hands-on check of Cloud on a real desktop, 7 and 8.
   - Going ahead remembers the digest accepted, and asks again when the parent changes again. A held update stays held
     and the display tab says which child holds it back.
   - A pack that then fails to load keeps the current Skin, shows why, and logs the choice and the reason.
+- **6d, decided on 2026-11-09.**
+  - The pack line stays `pack aurora format 1 extends retro`, and a `parent` block after it pins the pack it
+    extends: `parent retro { repository "github:someone/skins" fingerprint "<64 hex>" version "0.3" sha256 "<64 hex>" }`.
+    The key is pinned by its fingerprint, the SHA-256 of the key the user sees when adding a Repository. Every
+    field is optional; a hash is quoted, as a bare one would start with a digit.
+  - A pack may say its version on the pack line, `version 0.2.1`, which the catalog tool copies into a
+    `skin-version` line. It is optional; a version pin on a parent without one does not hold. The official packs
+    are 0.1.0.
+  - A Repository is the one with that key: the address only adds it when no Repository of that fingerprint is
+    added, so one that moved is still found.
+  - `extends retro` without a fingerprint is the same Repository's pack, or else the official one's. A pin there
+    may still give a version or a sha256.
+  - The digest covers the parent's own group: a line `path size sha256` per file, sorted by path as bytes, joined
+    by LF. Its own parent pins its parent in turn. `crpp_catalog --digest <catalog.txt> <id>` prints it.
+  - A held update shows on the parent's row of the downloaded Skins in the system tab, where 6c put that list,
+    with a button to update anyway.
+  - Adding a Repository whose packs need another adds both from the one dialog. When the other cannot be read,
+    only the first is added; its packs that need the other show in the display tab as needing it and cannot be
+    picked, and the next start tries again.
+  - A chain may cross Repositories as often as it likes, within the four levels.
 - **6e, Sound packs of other Repositories.** The official Repository's are all fetched as now; others only when picked
   in the sound tab, listed from `sound` name lines as Themes are. A member's pack another lacks plays silently as the
   device's first pack, with no mark on the profile card: only the fingerprint and id travel, not an address.

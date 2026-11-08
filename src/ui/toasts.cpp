@@ -48,12 +48,6 @@ void Toasts::bubble(Rect anchor, std::string text, float gap, unsigned long long
   ++bubbles_;
 }
 
-void Toasts::clear() {
-  toast_ = {};
-  bubble_ = {};
-  on_action_ = nullptr;
-}
-
 void Toasts::paint(Painter& p) {
   p.set_base(D2D1::Matrix3x2F::Identity());
   if (toast_.active()) paint_toast(p);

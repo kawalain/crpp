@@ -44,7 +44,6 @@ class WindowFrame final : public Surface {
   void set_menu_shown(bool shown) { menu_shown_ = shown; }
   void set_parts(Parts parts) { parts_ = parts; }
   void set_in_room(bool in_room) { in_room_ = in_room; }
-  [[nodiscard]] bool menu_open() const { return open_ >= 0; }
 
   void paint(Painter& p);
   // The open menu, over everything else.

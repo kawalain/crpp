@@ -67,7 +67,6 @@ class SettingsPanel final : public Surface {
   [[nodiscard]] SettingsTab& tab_of(SettingsPage page);
   [[nodiscard]] const SettingsTab& tab() const { return const_cast<SettingsPanel*>(this)->tab(); }
   void paint_pack(Painter& p, const skin::Screen& screen);
-  [[nodiscard]] static const char* locale::Strings::*tab_name(std::size_t index);
   void watch_scrollbar();
   void reset_scrollbar();
 

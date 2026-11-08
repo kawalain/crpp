@@ -11,7 +11,8 @@
   "main": "worker/redirect.js",
   // The address the program knows. A custom domain, so the Worker can move without a release.
   "routes": [{"pattern": "crpp.kawala.in", "custom_domain": true}],
-  "workers_dev": true,
+  // Only that address: the workers.dev one is off, so there is one place to look.
+  "workers_dev": false,
   "preview_urls": false,
   "send_metrics": false,
   "assets": {

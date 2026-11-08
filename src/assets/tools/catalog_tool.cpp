@@ -1,10 +1,12 @@
 // Writes a Repository's catalog, unsigned, from this repository's folders:
 //
-//   crpp_catalog <out-dir> --remote <remote_assets.txt> [--assets <dir>] [--skins <dir>]
+//   crpp_catalog <out-dir> --remote <remote_assets.txt> [--assets <dir>] [--skins <dir>] [--sounds <dir>]
 //                [--ref <git ref>] [--default-skin <id>] [--key <hex>] [--copy <cache dir>]
 //
 // --assets lists its files in the shared group, --skins each folder with a pack.cskin as a
-// Skin Pack, and --remote the third-party files with the sources they come from. --ref names
+// Skin Pack, --sounds each <kind>/<id>/ with a pack.json as a Sound pack of its own group, and
+// --remote the third-party files with the sources they come from. Every Sound pack, of --assets
+// or --sounds, gets a sound line with the names of its pack.json. --ref names
 // the commit or tag at which raw.githubusercontent.com serves this repository's files, the
 // second source of each. --copy also puts every file in <out-dir>, the third-party ones from
 // that cache, so that the folder can be served as it is. Signing is a separate step
@@ -61,7 +63,7 @@ assets::Names names_of(const Json* names) {
 }
 
 struct Options {
-  fs::path out, remote, assets, skins, copy;
+  fs::path out, remote, assets, skins, sounds, copy;
   std::string ref, default_skin, key;
 };
 
@@ -74,6 +76,7 @@ std::optional<Options> parse_options(int argc, char** argv) {
     if (name == "--remote") options.remote = value;
     else if (name == "--assets") options.assets = value;
     else if (name == "--skins") options.skins = value;
+    else if (name == "--sounds") options.sounds = value;
     else if (name == "--copy") options.copy = value;
     else if (name == "--ref") options.ref = value;
     else if (name == "--default-skin") options.default_skin = value;
@@ -157,6 +160,30 @@ class Writer {
       const std::string prefix = "skins/" + skin.id + "/";
       catalog_.skins.push_back(skin);
       if (!add_local(folder, prefix, assets::skin_group(skin.id), prefix)) return false;
+    }
+    return true;
+  }
+
+  // Each <kind>/<id>/pack.json under a sounds folder: a sound line with its names. With a group,
+  // the pack's files are listed in it, as another Repository's are.
+  bool add_sounds(const fs::path& root, bool own_groups) {
+    for (const char* kind : {"keyboard", "mouse", "pen"}) {
+      std::vector<fs::path> folders;
+      std::error_code ec;
+      for (const auto& item : fs::directory_iterator(root / kind, ec)) {
+        if (item.is_directory() && fs::exists(item.path() / "pack.json")) folders.push_back(item.path());
+      }
+      std::ranges::sort(folders);
+      for (const fs::path& folder : folders) {
+        const std::string id = generic(folder.filename());
+        if (!assets::is_id(id)) return fail("a Sound pack's folder is not an id: " + generic(folder));
+        const auto text = read_text(folder / "pack.json");
+        const auto json = text ? Json::parse(*text) : std::unexpected(store::JsonError::Syntax);
+        if (!json) return fail("cannot read " + generic(folder / "pack.json"));
+        if (!catalog_.sound(id)) catalog_.sounds.push_back({id, names_of(json->find("name"))});
+        const std::string prefix = "sounds/" + std::string(kind) + "/" + id + "/";
+        if (own_groups && !add_local(folder, prefix, assets::sound_group(id), prefix)) return false;
+      }
     }
     return true;
   }
@@ -295,7 +322,7 @@ int main(int argc, char** argv) {
   if (argc == 4 && std::string_view(argv[1]) == "--digest") return digest(argv);
   const auto options = parse_options(argc, argv);
   if (!options) {
-    std::fprintf(stderr, "usage: crpp_catalog <out-dir> --remote <file> [--assets <dir>] [--skins <dir>] [--ref <ref>] "
+    std::fprintf(stderr, "usage: crpp_catalog <out-dir> --remote <file> [--assets <dir>] [--skins <dir>] [--sounds <dir>] [--ref <ref>] "
                          "[--default-skin <id>] [--key <hex>] [--copy <cache dir>]\n"
                          "       crpp_catalog --verify <catalog.txt> [--key <hex>]\n"
                          "       crpp_catalog --digest <catalog.txt> <skin id>\n");
@@ -306,5 +333,7 @@ int main(int argc, char** argv) {
   if (!writer.add_remote()) return 1;
   if (!options->assets.empty() && !writer.add_local(options->assets, "", "shared", "assets/")) return 1;
   if (!options->skins.empty() && !writer.add_skins()) return 1;
+  if (!options->assets.empty() && !writer.add_sounds(options->assets / "sounds", false)) return 1;
+  if (!options->sounds.empty() && !writer.add_sounds(options->sounds, true)) return 1;
   return writer.finish();
 }

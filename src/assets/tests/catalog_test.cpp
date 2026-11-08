@@ -86,7 +86,7 @@ void refuses_what_is_not_a_catalog() {
 }
 
 void skips_lines_of_a_later_kind() {
-  const auto catalog = parse_catalog(head + "nonsense\nskin a 1\nsound-name x ko 소리\n");
+  const auto catalog = parse_catalog(head + "nonsense\nskin a 1\nsound-volume x 3\n");
   CHECK(catalog && catalog->skins.size() == 1);
 }
 
@@ -176,13 +176,19 @@ void an_address_names_a_folder() {
 
 void another_repository_offers_only_packs() {
   Catalog catalog;
-  catalog.files = {{.group = "skin:aurora", .path = "skins/aurora/pack.cskin"}, {.group = "sound:soft", .path = "sounds/soft/a.wav"}};
+  catalog.files = {{.group = "skin:aurora", .path = "skins/aurora/pack.cskin"}, {.group = "sound:soft", .path = "sounds/keyboard/soft/a.wav"},
+                   {.group = "sound:soft", .path = "sounds/mouse/soft/left.wav"}};
   CHECK(offers_only_packs(catalog));
+  CHECK((sound_kinds(catalog, "soft") == std::vector<std::string>{"keyboard", "mouse"}));
+  catalog.files.push_back({.group = "sound:soft", .path = "sounds/soft/a.wav"});  // no kind
+  CHECK(!offers_only_packs(catalog));
+  catalog.files.back() = {.group = "sound:soft", .path = "sounds/drum/soft/a.wav"};
+  CHECK(!offers_only_packs(catalog));
   catalog.files.push_back({.group = "skin:aurora", .path = "skins/other/pack.cskin"});
   CHECK(!offers_only_packs(catalog));
   catalog.files.back() = {.group = "shared", .path = "emoji/a.svg"};
   CHECK(!offers_only_packs(catalog));
-  catalog.files.back() = {.group = "sound:soft", .path = "sounds/softer/a.wav"};
+  catalog.files.back() = {.group = "sound:soft", .path = "sounds/keyboard/softer/a.wav"};
   CHECK(!offers_only_packs(catalog));
 }
 
@@ -218,6 +224,19 @@ void reads_versions_and_parents() {
   refuses(skins + "parent a c colour red\n", 5);
   refuses(skins + "parent a c version 0.1 version 0.2\n", 5);
   refuses(skins + "parent a c\nparent a c\n", 6);
+}
+
+void reads_sound_packs() {
+  const std::string text = head + "sound soft\nsound-name soft ko 부드러운 소리\nsound-name soft en Soft\nsound plain\n" +
+                           file_line("sound:soft", "sounds/keyboard/soft/a.wav");
+  const auto catalog = parse_catalog(text);
+  CHECK(catalog && catalog->sounds.size() == 2 && catalog->sound("soft") && !catalog->sound("none"));
+  CHECK(catalog && catalog->sound("soft")->names.size() == 2 && catalog->sound("soft")->names[0].second == "부드러운 소리");
+  CHECK(catalog && write_catalog(*catalog) == text);
+  refuses(head + "sound soft\nsound soft\n", 4);
+  refuses(head + "sound Soft\n", 3);
+  refuses(head + "sound-name soft ko 소리\n", 3);
+  refuses(head + "sound soft\nsound-name soft ko\n", 4);
 }
 
 void a_version_holds_to_a_pin() {
@@ -258,6 +277,7 @@ int main() {
   another_repository_offers_only_packs();
   reads_versions_and_parents();
   a_version_holds_to_a_pin();
+  reads_sound_packs();
   a_digest_lists_the_packs_own_files();
   return crpp_test_result();
 }

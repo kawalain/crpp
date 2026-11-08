@@ -20,6 +20,8 @@ foreach(expected
     "\ntheme cloud pastel\n"
     "\ntheme-name retro luna_blue en Luna Blue\n"
     "\ndefault-skin cloud\n"
+    "\nsound plastic\nsound-name plastic ko 플라스틱\nsound-name plastic en Plastic\n"
+    "\nsound paper\n"
     "\nfile skin:cloud fonts/PretendardGOVVariable.ttf 13386352 "
     "\nfile skin:cloud skins/cloud/pack.cskin "
     "\nfile shared words/animals.txt "

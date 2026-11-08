@@ -15,6 +15,8 @@
 //   theme <skin> <id> [dark]                   a Theme it offers, and whether it has a dark variant
 //   theme-name <skin> <theme> <locale> <words>
 //   default-skin <id>
+//   sound <id>                                 a Sound pack, of one or more kinds
+//   sound-name <sound> <locale> <words>        what a user calls it, for packs not installed
 //   file <group> <path> <size> <sha256> [from <source> <remote>] [nopick]
 //   signature <128 lowercase hex>              covers every byte before its line
 // The first two lines come first, the signature last; the others in any order, a source
@@ -72,6 +74,12 @@ struct ParentPin {
   std::string sha256;       // own_digest of it, or empty
 };
 
+// A Sound pack: its files are sounds/<kind>/<id>/ for each kind it has, keyboard, mouse or pen.
+struct SoundPack {
+  std::string id;
+  Names names;
+};
+
 struct SkinPack {
   std::string id;
   int format = 0;
@@ -92,12 +100,14 @@ struct Catalog {
   std::vector<SourceUrl> sources;
   std::vector<SkinPack> skins;
   std::string default_skin;
+  std::vector<SoundPack> sounds;
   std::vector<File> files;
   std::optional<update::Signature> signature;
   std::size_t signed_bytes = 0;  // how much of the text the signature covers
 
   [[nodiscard]] const SourceUrl* source(std::string_view name) const;
   [[nodiscard]] const SkinPack* skin(std::string_view id) const;
+  [[nodiscard]] const SoundPack* sound(std::string_view id) const;
 };
 
 // The line and what is wrong with it, for the diagnostic log and the tool.
@@ -143,5 +153,10 @@ struct CatalogError {
 
 // The Sound pack files, relative to the sounds folder.
 [[nodiscard]] std::vector<std::string> sound_files(const Catalog& catalog);
+
+// The group of a Sound pack's files.
+[[nodiscard]] std::string sound_group(std::string_view id);
+// The kinds a Sound pack has files of: "keyboard", "mouse" or "pen", in that order.
+[[nodiscard]] std::vector<std::string> sound_kinds(const Catalog& catalog, std::string_view id);
 
 }  // namespace crpp::assets

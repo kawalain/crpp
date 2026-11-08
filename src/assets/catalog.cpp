@@ -99,6 +99,8 @@ bool is_url(std::string_view s) {
   return s.starts_with("http://") && is_local_host(s.substr(7));
 }
 
+constexpr std::string_view sound_kind_names[] = {"keyboard", "mouse", "pen"};
+
 bool is_group(std::string_view s) {
   if (s == "shared") return true;
   if (s.starts_with("skin:")) return is_id(s.substr(5));
@@ -143,6 +145,11 @@ const SourceUrl* Catalog::source(std::string_view name) const {
 const SkinPack* Catalog::skin(std::string_view id) const {
   const auto it = std::ranges::find(skins, id, &SkinPack::id);
   return it == skins.end() ? nullptr : &*it;
+}
+
+const SoundPack* Catalog::sound(std::string_view id) const {
+  const auto it = std::ranges::find(sounds, id, &SoundPack::id);
+  return it == sounds.end() ? nullptr : &*it;
 }
 
 const CatalogTheme* SkinPack::theme(std::string_view theme_id) const {
@@ -246,6 +253,16 @@ std::expected<Catalog, CatalogError> parse_catalog(std::string_view text) {
       if (!theme || !is_id(f[3]) || !words) return fail("a theme-name is a theme listed above, a locale and words");
       if (has_name(theme->names, f[3])) return fail("a second name in that locale");
       theme->names.emplace_back(f[3], *words);
+    } else if (f[0] == "sound") {
+      if (f.size() != 2 || !is_id(f[1])) return fail("a sound is an id");
+      if (catalog.sound(f[1])) return fail("a second sound of that id");
+      catalog.sounds.push_back({std::string(f[1]), {}});
+    } else if (f[0] == "sound-name") {
+      const auto it = f.size() >= 4 ? std::ranges::find(catalog.sounds, f[1], &SoundPack::id) : catalog.sounds.end();
+      const auto words = words_after(line, 3);
+      if (it == catalog.sounds.end() || !is_id(f[2]) || !words) return fail("a sound-name is a sound listed above, a locale and words");
+      if (has_name(it->names, f[2])) return fail("a second name in that locale");
+      it->names.emplace_back(f[2], *words);
     } else if (f[0] == "default-skin") {
       if (f.size() != 2 || !is_id(f[1]) || !catalog.default_skin.empty()) return fail("one default skin, by id");
       catalog.default_skin = f[1];
@@ -319,6 +336,10 @@ std::string write_catalog(const Catalog& catalog) {
     }
   }
   if (!catalog.default_skin.empty()) text += "default-skin " + catalog.default_skin + "\n";
+  for (const SoundPack& sound : catalog.sounds) {
+    text += "sound " + sound.id + "\n";
+    for (const auto& [locale, words] : sound.names) text += "sound-name " + sound.id + " " + locale + " " + words + "\n";
+  }
   for (const File& file : catalog.files) {
     text += "file " + file.group + " " + file.path + " " + std::to_string(file.size) + " " + file.sha256;
     if (!file.source.empty()) text += " from " + file.source + " " + file.remote;
@@ -378,7 +399,10 @@ bool offers_only_packs(const Catalog& catalog) {
   return std::ranges::all_of(catalog.files, [](const File& file) {
     const std::string_view group = file.group;
     if (group.starts_with("skin:")) return file.path.starts_with("skins/" + std::string(group.substr(5)) + "/");
-    if (group.starts_with("sound:")) return file.path.starts_with("sounds/" + std::string(group.substr(6)) + "/");
+    if (group.starts_with("sound:")) {
+      const std::string id = "/" + std::string(group.substr(6)) + "/";
+      return std::ranges::any_of(sound_kind_names, [&](std::string_view kind) { return file.path.starts_with("sounds/" + std::string(kind) + id); });
+    }
     return false;
   });
 }
@@ -418,6 +442,17 @@ std::vector<std::string> picker_emoji(const Catalog& catalog) {
   std::ranges::sort(made);
   unicode.insert(unicode.end(), made.begin(), made.end());
   return unicode;
+}
+
+std::string sound_group(std::string_view id) { return "sound:" + std::string(id); }
+
+std::vector<std::string> sound_kinds(const Catalog& catalog, std::string_view id) {
+  std::vector<std::string> kinds;
+  for (const std::string_view kind : sound_kind_names) {
+    const std::string folder = "sounds/" + std::string(kind) + "/" + std::string(id) + "/";
+    if (std::ranges::any_of(catalog.files, [&](const File& file) { return file.path.starts_with(folder); })) kinds.emplace_back(kind);
+  }
+  return kinds;
 }
 
 std::vector<std::string> sound_files(const Catalog& catalog) {

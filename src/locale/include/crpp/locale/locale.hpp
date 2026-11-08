@@ -239,6 +239,7 @@ struct Strings {
   const char* repository_reason_known;
   const char* repository_add_question;
   const char* repository_add_pack;
+  const char* repository_add_sound;
   const char* repository_add_nothing;
   const char* repository_add_also;
   const char* repository_add_unreadable;
@@ -246,6 +247,7 @@ struct Strings {
   const char* repository_remove_question;
   const char* repository_in_use;
   const char* repository_needed;
+  const char* repository_sound_in_use;
   const char* system_packs;
   const char* system_pack_detail;
   const char* system_pack_official;
@@ -253,10 +255,13 @@ struct Strings {
   const char* system_pack_in_use;
   const char* system_pack_default;
   const char* system_pack_needed;
+  const char* system_pack_sound;
   const char* system_pack_held;
   const char* system_pack_update;
   const char* pin_update_question;
   const char* pack_remove_question;
+  const char* sound_remove_question;
+  const char* sound_fetch_failed;
   const char* display_general;
   const char* display_chat_size;
   const char* display_chat_sample;

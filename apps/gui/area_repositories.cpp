@@ -2,6 +2,7 @@
 // in the system tab. Each added one has a folder named by the first digits of its key's
 // fingerprint, holding its catalog, the address it was added by and its packs.
 #include <algorithm>
+#include <array>
 #include <fstream>
 
 #include "areas.hpp"
@@ -18,6 +19,8 @@ namespace {
 
 // What the user typed, then the folder it names.
 constexpr const wchar_t* address_name = L"address.txt";
+// Before a Sound pack's id among the system tab's rows, which are Skins otherwise.
+constexpr std::string_view sound_mark = "sound:";
 
 std::string short_id(std::string_view fingerprint) { return std::string(fingerprint.substr(0, assets::short_fingerprint)); }
 
@@ -80,6 +83,14 @@ std::string offer_text(const assets::Catalog& catalog) {
     if (!lines.empty()) lines += '\n';
     lines += locale::fill(tr().repository_add_pack, {std::string(name_in(pack.names, locale, pack.id)), megabytes(bytes)});
   }
+  for (const assets::SoundPack& pack : catalog.sounds) {
+    std::uint64_t bytes = 0;
+    for (const assets::File& file : catalog.files) {
+      if (file.group == assets::sound_group(pack.id)) bytes += file.size;
+    }
+    if (!lines.empty()) lines += '\n';
+    lines += locale::fill(tr().repository_add_sound, {std::string(name_in(pack.names, locale, pack.id)), megabytes(bytes)});
+  }
   return lines.empty() ? std::string(tr().repository_add_nothing) : lines;
 }
 
@@ -96,6 +107,12 @@ bool write_address(const fs::path& dir, const std::string& typed, const std::str
 void changed(Shell& s) {
   show_rows(s);
   preferences::skins_installed(s);
+  sound::packs_changed(s);
+}
+
+// The Sound pack id each device uses.
+std::array<std::string, 3> sounds_in_use(const Shell& s) {
+  return {s.prefs->get(pref::keyboard_sound), s.prefs->get(pref::mouse_sound), s.prefs->get(pref::pen_sound)};
 }
 
 bool known(const Shell& s, std::string_view fingerprint) {
@@ -208,6 +225,10 @@ void remove(Shell& s, const std::string& id) {
     s.app.toasts().toast(tr().repository_in_use);
     return;
   }
+  if (std::ranges::any_of(sounds_in_use(s), [&](const std::string& id) { return id.starts_with(prefix); })) {
+    s.app.toasts().toast(tr().repository_sound_in_use);
+    return;
+  }
   // Nor one whose packs another Repository's installed pack extends.
   const auto all = shelves(s);
   const std::size_t shelf = 1 + static_cast<std::size_t>(it - s.added.begin());
@@ -220,7 +241,8 @@ void remove(Shell& s, const std::string& id) {
     }
   }
   const auto of_it = [&](const InstallJob& job) {
-    return (job.kind == InstallJob::Kind::Pack || job.kind == InstallJob::Kind::Remove) && job.skin.starts_with(prefix);
+    return (job.kind == InstallJob::Kind::Pack || job.kind == InstallJob::Kind::Remove || job.kind == InstallJob::Kind::Sound) &&
+           job.skin.starts_with(prefix);
   };
   std::erase_if(s.install_queue, of_it);
   if (ThemeFetch& fetch = s.app.ui().theme_fetch; fetch.skin.starts_with(prefix)) fetch = {};
@@ -391,6 +413,24 @@ void show_packs(Shell& s) {
                     hold != s.holds.end()});
     s.listed_packs.push_back(info.id);
   }
+  // Then the Sound packs fetched from the added Repositories; those of the official one all stay.
+  const auto in_use = sounds_in_use(s);
+  for (const AddedRepository& added : s.added) {
+    if (!added.catalog) continue;
+    const auto installed = assets::kept_groups(*added.catalog, added.dir);
+    for (const assets::SoundPack& pack : added.catalog->sounds) {
+      if (std::ranges::find(installed, assets::sound_group(pack.id)) == installed.end()) continue;
+      const std::string id = added.id + "/" + pack.id;
+      std::uint64_t bytes = 0;
+      for (const assets::File& file : added.catalog->files) {
+        if (file.group == assets::sound_group(pack.id)) bytes += file.size;
+      }
+      const bool used = std::ranges::find(in_use, id) != in_use.end();
+      rows.push_back({locale::fill(tr().system_pack_sound, {std::string(name_in(pack.names, locale, pack.id))}),
+                      locale::fill(tr().system_pack_detail, {megabytes(bytes), used ? std::string(tr().system_pack_in_use) : added.address}), !used});
+      s.listed_packs.push_back(std::string(sound_mark) + id);
+    }
+  }
   s.app.settings().system().set_packs(std::move(rows));
 }
 
@@ -461,6 +501,12 @@ void wire(Shell& s) {
   tab.on_remove_pack = [sp](std::size_t index) {
     if (index >= sp->listed_packs.size()) return;
     const std::string id = sp->listed_packs[index];
+    if (id.starts_with(sound_mark)) {
+      const std::string sound = id.substr(sound_mark.size());
+      sp->app.dialogs().show({locale::fill(tr().sound_remove_question, {sound::pack_name(*sp, sound)}), tr().system_pack_remove, tr().cancel, false,
+                              [sp, sound] { remove_sound(*sp, sound); }, nullptr});
+      return;
+    }
     const std::string name(sp->app.settings().system().packs()[index].name);
     sp->app.dialogs().show({locale::fill(tr().pack_remove_question, {name}), tr().system_pack_remove, tr().cancel, false,
                             [sp, id] { remove_pack(*sp, id); }, nullptr});

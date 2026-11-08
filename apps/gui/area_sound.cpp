@@ -1,3 +1,4 @@
+#include <array>
 #include <atomic>
 #include <memory>
 #include <vector>
@@ -14,6 +15,8 @@ namespace crpp::gui::area::sound {
 
 struct State {
   MemberVolumes volumes;
+  // What each device last had that was in place: where a pack that cannot be fetched goes back to.
+  std::array<std::string, 3> settled;
   crpp::sound::IdleWatch idle;
   bool in_room = false;
   bool packs_listed = false;
@@ -92,16 +95,64 @@ void sync_idle(Shell& s) {
   idle_changed(s, was_idle);
 }
 
+// --- the packs of the Repositories the user added ---
+
+constexpr std::array<const ui::pref::Text*, 3> pack_keys{&pref::keyboard_sound, &pref::mouse_sound, &pref::pen_sound};
+constexpr std::array<const char*, 3> kind_names{"keyboard", "mouse", "pen"};
+
+// Installed, or on its way, whose files the engine may expect.
+bool in_use_here(const Shell& s, const AddedRepository& added, const std::vector<std::string>& installed, std::string_view id) {
+  return std::ranges::find(installed, assets::sound_group(id)) != installed.end() || sound_coming(s, added.id + "/" + std::string(id));
+}
+
+std::vector<crpp::sound::PackRoot> added_roots(const Shell& s) {
+  std::vector<crpp::sound::PackRoot> roots;
+  for (const AddedRepository& added : s.added) {
+    crpp::sound::PackRoot root{added.dir / "sounds", added.id, {}};
+    if (added.catalog) {
+      const auto installed = assets::kept_groups(*added.catalog, added.dir);
+      for (const assets::File& file : added.catalog->files) {
+        if (!file.group.starts_with("sound:") || !file.path.starts_with("sounds/")) continue;
+        if (in_use_here(s, added, installed, std::string_view(file.group).substr(6))) root.expected.push_back(file.path.substr(7));
+      }
+    }
+    roots.push_back(std::move(root));
+  }
+  return roots;
+}
+
 // --- the tab's lists ---
 
 // False if there were none, as before the assets are in place.
 bool list_packs(Shell& s) {
   using crpp::sound::Device;
-  const auto catalog = crpp::sound::Catalog::scan(s.assets_dir / "sounds", s.expected_sounds, locale::current().id);
+  std::vector<crpp::sound::PackRoot> roots{{s.assets_dir / "sounds", {}, s.expected_sounds}};
+  for (auto& root : added_roots(s)) roots.push_back(std::move(root));
+  const auto catalog = crpp::sound::Catalog::scan(roots, locale::current().id);
+  // Then those of the added Repositories not installed, with what fetching them takes.
+  const std::string_view locale = locale::current().id;
+  std::array<std::vector<SoundChoice>, 3> offered;
+  for (const AddedRepository& added : s.added) {
+    if (!added.catalog) continue;
+    const auto installed = assets::kept_groups(*added.catalog, added.dir);
+    for (const assets::SoundPack& pack : added.catalog->sounds) {
+      if (in_use_here(s, added, installed, pack.id)) continue;
+      std::uint64_t bytes = 0;
+      for (const assets::File& file : added.catalog->files) {
+        if (file.group == assets::sound_group(pack.id)) bytes += file.size;
+      }
+      const std::string label = locale::fill(tr().display_theme_fetch, {std::string(name_in(pack.names, locale, pack.id)), megabytes(bytes)});
+      for (const std::string& kind : assets::sound_kinds(*added.catalog, pack.id)) {
+        const auto at = std::ranges::find(kind_names, kind);
+        if (at != kind_names.end()) offered[static_cast<std::size_t>(at - kind_names.begin())].push_back({added.id + "/" + pack.id, label});
+      }
+    }
+  }
   SoundTab& tab = s.app.settings().sound();
   const auto set = [&](SoundDevice to, Device from) {
     std::vector<SoundChoice> choices;
     for (auto& pack : catalog.choices(from)) choices.push_back({std::move(pack.id), std::move(pack.name)});
+    for (SoundChoice& more : offered[static_cast<std::size_t>(to)]) choices.push_back(std::move(more));
     tab.set_packs(to, std::move(choices));
   };
   set(SoundDevice::Keyboard, Device::Keyboard);
@@ -141,6 +192,40 @@ void tab_shown(Shell& s) {
 
 void language_changed(Shell& s) { s.sound_state->packs_listed = false; }
 
+void packs_changed(Shell& s) {
+  s.engine->set_added(added_roots(s));
+  if (!s.sound_state) return;
+  s.sound_state->packs_listed = false;
+  auto& panel = s.app.settings();
+  if (panel.is_open() && panel.page() == SettingsPage::Sound) s.sound_state->packs_listed = list_packs(s);
+}
+
+std::string pack_name(const Shell& s, std::string_view id) {
+  const auto at = repositories::place(s, id);
+  if (!at || at->first == 0) return std::string(id);
+  const AddedRepository& added = s.added[at->first - 1];
+  const assets::SoundPack* pack = added.catalog ? added.catalog->sound(at->second) : nullptr;
+  return pack ? std::string(name_in(pack->names, locale::current().id, pack->id)) : std::string(at->second);
+}
+
+void pack_fetched(Shell& s, const std::string& id, const std::expected<void, assets::Error>& result) {
+  for (std::size_t i = 0; i < pack_keys.size(); ++i) {
+    if (s.prefs->get(*pack_keys[i]) != id) continue;
+    if (result) {
+      s.sound_state->settled[i] = id;
+    } else {
+      // Back to what was in place, which sets the key again.
+      s.prefs->set(*pack_keys[i], s.sound_state->settled[i]);
+    }
+  }
+  if (!result) {
+    s.log.note(DiagEvent::SoundNotFetched, id);
+    s.app.toasts().toast(locale::fill(tr().sound_fetch_failed, {pack_name(s, id)}));
+  }
+  packs_changed(s);
+  repositories::show_packs(s);
+}
+
 void wire(Shell& s) {
   Shell* sp = &s;
   s.sound_state = std::make_shared<State>();
@@ -150,6 +235,8 @@ void wire(Shell& s) {
 
   // main.cpp read most of these for the first sound; here comes the rest.
   apply(s);
+  for (std::size_t i = 0; i < pack_keys.size(); ++i) state.settled[i] = s.prefs->get(*pack_keys[i]);
+  s.engine->set_added(added_roots(s));
   s.app.room().set_volume(s.audio.volume);
 
   s.app.room().on_mute = [sp](bool muted) {
@@ -219,7 +306,21 @@ void pref_changed(Shell& s, std::string_view key) {
   if (!is_sound_key(key)) return;
   apply(s);
   if (key == pref::volume.name) s.app.room().set_volume(s.audio.volume);
-  if (is_pack_key(key)) tell_server_my_sounds(s);
+  if (is_pack_key(key)) {
+    // One of an added Repository not installed comes now; meanwhile stand-ins play for it. One in
+    // place is where a failure goes back to.
+    for (std::size_t i = 0; i < pack_keys.size(); ++i) {
+      if (key != pack_keys[i]->name) continue;
+      const std::string id = s.prefs->get(*pack_keys[i]);
+      const auto at = repositories::place(s, id);
+      const AddedRepository* added = at && at->first > 0 ? &s.added[at->first - 1] : nullptr;
+      const std::string group[] = {assets::sound_group(at ? at->second : std::string())};
+      const bool missing = added && added->catalog && added->catalog->sound(at->second) && !assets::missing(*added->catalog, group, added->dir).empty();
+      if (missing && fetch_sound(s, id)) packs_changed(s);
+      else if (!missing) s.sound_state->settled[i] = id;
+    }
+    tell_server_my_sounds(s);
+  }
   save_soon(s);
 }
 

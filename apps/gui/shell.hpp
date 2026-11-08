@@ -172,10 +172,11 @@ struct InstallJob {
     First,   // a first start: the catalog and the default Skin, with the progress screen up
     Behind,  // a later start: the latest catalogs, and what changed of what is installed, behind the app
     Pack,    // a pack picked in the display tab, with what it extends
-    Remove   // a pack the user removed in the system tab
+    Remove,  // a pack the user removed in the system tab
+    Sound    // a Sound pack of another Repository, picked in the sound tab
   };
   Kind kind = Kind::Behind;
-  std::string skin;  // Pack and Remove: as the display tab names it, with its Repository's digits for another one
+  std::string skin;  // Pack, Remove and Sound: as settings name it, with its Repository's digits for another one
   // Remove: where it goes from, taken when it was asked for, and the groups that go.
   std::shared_ptr<const assets::Catalog> catalog;
   std::filesystem::path dir;
@@ -279,6 +280,12 @@ bool fetch_pack(Shell& s, const std::string& skin);
 void cancel_pack(Shell& s, const std::string& skin);
 // Removes an installed pack's files, in turn with whatever is being fetched.
 void remove_pack(Shell& s, const std::string& skin);
+// Queues a Sound pack of an added Repository, unless it is queued or on its way. False when no
+// Repository offers it.
+bool fetch_sound(Shell& s, const std::string& id);
+void remove_sound(Shell& s, const std::string& id);
+// Whether a Sound pack of an added Repository is queued or on its way.
+[[nodiscard]] bool sound_coming(const Shell& s, std::string_view id);
 // A nickname like the upstream one: "<adjective> <animal>".
 std::string random_nickname(const std::filesystem::path& words);
 

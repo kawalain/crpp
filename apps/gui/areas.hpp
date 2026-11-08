@@ -44,6 +44,12 @@ void wire(Shell& s);
 namespace sound {  // the sound tab and everything it changes in the engine
 // Its packs are named in the language they were listed in.
 void language_changed(Shell& s);
+// The Sound packs of the added Repositories changed: installed, removed, offered or coming.
+void packs_changed(Shell& s);
+// A Sound pack picked in the sound tab has come, or could not.
+void pack_fetched(Shell& s, const std::string& id, const std::expected<void, assets::Error>& result);
+// The name of an added Repository's Sound pack, from its catalog.
+[[nodiscard]] std::string pack_name(const Shell& s, std::string_view id);
 // A Skin may have notification sounds of its own.
 void theme_changed(Shell& s);
 struct State;

@@ -228,7 +228,7 @@ Installed install(Shell& s, const InstallJob& job, const std::atomic<bool>& canc
     done.result = assets::uninstall(*job.catalog, job.groups, job.dir);
     return done;
   }
-  if (job.kind == InstallJob::Kind::Pack) {
+  if (job.kind == InstallJob::Kind::Pack || job.kind == InstallJob::Kind::Sound) {
     // Each Repository's share in turn, with progress over them all.
     const auto bytes_of = [](const InstallPart& part) {
       std::uint64_t bytes = 0;
@@ -380,9 +380,14 @@ void finish_install(Shell& s, const InstallJob& job, bool cancelled, Installed i
     area::preferences::pack_fetched(s, job.skin, cancelled, installed.result);
     return;
   }
+  if (job.kind == InstallJob::Kind::Sound) {
+    area::sound::pack_fetched(s, job.skin, installed.result);
+    return;
+  }
   if (job.kind == InstallJob::Kind::Remove) {
     if (!installed.result) s.log.note(diag_of(installed.result.error()));
     area::preferences::skins_installed(s);
+    area::sound::packs_changed(s);
     return;
   }
   const bool wait = job.kind == InstallJob::Kind::First;
@@ -412,6 +417,7 @@ void finish_install(Shell& s, const InstallJob& job, bool cancelled, Installed i
   } else {
     area::preferences::offer_packs(s);
     area::repositories::show_packs(s);
+    area::sound::packs_changed(s);
   }
   report_assets(s, installed.result);
 }
@@ -441,7 +447,7 @@ void run_install(Shell& s, InstallJob job) {
     auto installed = install(s, job, *cancel, [&](const assets::Progress& p) {
       // A redraw for each step the eye can see: a percent, or a file.
       const int percent = p.bytes == 0 ? 100 : static_cast<int>(p.bytes_done * 100 / p.bytes);
-      if (job.kind == InstallJob::Kind::Behind || (percent == shown && p.files_done == files_shown)) return;
+      if (job.kind == InstallJob::Kind::Behind || job.kind == InstallJob::Kind::Sound || (percent == shown && p.files_done == files_shown)) return;
       shown = percent;
       files_shown = p.files_done;
       if (job.kind == InstallJob::Kind::First) {
@@ -581,6 +587,35 @@ void remove_pack(Shell& s, const std::string& skin) {
                     .catalog = std::make_shared<const assets::Catalog>(*shelves[at->first].catalog),
                     .dir = area::repositories::install_dir(s, at->first),
                     .groups = {assets::skin_group(at->second)}});
+}
+
+bool sound_coming(const Shell& s, std::string_view id) {
+  const auto same = [&](const InstallJob& job) { return job.kind == InstallJob::Kind::Sound && job.skin == id; };
+  return (s.install_running && same(*s.install_running)) || std::ranges::any_of(s.install_queue, same);
+}
+
+bool fetch_sound(Shell& s, const std::string& id) {
+  const auto at = area::repositories::place(s, id);
+  if (!at || at->first == 0) return false;
+  const AddedRepository& added = s.added[at->first - 1];
+  if (!added.catalog || !added.catalog->sound(at->second)) return false;
+  if (sound_coming(s, id)) return true;
+  InstallJob job{.kind = InstallJob::Kind::Sound, .skin = id};
+  job.parts.push_back({std::make_shared<const assets::Catalog>(*added.catalog), added.repository.url, added.dir, {assets::sound_group(at->second)}, {}, {}});
+  queue_install(s, std::move(job));
+  return true;
+}
+
+void remove_sound(Shell& s, const std::string& id) {
+  const auto at = area::repositories::place(s, id);
+  if (!at || at->first == 0) return;
+  const AddedRepository& added = s.added[at->first - 1];
+  if (!added.catalog) return;
+  queue_install(s, {.kind = InstallJob::Kind::Remove,
+                    .skin = id,
+                    .catalog = std::make_shared<const assets::Catalog>(*added.catalog),
+                    .dir = added.dir,
+                    .groups = {assets::sound_group(at->second)}});
 }
 
 void cancel_pack(Shell& s, const std::string& skin) {

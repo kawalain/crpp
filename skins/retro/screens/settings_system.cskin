@@ -26,6 +26,7 @@ column id form y 10 {
       text @pack_name style body color ink y @i*38 w @W-87 h 16
       text @pack_detail style body color ink_soft y @i*38+16 w @W-87 h 16
       use button text @tr.system_pack_remove hit remove_pack right @W y @i*38+4 if @pack_removable>0
+      use button text @tr.system_pack_update hit update_pack right @W y @i*38+4 if @pack_held>0
     }
   }
   use form_group text @tr.system_advanced {

@@ -151,6 +151,25 @@ std::vector<std::string> open_files(const Shell& s, std::size_t shelf) {
   return held;
 }
 
+// The paths of a pack held back: its folder and its files in the catalog it was installed by.
+void hold_pack(std::vector<std::string>& held, std::string_view pack, const assets::Catalog* installed_by) {
+  held.push_back("skins/" + std::string(pack) + "/");
+  if (!installed_by) return;
+  for (const assets::File& file : installed_by->files) {
+    if (file.group == assets::skin_group(pack)) held.push_back(file.path);
+  }
+}
+
+// What an install on that shelf leaves alone: open files, and the packs held back.
+std::vector<std::string> left_alone(const Shell& s, std::size_t shelf) {
+  std::vector<std::string> held = open_files(s, shelf);
+  for (const Hold& hold : s.holds) {
+    const auto at = area::repositories::place(s, hold.parent);
+    if (at && at->first == shelf) hold_pack(held, at->second, shelf == 0 && s.catalog ? &*s.catalog : nullptr);
+  }
+  return held;
+}
+
 DiagEvent diag_of(assets::Error error) {
   switch (error) {
     case assets::Error::Network: return DiagEvent::AssetsNetwork;
@@ -191,6 +210,7 @@ struct Installed {
   std::optional<assets::Error> offered_error;
   std::vector<std::pair<std::string, assets::Catalog>> others;  // the latest of those the user added, by id
   std::vector<assets::Error> other_errors;
+  std::vector<Hold> holds;
   std::expected<void, assets::Error> result;
 };
 
@@ -263,27 +283,63 @@ Installed install(Shell& s, const InstallJob& job, const std::atomic<bool>& canc
   // Behind the app, what is installed follows the latest catalog now, and is used from the next
   // start; an open font waits for a start that does not open it.
   if (!wait && done.offered) catalog = &*done.offered;
+  // The latest catalogs of the Repositories the user added too, or else what was kept.
+  std::vector<std::optional<assets::Catalog>> latest(job.others.size());
+  for (std::size_t i = 0; i < job.others.size(); ++i) {
+    const AddedRepository& other = job.others[i];
+    auto got = assets::fetch_catalog(other.repository, platform);
+    if (got && assets::offers_only_packs(got->catalog) && assets::save_catalog(other.dir, got->text)) latest[i] = std::move(got->catalog);
+    else done.other_errors.push_back(got ? assets::Error::BadContent : got.error());
+  }
+  std::vector<assets::Shelf> shelves{{job.official_fingerprint, catalog}};
+  for (std::size_t i = 0; i < job.others.size(); ++i) {
+    const AddedRepository& other = job.others[i];
+    shelves.push_back({other.fingerprint, latest[i] ? &*latest[i] : other.catalog ? &*other.catalog : nullptr});
+  }
+  // A parent whose latest an installed pack's pin does not take stays as it is, until the user
+  // takes it anyway in the system tab.
+  std::vector<std::vector<std::string>> held(shelves.size());
+  held[0] = job.held;
+  const auto full = [&](const assets::Chain::Link& link) { return link.shelf == 0 ? link.pack : job.others[link.shelf - 1].id + "/" + link.pack; };
+  for (const std::string& skin : job.installed) {
+    std::size_t shelf = 0;
+    std::string pack = skin;
+    if (const std::size_t slash = skin.find('/'); slash != std::string::npos) {
+      const auto it = std::ranges::find(job.others, std::string_view(skin).substr(0, slash), &AddedRepository::id);
+      if (it == job.others.end()) continue;
+      shelf = 1 + static_cast<std::size_t>(it - job.others.begin());
+      pack = skin.substr(slash + 1);
+    }
+    const assets::Chain chain = assets::pack_chain(shelves, 0, shelf, pack);
+    for (std::size_t i = 1; i < chain.links.size(); ++i) {
+      const assets::Chain::Link& link = chain.links[i];
+      const assets::Catalog& parent = *shelves[link.shelf].catalog;
+      if (!link.pin || assets::check_pin(*link.pin, parent, link.pack, platform) == assets::PinCheck::Holds) continue;
+      const std::string child = full(chain.links[i - 1]);
+      const auto accepted = std::ranges::find(job.accepted, child, &std::pair<std::string, std::string>::first);
+      if (accepted != job.accepted.end() && accepted->second == assets::own_digest(parent, link.pack, platform)) continue;
+      done.holds.push_back({full(link), child});
+      const assets::Catalog* installed_by = link.shelf == 0 ? (s.catalog ? &*s.catalog : nullptr) : job.others[link.shelf - 1].catalog ? &*job.others[link.shelf - 1].catalog : nullptr;
+      hold_pack(held[link.shelf], link.pack, installed_by);
+    }
+  }
   const auto groups = assets::wanted_groups(*catalog, s.assets_dir);
   if (wait || !assets::missing(*catalog, groups, s.assets_dir).empty()) {
-    done.result = assets::install(*catalog, base, groups, s.assets_dir, platform, progress, &cancel, job.held);
+    done.result = assets::install(*catalog, base, groups, s.assets_dir, platform, progress, &cancel, held[0]);
   }
-  // Then what was picked from the Repositories the user added, from their latest, or else from
-  // what was kept.
-  for (const AddedRepository& other : job.others) {
-    auto fetched = assets::fetch_catalog(other.repository, platform);
-    std::optional<assets::Catalog> latest;
-    if (fetched && assets::offers_only_packs(fetched->catalog) && assets::save_catalog(other.dir, fetched->text)) latest = std::move(fetched->catalog);
-    else done.other_errors.push_back(fetched ? assets::Error::BadContent : fetched.error());
-    const assets::Catalog* follow = latest ? &*latest : other.catalog ? &*other.catalog : nullptr;
+  // Then what was picked from the Repositories the user added.
+  for (std::size_t i = 0; i < job.others.size(); ++i) {
+    const AddedRepository& other = job.others[i];
+    const assets::Catalog* follow = shelves[i + 1].catalog;
     if (follow && !cancel) {
       const auto kept = assets::kept_groups(*follow, other.dir);
       if (!assets::missing(*follow, kept, other.dir).empty()) {
-        if (const auto result = assets::install(*follow, other.repository.url, kept, other.dir, platform, nullptr, &cancel); !result) {
+        if (const auto result = assets::install(*follow, other.repository.url, kept, other.dir, platform, nullptr, &cancel, held[i + 1]); !result) {
           done.other_errors.push_back(result.error());
         }
       }
     }
-    if (latest) done.others.emplace_back(other.id, std::move(*latest));
+    if (latest[i]) done.others.emplace_back(other.id, std::move(*latest[i]));
   }
   return done;
 }
@@ -314,6 +370,10 @@ void finish_install(Shell& s, const InstallJob& job, bool cancelled, Installed i
     use_catalog(s, std::move(*installed.catalog));
   }
   if (installed.offered) s.offered = std::move(*installed.offered);
+  if (!wait) {
+    s.holds = std::move(installed.holds);
+    for (const Hold& hold : s.holds) s.log.note(DiagEvent::UpdateHeld, hold.parent + " " + hold.child);
+  }
   // The kept one stands in, as at the last start; why is for the diagnostic log only.
   if (installed.offered_error) s.log.note(diag_of(*installed.offered_error));
   if (wait) {
@@ -329,6 +389,7 @@ void finish_install(Shell& s, const InstallJob& job, bool cancelled, Installed i
     enter_app(s);
   } else {
     area::preferences::offer_packs(s);
+    area::repositories::show_packs(s);
   }
   report_assets(s, installed.result);
 }
@@ -344,6 +405,11 @@ void run_install(Shell& s, InstallJob job) {
   if (job.kind == InstallJob::Kind::Behind) {
     job.others = s.added;  // as they are now; the worker reads only its own
     job.held = open_files(s, 0);
+    for (const SkinInfo& info : s.app.ui().skins) {
+      job.installed.push_back(info.id);
+      if (std::string digest = area::repositories::accepted(s, info.id); !digest.empty()) job.accepted.emplace_back(info.id, std::move(digest));
+    }
+    job.official_fingerprint = s.official_fingerprint;
   }
   s.install_running = job;
   s.install_cancel = std::make_shared<std::atomic<bool>>(false);
@@ -400,7 +466,7 @@ InstallJob pack_job(Shell& s, std::span<const assets::Shelf> shelves, const asse
       of_part.push_back(link.shelf);
       job.parts.push_back({std::make_shared<const assets::Catalog>(*shelves[link.shelf].catalog), area::repositories::base_of(s, link.shelf),
                            area::repositories::install_dir(s, link.shelf), {}, area::repositories::needed_groups(s, shelves, link.shelf),
-                           open_files(s, link.shelf)});
+                           left_alone(s, link.shelf)});
       it = of_part.end() - 1;
     }
     job.parts[static_cast<std::size_t>(it - of_part.begin())].groups.push_back(assets::skin_group(link.pack));

@@ -58,6 +58,7 @@ settings-system-tip
 settings-system-repositories
 settings-system-repositories-failed
 settings-system-repositories-end
+settings-system-repositories-held
 settings-account
 settings-account-guest
 prompt-id

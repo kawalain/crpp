@@ -30,6 +30,7 @@ repeat @packs {
   text @pack_name (16, top, 355, 26) style row_label color hl_text
   text @pack_detail (16, top+26, 355, 20) style row_hint color hl_text_soft
   use text_button (381, top+4, 140, 38) text @tr.system_pack_remove hit remove_pack if @pack_removable>0
+  use text_button (381, top+4, 140, 38) text @tr.system_pack_update hit update_pack if @pack_held>0
 }
 // Time and language are on the display tab.
 let advanced_top = (@packs>0 ? packs_top+40+@packs*58-12 : repositories_end)+36

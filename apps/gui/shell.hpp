@@ -178,6 +178,16 @@ struct InstallJob {
   std::vector<std::string> held;
   // Behind: the Repositories the user added, whose latest catalogs are read too.
   std::vector<AddedRepository> others;
+  // Behind: the packs installed, whose pins are checked against the latest catalogs, and the
+  // parents the user accepted for them; then the official key's fingerprint.
+  std::vector<std::string> installed;
+  std::vector<std::pair<std::string, std::string>> accepted;
+  std::string official_fingerprint;
+};
+
+// An update of an installed pack held back, as a pack that extends it was not made for it.
+struct Hold {
+  std::string parent, child;  // as settings name them
 };
 
 struct Shell {
@@ -213,6 +223,7 @@ struct Shell {
   std::thread repository_worker;  // reads the catalog of one being added
   std::vector<std::filesystem::path> remove_after_install;  // of a Repository removed while its pack was coming
   std::vector<std::string> listed_packs;  // the system tab's rows of packs, by id
+  std::vector<Hold> holds;                 // found behind the app at this start
   bool fonts_loaded = false;              // the font files are open until the app ends
   std::vector<std::string> expected_sounds;  // what the catalog promises, on disk or not
   std::filesystem::path data_dir;  // the Protected store's folder

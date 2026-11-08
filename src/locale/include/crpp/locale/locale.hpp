@@ -249,6 +249,9 @@ struct Strings {
   const char* system_pack_in_use;
   const char* system_pack_default;
   const char* system_pack_needed;
+  const char* system_pack_held;
+  const char* system_pack_update;
+  const char* pin_update_question;
   const char* pack_remove_question;
   const char* display_general;
   const char* display_chat_size;

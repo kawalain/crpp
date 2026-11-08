@@ -313,8 +313,15 @@ void show_packs(Shell& s) {
     } else if (const SkinInfo* other = needing(s, all, info.id, at->first, at->second)) {
       reason = locale::fill(tr().system_pack_needed, {std::string(name_in(other->names, locale, other->id))});
     }
+    // An update held back says for whom, over the rest, as that is what the user can act on.
+    const auto hold = std::ranges::find(s.holds, info.id, &Hold::parent);
+    if (hold != s.holds.end()) {
+      const auto child = std::ranges::find(skins, hold->child, &SkinInfo::id);
+      reason = locale::fill(tr().system_pack_held, {std::string(child != skins.end() ? name_in(child->names, locale, child->id) : hold->child)});
+    }
     const std::string where = reason.empty() ? (at->first > 0 ? s.added[at->first - 1].address : std::string(tr().system_pack_official)) : reason;
-    rows.push_back({std::string(name_in(info.names, locale, info.id)), locale::fill(tr().system_pack_detail, {megabytes(bytes), where}), reason.empty()});
+    rows.push_back({std::string(name_in(info.names, locale, info.id)), locale::fill(tr().system_pack_detail, {megabytes(bytes), where}), reason.empty(),
+                    hold != s.holds.end()});
     s.listed_packs.push_back(info.id);
   }
   s.app.settings().system().set_packs(std::move(rows));
@@ -358,6 +365,28 @@ AddedRepository* of(Shell& s, std::string_view skin) {
   return it == s.added.end() ? nullptr : &*it;
 }
 
+namespace {
+
+// The user takes a held update anyway: the parent's latest is accepted for each pack held for, and
+// fetched now, to be used from the next start.
+void update_held(Shell& s, const std::string& parent) {
+  const auto all = shelves(s);
+  const auto at = place(s, parent);
+  if (!at || !all[at->first].catalog) return;
+  assets::WindowsPlatform platform;
+  const std::string digest = assets::own_digest(*all[at->first].catalog, at->second, platform);
+  for (const Hold& hold : s.holds) {
+    if (hold.parent != parent) continue;
+    accept(s, hold.child, digest);
+    s.log.note(DiagEvent::ParentAccepted, hold.child + " " + parent + " " + digest);
+  }
+  std::erase_if(s.holds, [&](const Hold& hold) { return hold.parent == parent; });
+  (void)fetch_pack(s, parent);
+  show_packs(s);
+}
+
+}  // namespace
+
 void wire(Shell& s) {
   Shell* sp = &s;
   SystemTab& tab = s.app.settings().system();
@@ -368,6 +397,19 @@ void wire(Shell& s) {
     const std::string name(sp->app.settings().system().packs()[index].name);
     sp->app.dialogs().show({locale::fill(tr().pack_remove_question, {name}), tr().system_pack_remove, tr().cancel, false,
                             [sp, id] { remove_pack(*sp, id); }, nullptr});
+  };
+  tab.on_update_pack = [sp](std::size_t index) {
+    if (index >= sp->listed_packs.size()) return;
+    const std::string parent = sp->listed_packs[index];
+    const auto hold = std::ranges::find(sp->holds, parent, &Hold::parent);
+    if (hold == sp->holds.end()) return;
+    const auto& skins = sp->app.ui().skins;
+    const auto child = std::ranges::find(skins, hold->child, &SkinInfo::id);
+    const std::string_view locale = locale::current().id;
+    const std::string child_name(child != skins.end() ? name_in(child->names, locale, child->id) : hold->child);
+    const std::string name(sp->app.settings().system().packs()[index].name);
+    sp->app.dialogs().show({locale::fill(tr().pin_update_question, {name, child_name}), tr().system_pack_update, tr().cancel, false,
+                            [sp, parent] { update_held(*sp, parent); }, nullptr});
   };
   tab.on_remove_repository = [sp](std::size_t index) {
     // The official one is first and has no button.
@@ -382,8 +424,8 @@ void wire(Shell& s) {
 }
 
 bool scene(Shell& s, std::string_view name) {
-  // settings-system-repositories[-failed|-end]: one added with a pack, and one being added that
-  // could not be, or the end of the tab.
+  // settings-system-repositories[-failed|-end|-held]: one added with a pack, and one being added that
+  // could not be, or the end of the tab, or there an update held back.
   if (!name.starts_with("settings-system-repositories")) return false;
   s.app.settings().open(SettingsPage::System);
   s.app.settings().set_version("v0.0.0");
@@ -391,7 +433,13 @@ bool scene(Shell& s, std::string_view name) {
   show_rows(s);
   s.app.settings().system().set_packs({{"오로라", locale::fill(tr().system_pack_detail, {"2.4 MB", "github:someone/cloudroom-skins"}), true},
                                        {"레트로", locale::fill(tr().system_pack_detail, {"1.1 MB", tr().system_pack_in_use}), false}});
-  if (name.ends_with("-end")) s.app.settings().scroll_to(10000);
+  if (name.ends_with("-held")) {
+    // An update of a pack another extends, held back for it.
+    auto rows = s.app.settings().system().packs();
+    rows.insert(rows.begin(), {"구름", locale::fill(tr().system_pack_detail, {"14.2 MB", locale::fill(tr().system_pack_held, {"오로라"})}), false, true});
+    s.app.settings().system().set_packs(std::move(rows));
+  }
+  if (name.ends_with("-end") || name.ends_with("-held")) s.app.settings().scroll_to(10000);
   if (name.ends_with("-failed")) {
     s.app.settings().system().address().set_text(L"https://example.org/skins");
     set_adding(s, SystemTab::Adding::State::Failed, tr().repository_reason_none);

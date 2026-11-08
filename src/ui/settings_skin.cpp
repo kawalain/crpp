@@ -74,16 +74,17 @@ constexpr skin::Name notify_hits[] = {{"tray", NotifyTab::TrayToggle}, {"flash",
 enum SystemText : int { RepoAddressT, RepoFingerprintT, RepoStatusT, PackNameT, PackDetailT };
 constexpr skin::Name system_texts[] = {{"repo_address", RepoAddressT}, {"repo_fingerprint", RepoFingerprintT}, {"repo_status", RepoStatusT},
                                        {"pack_name", PackNameT}, {"pack_detail", PackDetailT}};
-enum SystemNumber : int { AutostartN, SystemTrayN, DetailN, LoggingN, RepositoriesN, RepoOfficialN, RepoStateN, AddressFocusN, AddressEmptyN, PacksN, PackRemovableN };
+enum SystemNumber : int { AutostartN, SystemTrayN, DetailN, LoggingN, RepositoriesN, RepoOfficialN, RepoStateN, AddressFocusN, AddressEmptyN, PacksN, PackRemovableN, PackHeldN };
 constexpr skin::Name system_numbers[] = {{"autostart", AutostartN}, {"tray", SystemTrayN}, {"detail", DetailN}, {"logging", LoggingN},
                                          {"repositories", RepositoriesN}, {"repo_official", RepoOfficialN}, {"repo_state", RepoStateN},
-                                         {"address_focus", AddressFocusN}, {"address_empty", AddressEmptyN}, {"packs", PacksN}, {"pack_removable", PackRemovableN}};
+                                         {"address_focus", AddressFocusN}, {"address_empty", AddressEmptyN}, {"packs", PacksN}, {"pack_removable", PackRemovableN},
+                                         {"pack_held", PackHeldN}};
 enum SystemSlot : int { ReleaseSlot, AddressSlot };
 constexpr skin::Name system_slots[] = {{"release_list", ReleaseSlot}, {"address", AddressSlot}};
 constexpr skin::Name system_hits[] = {{"autostart", SystemTab::Autostart}, {"tray", SystemTab::Tray}, {"detail", SystemTab::Detail}, {"logging", SystemTab::Logging},
                                       {"open_logs", SystemTab::OpenLogs}, {"reset", SystemTab::Reset}, {"address", SystemTab::Address},
                                       {"add_repository", SystemTab::AddRepository}, {"remove_repository", SystemTab::RemoveRepository},
-                                      {"remove_pack", SystemTab::RemovePack}};
+                                      {"remove_pack", SystemTab::RemovePack}, {"update_pack", SystemTab::UpdatePack}};
 
 // --- account ---
 enum AccountText : int { NicknameT, HandleT, DisplayT };
@@ -494,6 +495,7 @@ void SystemTab::paint_pack(Painter& p, const skin::Screen& screen, Rect area) {
         case AddressEmptyN: return yes(s_.address_.text().empty() && !s_.address_.composing());
         case PacksN: return static_cast<float>(s_.packs_.size());
         case PackRemovableN: return yes(at < s_.packs_.size() && s_.packs_[at].removable);
+        case PackHeldN: return yes(at < s_.packs_.size() && s_.packs_[at].held);
         default: return 0;
       }
     }

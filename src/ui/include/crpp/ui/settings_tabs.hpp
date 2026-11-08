@@ -245,7 +245,7 @@ class SystemTab final : public SettingsTab {
  public:
   explicit SystemTab(Ui& ui);
   [[nodiscard]] static skin::ScreenSchema schema();
-  enum Id : int { Autostart = 1, Tray, Detail, Logging, OpenLogs, Reset, Address, AddRepository, ReleaseList = 300, RemoveRepository = 500, RemovePack = 700 };
+  enum Id : int { Autostart = 1, Tray, Detail, Logging, OpenLogs, Reset, Address, AddRepository, ReleaseList = 300, RemoveRepository = 500, RemovePack = 700, UpdatePack = 900 };
 
   // A Repository in the list, the official one first, which cannot be removed.
   struct RepositoryRow {
@@ -262,10 +262,12 @@ class SystemTab final : public SettingsTab {
   void set_repositories(std::vector<RepositoryRow> rows) { repositories_ = std::move(rows); }
   [[nodiscard]] const std::vector<RepositoryRow>& repositories() const { return repositories_; }
   void set_adding(Adding adding) { adding_ = std::move(adding); }
-  // A Skin Pack fetched from a Repository, with its size and where from, or why it stays.
+  // A Skin Pack fetched from a Repository, with its size and where from, or why it stays. A held
+  // one has an update that a pack extending it was not made for, which the user can take anyway.
   struct PackRow {
     std::string name, detail;
     bool removable = false;
+    bool held = false;
   };
   void set_packs(std::vector<PackRow> rows) { packs_ = std::move(rows); }
   [[nodiscard]] const std::vector<PackRow>& packs() const { return packs_; }
@@ -278,6 +280,7 @@ class SystemTab final : public SettingsTab {
   std::function<void(std::string address)> on_add_repository;
   std::function<void(std::size_t index)> on_remove_repository;
   std::function<void(std::size_t index)> on_remove_pack;
+  std::function<void(std::size_t index)> on_update_pack;
 
   void paint(Painter& p, Rect area) override;
   void paint_popups(Painter& p, Rect area) override;
@@ -315,7 +318,7 @@ class SystemTab final : public SettingsTab {
   float address_x_ = 0, address_scroll_ = 0;  // where its text starts on the stage, and how far it is scrolled
   std::array<ToggleAnim, 4> toggles_;
   Fade open_logs_, reset_, add_;
-  std::vector<Fade> remove_, remove_pack_;
+  std::vector<Fade> remove_, remove_pack_, update_pack_;
 };
 
 class AccountTab final : public SettingsTab {

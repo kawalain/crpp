@@ -148,12 +148,15 @@ void SystemTab::paint(Painter& p, Rect area) {
   const float repositories_end = box.y - area.y + buttons_h + (adding_.state != Adding::State::None ? 30 : 0);
   if (!packs_.empty()) paint_subheading(p, t, area, packs_top(repositories_end), tr().system_packs);
   remove_pack_.resize(packs_.size());
+  update_pack_.resize(packs_.size());
   for (std::size_t i = 0; i < packs_.size(); ++i) {
     const float top = area.y + pack_row_top(repositories_end, i);
     p.text(packs_[i].name, {area.x + 16, top, address_w, 26}, label, t.hl_text);
     p.text(packs_[i].detail, {area.x + 16, top + 26, address_w, 20}, hint, t.hl_text_soft);
     if (packs_[i].removable) {
       paint_text_button(ui_, this, p, {area.x + buttons_x, top + 4, buttons_w, buttons_h}, tr().system_pack_remove, RemovePack + static_cast<int>(i), remove_pack_[i]);
+    } else if (packs_[i].held) {
+      paint_text_button(ui_, this, p, {area.x + buttons_x, top + 4, buttons_w, buttons_h}, tr().system_pack_update, UpdatePack + static_cast<int>(i), update_pack_[i]);
     }
   }
 
@@ -197,6 +200,8 @@ void SystemTab::click(int id, float x, float, bool shift) {
     address_.click_at(ui_.gfx, address_style_, ui_.to_stage_x(x) - address_x_ + address_scroll_, shift);
   } else if (id == AddRepository) {
     add();
+  } else if (id >= UpdatePack && static_cast<std::size_t>(id - UpdatePack) < packs_.size()) {
+    if (on_update_pack && packs_[static_cast<std::size_t>(id - UpdatePack)].held) on_update_pack(static_cast<std::size_t>(id - UpdatePack));
   } else if (id >= RemovePack && static_cast<std::size_t>(id - RemovePack) < packs_.size()) {
     if (on_remove_pack && packs_[static_cast<std::size_t>(id - RemovePack)].removable) on_remove_pack(static_cast<std::size_t>(id - RemovePack));
   } else if (id >= RemoveRepository && static_cast<std::size_t>(id - RemoveRepository) < repositories_.size()) {
@@ -232,7 +237,8 @@ bool SystemTab::animating() const {
   }
   return open_logs_.running(ui_) || reset_.running(ui_) || add_.running(ui_) ||
          std::ranges::any_of(remove_, [&](const Fade& fade) { return fade.running(ui_); }) ||
-         std::ranges::any_of(remove_pack_, [&](const Fade& fade) { return fade.running(ui_); });
+         std::ranges::any_of(remove_pack_, [&](const Fade& fade) { return fade.running(ui_); }) ||
+         std::ranges::any_of(update_pack_, [&](const Fade& fade) { return fade.running(ui_); });
 }
 
 }  // namespace crpp::ui

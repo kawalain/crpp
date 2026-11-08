@@ -31,6 +31,9 @@ if (Test-Path -LiteralPath $Out) { Remove-Item -LiteralPath $Out -Recurse -Force
 & $Tool $Out --remote cmake/remote_assets.txt --assets assets --skins skins --ref $Ref --default-skin cloud `
   --key $PublicKey --copy $Cache
 if ($LASTEXITCODE -ne 0) { throw "crpp_catalog failed ($LASTEXITCODE)" }
+# The bare address, which someone may open in a browser, shows the source. Only that path: a rule
+# here wins over a file at the same path, so a wider one would take the files with it.
+[System.IO.File]::WriteAllText((Join-Path $Out '_redirects'), "/ https://github.com/kawalain/crpp 302`n")
 
 $env:CRPP_UPDATE_SIGNING_KEY = Get-Content -Raw -LiteralPath $KeyFile
 try {

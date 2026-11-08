@@ -11,8 +11,8 @@ every download to a commit and every change to a release. Now everything the pro
 packs, emoji, word lists and fonts, is listed in the signed catalog of a Repository, and the exe holds only the
 official Repository's address and key.
 
-The official Repository is static files on Cloudflare Workers at `crpp.kawala.in`, a custom domain (a two-line Worker
-sends any path that is no file to the source repository),
+The official Repository is static files on Cloudflare Workers at `crpp.kawala.in`, a custom domain, with no Worker
+code (the bare address redirects to the source repository through a `_redirects` file),
 deployed with Wrangler from the developer's machine by the release script, which also signs the catalog. Requests to
 static files there are free and unlimited, and a file may be up to 25 MiB. When it is blocked, the same files come from
 `raw.githubusercontent.com` at the release's tag; the repository is public.

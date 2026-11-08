@@ -327,7 +327,7 @@ bool scene(Shell& s, std::string_view name) {
   } else if (name == "changelog") {
     s.app.changelog().open(sample_entries(), 1);
   } else {
-    if (dark) s.app.set_theme("cloudroom");
+    if (dark) s.app.set_theme("cumulus");
     return false;
   }
   return true;

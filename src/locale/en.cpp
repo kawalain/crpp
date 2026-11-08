@@ -172,7 +172,7 @@ const Strings english{
     .room_options = "Options",
     .chat_says = "{0} says:",
     .chat_send = "Send",
-    .theme_cloud = "Cloud",
+    .theme_cumulus = "Cumulus",
     .theme_dark_cloud = "Dark cloud",
     .theme_pastel = "Pastel",
     .theme_luna_blue = "Luna Blue",

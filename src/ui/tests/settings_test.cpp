@@ -16,19 +16,38 @@ void open(UiHarness& h, SettingsPage page) {
 
 void test_effective_theme() {
   MemoryPrefs prefs;
-  CHECK(effective_theme(prefs, false).id == "cloudroom");
-  CHECK(effective_theme(prefs, true).id == "cloudroom");  // the OS only counts when linked
+  CHECK(effective_theme(prefs, false).id == "cumulus");
+  CHECK(effective_theme(prefs, true).id == "cumulus");  // the OS only counts when linked
   prefs.set(pref::theme, "pastel");
   CHECK(effective_theme(prefs, true).id == "pastel");
   prefs.set(pref::theme, "nonsense");
-  CHECK(effective_theme(prefs, false).id == "cloudroom");
+  CHECK(effective_theme(prefs, false).id == "cumulus");
 
   prefs.set(pref::system_theme, true);
   prefs.set(pref::light_theme, "pastel");
   CHECK(effective_theme(prefs, false).id == "pastel");
   CHECK(effective_theme(prefs, true).id == "darkcloud");
   prefs.set(pref::light_theme, "darkcloud");  // not a light theme
-  CHECK(effective_theme(prefs, false).id == "cloudroom");
+  CHECK(effective_theme(prefs, false).id == "cumulus");
+}
+
+void test_upstreams_name_for_cumulus_is_kept_in_its_keys() {
+  CHECK(std::string(pref::theme.fallback) == "cloudroom");
+  CHECK(theme_from_upstream("cloudroom") == "cumulus");
+  CHECK(theme_to_upstream("cumulus") == "cloudroom");
+  CHECK(theme_from_upstream("pastel") == "pastel" && theme_to_upstream("pastel") == "pastel");
+
+  UiHarness h;
+  CHECK(h.start());
+  open(h, SettingsPage::Display);
+  DisplayTab& tab = h.app.settings().display();
+  Prefs& prefs = *h.app.ui().prefs;
+  prefs.set(pref::theme, "pastel");
+  h.render();
+  CHECK(h.click(tab, DisplayTab::ThemeList));
+  CHECK(h.click(tab, DisplayTab::ThemeList + 1));  // 뭉게구름
+  CHECK(prefs.get(pref::theme) == "cloudroom");
+  CHECK(effective_theme(prefs, false).id == "cumulus");
 }
 
 void test_system_toggle_swaps_the_dropdowns() {
@@ -353,6 +372,7 @@ void test_chat_clock() {
 
 int main() {
   test_effective_theme();
+  test_upstreams_name_for_cumulus_is_kept_in_its_keys();
   test_system_toggle_swaps_the_dropdowns();
   test_theme_dropdown_saves_upstreams_id();
   test_escape_closes_the_dropdown_then_the_panel();

@@ -193,7 +193,7 @@ struct Strings {
   const char* room_options;
   const char* chat_says;
   const char* chat_send;
-  const char* theme_cloud;
+  const char* theme_cumulus;
   const char* theme_dark_cloud;
   const char* theme_pastel;
   const char* theme_luna_blue;

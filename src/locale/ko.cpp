@@ -173,7 +173,7 @@ const Strings korean{
     .room_options = "옵션",
     .chat_says = "{0} 님의 말:",
     .chat_send = "보내기",
-    .theme_cloud = "구름",
+    .theme_cumulus = "뭉게구름",
     .theme_dark_cloud = "먹구름",
     .theme_pastel = "파스텔",
     .theme_luna_blue = "루나 블루",

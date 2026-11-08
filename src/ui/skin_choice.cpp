@@ -2,6 +2,8 @@
 
 #include <algorithm>
 
+#include "crpp/ui/themes.hpp"
+
 namespace crpp::ui {
 
 namespace {
@@ -19,7 +21,8 @@ const skin::PackTheme* default_of(const SkinInfo& skin) {
 // Upstream keeps one id, of a light or a dark list. The Theme that has it as a Palette is the one meant.
 SkinChoice from_upstream(const Prefs& prefs, std::span<const SkinInfo> skins) {
   const bool follows = prefs.get(pref::system_theme);
-  const std::string id = prefs.get(follows ? pref::light_theme : pref::theme);
+  const std::string saved = prefs.get(follows ? pref::light_theme : pref::theme);
+  const std::string_view id = theme_from_upstream(saved);
   for (const SkinInfo& skin : skins) {
     for (const skin::PackTheme& theme : skin.themes) {
       if (theme.palette != id && theme.dark != id) continue;
@@ -53,7 +56,8 @@ SkinChoice choice_of(const Prefs& prefs, std::span<const SkinInfo> skins) {
   if (skin_id.empty()) return from_upstream(prefs, skins);
   const auto found = std::ranges::find(skins, std::string_view(skin_id), &SkinInfo::id);
   const SkinInfo& skin = found == skins.end() ? skins.front() : *found;
-  const skin::PackTheme* theme = theme_in(skin, prefs.get(pref::skin_theme));
+  // An earlier build kept upstream's name for 뭉게구름 here too.
+  const skin::PackTheme* theme = theme_in(skin, theme_from_upstream(prefs.get(pref::skin_theme)));
   const std::string dark = prefs.get(pref::dark_mode);
   return {&skin, theme ? theme : default_of(skin), dark == "on" ? DarkMode::On : dark == "system" ? DarkMode::System : DarkMode::Off};
 }

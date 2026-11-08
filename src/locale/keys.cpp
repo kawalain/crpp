@@ -175,7 +175,7 @@ constexpr Key keys[] = {
     KEY(room_options),
     KEY(chat_says),
     KEY(chat_send),
-    KEY(theme_cloud),
+    KEY(theme_cumulus),
     KEY(theme_dark_cloud),
     KEY(theme_pastel),
     KEY(theme_luna_blue),

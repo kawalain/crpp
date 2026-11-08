@@ -7,9 +7,11 @@ namespace crpp::ui {
 
 namespace {
 
-// THEMES, LIGHT_THEMES and DARK_THEMES, as upstream names and orders them.
+constexpr std::string_view upstream_cumulus = "cloudroom";
+
+// THEMES, LIGHT_THEMES and DARK_THEMES, in upstream's order and with its names but the first.
 const std::array<ThemeEntry, 5> themes{{
-    {"cloudroom", &locale::Strings::theme_cloud, false, light_cloud_palette(rgb(0x66ccff))},
+    {"cumulus", &locale::Strings::theme_cumulus, false, light_cloud_palette(rgb(0x66ccff))},
     {"darkcloud", &locale::Strings::theme_dark_cloud, true, dark_cloud_palette()},
     {"pastel", &locale::Strings::theme_pastel, false, light_cloud_palette(rgb(0xb1dafd))},
     {"luna_blue", &locale::Strings::theme_luna_blue, false, luna_theme(luna_blue_colors(), false)},
@@ -38,5 +40,9 @@ const ThemeEntry& theme_named(std::string_view id) {
   const auto found = std::ranges::find(themes, id, &ThemeEntry::id);
   return found == themes.end() ? themes.front() : *found;
 }
+
+std::string_view theme_from_upstream(std::string_view id) { return id == upstream_cumulus ? themes.front().id : id; }
+
+std::string_view theme_to_upstream(std::string_view id) { return id == themes.front().id ? upstream_cumulus : id; }
 
 }  // namespace crpp::ui

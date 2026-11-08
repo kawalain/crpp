@@ -24,4 +24,10 @@ struct ThemeEntry {
 // An id it does not know is the default Theme, as upstream takes an unknown name.
 [[nodiscard]] const ThemeEntry& theme_named(std::string_view id);
 
+// Upstream's keys (theme, lightTheme, darkTheme) hold upstream's names, and one of them is a
+// name of its own here: upstream's "cloudroom" is "cumulus". These turn one into the other,
+// and leave every other id as it is.
+[[nodiscard]] std::string_view theme_from_upstream(std::string_view id);
+[[nodiscard]] std::string_view theme_to_upstream(std::string_view id);
+
 }  // namespace crpp::ui

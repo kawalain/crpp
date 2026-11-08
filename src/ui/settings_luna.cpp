@@ -228,7 +228,8 @@ void DisplayTab::paint_luna(Painter& p, Rect area) {
   const Prefs& prefs = *ui_.prefs;
   const bool sync = prefs.get(pref::system_theme);
   const auto every = all_theme_entries(), light = themes_of(false), dark = themes_of(true);
-  const auto fill = [](Dropdown& box, const std::vector<const ThemeEntry*>& list, const std::string& id) {
+  const auto fill = [](Dropdown& box, const std::vector<const ThemeEntry*>& list, const std::string& saved) {
+    const std::string_view id = theme_from_upstream(saved);
     box.options.clear();
     box.selected = 0;
     for (std::size_t i = 0; i < list.size(); ++i) {

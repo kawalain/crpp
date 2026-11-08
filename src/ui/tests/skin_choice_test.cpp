@@ -85,6 +85,17 @@ void the_palette_follows_the_mode_and_a_theme_without_dark_stays_light() {
   CHECK(locked.dark == DarkMode::On);  // kept for the next Theme
 }
 
+// Upstream's name for 뭉게구름, in upstream's keys or where an earlier build saved it.
+void cloudroom_is_cumulus() {
+  const std::vector<SkinInfo> skins = {{"cloud", "dir/cloud", {}, {theme("cumulus", "darkcloud"), theme("pastel")}, "pastel"}};
+  MemoryPrefs prefs;
+  prefs.set(pref::theme, "cloudroom");
+  CHECK(choice_of(prefs, skins).theme->id == "cumulus");
+  prefs.set(pref::skin, "cloud");
+  prefs.set(pref::skin_theme, "cloudroom");
+  CHECK(choice_of(prefs, skins).theme->id == "cumulus");
+}
+
 void a_name_is_by_locale_or_the_first_there_is() {
   const auto skins = packs();
   CHECK(name_in(skins[0].names, "ko") == "하나");
@@ -100,6 +111,7 @@ int main() {
   upstreams_keys_say_it_until_our_own_are_there();
   a_theme_no_longer_there_goes_to_the_default_of_its_skin();
   the_palette_follows_the_mode_and_a_theme_without_dark_stays_light();
+  cloudroom_is_cumulus();
   a_name_is_by_locale_or_the_first_there_is();
   return crpp_test_result();
 }

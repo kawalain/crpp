@@ -14,8 +14,8 @@ constexpr float row_step_theme = 52;
 constexpr float sample_w = 420, sample_h = 116;  // real pixels, whatever the stage's scale
 
 // Which of these Themes a saved id is; the first for an id it does not know.
-int index_of(const std::vector<const ThemeEntry*>& list, const std::string& id) {
-  const auto it = std::ranges::find(list, std::string_view(id), &ThemeEntry::id);
+int index_of(const std::vector<const ThemeEntry*>& list, const std::string& saved) {
+  const auto it = std::ranges::find(list, theme_from_upstream(saved), &ThemeEntry::id);
   return it == list.end() ? 0 : static_cast<int>(it - list.begin());
 }
 
@@ -32,7 +32,7 @@ const ThemeEntry& effective_theme(const Prefs& prefs, bool system_dark) {
     const auto list = themes_of(system_dark);
     return *list[static_cast<std::size_t>(index_of(list, prefs.get(system_dark ? pref::dark_theme : pref::light_theme)))];
   }
-  return theme_named(prefs.get(pref::theme));
+  return theme_named(theme_from_upstream(prefs.get(pref::theme)));
 }
 
 DisplayTab::DisplayTab(Ui& ui) : SettingsTab(ui) {
@@ -187,13 +187,13 @@ void DisplayTab::click(int id, float x, float, bool) {
     ui_.capture = this;
     drag(x, 0);
   } else if (theme_.owns(id)) {
-    if (theme_.click(id)) prefs.set(pref::theme, all_theme_entries()[static_cast<std::size_t>(theme_.selected)]->id);
+    if (theme_.click(id)) prefs.set(pref::theme, theme_to_upstream(all_theme_entries()[static_cast<std::size_t>(theme_.selected)]->id));
     if (theme_.open) place_dropdown(ui_, theme_, list_rect_[0]);
   } else if (light_.owns(id)) {
-    if (light_.click(id)) prefs.set(pref::light_theme, themes_of(false)[static_cast<std::size_t>(light_.selected)]->id);
+    if (light_.click(id)) prefs.set(pref::light_theme, theme_to_upstream(themes_of(false)[static_cast<std::size_t>(light_.selected)]->id));
     if (light_.open) place_dropdown(ui_, light_, list_rect_[1]);
   } else if (dark_.owns(id)) {
-    if (dark_.click(id)) prefs.set(pref::dark_theme, themes_of(true)[static_cast<std::size_t>(dark_.selected)]->id);
+    if (dark_.click(id)) prefs.set(pref::dark_theme, theme_to_upstream(themes_of(true)[static_cast<std::size_t>(dark_.selected)]->id));
     if (dark_.open) place_dropdown(ui_, dark_, list_rect_[2]);
   } else if (skin_list_.owns(id)) {
     if (skin_list_.click(id)) choose_skin(skin_list_.selected);

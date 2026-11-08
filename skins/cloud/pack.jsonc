@@ -4,10 +4,10 @@
   "id": "cloud",
   "names": {"ko": "구름", "en": "Cloud"},
   "themes": {
-    "cloudroom": {"names": {"ko": "구름", "en": "Cloud"}, "dark": "darkcloud"},
+    "cumulus": {"names": {"ko": "뭉게구름", "en": "Cumulus"}, "dark": "darkcloud"},
     "pastel": {"names": {"ko": "파스텔", "en": "Pastel"}}
   },
-  "default_theme": "cloudroom",
+  "default_theme": "cumulus",
   "constants": {
     "own_frame": 0, "moves": 1, "hold_wait_ms": 400, "hold_repeat_ms": 50,
     "scroll_settle_ms": 32, "scroll_return_ms": 52, "scroll_stretch": 48, "edge_fade": 27,
@@ -16,7 +16,7 @@
     "list_pad": 6, "list_item_h": 38, "list_gap": 4, "list_max_h": 224, "list_margin": 6, "slider_thumb": 21
   },
   "palettes": {
-    "cloudroom": {
+    "cumulus": {
       "white": "#ffffff",
       "blue": "#3a9af0",
       "hl": "#66ccff",

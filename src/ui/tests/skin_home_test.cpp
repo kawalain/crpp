@@ -597,7 +597,7 @@ void test_a_theme_brings_its_overlay() {
   CHECK(h.app.ui().palette >= 0);
   CHECK(h.app.frame_metrics().caption_h == classic_caption);
   // A Theme of no pack is drawn by the program.
-  h.app.set_theme("cloudroom");
+  h.app.set_theme("cumulus");
   h.render();
   CHECK(h.app.ui().palette < 0);
 }

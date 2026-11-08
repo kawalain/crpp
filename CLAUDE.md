@@ -163,6 +163,8 @@ against a real `server/` yet; do that once a local build of it is available.
   the exe and kept under `skin`, `skinTheme` and `darkMode`; until those are set upstream's `theme`,
   `systemTheme` and `lightTheme` are read, and the choice never writes them. The dark mode is locked while
   a Theme has no dark variant, keeping its value. Another Skin goes to its default Theme.
+- Upstream's Theme 구름 is 뭉게구름 ("Cumulus"), as the Skin it belongs to is 구름 too. Its id is `cumulus`;
+  upstream's keys keep upstream's `cloudroom`, which is read as `cumulus` wherever it is found.
 - The create cloud on Home really grows under the pointer, as upstream's does. The C++ layout asked for it
   and its cloud reset the transform it was under.
 - A second Skin upstream does not have, Retro, in the look of the desktops of the 1990s and early 2000s

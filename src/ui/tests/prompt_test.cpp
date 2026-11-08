@@ -178,8 +178,8 @@ void test_buttons_and_escape() {
   CHECK(back == 0);
 
   p.cancelable = true;
-  p.extra = "무작위 설정";
-  p.extra2 = "사용자명 사용";
+  p.extra = "무작위로 정하기";
+  p.extra2 = "사용자명으로 쓰기";
   p.link = "링크";
   h.app.show_prompt(p);
   h.render();

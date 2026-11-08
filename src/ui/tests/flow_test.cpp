@@ -14,7 +14,7 @@ void test_dialog_confirm_and_escape() {
   CHECK(h.start());
   int confirmed = 0, cancelled = 0;
   auto dialog = [&] {
-    return Dialog{"떠날까요?", "떠나기", "취소", false, [&] { ++confirmed; }, [&] { ++cancelled; }};
+    return Dialog{"떠날까요?", "나가기", "취소", false, [&] { ++confirmed; }, [&] { ++cancelled; }};
   };
   h.app.dialogs().show(dialog());
   h.render();
@@ -84,7 +84,7 @@ void test_toast_expires_without_frames() {
   UiHarness h;
   CHECK(h.start());
   Toasts& t = h.app.toasts();
-  t.toast("서버 연결이 종료되었습니다.", 5000);
+  t.toast("서버와의 연결이 끊어졌어요.", 5000);
   h.render();
   const auto wake = h.app.wake_at();
   CHECK(wake != 0);

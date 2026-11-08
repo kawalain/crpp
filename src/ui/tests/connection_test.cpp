@@ -57,22 +57,22 @@ struct Rig {
 
 void failure_wording_is_upstreams() {
   const auto text = [](Failure f, std::string_view d = {}, bool room = false) { return failure_text(f, d, room); };
-  CHECK(text(Failure::ServerError, "not_found") == "구름을 찾지 못했습니다.");
-  CHECK(text(Failure::ServerError, "room_full") == "구름이 가득 찼습니다.");
-  CHECK(text(Failure::ServerError, "already_in_room") == "이미 구름에 참가 중입니다.");
-  CHECK(text(Failure::ServerError, "server_full") == "서버가 가득 찼습니다.");
-  CHECK(text(Failure::ServerError, "no_public_rooms") == "공개된 구름을 찾을 수 없어요.");
-  CHECK(text(Failure::ServerError, "bad_key") == "참가하지 못했습니다.");
-  CHECK(text(Failure::RoomGone, "not_found") == "구름을 찾지 못했습니다.");
+  CHECK(text(Failure::ServerError, "not_found") == "구름을 찾지 못했어요.");
+  CHECK(text(Failure::ServerError, "room_full") == "구름이 가득 찼어요.");
+  CHECK(text(Failure::ServerError, "already_in_room") == "이미 이 구름에 들어와 있어요.");
+  CHECK(text(Failure::ServerError, "server_full") == "서버가 가득 찼어요. 잠시 후 다시 시도해 주세요.");
+  CHECK(text(Failure::ServerError, "no_public_rooms") == "지금은 들어갈 수 있는 공개 구름이 없어요.");
+  CHECK(text(Failure::ServerError, "bad_key") == "구름에 들어가지 못했어요.");
+  CHECK(text(Failure::RoomGone, "not_found") == "구름을 찾지 못했어요.");
   CHECK(text(Failure::RoomClosed, "not_found", true) == "구름이 닫혀 다시 연결하지 못했어요.");
-  CHECK(text(Failure::GraceExpired, {}, true) == "서버 연결이 종료되었습니다.");
-  CHECK(text(Failure::Unauthorized) == "로그인 인증이 만료되어 구름에 연결할 수 없습니다.");
-  CHECK(text(Failure::Unauthorized, {}, true) == "로그인 인증이 만료되어 구름에 다시 연결할 수 없습니다.");
-  CHECK(text(Failure::ConnectFailed) == "서버에 연결하지 못했습니다.");
-  CHECK(text(Failure::ConnectFailed, session::detail_closed) == "구름 서버 연결 실패: 연결이 종료되었습니다.");
-  CHECK(text(Failure::ConnectFailed, session::detail_no_reply) == "서버가 구름 생성 응답을 보내지 않았습니다.");
-  CHECK(text(Failure::InvalidArgument, "code") == "구름을 찾지 못했습니다.");
-  CHECK(text(Failure::InvalidArgument, "resume") == "참가하지 못했습니다.");
+  CHECK(text(Failure::GraceExpired, {}, true) == "서버와의 연결이 끊어졌어요.");
+  CHECK(text(Failure::Unauthorized) == "로그인이 만료되어 구름에 연결하지 못했어요.");
+  CHECK(text(Failure::Unauthorized, {}, true) == "로그인이 만료되어 구름에 다시 연결하지 못했어요.");
+  CHECK(text(Failure::ConnectFailed) == "서버에 연결하지 못했어요.");
+  CHECK(text(Failure::ConnectFailed, session::detail_closed) == "구름 서버와의 연결이 끊어졌어요.");
+  CHECK(text(Failure::ConnectFailed, session::detail_no_reply) == "서버가 구름을 만들어 주지 않았어요. 잠시 후 다시 시도해 주세요.");
+  CHECK(text(Failure::InvalidArgument, "code") == "구름을 찾지 못했어요.");
+  CHECK(text(Failure::InvalidArgument, "resume") == "구름에 들어가지 못했어요.");
 }
 
 void startup_waits_for_the_server() {
@@ -187,7 +187,7 @@ void a_failed_connection_asks_before_blaming() {
 void a_lost_room_shows_the_popup_until_it_is_back() {
   Rig r;
   r.h.app.show_session("ABC234");
-  r.h.app.dialogs().show({"떠날까요?", "떠나기", "취소", false, nullptr, nullptr});
+  r.h.app.dialogs().show({"떠날까요?", "나가기", "취소", false, nullptr, nullptr});
   r.feedback->state_changed(State::InRoom);
   CHECK(!r.popup_drawn());
   r.h.app.room().member_menu().open(1, false, 100, 10, 10);

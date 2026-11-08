@@ -293,7 +293,7 @@ void test_bubble_mutes_the_search_label_until_it_is_gone() {
   HomeScreen& home = h.app.home();
   CHECK(h.click(home, HomeScreen::Find));
   const auto before = clock_ms();
-  home.show_error("공개된 구름을 찾을 수 없어요.");
+  home.show_error("지금은 들어갈 수 있는 공개 구름이 없어요.");
   const auto wake = home.wake_at();
   CHECK(wake >= before + Toasts::default_ms + 200);
   CHECK(home.tick(wake));

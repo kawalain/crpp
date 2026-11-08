@@ -137,7 +137,7 @@ void test_notify_toggles_and_preview() {
   UiHarness h;
   CHECK(h.start());
   NotifyTab& tab = h.app.settings().notify();
-  tab.set_sounds({{"01_cloud_chat", "cloud_chat", "메시지"}, {"02_cloud_enter", "cloud_enter", "구름 입장"}});
+  tab.set_sounds({{"01_cloud_chat", "cloud_chat", "메시지"}, {"02_cloud_enter", "cloud_enter", "누군가 들어올 때"}});
   std::string previewed;
   tab.on_preview = [&](const std::string& stem) { previewed = stem; };
   open(h, SettingsPage::Notify);

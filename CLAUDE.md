@@ -153,7 +153,10 @@ against a real `server/` yet; do that once a local build of it is available.
   JSON, so upstream reads what it saved, but not a file someone commented by hand. Saving drops comments.
 - English besides Korean, chosen in a section of its own; it follows the OS language until then.
   Other words for the same things: 구름 is "Room", 사용자명 is "handle".
-- The time section (24시간제, 자리비움 타이머) and the language section are on the display tab, after the
+- The wording is gentler than upstream's: Korean speaks in ~해요 and ~할게요, with plainer names (외관 for
+  디스플레이, 대화 for 채팅, 나가기 for 떠나기), and English says "we" and "please". "진정하세요" stays as it is,
+  as the app's own catchphrase.
+- The time section (24시간제, 자리비움으로 바뀌는 시간) and the language section are on the display tab, after the
   chat size, where upstream has time on the system tab. They are about what the screen shows.
 - The changelog comes from GitHub release notes, so an empty one says it could not be
   loaded, and a first run ever does not open it. A new version's notes open when the app
@@ -187,7 +190,7 @@ against a real `server/` yet; do that once a local build of it is available.
   - A message and someone entering sound as tones made in `synth`, not the pack's recordings: plain tones
     under classic, and bells under Luna.
   - The pointer is drawn here too, and only in the app's windows: seven vector cursors of the Skin Pack, made into
-    system cursors when first needed. "테마 커서 사용" in the display tab, on by default and shown only for a Theme
+    system cursors when first needed. "테마 커서 쓰기" in the display tab, on by default and shown only for a Theme
     with cursors, gives the system's back (`themeCursor`, a key of this client's own).
 
 ## Build

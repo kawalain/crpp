@@ -140,7 +140,7 @@ void test_button_tips_follow_the_hover() {
   RoomScreen& room = h.app.room();
   hover(h, room, RoomScreen::Leave);
   CHECK(room.hover_tip().visible());
-  CHECK(room.hover_tip().text() == "구름에서 떠나기");
+  CHECK(room.hover_tip().text() == "구름에서 나가기");
   hover(h, room, RoomScreen::More);
   CHECK(room.hover_tip().text() == "더보기");
   hover(h, room, RoomScreen::Mute);
@@ -170,7 +170,7 @@ void test_host_and_offline_members_are_labelled() {
   h.render();
   RoomScreen& room = h.app.room();
   hover(h, room, RoomScreen::MemberBase + 0);
-  CHECK(room.hover_tip().text() == "이 구름의 호스트에요.");
+  CHECK(room.hover_tip().text() == "이 구름의 호스트예요.");
   hover(h, room, RoomScreen::MemberBase + 1);
   CHECK(room.hover_tip().text() == "오프라인");
   hover(h, room, RoomScreen::MemberBase + 2);
@@ -189,11 +189,11 @@ void test_copying_shows_the_tip_and_mutes_the_hint() {
   };
   CHECK(h.click(room, RoomScreen::More));
   hover(h, room, RoomScreen::OptCode);
-  CHECK(room.hover_tip().text() == "클릭해 복사");
+  CHECK(room.hover_tip().text() == "클릭해서 복사");
   CHECK(h.click(room, RoomScreen::OptCode));
   CHECK(copied == "ABC234");
   CHECK(room.copy_tip().visible());
-  CHECK(room.copy_tip().text() == "복사 완료 !");
+  CHECK(room.copy_tip().text() == "복사했어요!");
   CHECK(!room.hover_tip().visible());
   // It waits on a single wake-up, not on frames.
   const auto wake = h.app.wake_at();
@@ -211,7 +211,7 @@ void test_copy_failure_says_so() {
   room.on_copy = [](std::string) { return false; };
   CHECK(h.click(room, RoomScreen::More));
   CHECK(h.click(room, RoomScreen::OptCode));
-  CHECK(room.copy_tip().text() == "복사 실패");
+  CHECK(room.copy_tip().text() == "복사하지 못했어요");
 }
 
 void test_member_list_scrolls_only_when_it_overflows() {
@@ -246,7 +246,7 @@ void test_leave_asks_first() {
   CHECK(h.click(h.app.room(), RoomScreen::Leave));
   CHECK(left == 0);
   CHECK(h.app.dialogs().is_open());
-  CHECK(h.app.dialogs().text() == "이 구름에서 떠날까요?");
+  CHECK(h.app.dialogs().text() == "이 구름에서 나갈까요?");
   h.key(VK_ESCAPE);
   CHECK(!h.app.dialogs().is_open());
   CHECK(left == 0);
@@ -261,12 +261,12 @@ void test_leaving_host_is_told_about_delegation() {
   CHECK(h.start());
   enter(h, 2, false, 0, 0);
   CHECK(h.click(h.app.room(), RoomScreen::Leave));
-  CHECK(h.app.dialogs().text() == "이 구름에서 떠날까요?\n호스트를 무작위로 다른 사람에게 위임합니다.");
+  CHECK(h.app.dialogs().text() == "이 구름에서 나갈까요?\n호스트는 다른 사람에게 무작위로 넘어가요.");
   h.key(VK_ESCAPE);
   h.app.room().set_room(people(2), 1, 0, false, false);  // someone else is Host
   h.render();
   CHECK(h.click(h.app.room(), RoomScreen::Leave));
-  CHECK(h.app.dialogs().text() == "이 구름에서 떠날까요?");
+  CHECK(h.app.dialogs().text() == "이 구름에서 나갈까요?");
 }
 
 void test_chat_notice_shows_once_then_the_pin_tip_once() {
@@ -284,7 +284,7 @@ void test_chat_notice_shows_once_then_the_pin_tip_once() {
   CHECK(sent.size() == 1 && sent[0]);
   CHECK(h.drawn(room, RoomScreen::OptChat));  // the switches stay in view behind it
   // The first answer brings the tip, which has no cancel and survives Escape.
-  CHECK(h.app.dialogs().text().find("기본값으로 고정") != std::string_view::npos);
+  CHECK(h.app.dialogs().text().find("고정할 수 있어요") != std::string_view::npos);
   h.key(VK_ESCAPE);
   CHECK(h.app.dialogs().is_open());
   CHECK(h.click(h.app.dialogs(), Dialogs::Confirm));
@@ -305,11 +305,11 @@ void test_public_notice_cancel_changes_nothing_but_counts_as_seen() {
   room.on_set_public = [&](bool) { ++calls; };
   CHECK(h.click(room, RoomScreen::More));
   CHECK(h.click(room, RoomScreen::OptPublic));
-  CHECK(h.app.dialogs().text().find("공개 구름으로 전환") != std::string_view::npos);
+  CHECK(h.app.dialogs().text().find("공개 구름으로 바꿀게요") != std::string_view::npos);
   h.key(VK_ESCAPE);
   CHECK(calls == 0);
   CHECK(h.app.ui().prefs->get(pref::public_notice_seen));
-  CHECK(h.app.dialogs().text().find("기본값으로 고정") != std::string_view::npos);
+  CHECK(h.app.dialogs().text().find("고정할 수 있어요") != std::string_view::npos);
   CHECK(h.click(h.app.dialogs(), Dialogs::Confirm));
   // The pin tip is gone for good once either notice brought it.
   CHECK(h.click(room, RoomScreen::OptChat));
@@ -331,7 +331,7 @@ void test_only_the_host_moves_the_switches() {
   CHECK(calls == 0);
   CHECK(!h.app.dialogs().is_open());
   hover(h, room, RoomScreen::OptChat);
-  CHECK(room.hover_tip().text() == "호스트만 조작할 수 있습니다.");
+  CHECK(room.hover_tip().text() == "호스트만 바꿀 수 있어요.");
 }
 
 bool right_click(UiHarness& h, const Surface& owner, int id) {
@@ -358,18 +358,18 @@ void test_right_click_pins_an_on_switch_and_a_pin_blocks_turning_off() {
   room.set_room(people(3), 0, 0, true, false);
   h.render();
   hover(h, room, RoomScreen::OptPublic);
-  CHECK(room.hover_tip().text() == "우클릭해 활성화 상태를\n기본값으로 고정합니다.");
+  CHECK(room.hover_tip().text() == "우클릭하면 지금 상태를\n기본값으로 고정해요.");
   CHECK(right_click(h, room, RoomScreen::OptPublic));
   CHECK(prefs.get(pref::pin_public));
-  CHECK(room.hover_tip().text() == "우클릭해 기본값 고정을 해제합니다.");
+  CHECK(room.hover_tip().text() == "우클릭하면 기본값 고정을 풀어요.");
 
   CHECK(h.click(room, RoomScreen::OptPublic));
   CHECK(calls == 0);
-  CHECK(room.hover_tip().text() == "우클릭하여 기본값 고정 해제 후\n조작할 수 있습니다.");
+  CHECK(room.hover_tip().text() == "우클릭해서 기본값 고정을 풀면\n바꿀 수 있어요.");
   h.app.mouse_leave();
   h.render();
   hover(h, room, RoomScreen::OptPublic);
-  CHECK(room.hover_tip().text() == "우클릭해 기본값 고정을 해제합니다.");
+  CHECK(room.hover_tip().text() == "우클릭하면 기본값 고정을 풀어요.");
 
   CHECK(right_click(h, room, RoomScreen::OptPublic));
   CHECK(!prefs.get(pref::pin_public));
@@ -396,7 +396,7 @@ void test_chat_cannot_be_turned_off_after_the_lock() {
   h.render();
   CHECK(h.click(room, RoomScreen::OptChat));
   CHECK(calls == 1);
-  CHECK(room.hover_tip().text() == "이 구름에서는 이제 채팅을\n비활성화 할 수 없습니다.");
+  CHECK(room.hover_tip().text() == "이 구름에서는 이제 대화를\n끌 수 없어요.");
 }
 
 void test_losing_the_room_closes_its_question() {
@@ -1077,7 +1077,7 @@ void test_link_opens_through_the_seam_and_shows_its_tip() {
   CHECK(h.drawn(chat, ChatPanel::Area));
   hover(h, chat, link);
   CHECK(chat.link_tip().visible());
-  CHECK(chat.link_tip().text() == "링크 연결");
+  CHECK(chat.link_tip().text() == "링크 열기");
   CHECK(h.app.cursor() == Cursor::Hand);
   CHECK(h.click(chat, link));
   CHECK(opened.size() == 1 && opened[0] == "https://example.com/a");

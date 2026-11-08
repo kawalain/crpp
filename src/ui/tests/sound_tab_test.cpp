@@ -241,7 +241,7 @@ void a_saved_speaker_that_left_stays_on_the_list() {
   f.tab.set_speakers({});
   f.prefs.set(pref::speaker_device_name, "");
   f.tab.set_speakers({});
-  CHECK(f.tab.speaker_options()[1] == "현재 선택된 출력 장치");
+  CHECK(f.tab.speaker_options()[1] == "지금 고른 출력 장치");
   CHECK(f.prefs.get(pref::speaker_device) == "gone");
 }
 

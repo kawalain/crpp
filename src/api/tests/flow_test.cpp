@@ -78,7 +78,7 @@ void test_new_account_walks_every_step() {
   CHECK(next.kind == Kind::Show && f.step() == Step::Password && f.value().empty());
 
   next = f.submit("onlyletters");
-  CHECK(next.kind == Kind::Error && f.error() == "영문과 숫자를 포함해주세요." && f.step() == Step::Password);
+  CHECK(next.kind == Kind::Error && f.error() == "영문과 숫자를 함께 넣어 주세요." && f.step() == Step::Password);
   next = f.submit("한글비밀번호12345");
   CHECK(next.kind == Kind::Error && f.error() == "비밀번호에 사용할 수 없는 문자가 있어요.");
   next = f.submit("passw0rd!");
@@ -119,7 +119,7 @@ void test_login_of_a_known_account() {
   auto next = f.submit("wrong");
   CHECK(next.request.path == "api/login");
   next = f.on_response(reply(401, R"({"error":"invalid_credentials","attempts":2,"max":5})"));
-  CHECK(next.kind == Kind::Error && f.error() == "비밀번호가 올바르지 않습니다. (2/5)" && f.value() == "wrong");
+  CHECK(next.kind == Kind::Error && f.error() == "비밀번호가 맞지 않아요. (2/5)" && f.value() == "wrong");
 
   (void)f.submit("right");
   next = f.on_response(reply(200, R"({"token":"T","username":"alice","nickname":"구름"})"));
@@ -146,11 +146,11 @@ void test_lockout() {
   next = f.on_response(reply(429, R"({"error":"locked"})"));
   CHECK(next.kind == Kind::Lock && next.lock_seconds == 180);
 
-  CHECK(lock_hint(3600) == "비밀번호를 너무 많이 틀렸습니다. 1시간 뒤 다시 시도해주세요.");
-  CHECK(lock_hint(3599) == "비밀번호를 너무 많이 틀렸습니다. 60분 뒤 다시 시도해주세요.");
-  CHECK(lock_hint(61) == "비밀번호를 너무 많이 틀렸습니다. 2분 뒤 다시 시도해주세요.");
-  CHECK(lock_hint(1) == "비밀번호를 너무 많이 틀렸습니다. 1분 뒤 다시 시도해주세요.");
-  CHECK(lock_hint(0) == "비밀번호를 너무 많이 틀렸습니다. 1분 뒤 다시 시도해주세요.");
+  CHECK(lock_hint(3600) == "비밀번호를 너무 많이 틀렸어요. 1시간 뒤에 다시 시도해 주세요.");
+  CHECK(lock_hint(3599) == "비밀번호를 너무 많이 틀렸어요. 60분 뒤에 다시 시도해 주세요.");
+  CHECK(lock_hint(61) == "비밀번호를 너무 많이 틀렸어요. 2분 뒤에 다시 시도해 주세요.");
+  CHECK(lock_hint(1) == "비밀번호를 너무 많이 틀렸어요. 1분 뒤에 다시 시도해 주세요.");
+  CHECK(lock_hint(0) == "비밀번호를 너무 많이 틀렸어요. 1분 뒤에 다시 시도해 주세요.");
 }
 
 void test_failures_stay_on_the_step() {
@@ -158,16 +158,16 @@ void test_failures_stay_on_the_step() {
   f.start(Step::Handle);
   (void)f.submit("cloud");
   CHECK(f.on_response(reply(200, R"({"valid":true,"available":false})")).kind == Kind::Error);
-  CHECK(f.error() == "사용할 수 없는 사용자명입니다." && !f.busy());
+  CHECK(f.error() == "쓸 수 없는 사용자명이에요." && !f.busy());
 
   (void)f.submit("cloud");
   (void)f.on_response(reply(200, R"({"valid":true,"available":true})"));
   CHECK(f.on_response(reply(409, R"({"error":"handle_taken"})")).kind == Kind::Error);
-  CHECK(f.error() == "사용할 수 없는 사용자명입니다." && f.identity().handle.empty());
+  CHECK(f.error() == "쓸 수 없는 사용자명이에요." && f.identity().handle.empty());
 
   (void)f.submit("cloud");
   CHECK(f.on_response(std::unexpected(HttpError::Network)).kind == Kind::Error);
-  CHECK(f.error() == "요청을 처리하지 못했습니다." && f.value() == "cloud");
+  CHECK(f.error() == "요청을 처리하지 못했어요." && f.value() == "cloud");
 }
 
 void test_guest() {

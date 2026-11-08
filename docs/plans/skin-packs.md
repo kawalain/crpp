@@ -39,7 +39,7 @@ A smaller exe and less memory are not goals.
   system's. All of Retro shares one set, modelled on the white arrow of the time and drawn here, with an
   I-beam that has a white edge to show on any field. They scale with the window's DPI and follow Windows' pointer
   size. A pack asks for hard edges, and then the steps of the grid are part of the look. The shadow is left to the system, as no source says whether it adds one to such a cursor and drawing one could
-  double it. A "테마 커서 사용" check in the display tab, on by default and shown only for a Theme
+  double it. A "테마 커서 쓰기" check in the display tab, on by default and shown only for a Theme
   with cursors, turns them off (`themeCursor`, a key of this client's own). OS menus and IME windows stay the
   system's. Whether resizing keeps them during the drag needs a real desktop.
 

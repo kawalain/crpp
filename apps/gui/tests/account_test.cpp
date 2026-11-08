@@ -137,7 +137,7 @@ void test_register_walks_all_steps_to_home() {
   CHECK(r.host.requests.back().path == "api/username?name=alice");
   CHECK(r.prompt().busy());
   r.host.answer(r.h, 200, R"({"valid":true,"available":true})");
-  CHECK(r.prompt().prompt().heading == "계정 생성");
+  CHECK(r.prompt().prompt().heading == "계정 만들기");
   CHECK(r.prompt().prompt().password);
   CHECK(r.prompt().value().empty());
 
@@ -153,7 +153,7 @@ void test_register_walks_all_steps_to_home() {
   r.submit(L"passw0rd!");
   CHECK(r.host.requests.back().path == "api/register");
   r.host.answer(r.h, 200, R"({"token":"T","username":"alice"})");
-  CHECK(r.prompt().prompt().heading == "사용자명 설정");
+  CHECK(r.prompt().prompt().heading == "사용자명 정하기");
   CHECK(r.prompt().prompt().prefix == "@");
   CHECK(r.host.stored.token == "T");  // kept from here on, whatever happens next
   CHECK(r.host.seats_forgotten == 1);
@@ -163,9 +163,9 @@ void test_register_walks_all_steps_to_home() {
   r.host.answer(r.h, 200, R"({"valid":true,"available":true})");
   CHECK(r.host.requests.back().path == "api/handle");
   r.host.answer(r.h, 200, R"({"username":"alice","handle":"cloud"})");
-  CHECK(r.prompt().prompt().heading == "별명 설정");
-  CHECK(r.prompt().prompt().extra == "무작위 설정");
-  CHECK(r.prompt().prompt().extra2 == "사용자명 사용");
+  CHECK(r.prompt().prompt().heading == "별명 정하기");
+  CHECK(r.prompt().prompt().extra == "무작위로 정하기");
+  CHECK(r.prompt().prompt().extra2 == "사용자명으로 쓰기");
 
   CHECK(r.h.click(r.prompt(), PromptScreen::Extra));
   CHECK(r.prompt().value() == "졸린 곰");
@@ -203,7 +203,7 @@ void test_login_with_lockout() {
 
   r.submit(L"wrong");
   r.host.answer(r.h, 401, R"({"error":"invalid_credentials","attempts":4,"max":5})");
-  CHECK(r.prompt().hint_shown() == "비밀번호가 올바르지 않습니다. (4/5)");
+  CHECK(r.prompt().hint_shown() == "비밀번호가 맞지 않아요. (4/5)");
   CHECK(r.prompt().value() == "wrong");
   CHECK(!r.prompt().busy());
 
@@ -211,7 +211,7 @@ void test_login_with_lockout() {
   r.host.answer(r.h, 429, R"({"error":"locked","retryAfter":180})");
   CHECK(r.prompt().locked());
   CHECK(r.prompt().value().empty());
-  CHECK(r.prompt().hint_shown() == "비밀번호를 너무 많이 틀렸습니다. 3분 뒤 다시 시도해주세요.");
+  CHECK(r.prompt().hint_shown() == "비밀번호를 너무 많이 틀렸어요. 3분 뒤에 다시 시도해 주세요.");
   CHECK(r.host.requests.size() == 3);
   r.type(L"x\r");  // nothing takes it
   CHECK(r.host.requests.size() == 3);
@@ -233,7 +233,7 @@ void test_network_failure_stays_on_the_step() {
   r.host.answer(r.h, std::unexpected(api::HttpError::Network));
   CHECK(r.h.app.view() == View::Prompt);
   CHECK(r.prompt().prompt().label == "ID");
-  CHECK(r.prompt().hint_shown() == "요청을 처리하지 못했습니다.");
+  CHECK(r.prompt().hint_shown() == "요청을 처리하지 못했어요.");
   CHECK(r.prompt().value() == "alice");
   CHECK(!r.prompt().busy());
 }
@@ -251,7 +251,7 @@ void test_guest_path_through_its_dialog() {
 
   CHECK(r.h.click(r.prompt(), PromptScreen::Link));
   CHECK(r.h.click(r.h.app.dialogs(), Dialogs::Confirm));
-  CHECK(r.prompt().prompt().heading == "별명 설정");
+  CHECK(r.prompt().prompt().heading == "별명 정하기");
   CHECK(r.prompt().prompt().extra2.empty());  // no handle to use
   CHECK(r.host.stored.is_guest);
   CHECK(r.host.seats_forgotten == 1);
@@ -268,7 +268,7 @@ void test_links_go_back_to_the_first_step() {
   r.h.render();
   r.submit(L"alice");
   r.host.answer(r.h, 200, R"({"valid":true,"available":true})");
-  CHECK(r.prompt().prompt().link == "← ID 다시 입력");
+  CHECK(r.prompt().prompt().link == "← ID 다시 입력하기");
   CHECK(r.h.click(r.prompt(), PromptScreen::Link));
   CHECK(r.prompt().prompt().label == "ID");
   CHECK(!r.h.app.dialogs().is_open());
@@ -404,7 +404,7 @@ void test_rejected_token_asks_to_sign_in_again() {
   r.h.render();
   CHECK(r.host.stored.token.empty());
   CHECK(r.h.app.view() == View::Prompt);
-  CHECK(r.prompt().hint_shown() == "로그인이 만료되었어요. 다시 로그인해주세요.");
+  CHECK(r.prompt().hint_shown() == "로그인이 만료되었어요. 다시 로그인해 주세요.");
 
   Rig none;
   none.host.stored = guest();
@@ -444,7 +444,7 @@ void test_refresh_at_startup() {
     CHECK(!r.controller->begin_first_run());
     r.host.answer(r.h, 200, R"({"username":"alice"})");
     CHECK(r.h.app.view() == View::Prompt);
-    CHECK(r.prompt().prompt().heading == "별명 설정");
+    CHECK(r.prompt().prompt().heading == "별명 정하기");
     CHECK(!r.prompt().prompt().cancelable);
   }
   {  // The answer arrives after the person signed out.

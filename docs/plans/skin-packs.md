@@ -174,7 +174,17 @@ before step 7, which removes what Cloud's pack is compared with.
      finish it. Seen on a hidden desktop against localhost with a throwaway key: an update of each Repository
      arrived behind the app and showed at the next start, and a removed pack left no folder and was offered
      again.
-   - **6d.** A parent in another Repository, and pinning it.
+   - **6d.** A parent in another Repository, and pinning it. Done: a pack names its version and pins its parent in
+     the pack language; the catalog carries both, and `crpp_catalog --digest` prints what to pin. A chain follows
+     fingerprints across Repositories, a pick asks before a parent that no longer holds to its pin, and behind the
+     app such an update is held, with its folder left as it is, until the user takes it from the system tab. Adding
+     a Repository adds those its packs name in the same question, and one that could not be read is added by a
+     later start; a pack waiting for it is listed but cannot be picked. An added Repository whose address signs
+     with another key brings the add question with the warning, at each start until it is answered. A pick checks
+     the latest catalogs only, not an older parent that is installed and held. Seen on a hidden desktop against
+     localhost with throwaway keys: a pack of one added Repository extending one of another that extends the
+     official Retro was fetched into three folders and loaded; Retro 0.2.0 was held for a pack pinning 0.1, then
+     taken, and not held again; a wrong digest asked first; and a changed key asked again.
    - **6e.** Sound packs of other Repositories.
 7. **Remove the C++.** Delete Luna's and Cloud's layouts and `Skin`, and fix ADR 0004 and the module design. Measure
    again.

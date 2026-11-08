@@ -149,6 +149,14 @@ struct AddedRepository {
   std::string fingerprint;                 // all of it, which a pack names its parent's Repository by
 };
 
+// A Repository's catalog read before it is trusted: as the user typed its address, or as a pack
+// named it.
+struct Candidate {
+  std::string typed, folder;
+  assets::Fetched fetched;
+  std::string fingerprint;
+};
+
 // One Repository's share of fetching a pack: the pack itself, or packs it extends that are there.
 struct InstallPart {
   std::shared_ptr<const assets::Catalog> catalog;

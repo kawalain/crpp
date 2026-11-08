@@ -238,6 +238,8 @@ struct Strings {
   const char* repository_add_question;
   const char* repository_add_pack;
   const char* repository_add_nothing;
+  const char* repository_add_also;
+  const char* repository_add_unreadable;
   const char* repository_key_changed;
   const char* repository_remove_question;
   const char* repository_in_use;

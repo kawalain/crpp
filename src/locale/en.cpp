@@ -217,6 +217,8 @@ const Strings english{
     .repository_add_question = "Add this Repository?\n{0}\n\n{1}\n\nFingerprint {2}\nPlease check it matches the one its maker published.",
     .repository_add_pack = "The {0} Skin ({1})",
     .repository_add_nothing = "It has no Skins yet.",
+    .repository_add_also = "Its Skins need another Repository, which we will add too.\n{0}\n\n{1}\n\nFingerprint {2}",
+    .repository_add_unreadable = "We could not read {0}, which some of its Skins need. Those cannot be picked, and we will try again at the next start.",
     .repository_key_changed = "This address was signed by another key before. Screens may break, or it may come from someone other than the one you trusted. Adding it makes a Repository of its own.",
     .repository_remove_question = "Remove this Repository and the Skins it gave?\n{0}",
     .repository_in_use = "The Skin in use comes from this Repository, so it cannot be removed.",

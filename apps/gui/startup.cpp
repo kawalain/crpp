@@ -211,6 +211,7 @@ struct Installed {
   std::vector<std::pair<std::string, assets::Catalog>> others;  // the latest of those the user added, by id
   std::vector<assets::Error> other_errors;
   std::vector<Hold> holds;
+  std::vector<Candidate> wanted, rekeyed;
   std::expected<void, assets::Error> result;
 };
 
@@ -290,6 +291,13 @@ Installed install(Shell& s, const InstallJob& job, const std::atomic<bool>& canc
     auto got = assets::fetch_catalog(other.repository, platform);
     if (got && assets::offers_only_packs(got->catalog) && assets::save_catalog(other.dir, got->text)) latest[i] = std::move(got->catalog);
     else done.other_errors.push_back(got ? assets::Error::BadContent : got.error());
+    // Signed by another key now: the same people with a new key, or someone else, which the user decides.
+    if (!got && got.error() == assets::Error::BadSignature) {
+      if (auto fresh = assets::fetch_new_catalog(other.repository.url, platform)) {
+        std::string fingerprint = assets::fingerprint(fresh->catalog.key, platform);
+        if (fingerprint != other.fingerprint) done.rekeyed.push_back({other.address, other.repository.url, std::move(*fresh), std::move(fingerprint)});
+      }
+    }
   }
   std::vector<assets::Shelf> shelves{{job.official_fingerprint, catalog}};
   for (std::size_t i = 0; i < job.others.size(); ++i) {
@@ -326,6 +334,17 @@ Installed install(Shell& s, const InstallJob& job, const std::atomic<bool>& canc
   const auto groups = assets::wanted_groups(*catalog, s.assets_dir);
   if (wait || !assets::missing(*catalog, groups, s.assets_dir).empty()) {
     done.result = assets::install(*catalog, base, groups, s.assets_dir, platform, progress, &cancel, held[0]);
+  }
+  // A Repository a pack names but that is not added yet, which could not be read when it was asked
+  // for, or which a pack named since.
+  {
+    std::vector<const assets::Catalog*> from;
+    std::vector<std::string> known;
+    for (const assets::Shelf& shelf : shelves) {
+      known.push_back(shelf.fingerprint);
+      if (shelf.catalog) from.push_back(shelf.catalog);
+    }
+    if (!cancel) done.wanted = area::repositories::read_wanted(std::move(from), std::move(known), nullptr);
   }
   // Then what was picked from the Repositories the user added.
   for (std::size_t i = 0; i < job.others.size(); ++i) {
@@ -373,6 +392,7 @@ void finish_install(Shell& s, const InstallJob& job, bool cancelled, Installed i
   if (!wait) {
     s.holds = std::move(installed.holds);
     for (const Hold& hold : s.holds) s.log.note(DiagEvent::UpdateHeld, hold.parent + " " + hold.child);
+    area::repositories::found(s, std::move(installed.wanted), std::move(installed.rekeyed));
   }
   // The kept one stands in, as at the last start; why is for the diagnostic log only.
   if (installed.offered_error) s.log.note(diag_of(*installed.offered_error));

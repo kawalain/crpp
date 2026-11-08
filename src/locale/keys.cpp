@@ -220,6 +220,8 @@ constexpr Key keys[] = {
     KEY(repository_add_question),
     KEY(repository_add_pack),
     KEY(repository_add_nothing),
+    KEY(repository_add_also),
+    KEY(repository_add_unreadable),
     KEY(repository_key_changed),
     KEY(repository_remove_question),
     KEY(repository_in_use),

@@ -17,6 +17,7 @@
 namespace crpp::gui {
 struct Shell;
 struct AddedRepository;
+struct Candidate;
 }  // namespace crpp::gui
 
 namespace crpp::gui::area {
@@ -111,6 +112,14 @@ void show_packs(Shell& s);
 [[nodiscard]] std::string base_of(const Shell& s, std::size_t shelf);
 // The groups of a shelf the installed packs and the default one need.
 [[nodiscard]] std::vector<std::string> needed_groups(const Shell& s, std::span<const assets::Shelf> shelves, std::size_t shelf);
+// On a worker thread: the Repositories the packs of these catalogs name by a fingerprint not known,
+// read from the address the pack gives, and what they name in turn, within a chain's depth. Those
+// that could not be read go to `unreadable` by their address, or their fingerprint's first digits.
+[[nodiscard]] std::vector<Candidate> read_wanted(std::vector<const assets::Catalog*> from, std::vector<std::string> known,
+                                                 std::vector<std::string>* unreadable);
+// Read behind the app: Repositories a pack names, which are added as that pack asks, and added ones
+// whose address now signs with another key, which the user is asked about.
+void found(Shell& s, std::vector<Candidate> wanted, std::vector<Candidate> rekeyed);
 // The digest of a parent the user went ahead with for this pack, though its pin did not hold; empty
 // for none. Asked again when the parent changes again.
 [[nodiscard]] std::string accepted(const Shell& s, std::string_view child);

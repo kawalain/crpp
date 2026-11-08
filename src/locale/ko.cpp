@@ -217,6 +217,8 @@ const Strings korean{
     .repository_add_question = "이 저장소를 추가할까요?\n{0}\n\n{1}\n\n지문 {2}\n만든 사람이 알려 준 지문과 같은지 확인해 주세요.",
     .repository_add_pack = "{0} 스킨 ({1})",
     .repository_add_nothing = "아직 받을 스킨이 없어요.",
+    .repository_add_also = "이 저장소의 스킨에 필요한 저장소도 함께 추가할게요.\n{0}\n\n{1}\n\n지문 {2}",
+    .repository_add_unreadable = "이 저장소의 스킨에 필요한 {0} 저장소는 읽지 못했어요. 그 저장소가 필요한 스킨은 고를 수 없고, 다음에 시작할 때 다시 읽어 볼게요.",
     .repository_key_changed = "이 주소는 전에 다른 키로 서명했어요. 화면이 깨지거나, 믿었던 사람이 아닌 다른 사람이 만든 것일 수 있어요. 추가하면 따로 된 저장소가 돼요.",
     .repository_remove_question = "이 저장소와 거기서 받은 스킨을 뺄까요?\n{0}",
     .repository_in_use = "지금 쓰는 스킨이 이 저장소에 있어서 뺄 수 없어요.",

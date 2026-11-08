@@ -98,45 +98,72 @@ void changed(Shell& s) {
   preferences::skins_installed(s);
 }
 
-void keep(Shell& s, const std::string& typed, const std::string& folder, const assets::Fetched& fetched, const std::string& id) {
-  const fs::path dir = s.repositories_dir / fs::path(widen(id));
-  if (!assets::save_catalog(dir, fetched.text) || !write_address(dir, typed, folder)) {
-    std::error_code ec;
-    fs::remove_all(dir, ec);
-    set_adding(s, SystemTab::Adding::State::Failed, tr().fetch_reason_disk);
-    return;
-  }
-  assets::WindowsPlatform platform;
-  s.added.push_back({id, typed, assets::Repository{folder, "", fetched.catalog.key}, dir, fetched.catalog, assets::fingerprint(fetched.catalog.key, platform)});
-  s.app.settings().system().clear_address();
-  set_adding(s, SystemTab::Adding::State::None);
-  changed(s);
+bool known(const Shell& s, std::string_view fingerprint) {
+  return fingerprint == s.official_fingerprint || std::ranges::any_of(s.added, [&](const AddedRepository& added) { return added.fingerprint == fingerprint; });
 }
 
-// Its catalog has been read: the user is asked, with its fingerprint, before it is trusted.
+// Trusted from now on: its catalog and address are kept in a folder of its own.
+bool keep(Shell& s, const Candidate& one) {
+  if (known(s, one.fingerprint)) return true;
+  const std::string id = short_id(one.fingerprint);
+  const fs::path dir = s.repositories_dir / fs::path(widen(id));
+  if (!assets::save_catalog(dir, one.fetched.text) || !write_address(dir, one.typed, one.folder)) {
+    std::error_code ec;
+    fs::remove_all(dir, ec);
+    return false;
+  }
+  s.added.push_back({id, one.typed, assets::Repository{one.folder, "", one.fetched.catalog.key}, dir, one.fetched.catalog, one.fingerprint});
+  return true;
+}
+
+// The user is asked, with its fingerprint, before a Repository is trusted, and with those its packs
+// need, which come with it.
+void ask_to_add(Shell& s, Candidate first, std::vector<Candidate> wanted, const std::vector<std::string>& unreadable, bool from_field) {
+  std::string text = locale::fill(tr().repository_add_question, {first.typed, offer_text(first.fetched.catalog), spaced(first.fingerprint)});
+  // The same address under another key: it may be the same people with a new key, or someone else.
+  if (std::ranges::any_of(s.added, [&](const AddedRepository& added) { return added.repository.url == first.folder; })) {
+    text += "\n\n";
+    text += tr().repository_key_changed;
+  }
+  std::erase_if(wanted, [&](const Candidate& one) { return known(s, one.fingerprint) || one.fingerprint == first.fingerprint; });
+  for (const Candidate& one : wanted) {
+    text += "\n\n";
+    text += locale::fill(tr().repository_add_also, {one.typed, offer_text(one.fetched.catalog), spaced(one.fingerprint)});
+  }
+  for (const std::string& name : unreadable) {
+    text += "\n\n";
+    text += locale::fill(tr().repository_add_unreadable, {name});
+  }
+  Shell* sp = &s;
+  auto all = std::make_shared<std::vector<Candidate>>();
+  all->push_back(std::move(first));
+  for (Candidate& one : wanted) all->push_back(std::move(one));
+  s.app.dialogs().show({std::move(text), tr().system_repository_add, tr().cancel, true,
+                        [sp, all, from_field] {
+                          bool kept = true;
+                          for (const Candidate& one : *all) kept = keep(*sp, one) && kept;
+                          if (from_field) {
+                            if (kept) sp->app.settings().system().clear_address();
+                            set_adding(*sp, kept ? SystemTab::Adding::State::None : SystemTab::Adding::State::Failed, kept ? "" : tr().fetch_reason_disk);
+                          }
+                          changed(*sp);
+                        },
+                        nullptr});
+}
+
+// Its catalog has been read, and those its packs need.
 void checked(Shell& s, const std::string& typed, const std::string& folder, std::expected<assets::Fetched, assets::Error> fetched,
-             const std::string& fingerprint) {
+             const std::string& fingerprint, std::vector<Candidate> wanted, const std::vector<std::string>& unreadable) {
   if (!fetched) {
     set_adding(s, SystemTab::Adding::State::Failed, reason_of(fetched.error()));
     return;
   }
-  const std::string id = short_id(fingerprint);
-  const bool official = s.repository && s.repository->key == fetched->catalog.key;
-  if (official || std::ranges::any_of(s.added, [&](const AddedRepository& added) { return added.id == id; })) {
+  if (known(s, fingerprint)) {
     set_adding(s, SystemTab::Adding::State::Failed, tr().repository_reason_known);
     return;
   }
-  std::string text = locale::fill(tr().repository_add_question, {typed, offer_text(fetched->catalog), spaced(fingerprint)});
-  // The same address under another key: it may be the same people with a new key, or someone else.
-  if (std::ranges::any_of(s.added, [&](const AddedRepository& added) { return added.repository.url == folder; })) {
-    text += "\n\n";
-    text += tr().repository_key_changed;
-  }
   set_adding(s, SystemTab::Adding::State::None);
-  Shell* sp = &s;
-  auto kept = std::make_shared<assets::Fetched>(std::move(*fetched));
-  s.app.dialogs().show({std::move(text), tr().system_repository_add, tr().cancel, true,
-                        [sp, typed, folder, kept, id] { keep(*sp, typed, folder, *kept, id); }, nullptr});
+  ask_to_add(s, {typed, folder, std::move(*fetched), fingerprint}, std::move(wanted), unreadable, true);
 }
 
 void add(Shell& s, std::string typed) {
@@ -151,13 +178,22 @@ void add(Shell& s, std::string typed) {
   }
   if (s.repository_worker.joinable()) return;
   set_adding(s, SystemTab::Adding::State::Checking);
-  s.repository_worker = std::thread([&s, typed, folder] {
+  std::vector<std::string> known{s.official_fingerprint};
+  for (const AddedRepository& added : s.added) known.push_back(added.fingerprint);
+  s.repository_worker = std::thread([&s, typed, folder, known]() mutable {
     assets::WindowsPlatform platform;
     auto fetched = assets::fetch_new_catalog(folder, platform);
     std::string fingerprint = fetched ? assets::fingerprint(fetched->catalog.key, platform) : std::string();
-    s.tasks.post([&s, typed, folder, fetched = std::move(fetched), fingerprint]() mutable {
+    // What its packs extend in Repositories not added yet comes in the same question.
+    std::vector<Candidate> wanted;
+    std::vector<std::string> unreadable;
+    if (fetched) {
+      known.push_back(fingerprint);
+      wanted = read_wanted({&fetched->catalog}, std::move(known), &unreadable);
+    }
+    s.tasks.post([&s, typed, folder, fetched = std::move(fetched), fingerprint, wanted = std::move(wanted), unreadable]() mutable {
       s.repository_worker.join();
-      checked(s, typed, folder, std::move(fetched), fingerprint);
+      checked(s, typed, folder, std::move(fetched), fingerprint, std::move(wanted), unreadable);
     });
   });
 }
@@ -252,6 +288,37 @@ std::vector<std::string> needed_groups(const Shell& s, std::span<const assets::S
   for (const SkinInfo& info : s.app.ui().skins) add(info.id);
   if (!shelves.empty() && shelves[0].catalog) add(shelves[0].catalog->default_skin);
   return groups;
+}
+
+std::vector<Candidate> read_wanted(std::vector<const assets::Catalog*> from, std::vector<std::string> known, std::vector<std::string>* unreadable) {
+  assets::WindowsPlatform platform;
+  std::vector<Candidate> found;
+  found.reserve(assets::max_chain);  // the catalogs read are looked through in turn, by address
+  for (std::size_t next = 0; next < from.size(); ++next) {
+    for (const assets::SkinPack& pack : from[next]->skins) {
+      if (!pack.pin || pack.pin->fingerprint.empty() || std::ranges::find(known, pack.pin->fingerprint) != known.end()) continue;
+      const assets::ParentPin& pin = *pack.pin;
+      known.push_back(pin.fingerprint);
+      const std::string folder = assets::folder_of(pin.repository);
+      auto got = folder.empty() || found.size() == assets::max_chain ? std::unexpected(assets::Error::Unavailable) : assets::fetch_new_catalog(folder, platform);
+      if (got && assets::fingerprint(got->catalog.key, platform) == pin.fingerprint) {
+        found.push_back({pin.repository, folder, std::move(*got), pin.fingerprint});
+        from.push_back(&found.back().fetched.catalog);
+      } else if (unreadable) {
+        unreadable->push_back(pin.repository.empty() ? pin.fingerprint.substr(0, assets::short_fingerprint) : pin.repository);
+      }
+    }
+  }
+  return found;
+}
+
+void found(Shell& s, std::vector<Candidate> wanted, std::vector<Candidate> rekeyed) {
+  bool added = false;
+  for (const Candidate& one : wanted) added = keep(s, one) || added;
+  if (added) changed(s);
+  // Asked about one at a time: another waits for a start after this question.
+  std::erase_if(rekeyed, [&](const Candidate& one) { return known(s, one.fingerprint); });
+  if (!rekeyed.empty()) ask_to_add(s, std::move(rekeyed.front()), {}, {}, false);
 }
 
 namespace {

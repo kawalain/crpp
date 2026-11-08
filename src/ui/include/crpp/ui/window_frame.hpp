@@ -45,6 +45,17 @@ class WindowFrame final : public Surface {
   void set_parts(Parts parts) { parts_ = parts; }
   void set_in_room(bool in_room) { in_room_ = in_room; }
 
+  // The keyboard in the menu bar, as in the menus of Windows: Alt or F10 alone puts it on the first
+  // title, Alt and a title's letter opens that menu. Once in, the menus take every key.
+  [[nodiscard]] bool keyboard_in_menus() const { return menu_shown_ && (bar_ >= 0 || open_ >= 0); }
+  void enter_menus();
+  // False when no title has this access key, in upper case.
+  bool open_by_key(char key);
+  void leave_menus() { open_ = bar_ = item_ = -1; }
+  // The arrows go along the titles and the items, Enter opens or runs, a letter runs its item, and
+  // Escape closes the menu and then leaves the bar. False for a key the menus have no use for.
+  bool menu_key(unsigned vk);
+
   void paint(Painter& p);
   // The open menu, over everything else.
   void paint_menu(Painter& p);
@@ -60,6 +71,9 @@ class WindowFrame final : public Surface {
     std::function<void()>* action;
   };
   [[nodiscard]] std::vector<Item> items_of(int menu);
+  [[nodiscard]] static const char* title_of(int menu);
+  void open_menu(int menu, int item) { open_ = bar_ = menu, item_ = item; }
+  void run(int menu, int index);
   void paint_pack(Painter& p, const skin::Screen& screen);
   void paint_menu_pack(Painter& p, const skin::Screen& screen);
 
@@ -68,7 +82,12 @@ class WindowFrame final : public Surface {
   Parts parts_;
   static constexpr int menus = 3;
   int open_ = -1;  // which menu is down, below menus
+  int bar_ = -1;   // the title the keyboard is on
+  int item_ = -1;  // the item of the open menu the keyboard is on
+  // What the pointer was over when last drawn: moving onto a title or an item takes the keyboard's place.
+  int hot_title_ = -1, hot_item_ = -1;
   Rect titles_[menus];
+  std::string labels_[menus];  // the titles as shown
 };
 
 }  // namespace crpp::ui

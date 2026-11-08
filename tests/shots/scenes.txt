@@ -85,6 +85,8 @@ motion-member --at 150
 motion-scroll --at 80
 motion-stretch --at 120
 menu-open
+menu-keys
+menu-keys-open
 focus-home-1
 focus-home-3
 focus-dialog-1

@@ -204,7 +204,9 @@ against a real `server/` yet; do that once a local build of it is available.
     real windows, owned by the main one and without a taskbar button. A question holds the others
     off until it is answered. Only messages inside the main window, menus and popups stay in it.
   - Home lists the Seats to return to, where Cloud asks once in a dialog.
-  - A menu bar holds only commands that work, by mouse and Escape; there are no Alt keys yet.
+  - A menu bar holds only commands that work. Alt or F10 alone goes into it and Alt with a title's letter opens
+    that menu, as in Windows: the arrows, Enter, an item's letter and Escape work inside. The letter shows in
+    the words, as "파일(F)", but is not underlined.
   - Only links show the hand cursor, and none of the motion listed above runs.
   - Text is in the fonts of the time on this system, not Pretendard.
   - A message and someone entering sound as tones made in `synth`, not the pack's recordings: plain tones

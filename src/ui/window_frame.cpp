@@ -1,5 +1,7 @@
 #include "crpp/ui/window_frame.hpp"
 
+#include <windows.h>
+
 #include <vector>
 
 namespace crpp::ui {
@@ -52,6 +54,90 @@ std::vector<WindowFrame::Item> WindowFrame::items_of(int menu) {
   }
 }
 
+const char* WindowFrame::title_of(int menu) {
+  switch (menu) {
+    case 0: return tr().menu_file;
+    case 1: return tr().menu_tools;
+    default: return tr().menu_help;
+  }
+}
+
+void WindowFrame::enter_menus() {
+  if (!menu_shown_) return;
+  leave_menus();
+  bar_ = 0;
+}
+
+bool WindowFrame::open_by_key(char key) {
+  if (!menu_shown_ || key == 0) return false;
+  for (int i = 0; i < menus; ++i) {
+    if (locale::access_key(title_of(i)) == key) {
+      open_menu(i, 0);
+      return true;
+    }
+  }
+  return false;
+}
+
+void WindowFrame::run(int menu, int index) {
+  leave_menus();
+  const std::vector<Item> items = items_of(menu);
+  if (index >= 0 && static_cast<std::size_t>(index) < items.size() && *items[static_cast<std::size_t>(index)].action) {
+    (*items[static_cast<std::size_t>(index)].action)();
+  }
+}
+
+bool WindowFrame::menu_key(unsigned vk) {
+  const int at = open_ >= 0 ? open_ : bar_ >= 0 ? bar_ : 0;
+  const int count = open_ >= 0 ? static_cast<int>(items_of(open_).size()) : 0;
+  switch (vk) {
+    case VK_ESCAPE:
+      if (open_ >= 0) {
+        bar_ = open_;
+        open_ = item_ = -1;
+      } else {
+        leave_menus();
+      }
+      return true;
+    case VK_LEFT:
+    case VK_RIGHT: {
+      const int next = (at + (vk == VK_RIGHT ? 1 : menus - 1)) % menus;
+      if (open_ >= 0) open_menu(next, 0);
+      else bar_ = next;
+      return true;
+    }
+    case VK_DOWN:
+    case VK_UP:
+      if (open_ < 0) {
+        open_menu(at, 0);
+        if (vk == VK_UP) item_ = static_cast<int>(items_of(at).size()) - 1;
+      } else if (count > 0) {
+        item_ = item_ < 0 ? (vk == VK_DOWN ? 0 : count - 1) : (item_ + (vk == VK_DOWN ? 1 : count - 1)) % count;
+      }
+      return true;
+    case VK_RETURN:
+      if (open_ < 0) open_menu(at, 0);
+      else if (item_ >= 0) run(open_, item_);
+      return true;
+    default:
+      break;
+  }
+  const bool letter = (vk >= 'A' && vk <= 'Z') || (vk >= '0' && vk <= '9');
+  if (!letter) return false;
+  if (open_ < 0) {
+    open_by_key(static_cast<char>(vk));
+    return true;
+  }
+  const std::vector<Item> items = items_of(open_);
+  for (std::size_t i = 0; i < items.size(); ++i) {
+    if (locale::access_key(items[i].text) == static_cast<char>(vk)) {
+      run(open_, static_cast<int>(i));
+      break;
+    }
+  }
+  return true;
+}
+
 void WindowFrame::paint(Painter& p) {
   p.set_base(D2D1::Matrix3x2F::Identity());
   if (const skin::Screen* screen = ui_.pack_screen("frame")) paint_pack(p, *screen);
@@ -64,6 +150,8 @@ void WindowFrame::paint_menu(Painter& p) {
 }
 
 void WindowFrame::before_click(const Surface* owner, int id) {
+  // A click leaves the keyboard's place in the menus; a menu it opens still takes the keys.
+  bar_ = item_ = -1;
   if (owner != this || id < MenuBase) open_ = -1;
 }
 
@@ -73,18 +161,15 @@ void WindowFrame::click(int id, float, float, bool) {
   } else if (id == Close) {
     if (on_close) on_close();
   } else if (id >= ItemBase) {
-    const int menu = (id - ItemBase) / 10, index = (id - ItemBase) % 10;
-    open_ = -1;
-    const std::vector<Item> items = items_of(menu);
-    if (static_cast<std::size_t>(index) < items.size() && *items[static_cast<std::size_t>(index)].action) (*items[static_cast<std::size_t>(index)].action)();
+    run((id - ItemBase) / 10, (id - ItemBase) % 10);
   } else if (id >= MenuBase && id - MenuBase < menus) {  // a pack's hit_index can name any menu
     open_ = open_ == id - MenuBase ? -1 : id - MenuBase;
   }
 }
 
 bool WindowFrame::escape() {
-  if (open_ < 0) return false;
-  open_ = -1;
+  if (open_ < 0 && bar_ < 0) return false;
+  leave_menus();
   return true;
 }
 

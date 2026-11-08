@@ -64,6 +64,26 @@ std::string fill(std::string_view pattern, std::initializer_list<std::string_vie
   return out;
 }
 
+std::string label(std::string_view wording) {
+  std::string out;
+  out.reserve(wording.size());
+  for (std::size_t i = 0; i < wording.size(); ++i) {
+    if (wording[i] == '&' && i + 1 < wording.size()) ++i;
+    out += wording[i];
+  }
+  return out;
+}
+
+char access_key(std::string_view wording) noexcept {
+  for (std::size_t i = 0; i + 1 < wording.size(); ++i) {
+    if (wording[i] != '&') continue;
+    const char c = wording[i + 1];
+    if (c != '&') return c >= 'a' && c <= 'z' ? static_cast<char>(c - 'a' + 'A') : c;
+    ++i;
+  }
+  return 0;
+}
+
 std::string format_stay(std::int64_t seconds) {
   const Strings& s = tr();
   std::int64_t minutes = std::max<std::int64_t>(0, seconds / 60);

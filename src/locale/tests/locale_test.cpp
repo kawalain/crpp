@@ -77,6 +77,19 @@ void test_fill_replaces_what_it_can() {
   CHECK(fill("", {}) == "");
 }
 
+void test_access_keys() {
+  CHECK(label("&File") == "File");
+  CHECK(access_key("&File") == 'F');
+  CHECK(label("파일(&F)") == "파일(F)");
+  CHECK(access_key("파일(&F)") == 'F');
+  CHECK(access_key("E&xit") == 'X');
+  CHECK(label("Salt && Pepper") == "Salt & Pepper");
+  CHECK(access_key("Salt && &Pepper") == 'P');
+  CHECK(access_key("Plain") == 0);
+  CHECK(label("end&") == "end&");
+  CHECK(access_key("end&") == 0);
+}
+
 void test_korean_formats() {
   set_current(*find_locale("ko"));
   CHECK(format_clock(0, 5, false) == "오전 12:05");
@@ -131,6 +144,7 @@ int main() {
   test_locales_have_what_the_list_needs();
   test_the_saved_choice_wins_then_the_os_language_then_english();
   test_fill_replaces_what_it_can();
+  test_access_keys();
   test_korean_formats();
   test_english_formats();
   keys_name_every_field_once();

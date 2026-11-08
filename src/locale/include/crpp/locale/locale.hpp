@@ -358,6 +358,7 @@ struct Strings {
   const char* update_button;
   const char* update_failed;  // {0} the reason's name
   const char* update_latest;
+  const char* changelog_title;
   const char* changelog_failed;
   const char* changelog_newer_hint;
   const char* changelog_older_hint;
@@ -392,6 +393,11 @@ void set_current(const Locale& locale) noexcept;
 
 // `pattern` with {0}, {1}... replaced by `values`. An unknown placeholder stays as it is.
 [[nodiscard]] std::string fill(std::string_view pattern, std::initializer_list<std::string_view> values);
+
+// A menu's wording marks its access key with & before it, as Windows writes it ("&File", "파일(&F)"),
+// and && is a plain &. `label` is the wording as shown, `access_key` that key in upper case, or 0.
+[[nodiscard]] std::string label(std::string_view wording);
+[[nodiscard]] char access_key(std::string_view wording) noexcept;
 
 // A field of Strings by its name, for what refers to wording from outside the code. The index
 // counts the fields in their order.

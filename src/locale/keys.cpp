@@ -332,6 +332,7 @@ constexpr Key keys[] = {
     KEY(update_button),
     KEY(update_failed),
     KEY(update_latest),
+    KEY(changelog_title),
     KEY(changelog_failed),
     KEY(changelog_newer_hint),
     KEY(changelog_older_hint),

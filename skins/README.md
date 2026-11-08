@@ -39,6 +39,8 @@ use tip(shown = 1) text @tr.ok hit create
   its name with a constant, argument or `let` is a mistake. `id` gives a node a name its later siblings read as
   `name.x`, `.right`, `.bottom` and so on.
 - Text is `@tr.key`, `@name`, or `"words"`. A colour is `#rrggbb` or `#rrggbbaa`.
+  The wording of a menu marks its access key with `&`, as `파일(&F)`, which `@tr.key` shows as it is: a screen with
+  a menu offers its words without the mark, as `@menu_file` on `frame`.
 
 The node kinds and their keys are listed at the top of `src/skin/include/crpp/skin/pack.hpp`, and in `src/skin/keys.hpp`,
 which is what the reader checks against. `crpp_skin names` lists the screens, and `crpp_skin names <screen>` what the

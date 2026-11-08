@@ -399,6 +399,16 @@ LRESULT CALLBACK wnd_proc(HWND hwnd, UINT msg, WPARAM wp, LPARAM lp) {
         return 0;
       }
       break;
+    case WM_SYSKEYUP:
+      if (s->app.sys_key_up(static_cast<unsigned>(wp))) {
+        repaint(true);
+        return 0;
+      }
+      break;
+    case WM_SYSCHAR:
+      // Alt+Space and the rest still reach the system's own menu.
+      if (s->app.take_sys_char(static_cast<wchar_t>(wp))) return 0;
+      break;
     case WM_KEYDOWN:
       if (wp == VK_APPS) complete_composition(hwnd);
       repaint(s->app.key_down(static_cast<unsigned>(wp), (GetKeyState(VK_CONTROL) & 0x8000) != 0,

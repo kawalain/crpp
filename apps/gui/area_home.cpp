@@ -112,6 +112,15 @@ bool scene(Shell& s, std::string_view name) {
     s.app.frame().click(WindowFrame::MenuBase, 0, 0, false);
     return true;
   }
+  if (name == "menu-keys" || name == "menu-keys-open") {  // Alt alone, and then Right and Down
+    s.app.sys_key(VK_MENU, false);
+    s.app.sys_key_up(VK_MENU);
+    if (name == "menu-keys-open") {
+      s.app.key_down(VK_RIGHT, false, false);
+      s.app.key_down(VK_DOWN, false, false);
+    }
+    return true;
+  }
   if (name == "home-bubble") {  // the real path of a code that is too short
     s.app.home().click(HomeScreen::Join, 0, 0, false);
     return true;

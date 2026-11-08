@@ -2,6 +2,7 @@
 
 #include <windows.h>
 
+#include <cwctype>
 #include <fstream>
 #include <utility>
 
@@ -349,7 +350,7 @@ PaneInfo App::pane_info(Pane pane) const {
       break;
     case Pane::Changelog:
       info.key = "Changelog";
-      info.title = tr().menu_changelog;
+      info.title = tr().changelog_title;
       info.w = window_size("changelog", "w", 560), info.h = window_size("changelog", "h", 560);
       info.min_w = window_size("changelog", "min_w", 400), info.min_h = window_size("changelog", "min_h", 300);
       info.resizable = true;
@@ -413,6 +414,7 @@ bool App::window_deactivated() {
     emoji_picker_.close();  // it closes on a click elsewhere
     return true;
   }
+  alone_ = 0;
   for (Surface* s : layers()) s->before_click(nullptr, 0);
   return true;
 }
@@ -735,11 +737,33 @@ bool App::context_key() {
 }
 
 bool App::sys_key(unsigned vk, bool shift) {
+  const bool menu_key = vk == VK_MENU || vk == VK_F10;
+  alone_ = vk == VK_MENU || (vk == VK_F10 && !shift) ? vk : 0;
+  taken_sys_char_ = 0;
   if (context_menu_.is_open()) {  // Alt or F10 leaves a menu
     context_menu_.close();
+    alone_ = 0;
     return true;
   }
+  if (in_frame_menus()) {
+    alone_ = 0;
+    if (menu_key) {
+      frame_.leave_menus();
+      return true;
+    }
+    // With Alt still down a letter is the menu's, and what it has no use for, as Alt+F4, leaves it.
+    if (frame_.menu_key(vk)) {
+      taken_sys_char_ = static_cast<wchar_t>(vk);
+      return true;
+    }
+    frame_.leave_menus();
+  }
   if (vk == VK_F10 && shift) return context_key();
+  if (own_frame() && pane_ == Pane::Main && vk >= 'A' && vk <= 'Z' && frame_.open_by_key(static_cast<char>(vk))) {
+    taken_sys_char_ = static_cast<wchar_t>(vk);
+    ui_.cues = true;
+    return true;
+  }
   if ((vk == VK_DOWN || vk == VK_UP) && !ui_.focus && stop_key(vk, false, shift, true)) return true;
   // Alt shows where the keyboard is, as it shows a dialog's underlines.
   if (vk == VK_MENU && !ui_.cues) {
@@ -747,6 +771,21 @@ bool App::sys_key(unsigned vk, bool shift) {
     return true;
   }
   return false;
+}
+
+bool App::sys_key_up(unsigned vk) {
+  const unsigned alone = std::exchange(alone_, 0u);
+  if ((vk != VK_MENU && vk != VK_F10) || !own_frame() || pane_ != Pane::Main) return false;
+  if (alone == vk) {
+    frame_.enter_menus();
+    ui_.cues = true;
+  }
+  return true;
+}
+
+bool App::take_sys_char(wchar_t c) {
+  const wchar_t taken = std::exchange(taken_sys_char_, wchar_t{0});
+  return taken != 0 && static_cast<wchar_t>(std::towupper(c)) == taken;
 }
 
 bool App::move_stop(int step) {
@@ -852,6 +891,7 @@ bool App::mouse_down(float x, float y, bool shift) {
   last_press_y_ = y;
   last_press_owner_ = owner;
   last_press_id_ = id;
+  alone_ = 0;
   ui_.set_focus(nullptr, nullptr);
   // The keyboard goes on from what was clicked, without showing it; a click on nothing it can stop at clears it.
   if (owner && owner->role(id)) ui_.set_stop(owner, id);
@@ -895,9 +935,15 @@ bool App::char_input(wchar_t c, bool shift) {
 
 bool App::key_down(unsigned vk, bool ctrl, bool shift) {
   taken_char_ = 0;
+  alone_ = 0;
   if (context_menu_.is_open()) {
     taken_char_ = any_char;
     return context_menu_.key(vk, ctrl, shift);
+  }
+  if (in_frame_menus()) {  // every key, as the menus of Windows take them
+    taken_char_ = any_char;
+    frame_.menu_key(vk);
+    return true;
   }
   if (vk == VK_APPS) return context_key();
   if (vk == VK_TAB && !ctrl) {

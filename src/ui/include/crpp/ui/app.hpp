@@ -196,8 +196,14 @@ class App {
   bool wheel(float x, float y, float delta);  // delta in notches (+ = up)
   bool char_input(wchar_t c, bool shift);
   bool key_down(unsigned vk, bool ctrl, bool shift);
-  // Keys the system sees first, with Alt or F10. Shift+F10 opens the context menu.
+  // Keys the system sees first, with Alt or F10. Shift+F10 opens the context menu, and Alt with a
+  // title's letter that menu of an own frame.
   bool sys_key(unsigned vk, bool shift);
+  // Alt or F10 coming up. Alone, it puts the keyboard in an own frame's menu bar. True when the
+  // system must not see it, as it would take the keyboard into a menu the window does not have.
+  bool sys_key_up(unsigned vk);
+  // The character of a key sys_key took for a menu: the system would look for a menu of its own.
+  [[nodiscard]] bool take_sys_char(wchar_t c);
   // The menu key or Shift+F10: the context menu of what has the keys, at its caret.
   bool context_key();
   // Tab and Shift+Tab: the keyboard goes to the next stop, or the one before, and that shows.
@@ -267,6 +273,11 @@ class App {
   // typed. After a key of the menu, whose access keys are letters, any character.
   static constexpr wchar_t any_char = 0xFFFF;
   wchar_t taken_char_ = 0;
+  wchar_t taken_sys_char_ = 0;
+  // Alt or F10, down with no other key or click since: coming up, it enters the menu bar.
+  unsigned alone_ = 0;
+  // The main window's own frame has the keyboard in its menus.
+  [[nodiscard]] bool in_frame_menus() const { return own_frame() && pane_ == Pane::Main && frame_.keyboard_in_menus(); }
   // Enter or Space on the stop the keyboard is on, as a click on it.
   bool act_on_stop(unsigned vk);
   // A key the stop the keyboard is on takes itself, with Alt when it came as a key of the system.

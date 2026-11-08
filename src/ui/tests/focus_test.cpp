@@ -331,6 +331,73 @@ void the_messages_and_the_members_take_the_arrows(const char* pack) {
   CHECK(h.app.ui().current_stop() && h.app.ui().current_stop()->owner == &room && h.app.ui().current_stop()->id == RoomScreen::MemberBase + 1);
 }
 
+// Alt or F10 down and up, as the system sends them.
+bool alone(UiHarness& h, unsigned vk) {
+  h.app.sys_key(vk, false);
+  const bool kept = h.app.sys_key_up(vk);
+  h.render();
+  return kept;
+}
+
+void the_menu_bar_takes_alt_and_its_letters(const char* pack) {
+  UiHarness h;
+  CHECK(h.start(951, 692, pack));
+  h.app.show_home();
+  h.render();
+  if (!h.app.own_frame()) {
+    // A frame of the system's keeps Alt's way into its own menu.
+    CHECK(!alone(h, VK_MENU));
+    return;
+  }
+  WindowFrame& frame = h.app.frame();
+  int options = 0, changelog = 0;
+  frame.on_options = [&] { ++options; };
+  frame.on_changelog = [&] { ++changelog; };
+  // Alt alone is on the first title; Right goes to Tools, Down opens it on Options, Enter runs it.
+  CHECK(alone(h, VK_MENU));
+  CHECK(frame.keyboard_in_menus());
+  press(h, VK_RIGHT);
+  press(h, VK_DOWN);
+  press(h, VK_RETURN);
+  CHECK(options == 1);
+  CHECK(!frame.keyboard_in_menus());
+  // Alt and a title's letter opens it, and the system is not told the character; the item's letter runs it.
+  CHECK(h.app.sys_key('H', false));
+  CHECK(h.app.take_sys_char(L'h'));
+  CHECK(!h.app.take_sys_char(L'h'));
+  CHECK(h.app.sys_key_up(VK_MENU));
+  h.render();
+  CHECK(frame.keyboard_in_menus());
+  press(h, 'W');
+  CHECK(h.app.char_input(L'w', false));  // not typed anywhere
+  CHECK(changelog == 1);
+  // A letter no title has is left to the system, as Alt+Space.
+  CHECK(!h.app.sys_key('Q', false));
+  CHECK(!h.app.take_sys_char(L' '));
+  // Escape closes the menu and then leaves the bar; Alt leaves it at once.
+  CHECK(alone(h, VK_F10));
+  press(h, VK_DOWN);
+  press(h, VK_ESCAPE);
+  CHECK(frame.keyboard_in_menus());
+  press(h, VK_ESCAPE);
+  CHECK(!frame.keyboard_in_menus());
+  CHECK(alone(h, VK_MENU));
+  CHECK(alone(h, VK_MENU));
+  CHECK(!frame.keyboard_in_menus());
+  // Alt with a click or another key between is not alone.
+  h.app.sys_key(VK_MENU, false);
+  h.app.mouse_down(200, 12, false);
+  h.app.mouse_up(200, 12);
+  CHECK(h.app.sys_key_up(VK_MENU));
+  h.render();
+  CHECK(!frame.keyboard_in_menus());
+  // In the menus, Alt+F4 is still the system's, and leaves them.
+  CHECK(alone(h, VK_MENU));
+  CHECK(!h.app.sys_key(VK_F4, false));
+  CHECK(!frame.keyboard_in_menus());
+  CHECK(options == 1 && changelog == 1);
+}
+
 }  // namespace
 
 int main() {
@@ -347,6 +414,7 @@ int main() {
     a_question_starts_on_cancel_and_gives_the_keyboard_back(pack);
     a_panel_opens_on_its_tab_and_closes_back(pack);
     the_messages_and_the_members_take_the_arrows(pack);
+    the_menu_bar_takes_alt_and_its_letters(pack);
   }
   return crpp_test_result();
 }

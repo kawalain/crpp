@@ -2,8 +2,6 @@
 
 #include <windows.h>
 
-#include <cwctype>
-
 #include "crpp/locale/locale.hpp"
 #include "crpp/ui/skin_canvas.hpp"
 
@@ -34,22 +32,9 @@ const char* wording(MenuCommand command) {
 
 skin::ScreenSchema ContextMenu::schema() { return {.screen = "context_menu", .texts = text_names, .numbers = number_names, .hits = hit_names}; }
 
-std::string ContextMenu::label(MenuCommand command) {
-  std::string out;
-  for (const char* c = wording(command); *c; ++c) {
-    if (*c == '&' && c[1] != '\0') ++c;  // && is a plain &
-    out += *c;
-  }
-  return out;
-}
+std::string ContextMenu::label(MenuCommand command) { return locale::label(wording(command)); }
 
-wchar_t ContextMenu::access_key(MenuCommand command) {
-  for (const char* c = wording(command); *c; ++c) {
-    if (*c == '&' && c[1] != '\0' && c[1] != '&') return static_cast<wchar_t>(std::towupper(static_cast<unsigned char>(c[1])));
-    if (*c == '&') ++c;
-  }
-  return 0;
-}
+wchar_t ContextMenu::access_key(MenuCommand command) { return static_cast<wchar_t>(locale::access_key(wording(command))); }
 
 const char* ContextMenu::shortcut(MenuCommand command) {
   switch (command) {

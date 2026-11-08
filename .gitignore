@@ -1,6 +1,7 @@
 /build*/
 /out/
 /dist/
+/.wrangler/
 /.vs/
 /.cache/
 CMakeUserPresets.json

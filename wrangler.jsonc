@@ -1,0 +1,18 @@
+// The official Repository: static files only, no Worker code. The release script fills
+// dist/repository with the signed catalog and the files it lists, then deploys with
+//   npx --yes wrangler@4.152.0 deploy
+// No package.json: the build has no package manager, so the version is pinned here and in
+// the script instead. Authentication is the developer's own (CLOUDFLARE_API_TOKEN).
+{
+  "name": "crpp",
+  "compatibility_date": "2026-11-08",
+  "workers_dev": true,
+  "preview_urls": false,
+  "send_metrics": false,
+  "assets": {
+    "directory": "./dist/repository",
+    // Paths are files, never pages: no trailing-slash redirects, and a missing file is a 404.
+    "html_handling": "none",
+    "not_found_handling": "none"
+  }
+}

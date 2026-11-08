@@ -193,6 +193,29 @@ void a_dropdown_picks_closed_and_open(const char* pack) {
   CHECK(h.drawn(tab, DisplayTab::IdleList + 1));
 }
 
+// Every Skin's Themes are more than Cloud's open list shows at once: the keyboard's option comes into view.
+void an_open_list_scrolls_to_the_keyboard() {
+  UiHarness h;
+  CHECK(h.start(1200, 900));
+  CHECK(h.app.find_skins(CRPP_TEST_SKINS));
+  h.app.apply_skin_choice(false);
+  open_settings(h, SettingsPage::Display);
+  DisplayTab& tab = h.app.settings().display();
+  CHECK(tab_to(h, tab, DisplayTab::SkinThemeList));
+  press(h, VK_SPACE);
+  // Cloud's heading and two Themes, then Retro's heading and four.
+  const int first = DisplayTab::SkinThemeList + 2, last = DisplayTab::SkinThemeList + 8;
+  CHECK(h.drawn(tab, first) && !h.drawn(tab, last));
+  const auto whole = [&](int id) {
+    const Ui::Hit* hit = h.app.ui().find_hit(&tab, id);
+    return hit && hit->rect.h >= hit->whole.h - 0.5f;
+  };
+  press(h, VK_END);
+  CHECK(whole(last));
+  press(h, VK_HOME);
+  CHECK(whole(first));
+}
+
 void ctrl_tab_and_the_arrows_go_through_the_tabs(const char* pack) {
   UiHarness h;
   CHECK(h.start(951, 692, pack));
@@ -416,5 +439,6 @@ int main() {
     the_messages_and_the_members_take_the_arrows(pack);
     the_menu_bar_takes_alt_and_its_letters(pack);
   }
+  an_open_list_scrolls_to_the_keyboard();
   return crpp_test_result();
 }

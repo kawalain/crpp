@@ -140,6 +140,12 @@ std::optional<int> Dropdown::key(Ui& ui, Surface* owner, unsigned vk, bool alt) 
   // The pointer's highlight is the one the list has; the keyboard moves it, as in a list of the system.
   ui.hover_owner = owner;
   ui.hover_id = id_base + 1 + to;
+  // An option the list cuts off scrolls into view, from where the last frame drew it.
+  if (const Ui::Hit* hit = ui.find_stop(owner, id_base + 1 + to)) {
+    const float top = ui.to_stage_y(hit->whole.y), bottom = ui.to_stage_y(hit->whole.bottom());
+    if (top < list_.y) scroll_.go_to(ui, std::min(scroll_.target, scroll_.offset - (list_.y - top)));
+    else if (bottom > list_.bottom()) scroll_.go_to(ui, std::max(scroll_.target, scroll_.offset + (bottom - list_.bottom())));
+  }
   return taken_alone;
 }
 

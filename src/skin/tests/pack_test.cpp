@@ -535,6 +535,24 @@ void an_error_says_where() {
   CHECK(!bad && bad.error().find("pack.cskin:5:8") != std::string::npos);  // face red
 }
 
+void ids_and_names_fit_a_catalog() {
+  CHECK(!load_with("pack test format 1", "pack Test format 1"));
+  CHECK(!load_with("pack test format 1", "pack " + std::string(33, 't') + " format 1"));
+  CHECK(load_with("pack test format 1", "pack " + std::string(32, 't') + " format 1").has_value());
+  const std::string themed = "pack test format 1\ntheme one names en \"One\"\npalette one {\n  face #ff0000\n  ink #000000\n  shade stops(0: #000000, 1: #ffffff)\n}\n";
+  const auto with = [&](std::string_view from, std::string_view to) {
+    std::string pack = themed;
+    pack.replace(pack.find(from), from.size(), to);
+    return load_pack(files(pack, "fill face"), std::span(&test_schema, 1));
+  };
+  CHECK(with("en \"One\"", "en \"One\"").has_value());
+  CHECK(!with("theme one", "theme One"));
+  CHECK(!with("en \"One\"", "EN \"One\""));
+  CHECK(!with("en \"One\"", "en \"\""));
+  CHECK(!with("en \"One\"", "en \" One\""));
+  CHECK(!with("en \"One\"", "en \"" + std::string(65, 'x') + "\""));
+}
+
 void a_mistake_in_the_language_says_where() {
   const auto broken = load_pack(files(test_pack, "// a comment\nfill face\nfill face radius\n"), std::span(&test_schema, 1));
   CHECK(!broken && broken.error().find("screens/home.cskin:3:17") != std::string::npos);
@@ -1055,6 +1073,7 @@ int main() {
   a_bad_node_is_refused();
   a_bad_pack_is_refused();
   an_error_says_where();
+  ids_and_names_fit_a_catalog();
   a_mistake_in_the_language_says_where();
   a_screen_without_a_file_is_left_out();
   sizes_are_limited();

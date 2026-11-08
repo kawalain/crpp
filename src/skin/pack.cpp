@@ -15,6 +15,20 @@ namespace {
 
 using store::Json;
 
+// As a Repository's catalog takes them (ADR 0008), so that a pack id with a Repository's prefix
+// stays within what the server takes for a Sound pack.
+[[nodiscard]] bool is_pack_id(std::string_view s) {
+  return !s.empty() && s.size() <= 32 && std::ranges::all_of(s, [](char c) {
+    return (c >= 'a' && c <= 'z') || (c >= '0' && c <= '9') || c == '-' || c == '_';
+  });
+}
+
+// What a user calls a pack or Theme in a locale, as the catalog copies it.
+[[nodiscard]] bool good_name(const Json::Member& name) {
+  const auto words = name.value.as_string();
+  return is_pack_id(name.key) && words && !words->empty() && words->size() <= 64 && words->front() != ' ' && words->back() != ' ' &&
+         std::ranges::all_of(*words, [](char c) { return static_cast<unsigned char>(c) >= 0x20 && c != 0x7f; });
+}
 
 [[nodiscard]] std::optional<int> find_name(std::span<const Name> names, std::string_view name) {
   for (const Name& n : names) {
@@ -224,6 +238,10 @@ class Loader final : public Names {
         return std::nullopt;
       }
       const std::string name(*id->as_string());
+      if (!is_pack_id(name)) {
+        fail("the id \"" + name + "\" is not 1 to 32 of a-z, 0-9, - and _");
+        return std::nullopt;
+      }
       if (std::ranges::any_of(levels, [&](const Level& l) { return l.id == name; })) {
         fail("extends itself through \"" + name + "\"");
         return std::nullopt;
@@ -283,7 +301,7 @@ class Loader final : public Names {
       const Json::Object* each = names->as_object();
       if (!each) return fail("names is not an object");
       for (const Json::Member& name : *each) {
-        if (!name.value.as_string()) return fail("a name is not text");
+        if (!good_name(name)) return fail("a name is not a locale id and at most 64 bytes of text");
         pack_.names.emplace_back(name.key, *name.value.as_string());
       }
     }
@@ -298,6 +316,7 @@ class Loader final : public Names {
     for (const Json::Member& m : *all) {
       const std::string quoted = "the Theme \"" + m.key + "\"";
       if (!m.value.is_object()) return fail(quoted + " is not an object");
+      if (!is_pack_id(m.key)) return fail(quoted + ": an id is 1 to 32 of a-z, 0-9, - and _");
       PackTheme theme;
       theme.id = m.key;
       theme.palette = m.key;
@@ -313,7 +332,7 @@ class Loader final : public Names {
       const Json::Object* each = names ? names->as_object() : nullptr;
       if (!each || each->empty()) return fail(quoted + " has no names");
       for (const Json::Member& name : *each) {
-        if (!name.value.as_string()) return fail(quoted + ": a name is not text");
+        if (!good_name(name)) return fail(quoted + ": a name is not a locale id and at most 64 bytes of text");
         theme.names.emplace_back(name.key, *name.value.as_string());
       }
       pack_.themes.push_back(std::move(theme));

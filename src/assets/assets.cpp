@@ -119,6 +119,57 @@ std::string own_digest(const Catalog& catalog, std::string_view skin, Platform& 
   return platform.sha256(as_bytes(digest_text(catalog, skin)));
 }
 
+Chain pack_chain(std::span<const Shelf> shelves, std::size_t official, std::size_t start, std::string_view pack) {
+  Chain chain;
+  std::size_t shelf = start;
+  std::string id(pack);
+  const ParentPin* pin = nullptr;
+  while (true) {
+    if (chain.links.size() == max_chain ||
+        std::ranges::any_of(chain.links, [&](const Chain::Link& link) { return link.shelf == shelf && link.pack == id; })) {
+      chain.gap = Chain::Gap::TooDeep;
+      return chain;
+    }
+    const Catalog* catalog = shelf < shelves.size() ? shelves[shelf].catalog : nullptr;
+    const SkinPack* skin = catalog ? catalog->skin(id) : nullptr;
+    if (!skin) {
+      chain.gap = Chain::Gap::Missing;
+      return chain;
+    }
+    chain.links.push_back({shelf, id, pin});
+    pin = skin->pin ? &*skin->pin : nullptr;
+    if (!skin->parent.empty()) {
+      id = skin->parent;  // in the same catalog
+    } else if (!pin) {
+      return chain;
+    } else if (!pin->fingerprint.empty()) {
+      const auto it = std::ranges::find(shelves, pin->fingerprint, &Shelf::fingerprint);
+      if (it == shelves.end()) {
+        chain.gap = Chain::Gap::Repository;
+        chain.wanted = pin;
+        return chain;
+      }
+      shelf = static_cast<std::size_t>(it - shelves.begin());
+      id = pin->id;
+    } else {
+      // The same Repository would have listed it on the skin line: the official one has it.
+      if (shelf == official || official >= shelves.size()) {
+        chain.gap = Chain::Gap::Missing;
+        return chain;
+      }
+      shelf = official;
+      id = pin->id;
+    }
+  }
+}
+
+PinCheck check_pin(const ParentPin& pin, const Catalog& catalog, std::string_view pack, Platform& platform) {
+  const SkinPack* skin = catalog.skin(pack);
+  if (!pin.sha256.empty() && (!skin || own_digest(catalog, pack, platform) != pin.sha256)) return PinCheck::Digest;
+  if (!pin.version.empty() && (!skin || !version_matches(pin.version, skin->version))) return PinCheck::Version;
+  return PinCheck::Holds;
+}
+
 std::expected<Fetched, Error> fetch_new_catalog(const std::string& folder, Platform& platform) {
   const std::string url = folder + std::string(catalog_name);
   const auto bytes = with_retries(platform, [&] { return platform.fetch(url, max_catalog_size, nullptr); });
@@ -195,8 +246,11 @@ std::vector<const File*> missing(const Catalog& catalog, std::span<const std::st
 std::expected<void, Error> install(const Catalog& catalog, std::string_view base, std::span<const std::string> groups,
                                    const fs::path& dir, Platform& platform, const OnProgress& progress,
                                    const std::atomic<bool>* cancel, std::span<const std::string> held) {
+  const auto is_held = [&](std::string_view path) {
+    return std::ranges::any_of(held, [&](const std::string& h) { return h == path || (h.ends_with('/') && path.starts_with(h)); });
+  };
   auto needed = missing(catalog, groups, dir);
-  std::erase_if(needed, [&](const File* file) { return std::ranges::find(held, file->path) != held.end(); });
+  std::erase_if(needed, [&](const File* file) { return is_held(file->path); });
   Progress state{.files = needed.size()};
   for (const File* file : needed) state.bytes += file->size;
 
@@ -287,6 +341,15 @@ std::expected<void, Error> install(const Catalog& catalog, std::string_view base
       list << it->second << ' ' << file.path << '\n';
     }
     if (it != stale.end()) stale.erase(it);
+  }
+  // A held file the catalog no longer lists stays, and stays listed.
+  for (auto it = stale.begin(); it != stale.end();) {
+    if (!is_held(it->first)) {
+      ++it;
+      continue;
+    }
+    list << it->second << ' ' << it->first << '\n';
+    it = stale.erase(it);
   }
   if (!replace_file(dir / installed_name, list.str())) return std::unexpected(Error::Disk);
   for (const auto& [old_path, hash] : stale) {

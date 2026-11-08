@@ -173,6 +173,28 @@ void a_held_file_waits_for_the_next_start() {
   CHECK(read(dir.path / "fonts/f.ttf") == "FFFFF");
 }
 
+// A pack held back keeps its folder as it is, files the catalog no longer lists included.
+void a_held_folder_stays_as_it_is() {
+  TempDir dir;
+  Catalog catalog = two_skins();
+  catalog.files.push_back(file("skin:retro", "skins/retro/screens/home.cskin", "hh", "gh"));
+  Fake fake;
+  serve(fake, catalog);
+  const std::vector<std::string> both{"shared", "skin:cloud", "skin:retro"};
+  CHECK(install(catalog, base, both, dir.path, fake, nullptr));
+  catalog.files[2] = file("skin:retro", "skins/retro/pack.cskin", "RR", "gh");
+  catalog.files.pop_back();
+  catalog.files[0] = file("shared", "emoji/a.svg", "AAA", "gh");
+  serve(fake, catalog);
+  const std::vector<std::string> held{"skins/retro/"};
+  CHECK(install(catalog, base, both, dir.path, fake, nullptr, nullptr, held));
+  CHECK(read(dir.path / "skins/retro/pack.cskin") == "rr" && read(dir.path / "skins/retro/screens/home.cskin") == "hh");
+  CHECK(read(dir.path / "emoji/a.svg") == "AAA");
+  // Let go, it follows the catalog.
+  CHECK(install(catalog, base, both, dir.path, fake, nullptr));
+  CHECK(read(dir.path / "skins/retro/pack.cskin") == "RR" && !fs::exists(dir.path / "skins/retro/screens/home.cskin"));
+}
+
 // A pack removed goes with its folder, and is no longer kept current; the rest stays.
 void a_removed_pack_is_no_longer_installed() {
   TempDir dir;
@@ -484,14 +506,70 @@ void a_new_repository_is_trusted_with_the_key_it_states() {
   CHECK(fingerprint(good_key, fake) == std::string(good_key.begin(), good_key.end()));
 }
 
+// A chain crosses Repositories by fingerprint, or reaches the official one, and stops where a
+// Repository is not added.
+void a_chain_crosses_repositories() {
+  Catalog official, mine, theirs;
+  official.skins = {{.id = "retro", .format = 1}, {.id = "cloud", .format = 1}};
+  official.skins[0].version = "0.3.1";
+  official.files = {{.group = "skin:retro", .path = "skins/retro/pack.cskin", .size = 5, .sha256 = "r"}};
+  theirs.skins = {{.id = "dusk", .format = 1}};
+  theirs.skins[0].pin = ParentPin{.id = "retro", .version = "0.3"};
+  mine.skins = {{.id = "aurora", .format = 1, .parent = "base"}, {.id = "base", .format = 1}, {.id = "far", .format = 1}};
+  mine.skins[1].pin = ParentPin{.id = "dusk", .fingerprint = "f-theirs"};
+  mine.skins[2].pin = ParentPin{.id = "x", .fingerprint = "f-nobody", .repository = "github:nobody/skins"};
+  const Shelf shelves[] = {{"f-official", &official}, {"f-mine", &mine}, {"f-theirs", &theirs}};
+
+  const Chain chain = pack_chain(shelves, 0, 1, "aurora");
+  CHECK(chain.gap == Chain::Gap::None && chain.links.size() == 4);
+  if (chain.links.size() == 4) {
+    CHECK(chain.links[0].shelf == 1 && chain.links[0].pack == "aurora" && !chain.links[0].pin);
+    CHECK(chain.links[1].shelf == 1 && chain.links[1].pack == "base" && !chain.links[1].pin);
+    CHECK(chain.links[2].shelf == 2 && chain.links[2].pack == "dusk" && chain.links[2].pin == &*mine.skins[1].pin);
+    CHECK(chain.links[3].shelf == 0 && chain.links[3].pack == "retro" && chain.links[3].pin->version == "0.3");
+  }
+  const Chain far = pack_chain(shelves, 0, 1, "far");
+  CHECK(far.gap == Chain::Gap::Repository && far.wanted && far.wanted->repository == "github:nobody/skins" && far.links.size() == 1);
+  CHECK(pack_chain(shelves, 0, 1, "none").gap == Chain::Gap::Missing);
+  CHECK(pack_chain(shelves, 0, 0, "cloud").links.size() == 1);
+  // With no official Repository, as beside a development exe, what it has is missing.
+  CHECK(pack_chain(shelves, static_cast<std::size_t>(-1), 2, "dusk").gap == Chain::Gap::Missing);
+  // One more level is too deep, and so is a chain that comes round.
+  official.skins[0].pin = ParentPin{.id = "cloud"};
+  official.skins[0].parent = "cloud";
+  CHECK(pack_chain(shelves, 0, 1, "aurora").gap == Chain::Gap::TooDeep);
+  theirs.skins[0].pin = ParentPin{.id = "aurora", .fingerprint = "f-mine"};
+  CHECK(pack_chain(shelves, 0, 2, "dusk").gap == Chain::Gap::TooDeep);
+}
+
+void a_pin_holds_to_version_and_digest() {
+  Fake platform;
+  Catalog catalog;
+  catalog.skins = {{.id = "retro", .format = 1}};
+  catalog.skins[0].version = "0.3.1";
+  catalog.files = {{.group = "skin:retro", .path = "skins/retro/pack.cskin", .size = 5, .sha256 = "r"}};
+  const std::string digest = own_digest(catalog, "retro", platform);
+  CHECK(digest == "skins/retro/pack.cskin 5 r\n");  // the fake's hash is the text
+  CHECK(check_pin({.id = "retro"}, catalog, "retro", platform) == PinCheck::Holds);
+  CHECK(check_pin({.id = "retro", .version = "0.3", .sha256 = digest}, catalog, "retro", platform) == PinCheck::Holds);
+  CHECK(check_pin({.id = "retro", .version = "0.4"}, catalog, "retro", platform) == PinCheck::Version);
+  CHECK(check_pin({.id = "retro", .version = "0.4", .sha256 = "other"}, catalog, "retro", platform) == PinCheck::Digest);
+  catalog.skins[0].version.clear();
+  CHECK(check_pin({.id = "retro", .version = "0.3"}, catalog, "retro", platform) == PinCheck::Version);
+  CHECK(check_pin({.id = "retro", .version = "0.3"}, catalog, "none", platform) == PinCheck::Version);
+}
+
 }  // namespace
 
 int main() {
+  a_chain_crosses_repositories();
+  a_pin_holds_to_version_and_digest();
   installs_only_the_groups_asked_for();
   wants_what_is_needed_and_what_is_in_use();
   a_new_catalog_fetches_only_what_changed();
   keeps_only_what_is_installed();
   a_held_file_waits_for_the_next_start();
+  a_held_folder_stays_as_it_is();
   a_removed_pack_is_no_longer_installed();
   a_group_not_asked_for_stays_listed_while_it_matches();
   a_group_not_asked_for_stays_wanted_when_it_changes();

@@ -66,6 +66,42 @@ inline constexpr std::size_t short_fingerprint = 16;
 // The SHA-256 of digest_text: what a pin's sha256 says of the pack it extends.
 [[nodiscard]] std::string own_digest(const Catalog& catalog, std::string_view skin, Platform& platform);
 
+// A Repository as a chain of packs sees it: the key it is known by, and its catalog, if one is read.
+struct Shelf {
+  std::string fingerprint;
+  const Catalog* catalog = nullptr;
+};
+
+// How deep packs may extend each other, the pack itself included, as skin::max_pack_levels.
+inline constexpr std::size_t max_chain = 4;
+
+// A pack and those it extends, which may be in other Repositories. Pointers are into the catalogs.
+struct Chain {
+  struct Link {
+    std::size_t shelf = 0;
+    std::string pack;
+    const ParentPin* pin = nullptr;  // what the pack before it says of this one, if anything
+  };
+  enum class Gap : std::uint8_t {
+    None,
+    Missing,     // a catalog read does not offer the pack, or none is read
+    Repository,  // `wanted` names a Repository that is not added
+    TooDeep      // more than max_chain packs, or one that comes round again
+  };
+  std::vector<Link> links;  // the pack first; complete only without a gap
+  Gap gap = Gap::None;
+  const ParentPin* wanted = nullptr;
+};
+
+// Follows a pack of shelves[start] to what it extends: in the same catalog by its skin line, in
+// the Repository its pin's fingerprint names, or else in the official one (npos: none).
+[[nodiscard]] Chain pack_chain(std::span<const Shelf> shelves, std::size_t official, std::size_t start, std::string_view pack);
+
+// Whether the pack in that catalog is still what a pin says: its version and its own digest.
+// Both are checked; another digest is the graver, as the content is not what was pinned.
+enum class PinCheck : std::uint8_t { Holds, Version, Digest };
+[[nodiscard]] PinCheck check_pin(const ParentPin& pin, const Catalog& catalog, std::string_view pack, Platform& platform);
+
 // The catalog in a folder no key is known for yet, signed by the key it states. Nothing vouches
 // for that key: the user is shown its fingerprint before it is trusted. One that offers more than
 // packs (offers_only_packs) is BadContent.
@@ -107,7 +143,9 @@ using OnProgress = std::function<void(const Progress&)>;
 // way, and the first error is returned; calling again fetches the rest. progress is called
 // in turn, from the working threads, and only moves forward. Once `cancel` is set no file is
 // begun, and what arrived is kept as after a failure. A path in `held` is open and cannot be
-// replaced now: it is left as it is, listed with the hash it had, so it is missing at the next start.
+// replaced now, or belongs to a pack held back: it is left as it is, listed with the hash it had,
+// so it is missing at the next start, and is not removed when the catalog no longer lists it. One
+// ending with '/' holds everything under it.
 std::expected<void, Error> install(const Catalog& catalog, std::string_view base, std::span<const std::string> groups,
                                    const std::filesystem::path& dir, Platform& platform, const OnProgress& progress,
                                    const std::atomic<bool>* cancel = nullptr, std::span<const std::string> held = {});

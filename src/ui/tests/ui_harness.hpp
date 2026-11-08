@@ -55,15 +55,6 @@ class UiHarness {
     render();
   }
 
-  // A target of its own at this DPI, as a window on another monitor has.
-  [[nodiscard]] ComPtr<ID2D1RenderTarget> target_at(float dpi) {
-    const auto props = D2D1::RenderTargetProperties(D2D1_RENDER_TARGET_TYPE_SOFTWARE,
-                                                    D2D1::PixelFormat(DXGI_FORMAT_B8G8R8A8_UNORM, D2D1_ALPHA_MODE_PREMULTIPLIED), dpi, dpi);
-    ComPtr<ID2D1RenderTarget> target;
-    (void)app.factory()->CreateWicBitmapRenderTarget(bitmap_.get(), props, target.put());
-    return target;
-  }
-
   // What the last frame left at this point, as 0xRRGGBB.
   [[nodiscard]] std::uint32_t pixel(int x, int y) {
     const WICRect one{x, y, 1, 1};

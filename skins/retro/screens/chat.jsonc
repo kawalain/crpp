@@ -11,7 +11,7 @@
       {"x": 1, "y": 1, "w": "W-2", "h": "H-2", "group": [
         {"slot": "messages", "numbers": [14, 7, 7, "scrollbar_w", "round(font_size*@zoom)", "round(font_size*@zoom)+4"], "styles": ["chat_text"], "colors": ["$ink", "$ink_soft"]},
         {"use": "scrollbar", "x": "W-scrollbar_w", "w": "scrollbar_w",
-         "args": {"view": "@view", "content": "@content", "offset": "@offset", "track": "hit('bar_track')", "up": "hit('bar_up')", "down": "hit('bar_down')", "thumb": "hit('bar_thumb')", "track_note": "note('bar_track')"}}
+         "args": {"view": "@view", "content": "@content", "offset": "@offset", "track_hit": "hit('bar_track')", "up": "hit('bar_up')", "down": "hit('bar_down')", "thumb_hit": "hit('bar_thumb')", "track_note": "note('bar_track')"}}
       ]}
     ]},
 

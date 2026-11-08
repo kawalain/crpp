@@ -18,7 +18,7 @@
     {"x": 128, "y": 8, "w": "W-136", "h": "H-44", "group": [
       {"slot": "tab", "numbers": ["scrollbar_w+2"]},
       {"if": "@overflow", "use": "scrollbar", "x": "W-scrollbar_w", "w": "scrollbar_w",
-       "args": {"view": "@view", "content": "@content", "offset": "@offset", "track": "hit('track')", "up": "hit('bar_up')", "down": "hit('bar_down')", "thumb": "hit('thumb')", "track_note": "note('track')"}},
+       "args": {"view": "@view", "content": "@content", "offset": "@offset", "track_hit": "hit('track')", "up": "hit('bar_up')", "down": "hit('bar_down')", "thumb_hit": "hit('thumb')", "track_note": "note('track')"}},
       {"slot": "popups"}
     ]},
 

@@ -17,7 +17,7 @@ constexpr skin::Name hit_names[] = {{"minimize", WindowFrame::Minimize}, {"close
 constexpr skin::Name note_names[] = {{"menu_0", 0}, {"menu_1", 1}, {"menu_2", 2}};
 
 constexpr skin::Name menu_text_names[] = {{"item", 0}};
-constexpr skin::Name menu_number_names[] = {{"items", Items}, {"x", MenuX}, {"y", MenuY}, {"open", Open}};
+constexpr skin::Name menu_number_names[] = {{"items", Items}, {"menu_x", MenuX}, {"menu_y", MenuY}, {"open", Open}};
 constexpr skin::Name menu_hit_names[] = {{"item", WindowFrame::ItemBase}};
 
 }  // namespace

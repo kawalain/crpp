@@ -258,7 +258,7 @@
       ]
     },
     "scrollbar": {
-      "args": {"view": 0, "content": 0, "offset": 0, "up": -1, "down": -1, "track": -1, "thumb": -1, "track_note": -1},
+      "args": {"view": 0, "content": 0, "offset": 0, "up": -1, "down": -1, "track_hit": -1, "thumb_hit": -1, "track_note": -1},
       "draw": [
         {"let": "arrow_h", "value": "min(W, H/2)"},
         {"let": "track_h", "value": "H-2*arrow_h"},
@@ -266,10 +266,10 @@
         {"let": "thumb_h", "value": "content>0 ? max(16, floor(track_h*min(1, view/content))) : track_h"},
         {"let": "thumb_y", "value": "arrow_h+(room>0 ? floor((track_h-thumb_h)*offset/room) : 0)"},
         {"fill": "$bar_track_from", "y": "arrow_h", "h": "track_h", "note_by": "track_note"},
-        {"hit_by": "track", "group": []},
+        {"hit_by": "track_hit", "group": []},
         {"use": "scroll_arrow", "hit_by": "up", "h": "arrow_h"},
         {"use": "scroll_arrow", "hit_by": "down", "y": "H-arrow_h", "h": "arrow_h", "args": {"down": 1}},
-        {"hit_by": "thumb", "y": "thumb_y", "h": "thumb_h", "group": [
+        {"hit_by": "thumb_hit", "y": "thumb_y", "h": "thumb_h", "group": [
           {"if": "track_h>=16 && thumb_h<track_h", "use": "scroll_thumb"}
         ]}
       ]
@@ -432,14 +432,14 @@
     },
     "caption_button": {
       "snap": true,
-      "args": {"close": 0},
+      "args": {"is_close": 0},
       "draw": [
         {"fill": "$face"},
         {"if": "pressed", "use": "bevel", "args": {"top_out": "$edge_out", "low_out": "$edge_light", "top_in": "$edge_dark", "low_in": "$edge_soft"}},
         {"if": "!pressed", "use": "raised"},
-        {"if": "close", "line": "$ink", "x": "W*0.3+(pressed ? u : 0)", "y": "W*0.3+(pressed ? u : 0)", "x2": "W-W*0.3+(pressed ? u : 0)", "y2": "H-W*0.3+(pressed ? u : 0)", "width": 2},
-        {"if": "close", "line": "$ink", "x": "W-W*0.3+(pressed ? u : 0)", "y": "W*0.3+(pressed ? u : 0)", "x2": "W*0.3+(pressed ? u : 0)", "y2": "H-W*0.3+(pressed ? u : 0)", "width": 2},
-        {"if": "!close", "fill": "$ink", "x": "W*0.25+(pressed ? u : 0)", "y": "H-H*0.34+(pressed ? u : 0)", "w": "W*0.38", "h": 2}
+        {"if": "is_close", "line": "$ink", "x": "W*0.3+(pressed ? u : 0)", "y": "W*0.3+(pressed ? u : 0)", "x2": "W-W*0.3+(pressed ? u : 0)", "y2": "H-W*0.3+(pressed ? u : 0)", "width": 2},
+        {"if": "is_close", "line": "$ink", "x": "W-W*0.3+(pressed ? u : 0)", "y": "W*0.3+(pressed ? u : 0)", "x2": "W*0.3+(pressed ? u : 0)", "y2": "H-W*0.3+(pressed ? u : 0)", "width": 2},
+        {"if": "!is_close", "fill": "$ink", "x": "W*0.25+(pressed ? u : 0)", "y": "H-H*0.34+(pressed ? u : 0)", "w": "W*0.38", "h": 2}
       ]
     },
     // The pointer, drawn here on a grid of whole pixels after the white arrow of the time. Both Palettes have the same two colours.

@@ -493,14 +493,14 @@
     "panel_info": {"draw": [{"fill": "$info"}, {"frame": "$info_line"}]},
     "caption_button": {
       "snap": true,
-      "args": {"close": 0},
+      "args": {"is_close": 0},
       "draw": [
-        {"if": "pressed", "fill": "close ? $close_down : $minimize_down", "radius": 3},
-        {"if": "!pressed", "fill": "close ? (hot ? $close_hot : $close) : (hot ? $caption_button_hot : $caption_button)", "radius": 3},
+        {"if": "pressed", "fill": "is_close ? $close_down : $minimize_down", "radius": 3},
+        {"if": "!pressed", "fill": "is_close ? (hot ? $close_hot : $close) : (hot ? $caption_button_hot : $caption_button)", "radius": 3},
         {"stroke": "$caption_ink", "radius": 3, "width": "u"},
-        {"if": "close", "line": "$caption_ink", "x": "W*0.3", "y": "W*0.3", "x2": "W-W*0.3", "y2": "H-W*0.3", "width": 2},
-        {"if": "close", "line": "$caption_ink", "x": "W-W*0.3", "y": "W*0.3", "x2": "W*0.3", "y2": "H-W*0.3", "width": 2},
-        {"if": "!close", "fill": "$caption_ink", "x": "W*0.25", "y": "H-H*0.34", "w": "W*0.38", "h": 3}
+        {"if": "is_close", "line": "$caption_ink", "x": "W*0.3", "y": "W*0.3", "x2": "W-W*0.3", "y2": "H-W*0.3", "width": 2},
+        {"if": "is_close", "line": "$caption_ink", "x": "W-W*0.3", "y": "W*0.3", "x2": "W*0.3", "y2": "H-W*0.3", "width": 2},
+        {"if": "!is_close", "fill": "$caption_ink", "x": "W*0.25", "y": "H-H*0.34", "w": "W*0.38", "h": 3}
       ]
     }
   }

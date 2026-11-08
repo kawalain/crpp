@@ -239,15 +239,15 @@
     },
     // .modal-backdrop and .modal-card, in the window. What is in it goes in its box, and it rises 6 px.
     "modal": {
-      "args": {"card_w": 320, "card_h": 100, "shown": 1, "backdrop": -1, "card": -1},
+      "args": {"card_w": 320, "card_h": 100, "shown": 1, "backdrop_hit": -1, "card_hit": -1},
       "draw": [
         {"use": "backdrop", "args": {"shown": "shown"}},
-        {"hit_by": "backdrop", "group": []},
+        {"hit_by": "backdrop_hit", "group": []},
         {"let": "left", "value": "(W-card_w)/2"},
         {"let": "top", "value": "(H-card_h)/2+6*(1-shown)"},
         {"shadow": "alpha($panel_shadow, (dark ? 0.33 : 0.22)*shown)", "x": "left", "y": "top", "w": "card_w", "h": "card_h", "radius": 14, "blur": "dark ? 38 : 16", "dy": "dark ? 12 : 4"},
         {"fill": "alpha($surface, shown)", "x": "left", "y": "top", "w": "card_w", "h": "card_h", "radius": 14},
-        {"x": "left", "y": "(H-card_h)/2", "w": "card_w", "h": "card_h", "hit_by": "card", "group": []},
+        {"x": "left", "y": "(H-card_h)/2", "w": "card_w", "h": "card_h", "hit_by": "card_hit", "group": []},
         {"x": "left", "y": "top", "w": "card_w", "h": "card_h", "group": [{"content": true}]}
       ]
     },
@@ -401,11 +401,11 @@
     },
     // .fab, and what is in it in the middle of its box of 42.
     "fab": {
-      "args": {"alarm": 0},
+      "args": {"alarmed": 0},
       "draw": [
         {"scale": "hot ? 1.08 : 1", "group": [
           {"shadow": "alpha($fab_shadow, 0.16)", "radius": 21, "blur": 8, "dy": 2},
-          {"fill": "alarm ? $alarm : dark ? $cloud_base : $surface", "radius": 21},
+          {"fill": "alarmed ? $alarm : dark ? $cloud_base : $surface", "radius": 21},
           {"content": true}
         ]}
       ]

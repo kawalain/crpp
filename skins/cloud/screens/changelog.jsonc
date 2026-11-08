@@ -5,7 +5,7 @@
     {"let": "card_w", "value": "min(520, W-40)"},
     {"let": "card_h", "value": "min(480, H-60)"},
     {"let": "ink", "value": "alpha($hl_text, shown)"},
-    {"use": "modal", "args": {"card_w": "card_w", "card_h": "card_h", "shown": "shown", "backdrop": "hit('backdrop')", "card": "hit('card')"}, "draw": [
+    {"use": "modal", "args": {"card_w": "card_w", "card_h": "card_h", "shown": "shown", "backdrop_hit": "hit('backdrop')", "card_hit": "hit('card')"}, "draw": [
       // --cl-bg: color-mix(in srgb, var(--hl) 3%, var(--surface))
       {"fill": "alpha(mix($hl, $surface, 3), shown)", "radius": 14},
       {"let": "pad_x", "value": 28},

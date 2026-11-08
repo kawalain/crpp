@@ -11,7 +11,7 @@
     // As a question with two answers: dialog.jsonc, wide.
     {"if": "@failed", "let": "card_w", "value": "min(380, W-40)"},
     {"if": "@failed", "let": "text_h", "value": "texth('dialog_text', '@message', card_w-50)"},
-    {"if": "@failed", "use": "modal", "args": {"card_w": "card_w", "card_h": "24+text_h+20+38+20", "shown": 1, "backdrop": "hit('backdrop')", "card": "hit('card')"}, "draw": [
+    {"if": "@failed", "use": "modal", "args": {"card_w": "card_w", "card_h": "24+text_h+20+38+20", "shown": 1, "backdrop_hit": "hit('backdrop')", "card_hit": "hit('card')"}, "draw": [
       {"text": "@message", "style": "dialog_text", "color": "$hl_text", "x": 25, "y": 24, "w": "W-50", "h": "text_h"},
       {"use": "button", "text": "#setup_retry", "hit": "retry", "x": "(W-202)/2", "y": "H-20-38", "w": 96, "h": 38},
       {"use": "button", "text": "#setup_quit", "hit": "quit", "args": {"primary": 0}, "x": "(W-202)/2+106", "y": "H-20-38", "w": 96, "h": 38}

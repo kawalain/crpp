@@ -20,7 +20,7 @@
     {"if": "@has_version", "text": "@version", "style": "note_version", "color": "$ink_soft", "x": "pad_x", "y": "version_y", "w": "head_w", "h": "version_h"},
     {"if": "@overflow", "x": "W-scrollbar_w", "y": "head_h", "w": "scrollbar_w", "h": "H-head_h", "group": [
       {"hit": "bar_track", "group": []},
-      {"use": "scrollbar", "args": {"view": "@view", "content": "@content", "offset": "@offset", "up": "hit('bar_up')", "down": "hit('bar_down')", "thumb": "hit('bar_thumb')", "track_note": "note('bar_track')"}}
+      {"use": "scrollbar", "args": {"view": "@view", "content": "@content", "offset": "@offset", "up": "hit('bar_up')", "down": "hit('bar_down')", "thumb_hit": "hit('bar_thumb')", "track_note": "note('bar_track')"}}
     ]},
     {"if": "@shown_hint!=0", "x": 0, "group": [
       {"let": "bubble_w", "value": "textw('paragraph_center', '@hint', W)+30"},

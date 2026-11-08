@@ -20,7 +20,7 @@
     {"text": "@title", "style": "caption", "color": "$caption_shadow", "x": 29, "y": 1, "w": "max(0, title_end-32)", "h": "caption_h"},
     {"text": "@title", "style": "caption", "color": "$caption_ink", "x": 28, "w": "max(0, title_end-32)", "h": "caption_h"},
     {"if": "@minimize", "use": "caption_button", "hit": "minimize", "x": "minimize_left", "y": "frame_button_top", "w": "frame_button", "h": "frame_button"},
-    {"if": "@close", "use": "caption_button", "hit": "close", "args": {"close": 1}, "x": "button_left", "y": "frame_button_top", "w": "frame_button", "h": "frame_button"},
+    {"if": "@close", "use": "caption_button", "hit": "close", "args": {"is_close": 1}, "x": "button_left", "y": "frame_button_top", "w": "frame_button", "h": "frame_button"},
 
     {"if": "@menu_shown", "x": "frame_w", "y": "caption_h", "w": "W-2*frame_w", "h": "menu_h", "group": [
       {"fill": "$face"},

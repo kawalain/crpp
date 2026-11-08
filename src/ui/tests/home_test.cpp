@@ -2,6 +2,7 @@
 
 #include "check.hpp"
 #include "crpp/ui/home_logic.hpp"
+#include "crpp/ui/hover.hpp"
 #include "ui_harness.hpp"
 
 using namespace crpp::ui;

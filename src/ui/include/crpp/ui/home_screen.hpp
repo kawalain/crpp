@@ -7,7 +7,6 @@
 #include <vector>
 
 #include "crpp/skin/pack.hpp"
-#include "crpp/ui/hover.hpp"
 #include "crpp/ui/surface.hpp"
 
 namespace crpp::ui {
@@ -50,7 +49,6 @@ class HomeScreen final : public Surface {
   void paint(Painter& p);
   // The return question, above the settings droplet like every modal.
   void paint_return(Painter& p);
-  [[nodiscard]] bool accepts(int id, float x, float y) const override;
   void click(int id, float x, float y, bool shift) override;
   [[nodiscard]] bool acts_on_press(int id) const override { return id == Code; }
   void drag(float x, float y) override;
@@ -58,21 +56,17 @@ class HomeScreen final : public Surface {
   bool escape() override;
   [[nodiscard]] Cursor cursor(int id) const override;
   [[nodiscard]] bool is_link(int id) const override { return id == Create || id == Find || id >= SeatBase; }
-  [[nodiscard]] bool animating() const override;
   bool tick(unsigned long long now_ms) override;
   [[nodiscard]] unsigned long long wake_at() const override;
 
  private:
   [[nodiscard]] bool is_busy() const { return busy && busy(); }
-  void paint_luna(Painter& p);
   void paint_pack(Painter& p, const skin::Screen& screen);
   void paint_return_pack(Painter& p, const skin::Screen& screen);
-  [[nodiscard]] TextStyle luna_code_style() const;
   [[nodiscard]] TextStyle field_style() const;
   void join();
   void find();
   void refresh_seat(unsigned long long now);
-  [[nodiscard]] bool moving(unsigned long long now) const;
   [[nodiscard]] bool tip_wanted(unsigned long long now) const;
 
   std::string nickname_;
@@ -86,17 +80,7 @@ class HomeScreen final : public Surface {
   Id last_action_ = Create;
   unsigned long long seat_wake_ = 0;  // when the latest held Seat expires; 0 = none
   bool return_open_ = false;
-  unsigned long long return_opened_at_ = 0;
-  bool was_moving_ = false;
   unsigned long long tip_muted_until_ = 0;  // a bubble is where the search label would be
-  // The transitions in style.css.
-  Tween create_hover_{160};
-  Tween entry_focus_{150};
-  Tween enter_hover_{150};
-  Tween search_color_{150};
-  Tween search_scale_{140};
-  Tween seat_light_{150};
-  Tween search_tip_{tip_ms};
 };
 
 }  // namespace crpp::ui

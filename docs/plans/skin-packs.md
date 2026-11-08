@@ -288,6 +288,24 @@ hands-on check of Cloud on a real desktop, 7 and 8.
 - **6e, Sound packs of other Repositories.** The official Repository's are all fetched as now; others only when picked
   in the sound tab, listed from `sound` name lines as Themes are. A member's pack another lacks plays silently as the
   device's first pack, with no mark on the profile card: only the fingerprint and id travel, not an address.
+- **6e, decided on 2026-11-09.**
+  - Another Repository's Sound pack is laid out as the official ones, `sounds/<kind>/<id>/`, in one group `sound:<id>`
+    that may hold several kinds, as `plastic` holds a keyboard and a mouse.
+  - Its id is `<first 16 hex of the fingerprint>/<id>`, in the settings keys and on the wire (at most 49 bytes).
+    Upstream reading those settings finds no such pack and uses its default.
+  - It is installed in `repositories/<first 16 digits>/sounds/<kind>/<id>/`. The engine and the sound tab read the
+    official `assets/sounds` first, then each added Repository in order, with its prefix.
+  - The catalog has `sound <id>` and `sound-name <id> <locale> <words>` lines, which the tool copies from each pack's
+    `pack.json`; the kinds come from the paths. The official catalog has them too.
+  - The sound tab lists a pack not installed as "{name} (받기, size)". Picking it saves the choice at once and queues
+    the fetch; meanwhile the generated stand-ins play, and a failure says why in a toast and goes back to the pack
+    before. There is no progress row or cancel: a pack is about 1 MB.
+  - A member's pack this client lacks plays the device's first official pack, as the official packs are read first.
+  - The downloaded list of the system tab becomes "받은 스킨과 소리" and holds Sound packs too. One in use on any
+    device cannot be removed; nor can a Repository with one in use, which says why. Its other Sound packs go with it.
+  - Installed Sound packs follow the latest catalog behind the app as Skins do. They extend nothing, so they have no
+    version or pin until one is needed.
+  - The add question lists Sound packs too, with their sizes.
 - **Open risk:** a pack per `format` in one catalog is designed when format 2 is needed. Until then a pack in a format
   the exe does not take is not updated and the installed one stays.
 

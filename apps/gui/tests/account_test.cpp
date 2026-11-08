@@ -20,7 +20,6 @@ class FakeHost final : public AccountHost {
   std::string gid, stored_emoji;
   int seats_forgotten = 0, erased = 0, left_room = 0, saved = 0;
   std::vector<api::Request> requests;
-  std::deque<api::HttpResult> replies;  // answered in order, by the next pump()
   std::deque<std::function<void(api::HttpResult)>> pending;
 
   [[nodiscard]] api::Identity identity() const override { return stored; }

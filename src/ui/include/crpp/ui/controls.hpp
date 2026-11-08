@@ -94,7 +94,6 @@ inline void pop_edge_fade(Painter& p, bool pushed) {
   if (pushed) p.pop_opacity();
 }
 
-inline constexpr float modal_fade_ms = 140;
 inline constexpr float modal_pop_ms = 160;
 
 }  // namespace crpp::ui

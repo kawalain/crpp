@@ -56,9 +56,6 @@ class ChangelogView final : public Surface {
   [[nodiscard]] std::size_t index() const { return index_; }
   [[nodiscard]] std::size_t count() const { return entries_.size(); }
   [[nodiscard]] int hint() const { return hint_; }
-  // Towards newer and older versions; nothing past either end.
-  void prev();
-  void next();
 
   void paint(Painter& p);
   void click(int id, float x, float y, bool shift) override;

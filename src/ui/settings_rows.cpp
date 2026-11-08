@@ -4,13 +4,6 @@
 
 namespace crpp::ui {
 
-float text_width(const Painter& p, std::string_view text, const TextStyle& style) {
-  const auto layout = p.gfx().layout(widen(text), style, 2000);
-  DWRITE_TEXT_METRICS m{};
-  if (layout) layout->GetMetrics(&m);
-  return m.width;
-}
-
 void place_dropdown(const Ui& ui, Dropdown& dropdown, Rect button) {
   if (!ui.pack) return;
   const auto n = static_cast<float>(dropdown.options.size());

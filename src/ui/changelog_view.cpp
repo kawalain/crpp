@@ -113,14 +113,6 @@ void ChangelogView::close() {
   overscroll_.reset();
 }
 
-void ChangelogView::prev() {
-  if (index_ > 0) show(index_ - 1, true);
-}
-
-void ChangelogView::next() {
-  if (index_ + 1 < entries_.size()) show(index_ + 1, false);
-}
-
 void ChangelogView::show(std::size_t index, bool at_bottom) {
   index_ = index;
   selection_.clear();

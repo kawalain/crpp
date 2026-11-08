@@ -53,12 +53,6 @@ class PathReader {
     return pos_ < s_.size() && std::isalpha(static_cast<unsigned char>(s_[pos_]));
   }
   char command() { return s_[pos_++]; }
-  bool has_number() {
-    skip_separators();
-    if (pos_ >= s_.size()) return false;
-    const char c = s_[pos_];
-    return std::isdigit(static_cast<unsigned char>(c)) || c == '-' || c == '+' || c == '.';
-  }
   float number() {
     skip_separators();
     const char* begin = s_.data() + pos_;

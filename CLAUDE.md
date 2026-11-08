@@ -23,8 +23,9 @@ and developer communities, not from memory.
   `input`, `AudioDevice`, `ui`, tray/notification). macOS/Linux adapters are
   added later without touching pure modules.
 - Windows builds use MSVC from Build Tools 2022 (`/std:c++latest` via CMake), locally
-  too. GCC on Linux builds and tests the pure modules in CI, run by hand with
-  `gh workflow run ci.yml`, to keep them portable.
+  too. The CI job `portability-gcc` builds and tests the pure modules with GCC on a
+  Linux runner, run by hand with `gh workflow run ci.yml`, only to keep them portable;
+  no Linux build of the app is produced or supported.
 - Build is CMake + Ninja only; no package manager. Third-party code, if ever
   needed, is vendored in `third_party/` at a pinned version.
 - Every script is bash, run by Git Bash on Windows (never WSL's) and with `shell: bash` in

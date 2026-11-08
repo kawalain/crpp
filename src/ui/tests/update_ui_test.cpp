@@ -212,22 +212,6 @@ void a_clamped_index_and_no_data_are_fine() {
   CHECK(h.click(view, ChangelogView::Close));
 }
 
-void prev_and_next_stop_at_the_ends() {
-  UiHarness h;
-  CHECK(h.start());
-  ChangelogView& view = h.app.changelog();
-  view.open(three_short(), 0);
-  view.prev();
-  CHECK(view.index() == 0);
-  view.next();
-  CHECK(view.index() == 1);
-  view.next();
-  view.next();
-  CHECK(view.index() == 2);
-  view.prev();
-  CHECK(view.index() == 1);
-}
-
 void the_wheel_steps_through_the_hint_to_the_next_version() {
   UiHarness h;
   CHECK(h.start());
@@ -359,7 +343,6 @@ int main() {
   the_version_button_says_what_it_does_and_opens();
   opens_closes_and_keeps_nothing();
   a_clamped_index_and_no_data_are_fine();
-  prev_and_next_stop_at_the_ends();
   the_wheel_steps_through_the_hint_to_the_next_version();
   a_long_version_scrolls_before_it_steps();
   turning_back_starts_the_count_over();

@@ -202,10 +202,7 @@ struct Strings {
   const char* chat_says;
   const char* chat_send;
   const char* display_theme;
-  const char* display_sync;
   const char* display_theme_cursor;
-  const char* display_light;
-  const char* display_dark;
   const char* display_skin;
   const char* display_dark_mode;
   const char* display_dark_off;
@@ -230,7 +227,6 @@ struct Strings {
   const char* system_repositories;
   const char* system_repositories_hint;
   const char* system_repository_fingerprint;
-  const char* system_repository_official;
   const char* system_repository_placeholder;
   const char* system_repository_add;
   const char* system_repository_remove;
@@ -265,7 +261,6 @@ struct Strings {
   const char* pack_remove_question;
   const char* sound_remove_question;
   const char* sound_fetch_failed;
-  const char* display_general;
   const char* display_chat_size;
   const char* display_chat_sample;
 

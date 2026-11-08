@@ -60,8 +60,6 @@ class TextField {
   void drag_to(std::size_t pos);
   // The place in the text nearest a point, the text's origin at 0,0. wrap_width 0 is one line.
   [[nodiscard]] std::size_t position_at(const Gfx& gfx, const TextStyle& style, float x, float y, float wrap_width = 0) const;
-  // Height of the laid-out text when wrapped to width.
-  [[nodiscard]] float measure_height(const Gfx& gfx, const TextStyle& style, float width) const;
   // Moves the caret one wrapped line up (dir < 0) or down.
   void move_vertical(const Gfx& gfx, const TextStyle& style, float width, int dir, bool extend);
 

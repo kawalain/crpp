@@ -26,7 +26,6 @@ class Toasts final : public Surface {
   // anchor is the button, in window coordinates; the bubble's right edge meets the
   // button's, `gap` above it.
   void bubble(Rect anchor, std::string text, float gap = 8, unsigned long long duration_ms = default_ms);
-  void clear();
 
   // The window it was last asked from; the message shows there while that is open.
   [[nodiscard]] int shown_in() const { return shown_in_; }

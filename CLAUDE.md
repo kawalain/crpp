@@ -173,7 +173,8 @@ against a real `server/` yet; do that once a local build of it is available.
   the user adds by an HTTPS address or `github:owner/repo[@ref]`, after a dialog with the key's fingerprint.
   A pack of an added one is `<first 16 digits of the fingerprint>/<id>`. A pack may extend one of another
   Repository, pinned by its key's fingerprint and maybe a version and digest; an update it was not made for
-  waits in the system tab until the user takes it. Upstream has none of this.
+  waits in the system tab until the user takes it. An added Repository may offer Sound packs too, which the sound
+  tab fetches when picked. Upstream has none of this.
 - Upstream's Theme 구름 is 뭉게구름 ("Cumulus"), as the Skin it belongs to is 구름 too. Its id is `cumulus`;
   upstream's keys keep upstream's `cloudroom`, which is read as `cumulus` wherever it is found.
 - The create cloud on Home really grows under the pointer, as upstream's does. The C++ layout asked for it
@@ -281,7 +282,8 @@ exist (real + test).
   batches: the first event after a pause at once, then every 10 ms at most. A
   mouse move costs about 8,700 cycles this way, against 50,000 read one by one.
 - `sound`: pack loading and a pure `render(span<float>)` mixer; device adapter
-  behind it. `synth` makes a short stand-in for a recording that could not be fetched. The stream uses the default period (about 10 ms), not the smallest
+  behind it. Packs are read from the official folder first, then each added Repository's (`PackRoot`), so a
+  member's pack this client lacks plays the device's first official one. `synth` makes a short stand-in for a recording that could not be fetched. The stream uses the default period (about 10 ms), not the smallest
   the research note suggests: CPU comes first and network delay dwarfs the gain.
 - `store`: settings, Seats and chat cache in the Protected or Shared store; a
   flushed temp file + rename for every write. `Platform` is the seam for DPAPI
@@ -302,7 +304,7 @@ exist (real + test).
   `sound:<id>`, which the official catalog does not use. `install` fetches the groups asked for from the
   Repository, or a file's second source when the Repository fails, verifies each and keeps what
   already matches. The exe holds only the official Repository's address and the update key
-  (`built_in.hpp`); `crpp_catalog` writes a catalog from `assets/`, `skins/` and
+  (`built_in.hpp`); `crpp_catalog` writes a catalog from `assets/`, `skins/`, another Repository's `--sounds` and
   `cmake/remote_assets.txt`, and `.github/scripts/build-repository.sh` fills and signs the official
   one, and `sign-catalog.sh` prints its key's fingerprint. A Repository the user adds (`folder_of` reads
   its address) offers only packs, in folders of their own, and is trusted by the key its catalog states
@@ -473,7 +475,8 @@ exist (real + test).
 - Adding a Repository, fetching a Theme of it and removing it, updates behind the app and removing a
   downloaded Skin have run on a hidden desktop against localhost only, driven by a throwaway build, not by
   hand. So have a parent in another Repository, a pin that asks first or holds an update back, adding a
-  parent's Repository with its child, and a key that changed. An update of the font itself, which waits a start, has only run in tests. A `github:` address has not been added from a real
+  parent's Repository with its child, a key that changed, and picking, failing and removing another
+  Repository's Sound pack; a member playing one in a Room has not run. An update of the font itself, which waits a start, has only run in tests. A `github:` address has not been added from a real
   repository (raw.githubusercontent.com answered `HEAD` and a tag without a redirect), and the field, the
   dialog's long fingerprint and a pack's progress have not been seen on a real desktop.
 - v0.1.0 updated itself to v0.1.1 from GitHub on one Windows 10 PC with Defender. The cause

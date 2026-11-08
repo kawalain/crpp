@@ -200,7 +200,11 @@ hands-on check of Cloud on a real desktop, 7 and 8.
   one-off converter writes the packs from the loaded JSONC, comments before a node included; every scene must keep
   its hash (`render.sh`, `compare.sh`), then the JSONC loader and the converter go. Nothing of this was released, so
   ADR 0007 is edited in place to name the language; there is no superseding ADR. Done: every scene of the five sets
-  kept its hash, and the JSONC reader and the schemas are gone.
+  kept its hash, and the JSONC reader and the schemas are gone. Reading a pack takes 4.3 ms for Cloud (3.5 ms as
+  JSONC) and 8.0 ms for Retro, against a limit of 100 ms. Idle, 6 rounds of each taken in turn on a hidden desktop,
+  MSVC Release, the first-run prompt, the window having let go of its device and pages: CPU 0.000% in every round;
+  private bytes 10.6 MB in each JSONC round and 10.6-10.8 MB (mean 10.72) now for Cloud, +1.1%, and 10.2-10.4 MB
+  in both for Retro.
 - **Catalog.** The catalog tool copies each Theme from `pack.cskin` into a `theme` line with its dark variant and its
   names per Locale, so Themes not installed can be listed. The parser skips lines it does not know and still refuses a
   known line that is wrong. `crpp-catalog 1` stays. The catalog is read behind the app at every start, files are not;

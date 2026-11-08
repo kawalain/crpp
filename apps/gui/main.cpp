@@ -199,7 +199,17 @@ int main(int argc, char** argv) {
   shell.fonts_loaded = !first_install && !font_pending;
   if (!skin_dir.empty()) {
     if (const auto loaded = shell.app.load_skin_dir(skin_dir); !loaded) return failed_to_start(loaded.error());
-  } else if (std::string_view(argc >= 2 ? argv[1] : "") != "--shot") {  // a shot without --skin-dir is the C++ layouts, to compare with
+  } else if (std::string_view(argc >= 2 ? argv[1] : "") == "--shot") {
+    // The packs beside the exe, as a run has them: the one with the Theme asked for, or the default.
+    const ui::App::SkinFolder beside[] = {{shell.skins_dir, ""}};
+    if (!shell.app.find_skins(beside)) return failed_to_start("no Skin Pack in " + ui::narrow(shell.skins_dir.wstring()));
+    const auto& skins = shell.app.ui().skins;
+    std::string dir = ui::choice_of(*shell.app.ui().prefs, skins).skin->dir;
+    for (const ui::SkinInfo& info : skins) {
+      if (std::ranges::any_of(info.themes, [&](const skin::PackTheme& t) { return t.palette == shot_theme || t.dark == shot_theme; })) dir = info.dir;
+    }
+    if (const auto loaded = shell.app.load_skin_dir(ui::widen(dir)); !loaded) return failed_to_start(loaded.error());
+  } else {
     area::repositories::load(shell);
     shell.app.set_parent_finder([&shell](std::string_view id, std::string_view fingerprint, const std::filesystem::path& from) {
       return area::repositories::parent_dir(shell, id, fingerprint, from);

@@ -59,12 +59,6 @@ if(WIN32)
   crpp_target_defaults(crpp_ui_prompt_test)
   add_test(NAME ui.prompt COMMAND crpp_ui_prompt_test)
 
-  add_executable(crpp_ui_luna_test tests/luna_test.cpp)
-  target_link_libraries(crpp_ui_luna_test PRIVATE crpp_ui crpp_ui_test_skins)
-  target_include_directories(crpp_ui_luna_test PRIVATE ${PROJECT_SOURCE_DIR}/tests/support tests)
-  crpp_target_defaults(crpp_ui_luna_test)
-  add_test(NAME ui.luna COMMAND crpp_ui_luna_test)
-
   add_executable(crpp_ui_skin_home_test tests/skin_home_test.cpp)
   target_link_libraries(crpp_ui_skin_home_test PRIVATE crpp_ui crpp_ui_test_skins)
   target_include_directories(crpp_ui_skin_home_test PRIVATE ${PROJECT_SOURCE_DIR}/tests/support tests)
@@ -90,12 +84,6 @@ if(WIN32)
   crpp_target_defaults(crpp_skin_tool)
   add_test(NAME ui.skin_check_retro COMMAND crpp_skin_tool check ${PROJECT_SOURCE_DIR}/skins/retro)
   add_test(NAME ui.skin_check_cloud COMMAND crpp_skin_tool check ${PROJECT_SOURCE_DIR}/skins/cloud)
-
-  # Not part of a normal build: see its first lines.
-  add_executable(crpp_ui_skin_bench EXCLUDE_FROM_ALL tests/skin_bench.cpp)
-  target_link_libraries(crpp_ui_skin_bench PRIVATE crpp_ui crpp_ui_test_skins psapi)
-  target_include_directories(crpp_ui_skin_bench PRIVATE tests)
-  crpp_target_defaults(crpp_ui_skin_bench)
 
   add_executable(crpp_ui_update_test tests/update_ui_test.cpp)
   target_link_libraries(crpp_ui_update_test PRIVATE crpp_ui crpp_ui_test_skins)

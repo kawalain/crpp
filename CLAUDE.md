@@ -222,8 +222,7 @@ is not in `scenes.txt`, is a sheet of the pack's cursors.
 A normal run offers every pack in `skins/` beside the exe, and draws with the C++ layouts when there is none. A shot
 without `--skin-dir` draws from the pack beside the exe that has its `--theme`, or from the default one.
 `--skin-dir <dir>` draws from the unsigned Skin Pack in that folder what it has and offers only that pack, and the C++ layout
-draws the rest until `docs/plans/skin-packs.md` is done. `crpp_ui_skin_bench`, not part of a normal
-build, measures a pack against the C++ layout.
+draws the rest until `docs/plans/skin-packs.md` is done.
 
 Nothing may wait for a person in a scripted run. On a desktop nobody sees the app shows no dialog: when
 it cannot start, as when it refuses a pack, it exits with 3 and leaves the reason in `<png>.error`, or

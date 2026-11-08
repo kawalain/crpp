@@ -317,7 +317,7 @@ void SoundTab::paint_pack(Painter& p, const skin::Screen& screen, Rect area) {
 
     void note(int id, int, skin::Box box) override {
       if (id == BalanceNote) s_.balance_rect_ = rect_of(box);
-      else s_.slider_rects_[static_cast<std::size_t>(id)] = rect_of(box);
+      else if (id >= 0 && static_cast<std::size_t>(id) < s_.slider_rects_.size()) s_.slider_rects_[static_cast<std::size_t>(id)] = rect_of(box);
     }
 
     void report(int, float value) override { s_.flow_height_ = value; }

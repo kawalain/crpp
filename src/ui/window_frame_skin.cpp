@@ -31,7 +31,7 @@ skin::ScreenSchema WindowFrame::menu_schema() { return {.screen = "frame_menu", 
 void WindowFrame::paint_pack(Painter& p, const skin::Screen& screen) {
   // With one menu down, moving over another opens that one.
   if (!menu_shown_) open_ = -1;
-  for (int i = 0; i < 3 && open_ >= 0; ++i) {
+  for (int i = 0; i < menus && open_ >= 0; ++i) {
     if (open_ != i && ui_.hot(this, MenuBase + i)) open_ = i;
   }
 
@@ -53,7 +53,9 @@ void WindowFrame::paint_pack(Painter& p, const skin::Screen& screen) {
     }
 
     void picture(int, int, skin::Box box, float, float) override { draw_svg(p_, f_.ui_.emoji_image(""), rect_of(box)); }
-    void note(int id, int, skin::Box box) override { f_.titles_[id] = rect_of(box); }
+    void note(int id, int, skin::Box box) override {
+      if (id >= 0 && id < menus) f_.titles_[id] = rect_of(box);
+    }
 
    private:
     WindowFrame& f_;

@@ -1232,6 +1232,7 @@ class Loader final : public Names {
     if (!draw) return fail("has no \"draw\"");
     Screen screen;
     screen.name = std::string(schema.screen);
+    for (const Name& note : schema.notes) screen.notes.push_back(note.id);
     frame_ = 0;
     schema_ = &schema;
     scope_ = nullptr;

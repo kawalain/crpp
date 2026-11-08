@@ -67,8 +67,9 @@ class WindowFrame final : public Surface {
   std::string title_ = "Cloudroom++";
   bool active_ = true, menu_shown_ = true, in_room_ = false;
   Parts parts_;
-  int open_ = -1;  // which menu is down
-  Rect titles_[3];
+  static constexpr int menus = 3;
+  int open_ = -1;  // which menu is down, below menus
+  Rect titles_[menus];
 };
 
 }  // namespace crpp::ui

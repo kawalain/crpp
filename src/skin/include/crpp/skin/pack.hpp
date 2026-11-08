@@ -52,6 +52,7 @@
 // to whole pixels), hit_path (the hit takes the shape of this path, set at hit_path_x and hit_path_y).
 // A part knows no screen, so it takes hit_by and note_by: a
 // number, which a screen gives it as an argument with hit(name) or note(name), and less than 0 for none.
+// A note_by that is not one of the screen's notes reaches nothing.
 //
 // cursors names, for all seven of cursor_names, a part that draws it in a box of 32 by 32, and its hot
 // point there. A pack without them leaves the pointer to the system. With hard they are drawn with
@@ -230,6 +231,8 @@ struct Screen {
   std::string name;
   std::uint32_t first = 0, count = 0;
   std::uint16_t frame = 0;
+  // The ids of the screen's notes: a note_by reaches the screen only under one of them.
+  std::vector<int> notes;
 };
 
 // One Palette's entry: a colour, or stops when there are any.

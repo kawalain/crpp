@@ -77,7 +77,7 @@ void WindowFrame::click(int id, float, float, bool) {
     open_ = -1;
     const std::vector<Item> items = items_of(menu);
     if (static_cast<std::size_t>(index) < items.size() && *items[static_cast<std::size_t>(index)].action) (*items[static_cast<std::size_t>(index)].action)();
-  } else if (id >= MenuBase) {
+  } else if (id >= MenuBase && id - MenuBase < menus) {  // a pack's hit_index can name any menu
     open_ = open_ == id - MenuBase ? -1 : id - MenuBase;
   }
 }

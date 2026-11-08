@@ -250,6 +250,13 @@ void a_part_takes_its_hit_and_note_from_the_screen() {
   CHECK(walk(R"C(use by)C") == "fill 100,200,300,400 1/0/0/1\n");
   CHECK(walk(R"C(use by hit join)C", 0, 0, 51) == "fill 100,200,300,400 0/0/0/0.5\nhit 100,200,300,400 51\n");
   CHECK(walk(R"C(use by(where = note(where)))C").starts_with("note 81"));
+  CHECK(walk(R"C(fill face note_by 81 w 1 h 1)C").starts_with("note 81/0"));
+  // A number the screen does not name as a note reaches nothing: the screen may index by it.
+  CHECK(walk(R"C(use by(where = 82))C") == "fill 100,200,300,400 1/0/0/1\n");
+  CHECK(walk(R"C(fill face note_by 1000000 w 1 h 1)C") == "fill 100,200,1,1 1/0/0/1\n");
+  CHECK(walk(R"C(fill face note_by 1000000*1000000*1000000 w 1 h 1)C") == "fill 100,200,1,1 1/0/0/1\n");
+  CHECK(walk(R"C(fill face note_by 81.5 w 1 h 1)C") == "fill 100,200,1,1 1/0/0/1\n");
+  CHECK(walk(R"C(repeat 4 { fill face note_by 80+@i*16 w 1 h 1 })C").find("note") == std::string::npos);
   CHECK(!load(R"C(fill face x hit(nothing))C"));
   CHECK(!load(R"C(fill face x note(nothing))C"));
 }
@@ -474,6 +481,12 @@ void a_part_can_be_drawn_alone() {
   const std::pair<std::string_view, float> off{"off", 1};
   draw_part(*pack, *part, 0, {1, 2, 30, 20}, log, source, {.label = "x", .hot = true, .pressed = false, .args = std::span(&off, 1)});
   CHECK(log.out == "round 1,2,30,20 3 1/0/0/1\ntext x 3,2,30,20 12/20/400 0/0/0/0.5\nfill 1,2,20,20 1/0/0/1\n");
+  // Without a screen no number is a note.
+  Log alone;
+  source.log = &alone;
+  const std::pair<std::string_view, float> where{"where", 81};
+  draw_part(*pack, *pack->part("by"), 0, {1, 2, 30, 20}, alone, source, {.args = std::span(&where, 1)});
+  CHECK(alone.out == "fill 1,2,30,20 1/0/0/1\n");
 }
 
 void a_clip_goes_around_a_group() {

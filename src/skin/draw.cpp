@@ -16,6 +16,7 @@ class Walker final : public Env {
   void run(const Screen& screen, Box area) {
     start(area);
     frame_size_ = screen.frame;
+    notes_ = screen.notes;
     list(screen.first, screen.count);
   }
 
@@ -167,7 +168,11 @@ class Walker final : public Env {
     const Box at{vars[VarX] + vars[Varx], vars[VarY] + vars[Vary], vars[Varw], vars[Varh]};
     if (n.note != no_hit) source_.note(n.note, static_cast<int>(vars[VarI]), at);
     if (n.has_note_by) {
-      if (const int id = static_cast<int>(value(n.note_by)); id >= 0) source_.note(id, static_cast<int>(vars[VarI]), at);
+      // A pack's number, so it reaches the screen only as one of its notes. NaN or a value out of
+      // int's range matches none, and is never converted.
+      const float by = value(n.note_by);
+      const auto named = std::ranges::find_if(notes_, [by](int id) { return static_cast<float>(id) == by; });
+      if (named != notes_.end()) source_.note(*named, static_cast<int>(vars[VarI]), at);
     }
     const Box box = n.snap ? canvas_.snap(at) : at;
     const float hot = vars[VarHot], pressed = vars[VarPressed];
@@ -428,6 +433,7 @@ class Walker final : public Env {
   Source& source_;
   std::array<float, max_frame_slots> slots_;
   std::uint32_t base_ = 0, frame_size_ = 0;
+  std::span<const int> notes_;  // none for a part drawn on its own, as it has no screen
   int visited_ = 0, depth_ = 0;
   std::string_view label_;
   const Call* call_ = nullptr;

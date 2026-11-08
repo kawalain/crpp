@@ -66,9 +66,7 @@ class PromptScreen final : public Surface {
   [[nodiscard]] unsigned long long wake_at() const override { return next_wake_; }
 
  private:
-  void paint_luna(Painter& p, bool is_locked, bool hint_error);
   void paint_pack(Painter& p, const skin::Screen& screen, bool is_locked, bool hint_error);
-  [[nodiscard]] TextStyle luna_field_style() const;
   [[nodiscard]] TextStyle field_style() const;
   void submit();
   void take_focus();

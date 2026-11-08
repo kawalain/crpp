@@ -118,7 +118,8 @@ against a real `server/` yet; do that once a local build of it is available.
   to control, staying inside what is open on top, and Enter and Space act. The arrows, Page keys, Home and End move
   sliders, dropdowns, tabs and the emoji grid, and Ctrl+Tab changes the settings tab, as in Windows. Where the keyboard
   is shows after Tab, an arrow or Alt, drawn by the Skin Pack. A layer that opens takes the keyboard and gives it back
-  when it closes; a question that cannot be undone starts on Cancel.
+  when it closes; a question that cannot be undone starts on Cancel. A menu's access keys work but are not
+  underlined: in Korean the letter shows in the words, as 복사(C).
 - A link in chat has a colour of its own, the Palette's `link`, where upstream's is the text's and shows only by
   an underline under the pointer.
 - The channel balance is explained: "자리에 따라 좌우로 듣기" and "좌우 차이", in words
@@ -472,6 +473,11 @@ exist (real + test).
   whether a resize keeps them during the drag, and whether the system puts its pointer shadow on them; Microsoft does not say,
   so they draw none. `CursorBaseSize` for "Pointer size" is undocumented and taken from what Qt does; try other sizes, and whether
   changing it sends `WM_SETTINGCHANGE`. Microsoft's sample calls a cursor's pixels premultiplied, while `DrawIconEx` blends them as straight.
+- The keyboard, selection and the context menu have run in tests, and on a hidden desktop from posted messages only:
+  Tab, and the menu bar's Alt keys opening the options window and What's new. Real key presses have not: Alt and F10
+  alone beside the system's own handling, Alt+Space with the menu bar, the menu key, "Underline access keys" turned
+  on in Windows, the clipboard with other programs, and IME composition while Tab or a menu takes the keys. The
+  focus ring, the context menu and a dropdown's keys have not been seen on a real desktop.
 - Dead-peer detection (network cut) is untested.
 - Shared store compatibility is tested against upstream's format as read from
   its source, not yet against the upstream client itself.

@@ -129,7 +129,11 @@ void checked(Shell& s, const std::string& typed, const std::string& folder, std:
                         [sp, typed, folder, kept, id] { keep(*sp, typed, folder, *kept, id); }, nullptr});
 }
 
-void add(Shell& s, const std::string& typed) {
+void add(Shell& s, std::string typed) {
+  // Kept and shown as typed, without what a paste brings around it.
+  const auto blank = [](char c) { return c == ' ' || c == '\t'; };
+  while (!typed.empty() && blank(typed.back())) typed.pop_back();
+  typed.erase(0, std::ranges::find_if_not(typed, blank) - typed.begin());
   const std::string folder = assets::folder_of(typed);
   if (folder.empty()) {
     set_adding(s, SystemTab::Adding::State::Failed, tr().repository_reason_address);

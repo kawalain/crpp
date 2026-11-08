@@ -368,7 +368,7 @@ class Walker final : public Env {
   // it was written in.
   struct Call {
     const Use* use;
-    std::uint32_t base, frame_size;
+    std::uint32_t base;
     std::string_view label;
     const Call* outer;
   };
@@ -404,7 +404,7 @@ class Walker final : public Env {
     }
     const std::uint64_t outer_seed = seed_;
     seed_ = mixed(seed_, static_cast<std::uint64_t>(&n - pack_.nodes.data()));
-    const Call call{&u, base_, frame_size_, outer_label, call_};
+    const Call call{&u, base_, outer_label, call_};
     const Call* const outer_call = call_;
     const std::uint32_t outer_base = base_, outer_size = frame_size_;
     call_ = &call;

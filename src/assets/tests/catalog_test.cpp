@@ -19,7 +19,15 @@ std::string file_line(std::string_view group, std::string_view path, std::string
 const std::string good = head +
                          "source twemoji https://raw.githubusercontent.com/jdecked/twemoji/abc/assets/svg/\n"
                          "skin cloud 1\n"
+                         "skin-name cloud ko 구름\n"
+                         "skin-name cloud en Cloud\n"
+                         "theme cloud cumulus dark\n"
+                         "theme-name cloud cumulus ko 뭉게구름\n"
+                         "theme-name cloud cumulus en Cumulus\n"
+                         "theme cloud pastel\n"
                          "skin retro 1 cloud\n"
+                         "theme retro luna_blue dark\n"
+                         "theme-name retro luna_blue en Luna  Blue\n"
                          "default-skin cloud\n" +
                          file_line("shared", "emoji/1f600.svg", " from twemoji 1f600.svg") +
                          file_line("shared", "emoji/1f507.svg", " from twemoji 1f507.svg nopick") +
@@ -35,6 +43,11 @@ void reads_every_kind_of_line() {
   CHECK(catalog->sources.size() == 1 && catalog->sources[0].name == "twemoji");
   CHECK(catalog->skins.size() == 2 && catalog->skins[1].parent == "cloud" && catalog->skins[1].format == 1);
   CHECK(catalog->default_skin == "cloud");
+  const SkinPack& cloud = catalog->skins[0];
+  CHECK(cloud.names.size() == 2 && cloud.names[0].first == "ko" && cloud.names[0].second == "구름" && cloud.names[1].second == "Cloud");
+  CHECK(cloud.themes.size() == 2 && cloud.themes[0].dark && !cloud.themes[1].dark && cloud.themes[1].names.empty());
+  CHECK(cloud.theme("cumulus") && cloud.theme("cumulus")->names[1].second == "Cumulus" && !cloud.theme("nothing"));
+  CHECK(catalog->skins[1].theme("luna_blue")->names[0].second == "Luna  Blue");  // words keep their spaces
   CHECK(catalog->files.size() == 8);
   CHECK(catalog->files[0].source == "twemoji" && catalog->files[0].remote == "1f600.svg" && catalog->files[0].pick);
   CHECK(!catalog->files[1].pick);
@@ -68,9 +81,33 @@ void refuses_what_is_not_a_catalog() {
   refuses("crpp-catalog 1\nkey abc\n", 2);
   refuses("crpp-catalog 1\r\n" + key_line, 1);
   refuses(head + "source x https://a/\r\n", 3);
-  refuses(head + "nonsense\n", 3);
   refuses(head + "file shared a.txt 12 " + hash + "  \n", 3);  // a double space is an empty field
   refuses(std::string(max_catalog_size + 1, '\n'), 0);
+}
+
+void skips_lines_of_a_later_kind() {
+  const auto catalog = parse_catalog(head + "nonsense\nskin a 1\nsound-name x ko 소리\n");
+  CHECK(catalog && catalog->skins.size() == 1);
+}
+
+void refuses_wrong_names_and_themes() {
+  const std::string a = head + "skin a 1\n";
+  refuses(head + "skin-name a ko A\n", 3);  // a skin listed further on
+  refuses(a + "skin-name a ko\n", 4);
+  refuses(a + "skin-name a KO A\n", 4);
+  refuses(a + "skin-name a ko  A\n", 4);
+  refuses(a + "skin-name a ko A \n", 4);
+  refuses(a + "skin-name a ko A\tB\n", 4);
+  refuses(a + "skin-name a ko " + std::string(65, 'x') + "\n", 4);
+  refuses(a + "skin-name a ko A\nskin-name a ko B\n", 5);
+  refuses(a + "theme a\n", 4);
+  refuses(a + "theme a b light\n", 4);
+  refuses(a + "theme a b dark x\n", 4);
+  refuses(a + "theme a B\n", 4);
+  refuses(a + "theme a b\ntheme a b\n", 5);
+  refuses(a + "theme-name a b en B\n", 4);  // a theme not listed
+  refuses(a + "theme a b\ntheme-name a b en\n", 5);
+  CHECK(parse_catalog(a + "skin-name a ko " + std::string(64, 'x') + "\n").has_value());
 }
 
 void refuses_paths_that_leave_the_folder() {
@@ -128,6 +165,8 @@ int main() {
   writes_what_it_reads();
   a_signature_covers_what_comes_before_it();
   refuses_what_is_not_a_catalog();
+  skips_lines_of_a_later_kind();
+  refuses_wrong_names_and_themes();
   refuses_paths_that_leave_the_folder();
   refuses_unsure_fields();
   checks_what_lines_refer_to();

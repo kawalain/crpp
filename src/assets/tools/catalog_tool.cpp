@@ -47,6 +47,19 @@ std::optional<std::string> read_text(const fs::path& path) {
 
 std::string generic(const fs::path& path) { return path.generic_string(); }
 
+using store::Json;
+
+// A pack's `names`: words by locale id.
+assets::Names names_of(const Json* names) {
+  assets::Names out;
+  if (const Json::Object* all = names ? names->as_object() : nullptr) {
+    for (const Json::Member& m : *all) {
+      if (const auto words = m.value.as_string()) out.emplace_back(m.key, std::string(*words));
+    }
+  }
+  return out;
+}
+
 struct Options {
   fs::path out, remote, assets, skins, copy;
   std::string ref, default_skin, key;
@@ -114,6 +127,15 @@ class Writer {
       assets::SkinPack skin{.id = std::string(*id->as_string()), .format = static_cast<int>(*format->as_i64())};
       if (parent && parent->as_string()) skin.parent = *parent->as_string();
       if (skin.id != generic(folder.filename())) return fail("the folder of pack " + skin.id + " has another name");
+      // Its own names and Themes, so that the program can list them before the pack is installed. The
+      // Themes of a parent are the parent's lines.
+      skin.names = names_of(pack->find("names"));
+      if (const Json::Object* themes = pack->find("themes") ? pack->find("themes")->as_object() : nullptr) {
+        for (const Json::Member& theme : *themes) {
+          const Json* dark = theme.value.find("dark");
+          skin.themes.push_back({theme.key, dark && dark->as_string() && !dark->as_string()->empty(), names_of(theme.value.find("names"))});
+        }
+      }
       const std::string prefix = "skins/" + skin.id + "/";
       catalog_.skins.push_back(skin);
       if (!add_local(folder, prefix, assets::skin_group(skin.id), prefix)) return false;

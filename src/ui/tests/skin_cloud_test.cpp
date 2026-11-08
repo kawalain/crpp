@@ -93,6 +93,21 @@ void test_a_list_stands_where_the_code_puts_it() {
 
 // One list holds every Skin's Themes, each Skin's under a heading with its name: 구름, 뭉게구름,
 // 파스텔, 레트로, 고전 and so on. Ids are the list's, then one per entry.
+// The catalog copies these names, and a name missing in a Locale falls back to English.
+void test_the_official_packs_are_named_in_korean_and_english() {
+  UiHarness h;
+  CHECK(h.start(1200, 900));
+  CHECK(h.app.find_skins(CRPP_TEST_SKINS));
+  const auto has_both = [](const std::vector<std::pair<std::string, std::string>>& names) {
+    const auto in = [&](std::string_view locale) { return std::ranges::any_of(names, [&](const auto& n) { return n.first == locale && !n.second.empty(); }); };
+    return in("ko") && in("en");
+  };
+  for (const SkinInfo& info : h.app.ui().skins) {
+    CHECK(has_both(info.names));
+    for (const crpp::skin::PackTheme& theme : info.themes) CHECK(has_both(theme.names));
+  }
+}
+
 void test_the_rows_choose_a_theme_of_any_skin_and_a_dark_mode() {
   UiHarness h;
   CHECK(h.start(1200, 900));
@@ -713,6 +728,7 @@ void test_a_path_can_fill_where_its_shapes_overlap() {
 }  // namespace
 
 int main() {
+  test_the_official_packs_are_named_in_korean_and_english();
   test_the_rows_choose_a_theme_of_any_skin_and_a_dark_mode();
   test_the_layers_stand_where_the_code_puts_them();
   test_the_prompt_stands_where_the_code_puts_it_and_clicks_land();

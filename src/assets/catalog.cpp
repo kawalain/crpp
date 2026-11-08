@@ -22,11 +22,33 @@ std::vector<std::string_view> fields_of(std::string_view line) {
   }
 }
 
+constexpr std::size_t max_words = 64;
+
+// The rest of a line after its first `skip` fields: a name, with no control characters.
+std::optional<std::string_view> words_after(std::string_view line, std::size_t skip) {
+  for (std::size_t i = 0; i < skip; ++i) {
+    const std::size_t space = line.find(' ');
+    if (space == std::string_view::npos) return std::nullopt;
+    line.remove_prefix(space + 1);
+  }
+  if (line.empty() || line.size() > max_words || line.front() == ' ' || line.back() == ' ') return std::nullopt;
+  if (!std::ranges::all_of(line, [](char c) { return static_cast<unsigned char>(c) >= 0x20 && c != 0x7f; })) return std::nullopt;
+  return line;
+}
+
+bool has_name(const Names& names, std::string_view locale) {
+  return std::ranges::any_of(names, [&](const auto& name) { return name.first == locale; });
+}
+
+}  // namespace
+
 bool is_id(std::string_view s) {
   return !s.empty() && s.size() <= max_id && std::ranges::all_of(s, [](char c) {
     return (c >= 'a' && c <= 'z') || (c >= '0' && c <= '9') || c == '-' || c == '_';
   });
 }
+
+namespace {
 
 bool is_hex(std::string_view s, std::size_t length) {
   return s.size() == length && std::ranges::all_of(s, [](char c) { return (c >= '0' && c <= '9') || (c >= 'a' && c <= 'f'); });
@@ -107,6 +129,11 @@ const SkinPack* Catalog::skin(std::string_view id) const {
   return it == skins.end() ? nullptr : &*it;
 }
 
+const CatalogTheme* SkinPack::theme(std::string_view theme_id) const {
+  const auto it = std::ranges::find(themes, theme_id, &CatalogTheme::id);
+  return it == themes.end() ? nullptr : &*it;
+}
+
 std::expected<Catalog, CatalogError> parse_catalog(std::string_view text) {
   if (text.size() > max_catalog_size) return std::unexpected(CatalogError{0, "larger than 4 MB"});
   if (!text.ends_with('\n')) return std::unexpected(CatalogError{0, "does not end with a line break"});
@@ -114,6 +141,10 @@ std::expected<Catalog, CatalogError> parse_catalog(std::string_view text) {
   std::unordered_set<std::string_view> paths;
   std::size_t number_of_line = 0, offset = 0;
   const auto fail = [&](std::string what) { return std::unexpected(CatalogError{number_of_line, std::move(what)}); };
+  const auto skin_of = [&](std::string_view id) -> SkinPack* {
+    const auto it = std::ranges::find(catalog.skins, id, &SkinPack::id);
+    return it == catalog.skins.end() ? nullptr : &*it;
+  };
   while (offset < text.size()) {
     const std::size_t end = text.find('\n', offset);
     const std::string_view line = text.substr(offset, end - offset);
@@ -152,6 +183,31 @@ std::expected<Catalog, CatalogError> parse_catalog(std::string_view text) {
       skin.id = f[1];
       if (f.size() == 4) skin.parent = f[3];
       catalog.skins.push_back(std::move(skin));
+    } else if (f[0] == "skin-name") {
+      SkinPack* skin = f.size() >= 4 ? skin_of(f[1]) : nullptr;
+      const auto words = words_after(line, 3);
+      if (!skin || !is_id(f[2]) || !words) return fail("a skin-name is a skin listed above, a locale and words");
+      if (has_name(skin->names, f[2])) return fail("a second name in that locale");
+      skin->names.emplace_back(f[2], *words);
+    } else if (f[0] == "theme") {
+      SkinPack* skin = f.size() >= 3 ? skin_of(f[1]) : nullptr;
+      if (!skin || f.size() > 4 || !is_id(f[2]) || (f.size() == 4 && f[3] != "dark")) {
+        return fail("a theme is a skin listed above, an id and maybe dark");
+      }
+      if (skin->theme(f[2])) return fail("a second theme of that id");
+      skin->themes.push_back({std::string(f[2]), f.size() == 4, {}});
+    } else if (f[0] == "theme-name") {
+      SkinPack* skin = f.size() >= 5 ? skin_of(f[1]) : nullptr;
+      CatalogTheme* theme = nullptr;
+      if (skin) {
+        for (CatalogTheme& each : skin->themes) {
+          if (each.id == f[2]) theme = &each;
+        }
+      }
+      const auto words = words_after(line, 4);
+      if (!theme || !is_id(f[3]) || !words) return fail("a theme-name is a theme listed above, a locale and words");
+      if (has_name(theme->names, f[3])) return fail("a second name in that locale");
+      theme->names.emplace_back(f[3], *words);
     } else if (f[0] == "default-skin") {
       if (f.size() != 2 || !is_id(f[1]) || !catalog.default_skin.empty()) return fail("one default skin, by id");
       catalog.default_skin = f[1];
@@ -180,9 +236,8 @@ std::expected<Catalog, CatalogError> parse_catalog(std::string_view text) {
       file.path = f[2];
       file.sha256 = f[4];
       catalog.files.push_back(std::move(file));
-    } else {
-      return fail("an unknown line");
     }
+    // Any other line is of a kind a later catalog brings, and is skipped.
   }
   if (number_of_line < 2) return std::unexpected(CatalogError{0, "no key"});
   for (const SkinPack& skin : catalog.skins) {
@@ -210,6 +265,11 @@ std::string write_catalog(const Catalog& catalog) {
   for (const SourceUrl& source : catalog.sources) text += "source " + source.name + " " + source.url + "\n";
   for (const SkinPack& skin : catalog.skins) {
     text += "skin " + skin.id + " " + std::to_string(skin.format) + (skin.parent.empty() ? "" : " " + skin.parent) + "\n";
+    for (const auto& [locale, words] : skin.names) text += "skin-name " + skin.id + " " + locale + " " + words + "\n";
+    for (const CatalogTheme& theme : skin.themes) {
+      text += "theme " + skin.id + " " + theme.id + (theme.dark ? " dark" : "") + "\n";
+      for (const auto& [locale, words] : theme.names) text += "theme-name " + skin.id + " " + theme.id + " " + locale + " " + words + "\n";
+    }
   }
   if (!catalog.default_skin.empty()) text += "default-skin " + catalog.default_skin + "\n";
   for (const File& file : catalog.files) {

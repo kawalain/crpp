@@ -8,18 +8,25 @@
 //   key <128 lowercase hex>                    the P-256 key that signs it
 //   source <name> <url>                        another address for files; ends with '/'
 //   skin <id> <format> [<parent>]
+//   skin-name <skin> <locale> <words>          what a user calls it, for Themes not installed
+//   theme <skin> <id> [dark]                   a Theme it offers, and whether it has a dark variant
+//   theme-name <skin> <theme> <locale> <words>
 //   default-skin <id>
 //   file <group> <path> <size> <sha256> [from <source> <remote>] [nopick]
 //   signature <128 lowercase hex>              covers every byte before its line
 // The first two lines come first, the signature last; the others in any order, a source
-// before the files that name it. A group is `shared`, `skin:<id>` or `sound:<id>`. nopick
-// keeps an emoji out of the picker. Paths need no escaping in a URL.
+// before the files that name it, a skin before its names and Themes and a Theme before its
+// names. Words run to the end of the line. A group is `shared`, `skin:<id>` or `sound:<id>`.
+// nopick keeps an emoji out of the picker. Paths need no escaping in a URL. A line of a kind
+// not listed here is skipped, so an older exe reads a newer catalog; one of a kind listed
+// here that is wrong refuses the catalog.
 #include <cstdint>
 #include <expected>
 #include <optional>
 #include <span>
 #include <string>
 #include <string_view>
+#include <utility>
 #include <vector>
 
 #include "crpp/update/update.hpp"
@@ -44,11 +51,26 @@ struct SourceUrl {
   std::string name, url;
 };
 
+using Names = std::vector<std::pair<std::string, std::string>>;  // by locale id
+
+struct CatalogTheme {
+  std::string id;
+  bool dark = false;
+  Names names;
+};
+
 struct SkinPack {
   std::string id;
   int format = 0;
   std::string parent;  // empty: it extends none
+  Names names;
+  std::vector<CatalogTheme> themes;
+
+  [[nodiscard]] const CatalogTheme* theme(std::string_view theme_id) const;
 };
+
+// A pack's or Theme's id, and a locale's: a-z, 0-9, - and _, at most 32 characters.
+[[nodiscard]] bool is_id(std::string_view s);
 
 struct Catalog {
   update::PublicKey key{};

@@ -324,6 +324,8 @@ Installed install(Shell& s, const InstallJob& job, const std::atomic<bool>& canc
       const assets::Catalog& parent = *shelves[link.shelf].catalog;
       if (!link.pin || assets::check_pin(*link.pin, parent, link.pack, platform) == assets::PinCheck::Holds) continue;
       const std::string child = full(chain.links[i - 1]);
+      // A pack that extends another installed one meets the same link again.
+      if (std::ranges::any_of(done.holds, [&](const Hold& hold) { return hold.child == child && hold.parent == full(link); })) continue;
       const auto accepted = std::ranges::find(job.accepted, child, &std::pair<std::string, std::string>::first);
       if (accepted != job.accepted.end() && accepted->second == assets::own_digest(parent, link.pack, platform)) continue;
       done.holds.push_back({full(link), child});

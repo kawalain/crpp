@@ -36,48 +36,6 @@ void test_upstreams_name_for_cumulus_is_kept_in_its_keys() {
   CHECK(theme_from_upstream("cloudroom") == "cumulus");
   CHECK(theme_to_upstream("cumulus") == "cloudroom");
   CHECK(theme_from_upstream("pastel") == "pastel" && theme_to_upstream("pastel") == "pastel");
-
-  UiHarness h;
-  CHECK(h.start());
-  open(h, SettingsPage::Display);
-  DisplayTab& tab = h.app.settings().display();
-  Prefs& prefs = *h.app.ui().prefs;
-  prefs.set(pref::theme, "pastel");
-  h.render();
-  CHECK(h.click(tab, DisplayTab::ThemeList));
-  CHECK(h.click(tab, DisplayTab::ThemeList + 1));  // 뭉게구름
-  CHECK(prefs.get(pref::theme) == "cloudroom");
-  CHECK(effective_theme(prefs, false).id == "cumulus");
-}
-
-void test_system_toggle_swaps_the_dropdowns() {
-  UiHarness h;
-  CHECK(h.start());
-  open(h, SettingsPage::Display);
-  DisplayTab& tab = h.app.settings().display();
-  CHECK(h.drawn(tab, DisplayTab::ThemeList));
-  CHECK(!h.drawn(tab, DisplayTab::LightList));
-  const float short_height = tab.content_height();
-
-  CHECK(h.click(tab, DisplayTab::SystemTheme));
-  CHECK(h.app.ui().prefs->get(pref::system_theme));
-  CHECK(!h.drawn(tab, DisplayTab::ThemeList));
-  CHECK(h.drawn(tab, DisplayTab::LightList));
-  CHECK(h.drawn(tab, DisplayTab::DarkList));
-  CHECK(tab.content_height() == short_height + 52);
-}
-
-void test_theme_dropdown_saves_upstreams_id() {
-  UiHarness h;
-  CHECK(h.start());
-  open(h, SettingsPage::Display);
-  DisplayTab& tab = h.app.settings().display();
-  CHECK(!h.drawn(tab, DisplayTab::ThemeList + 2));
-  CHECK(h.click(tab, DisplayTab::ThemeList));
-  CHECK(h.drawn(tab, DisplayTab::ThemeList + 2));
-  CHECK(h.click(tab, DisplayTab::ThemeList + 2));  // 먹구름
-  CHECK(h.app.ui().prefs->get(pref::theme) == "darkcloud");
-  CHECK(!h.drawn(tab, DisplayTab::ThemeList + 2));
 }
 
 void test_escape_closes_the_dropdown_then_the_panel() {
@@ -85,10 +43,11 @@ void test_escape_closes_the_dropdown_then_the_panel() {
   CHECK(h.start());
   open(h, SettingsPage::Display);
   DisplayTab& tab = h.app.settings().display();
-  CHECK(h.click(tab, DisplayTab::ThemeList));
+  CHECK(h.click(tab, DisplayTab::SkinThemeList));
+  CHECK(h.drawn(tab, DisplayTab::SkinThemeList + 2));  // + 1 is the heading
   h.key(VK_ESCAPE);
   CHECK(h.app.settings().is_open());
-  CHECK(!h.drawn(tab, DisplayTab::ThemeList + 1));
+  CHECK(!h.drawn(tab, DisplayTab::SkinThemeList + 2));  // + 1 is the heading
   h.key(VK_ESCAPE);
   CHECK(!h.app.settings().is_open());
 }
@@ -98,12 +57,11 @@ void test_click_elsewhere_closes_the_dropdown() {
   CHECK(h.start());
   open(h, SettingsPage::Display);
   DisplayTab& tab = h.app.settings().display();
-  CHECK(h.click(tab, DisplayTab::ThemeList));
-  CHECK(h.click(tab, DisplayTab::SystemTheme));
-  h.render();
-  CHECK(!h.drawn(tab, DisplayTab::LightList + 1));
-  CHECK(h.click(tab, DisplayTab::SystemTheme));
-  CHECK(!h.drawn(tab, DisplayTab::ThemeList + 1));
+  CHECK(h.click(tab, DisplayTab::SkinThemeList));
+  CHECK(h.drawn(tab, DisplayTab::SkinThemeList + 2));  // + 1 is the heading
+  CHECK(h.click(tab, DisplayTab::DarkModeList));  // closes the open list and opens its own
+  CHECK(!h.drawn(tab, DisplayTab::SkinThemeList + 2));
+  CHECK(h.drawn(tab, DisplayTab::DarkModeList + 1));
 }
 
 void test_slider_changes_the_chat_scale_within_its_range() {
@@ -414,9 +372,7 @@ void test_chat_clock() {
 int main() {
   test_effective_theme();
   test_upstreams_name_for_cumulus_is_kept_in_its_keys();
-  test_system_toggle_swaps_the_dropdowns();
   test_a_repository_is_added_and_removed_by_the_shell();
-  test_theme_dropdown_saves_upstreams_id();
   test_escape_closes_the_dropdown_then_the_panel();
   test_click_elsewhere_closes_the_dropdown();
   test_slider_changes_the_chat_scale_within_its_range();

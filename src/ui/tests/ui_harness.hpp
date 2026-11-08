@@ -10,9 +10,11 @@ namespace crpp::ui::test {
 
 class UiHarness {
  public:
-  bool start(unsigned width = 951, unsigned height = 692) {
+  // Draws with the official Cloud pack unless another is named; every look comes from a pack.
+  bool start(unsigned width = 951, unsigned height = 692, const char* pack = CRPP_TEST_SKINS "/cloud") {
     CoInitializeEx(nullptr, COINIT_APARTMENTTHREADED);
     if (!app.init({})) return false;
+    if (pack && !app.load_skin_dir(pack)) return false;
     app.set_animations(false);
     if (FAILED(CoCreateInstance(CLSID_WICImagingFactory, nullptr, CLSCTX_INPROC_SERVER, IID_IWICImagingFactory,
                                 reinterpret_cast<void**>(wic_.put())))) {

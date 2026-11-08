@@ -887,9 +887,10 @@ void test_a_window_of_its_own_has_the_background_of_its_theme() {
 void test_a_folder_without_a_pack_is_refused_and_changes_nothing() {
   UiHarness h;
   start_on_home(h);
+  const auto* const before = h.app.ui().pack;
   const auto loaded = h.app.load_skin_dir(CRPP_TEST_SKINS "/no-such-pack");
   CHECK(!loaded.has_value());
-  CHECK(h.app.ui().pack == nullptr);
+  CHECK(h.app.ui().pack == before);
   CHECK(h.render());
 }
 

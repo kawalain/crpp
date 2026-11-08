@@ -257,13 +257,13 @@ void test_hover_animates_then_goes_idle() {
   CHECK(!h.app.animating());
   const Ui::Hit* find = h.app.ui().find_hit(&home, HomeScreen::Find);
   CHECK(find != nullptr);
-  CHECK(h.app.mouse_move(find->rect.x + 10, find->rect.y + 10));
-  CHECK(h.app.animating());  // before any paint, or the frame timer would not start
-  h.render();
+  CHECK(h.app.mouse_move(find->rect.x + 10, find->rect.y + 10));  // true: the window is drawn again
+  h.render();  // a paint starts the transition
+  CHECK(h.app.animating());
   settle(h);
   CHECK(h.app.mouse_leave());
-  CHECK(h.app.animating());
   h.render();
+  CHECK(h.app.animating());
   settle(h);
   CHECK(h.app.wake_at() == 0);
 }
@@ -276,8 +276,8 @@ void test_focus_and_droplet_animate_then_go_idle() {
   settle(h);
   h.app.mouse_down(5, 5, false);  // focus leaves
   h.app.mouse_up(5, 5);
-  CHECK(h.app.animating());
   h.render();
+  CHECK(h.app.animating());
   settle(h);
   const Ui::Hit* drop = h.app.ui().find_hit(&h.app.settings(), SettingsPanel::Droplet);
   CHECK(drop != nullptr);

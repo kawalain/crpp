@@ -82,7 +82,7 @@ if(WIN32)
   add_test(NAME gui.os COMMAND crpp_gui_os_test)
 
   add_executable(crpp_gui_account_test tests/account_test.cpp account_controller.cpp)
-  target_link_libraries(crpp_gui_account_test PRIVATE crpp_ui crpp_api)
+  target_link_libraries(crpp_gui_account_test PRIVATE crpp_ui crpp_ui_test_skins crpp_api)
   target_include_directories(crpp_gui_account_test PRIVATE
     ${CMAKE_CURRENT_SOURCE_DIR} ${PROJECT_SOURCE_DIR}/tests/support ${PROJECT_SOURCE_DIR}/src/ui/tests)
   crpp_target_defaults(crpp_gui_account_test)

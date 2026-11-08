@@ -32,8 +32,6 @@ class TextField {
   bool key_down(unsigned vk, bool ctrl, bool shift);
 
   void select_all();
-  // Height of the laid-out text when wrapped to width.
-  [[nodiscard]] float measure_height(const Gfx& gfx, const TextStyle& style, float width) const;
   // Moves the caret one wrapped line up (dir < 0) or down.
   void move_vertical(const Gfx& gfx, const TextStyle& style, float width, int dir, bool extend);
   void click_at(const Gfx& gfx, const TextStyle& style, float x_in_text, bool extend);

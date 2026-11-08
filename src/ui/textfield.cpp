@@ -70,14 +70,6 @@ void TextField::move_to(std::size_t pos, bool extend) {
   if (!extend) anchor_ = pos;
 }
 
-float TextField::measure_height(const Gfx& gfx, const TextStyle& style, float width) const {
-  const auto layout = gfx.layout(shown().empty() ? L" " : shown(), style, width, 10000);
-  if (!layout) return style.line_height;
-  DWRITE_TEXT_METRICS m{};
-  layout->GetMetrics(&m);
-  return m.height;
-}
-
 void TextField::move_vertical(const Gfx& gfx, const TextStyle& style, float width, int dir, bool extend) {
   const auto layout = gfx.layout(text_, style, width, 10000);
   if (!layout) return;

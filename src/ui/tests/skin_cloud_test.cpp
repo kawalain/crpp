@@ -163,6 +163,64 @@ void test_the_rows_choose_a_theme_of_any_skin_and_a_dark_mode() {
   CHECK(prefs.get(pref::theme) == pref::theme.fallback);
 }
 
+// A Theme of a pack a Repository offers is listed under that pack's name, and picking it asks for
+// the pack without changing the Theme. While it comes the row says how far it is, with a cancel;
+// once it failed, why, with another try.
+void test_a_theme_not_installed_is_listed_and_asked_for() {
+  UiHarness h;
+  CHECK(h.start(1200, 900));
+  App& app = h.app;
+  CHECK(app.find_skins(CRPP_TEST_SKINS));
+  SkinInfo extra{.id = "extra", .names = {{"ko", "더"}, {"en", "More"}}, .to_fetch = 3 * 1024 * 1024};
+  crpp::skin::PackTheme sun;
+  sun.id = "sun";
+  sun.names = {{"ko", "해"}};
+  extra.themes.push_back(sun);
+  app.ui().offered = {extra};
+  const Prefs& prefs = *app.ui().prefs;
+  app.apply_skin_choice(false);
+  app.show_home();
+  app.settings().open(SettingsPage::Display);
+  DisplayTab& display = app.settings().display();
+  std::string asked, cancelled;
+  display.on_fetch = [&](const std::string& skin, const std::string& theme) { asked = skin + "/" + theme; };
+  display.on_cancel_fetch = [&] { cancelled = "yes"; };
+  h.render();
+  const float plain_height = display.content_height();
+
+  // Cloud's heading and two Themes, Retro's and four, then More's heading and 해.
+  CHECK(h.click(display, DisplayTab::SkinThemeList));
+  if (const Ui::Hit* first = app.ui().find_hit(&display, DisplayTab::SkinThemeList + 2)) {
+    (void)app.wheel(first->rect.x + 5, first->rect.y + 5, -10);  // down to the end of the list
+  }
+  h.render();
+  CHECK(!h.drawn(display, DisplayTab::SkinThemeList + 9));
+  CHECK(h.click(display, DisplayTab::SkinThemeList + 10));
+  CHECK(asked == "extra/sun");
+  CHECK(prefs.get(pref::skin_theme) == pref::skin_theme.fallback);
+
+  app.ui().theme_fetch = {.state = ThemeFetch::State::Fetching, .skin = "extra", .theme = "sun", .percent = 40};
+  h.render();
+  h.render();  // the height the row added comes in the frame after
+  CHECK(display.content_height() == plain_height + 52);
+  CHECK(h.drawn(display, DisplayTab::FetchCancel) && !h.drawn(display, DisplayTab::FetchRetry));
+  CHECK(h.click(display, DisplayTab::FetchCancel));
+  CHECK(cancelled == "yes");
+
+  asked.clear();
+  app.ui().theme_fetch = {.state = ThemeFetch::State::Failed, .skin = "extra", .theme = "sun", .reason = "x"};
+  h.render();
+  CHECK(h.drawn(display, DisplayTab::FetchRetry) && !h.drawn(display, DisplayTab::FetchCancel));
+  CHECK(h.click(display, DisplayTab::FetchRetry));
+  CHECK(asked == "extra/sun");
+
+  // Another Theme, installed, clears what failed.
+  CHECK(h.click(display, DisplayTab::SkinThemeList));
+  CHECK(h.click(display, DisplayTab::SkinThemeList + 3));
+  CHECK(app.ui().theme_fetch.state == ThemeFetch::State::None);
+  CHECK(prefs.get(pref::skin_theme) == "pastel");
+}
+
 // The clock is held, so that a frame's time is what the test says.
 class Moving {
  public:
@@ -730,6 +788,7 @@ void test_a_path_can_fill_where_its_shapes_overlap() {
 int main() {
   test_the_official_packs_are_named_in_korean_and_english();
   test_the_rows_choose_a_theme_of_any_skin_and_a_dark_mode();
+  test_a_theme_not_installed_is_listed_and_asked_for();
   test_the_layers_stand_where_the_code_puts_them();
   test_the_prompt_stands_where_the_code_puts_it_and_clicks_land();
   test_a_list_stands_where_the_code_puts_it();

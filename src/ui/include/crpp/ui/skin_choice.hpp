@@ -1,6 +1,7 @@
 #pragma once
 // Which Skin, Theme and dark mode the user has, against the packs there are. What it reads of a
 // Theme comes from its pack, so a new pack or Theme needs nothing here.
+#include <cstdint>
 #include <span>
 #include <string>
 #include <string_view>
@@ -11,18 +12,34 @@
 
 namespace crpp::ui {
 
-// What a pack offers, kept when the pack itself is not the one in use.
+// What a pack offers, kept when the pack itself is not the one in use. One a Repository offers that
+// is not installed has no folder, Themes with only their ids, names and whether they are dark, and
+// how much it takes to fetch.
 struct SkinInfo {
   std::string id, dir;  // dir: its folder, in UTF-8
   std::vector<std::pair<std::string, std::string>> names;  // by locale id
   std::vector<skin::PackTheme> themes;
   std::string default_theme;
+  std::uint64_t to_fetch = 0;  // bytes, for one not installed
+};
+
+// A Theme picked before its pack is installed: its pack is being fetched, or could not be.
+struct ThemeFetch {
+  enum class State : std::uint8_t { None, Fetching, Failed };
+  State state = State::None;
+  std::string skin, theme;  // the pack and Theme picked
+  bool apply = true;        // still the last one picked, so it is applied once it is there
+  int percent = 0;
+  std::string reason;  // why it failed, in words
 };
 
 [[nodiscard]] SkinInfo skin_info(const skin::Pack& pack, std::string dir);
 
-// The name for this locale, or else the first it has.
-[[nodiscard]] std::string_view name_in(std::span<const std::pair<std::string, std::string>> names, std::string_view locale);
+// The name for this locale, or else the English one, or else the id.
+[[nodiscard]] std::string_view name_in(std::span<const std::pair<std::string, std::string>> names, std::string_view locale,
+                                       std::string_view id = {});
+// A Theme's name among these packs, as name_in gives it; empty when none of them has it.
+[[nodiscard]] std::string_view theme_name(std::span<const SkinInfo> skins, std::string_view skin, std::string_view theme, std::string_view locale);
 
 enum class DarkMode { Off, On, System };
 

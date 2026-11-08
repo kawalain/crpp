@@ -208,6 +208,14 @@ struct Strings {
   const char* display_dark_off;
   const char* display_dark_on;
   const char* display_dark_system;
+  const char* display_theme_fetch;
+  const char* display_fetching;
+  const char* display_fetch_failed;
+  const char* display_fetch_retry;
+  const char* fetch_reason_network;
+  const char* fetch_reason_unavailable;
+  const char* fetch_reason_bad;
+  const char* fetch_reason_disk;
   const char* display_general;
   const char* display_chat_size;
   const char* display_chat_sample;

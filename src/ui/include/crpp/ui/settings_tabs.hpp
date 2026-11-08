@@ -147,6 +147,8 @@ class DisplayTab final : public SettingsTab {
     ScaleSlider,
     ThemeCursor,
     Use24h,
+    FetchCancel,
+    FetchRetry,
     ThemeList = 100,
     LightList = 110,
     DarkList = 120,
@@ -158,6 +160,12 @@ class DisplayTab final : public SettingsTab {
 
   // Asked whenever the tab comes on screen, for who the chat sample shows.
   std::function<void()> on_shown;
+  // A Theme of a pack that is not installed was picked, or picked again after it failed: the pack is
+  // to be fetched, and the Theme applied once it is there if it is still the last one picked.
+  std::function<void(const std::string& skin, const std::string& theme)> on_fetch;
+  std::function<void()> on_cancel_fetch;
+  // An installed pack's Theme, as when picked in the list: the dark mode stays.
+  void use_theme(const std::string& skin, const std::string& theme);
   void set_sample(std::string nick, std::string emoji);
 
   void paint(Painter& p, Rect area) override;

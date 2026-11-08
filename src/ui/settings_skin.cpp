@@ -1,6 +1,7 @@
 // The settings drawn from a Skin Pack. The tabs keep their state, hit ids and callbacks.
 #include "crpp/locale/locale.hpp"
 #include <algorithm>
+#include <cstdio>
 #include <string>
 
 #include "crpp/skin/draw.hpp"
@@ -49,15 +50,19 @@ constexpr skin::Name sound_hits[] = {{"speaker_volume", SoundTab::SpeakerVolume}
                                      {"spatial", SoundTab::Spatial}, {"balance_enabled", SoundTab::BalanceEnabled}, {"balance", SoundTab::Balance}};
 
 // --- display ---
-enum DisplayText : int { SampleSays, PercentText, SampleNick, SampleTime };
-enum DisplayNumber : int { Percent, HasCursors, ThemeCursorOn, DisplayScale, Dragging, DisplayUse24h };
+enum DisplayText : int { SampleSays, PercentText, SampleNick, SampleTime, FetchStatus };
+enum DisplayNumber : int { Percent, HasCursors, ThemeCursorOn, DisplayScale, Dragging, DisplayUse24h, FetchStateN, FetchPercent };
 enum DisplaySlot : int { ThemeSlot = 4, DarkModeSlot, IdleSlot, LanguageSlot };
-constexpr skin::Name display_texts[] = {{"sample_says", SampleSays}, {"percent_text", PercentText}, {"sample_nick", SampleNick}, {"sample_time", SampleTime}};
-constexpr skin::Name display_numbers[] = {{"percent", Percent}, {"has_cursors", HasCursors}, {"theme_cursor", ThemeCursorOn}, {"scale", DisplayScale}, {"dragging", Dragging}, {"use_24h", DisplayUse24h}};
+constexpr skin::Name display_texts[] = {{"sample_says", SampleSays}, {"percent_text", PercentText}, {"sample_nick", SampleNick}, {"sample_time", SampleTime},
+                                        {"fetch_status", FetchStatus}};
+// fetch_state: 0 nothing, 1 a picked Theme's pack is being fetched, 2 it could not be.
+constexpr skin::Name display_numbers[] = {{"percent", Percent}, {"has_cursors", HasCursors}, {"theme_cursor", ThemeCursorOn}, {"scale", DisplayScale}, {"dragging", Dragging},
+                                          {"use_24h", DisplayUse24h}, {"fetch_state", FetchStateN}, {"fetch_percent", FetchPercent}};
 constexpr skin::Name display_pictures[] = {{"sample_emoji", 0}};
 constexpr skin::Name display_slots[] = {{"theme_list", ThemeSlot}, {"dark_mode_list", DarkModeSlot}, {"idle_list", IdleSlot}, {"language_list", LanguageSlot}};
 constexpr skin::Name display_notes[] = {{"slider", 0}};
-constexpr skin::Name display_hits[] = {{"scale_slider", DisplayTab::ScaleSlider}, {"theme_cursor", DisplayTab::ThemeCursor}, {"use_24h", DisplayTab::Use24h}};
+constexpr skin::Name display_hits[] = {{"scale_slider", DisplayTab::ScaleSlider}, {"theme_cursor", DisplayTab::ThemeCursor}, {"use_24h", DisplayTab::Use24h},
+                                       {"fetch_cancel", DisplayTab::FetchCancel}, {"fetch_retry", DisplayTab::FetchRetry}};
 
 // --- notifications ---
 enum NotifyNumber : int { TrayN, FlashN, Sounds, SoundOn };
@@ -78,6 +83,26 @@ constexpr skin::Name account_texts[] = {{"nickname", NicknameT}, {"handle", Hand
 constexpr skin::Name account_numbers[] = {{"has_names", HasNames}, {"has_account", HasAccount}};
 constexpr skin::Name account_pictures[] = {{"me", 0}};
 constexpr skin::Name account_hits[] = {{"emoji", AccountTab::Emoji}, {"nickname", AccountTab::Nickname}, {"change_handle", AccountTab::Handle}, {"logout", AccountTab::Logout}};
+
+// As the first-run screen counts them: one decimal, at least 0.1.
+std::string megabytes(std::uint64_t bytes) {
+  const double mb = std::max(0.1, static_cast<double>(bytes) / (1024.0 * 1024.0));
+  char text[24];
+  std::snprintf(text, sizeof text, "%.1f MB", mb);
+  return text;
+}
+
+// What the row under the Skin says about a Theme picked before its pack is installed.
+std::string fetch_status(const Ui& ui) {
+  const ThemeFetch& fetch = ui.theme_fetch;
+  if (fetch.state == ThemeFetch::State::None) return {};
+  const std::string_view locale = locale::current().id;
+  std::string name(theme_name(ui.offered, fetch.skin, fetch.theme, locale));
+  if (name.empty()) name = theme_name(ui.skins, fetch.skin, fetch.theme, locale);
+  if (name.empty()) name = fetch.theme;
+  if (fetch.state == ThemeFetch::State::Fetching) return locale::fill(tr().display_fetching, {name, std::to_string(fetch.percent)});
+  return locale::fill(tr().display_fetch_failed, {name, fetch.reason});
+}
 
 }  // namespace
 
@@ -317,15 +342,19 @@ void DisplayTab::paint_pack(Painter& p, const skin::Screen& screen, Rect area) {
   skin_theme_.headings.clear();
   theme_at_.clear();
   skin_theme_.selected = 0;
-  for (std::size_t s = 0; s < ui_.skins.size(); ++s) {
-    const SkinInfo& skin = ui_.skins[s];
-    skin_theme_.options.emplace_back(name_in(skin.names, locale));
+  // Then the packs not installed, each Theme with what fetching it takes.
+  const std::size_t installed = ui_.skins.size();
+  for (std::size_t s = 0; s < installed + ui_.offered.size(); ++s) {
+    const SkinInfo& skin = s < installed ? ui_.skins[s] : ui_.offered[s - installed];
+    skin_theme_.options.emplace_back(name_in(skin.names, locale, skin.id));
     skin_theme_.headings.push_back(true);
     theme_at_.emplace_back(-1, -1);
+    const std::string size = s < installed ? std::string() : megabytes(skin.to_fetch);
     for (std::size_t i = 0; i < skin.themes.size(); ++i) {
       const skin::PackTheme& one = skin.themes[i];
       if (&one == choice.theme) skin_theme_.selected = static_cast<int>(skin_theme_.options.size());
-      skin_theme_.options.emplace_back(name_in(one.names, locale));
+      const std::string name(name_in(one.names, locale, one.id));
+      skin_theme_.options.push_back(s < installed ? name : locale::fill(tr().display_theme_fetch, {name, size}));
       skin_theme_.headings.push_back(false);
       theme_at_.emplace_back(static_cast<int>(s), static_cast<int>(i));
     }
@@ -342,6 +371,7 @@ void DisplayTab::paint_pack(Painter& p, const skin::Screen& screen, Rect area) {
    public:
     Shown(DisplayTab& tab, Painter& painter) : s_(tab), p_(painter), percent_(std::clamp(tab.ui_.prefs->get(pref::chat_scale), 80, 150)) {
       says_ = locale::fill(tr().chat_says, {s_.sample_nick_.empty() ? std::string(tr().guest) : s_.sample_nick_});
+      fetch_status_ = fetch_status(s_.ui_);
       percent_text_ = std::to_string(percent_) + "%";
       time_ = chat_clock_text(wall_clock_seconds() * 1000, s_.ui_.prefs->get(pref::use_24h));
     }
@@ -351,6 +381,7 @@ void DisplayTab::paint_pack(Painter& p, const skin::Screen& screen, Rect area) {
         case SampleSays: return says_;
         case SampleNick: return s_.sample_nick_.empty() ? std::string_view(tr().guest) : std::string_view(s_.sample_nick_);
         case SampleTime: return time_;
+        case FetchStatus: return fetch_status_;
         default: return percent_text_;
       }
     }
@@ -361,6 +392,8 @@ void DisplayTab::paint_pack(Painter& p, const skin::Screen& screen, Rect area) {
         case DisplayScale: return s_.ui_.scale;
         case Dragging: return yes(s_.ui_.capture == &s_);
         case DisplayUse24h: return yes(s_.ui_.prefs->get(pref::use_24h));
+        case FetchStateN: return static_cast<float>(s_.ui_.theme_fetch.state);
+        case FetchPercent: return static_cast<float>(s_.ui_.theme_fetch.percent);
         default: return static_cast<float>(percent_);
       }
     }
@@ -387,7 +420,7 @@ void DisplayTab::paint_pack(Painter& p, const skin::Screen& screen, Rect area) {
     DisplayTab& s_;
     Painter& p_;
     int percent_;
-    std::string says_, percent_text_, time_;
+    std::string says_, percent_text_, time_, fetch_status_;
   } shown(*this, p);
 
   SkinCanvas canvas(ui_, p, this);

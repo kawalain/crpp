@@ -37,11 +37,24 @@ SkinChoice from_upstream(const Prefs& prefs, std::span<const SkinInfo> skins) {
 
 SkinInfo skin_info(const skin::Pack& pack, std::string dir) { return {pack.id, std::move(dir), pack.names, pack.themes, pack.default_theme}; }
 
-std::string_view name_in(std::span<const std::pair<std::string, std::string>> names, std::string_view locale) {
-  for (const auto& [id, name] : names) {
-    if (id == locale) return name;
+std::string_view name_in(std::span<const std::pair<std::string, std::string>> names, std::string_view locale, std::string_view id) {
+  for (const std::string_view wanted : {locale, std::string_view("en")}) {
+    for (const auto& [in, name] : names) {
+      if (in == wanted) return name;
+    }
   }
-  return names.empty() ? std::string_view{} : std::string_view(names.front().second);
+  if (!id.empty() || names.empty()) return id;
+  return names.front().second;
+}
+
+std::string_view theme_name(std::span<const SkinInfo> skins, std::string_view skin, std::string_view theme, std::string_view locale) {
+  for (const SkinInfo& info : skins) {
+    if (info.id != skin) continue;
+    for (const skin::PackTheme& one : info.themes) {
+      if (one.id == theme) return name_in(one.names, locale, one.id);
+    }
+  }
+  return {};
 }
 
 std::string_view SkinChoice::palette(bool system_dark) const {

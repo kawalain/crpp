@@ -2,9 +2,18 @@ text @tr.display_theme (9, 25, @W-9, 32) style heading color hl_text
 // One list of every Skin's Themes, under each Skin's name.
 text @tr.display_skin (16, 81, 260, 26) style row_label color hl_text
 slot theme_list (285, 75, 246, 38)
-text @tr.display_dark_mode (16, 133, 260, 26) style row_label color hl_text
-slot dark_mode_list (285, 127, 246, 38)
-let chat_top = 76+52+62+76-25
+// A Theme picked before its pack is here: how fetching it goes, with a way out, or why it failed, with another try.
+let fetch_h = @fetch_state>0 ? 52 : 0
+if @fetch_state>0 {
+  text @fetch_status (16, 121, 355, 40) style row_hint color hl_text_soft
+  fill alpha(hl, 0.2) (16, 163, 355, 4) radius 2 if @fetch_state==1
+  fill hl (16, 163, max(4, 355*@fetch_percent/100), 4) radius 2 if @fetch_state==1
+  use text_button (381, 121, 140, 38) text @tr.cancel hit fetch_cancel if @fetch_state==1
+  use text_button (381, 121, 140, 38) text @tr.display_fetch_retry hit fetch_retry if @fetch_state==2
+}
+text @tr.display_dark_mode (16, 133+fetch_h, 260, 26) style row_label color hl_text
+slot dark_mode_list (285, 127+fetch_h, 246, 38)
+let chat_top = 76+52+62+76-25+fetch_h
 text @tr.room_word_chat (9, chat_top-51, @W-9, 32) style heading color hl_text
 // The sample cancels the stage's scale: it shows what the chat, which is not scaled with the window, will really look like.
 let zoom = @percent/100

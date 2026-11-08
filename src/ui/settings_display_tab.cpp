@@ -233,6 +233,11 @@ void DisplayTab::click(int id, float x, float, bool) {
     prefs.set(pref::theme_cursor, !prefs.get(pref::theme_cursor));
   } else if (id == Use24h) {
     prefs.set(pref::use_24h, !prefs.get(pref::use_24h));
+  } else if (id == FetchCancel) {
+    if (on_cancel_fetch) on_cancel_fetch();
+  } else if (id == FetchRetry) {
+    const ThemeFetch fetch = ui_.theme_fetch;
+    if (on_fetch && fetch.state == ThemeFetch::State::Failed) on_fetch(fetch.skin, fetch.theme);
   } else if (idle_.owns(id)) {
     if (idle_.click(id)) prefs.set(pref::idle_minutes, idle_minutes[static_cast<std::size_t>(idle_.selected)]);
     if (idle_.open) place_dropdown(ui_, idle_, idle_rect_);
@@ -276,11 +281,25 @@ std::string_view dark_key(DarkMode mode) { return dark_keys[static_cast<std::siz
 void DisplayTab::choose_theme(int index) {
   const auto [skin_index, theme_index] = theme_at_[static_cast<std::size_t>(index)];
   if (skin_index < 0) return;  // a heading, which cannot be chosen
+  ThemeFetch& fetch = ui_.theme_fetch;
+  const std::size_t installed = ui_.skins.size();
+  if (static_cast<std::size_t>(skin_index) >= installed) {
+    const SkinInfo& skin = ui_.offered[static_cast<std::size_t>(skin_index) - installed];
+    if (on_fetch) on_fetch(skin.id, skin.themes[static_cast<std::size_t>(theme_index)].id);
+    return;
+  }
+  // Another Theme now: a pack still arriving stays installed without being applied.
+  fetch.apply = false;
+  if (fetch.state == ThemeFetch::State::Failed) fetch = {};
   const SkinInfo& skin = ui_.skins[static_cast<std::size_t>(skin_index)];
+  use_theme(skin.id, skin.themes[static_cast<std::size_t>(theme_index)].id);
+}
+
+void DisplayTab::use_theme(const std::string& skin, const std::string& theme) {
   Prefs& prefs = *ui_.prefs;
   prefs.set(pref::dark_mode, dark_key(choice_of(prefs, ui_.skins).dark));
-  prefs.set(pref::skin, skin.id);
-  prefs.set(pref::skin_theme, skin.themes[static_cast<std::size_t>(theme_index)].id);
+  prefs.set(pref::skin, skin);
+  prefs.set(pref::skin_theme, theme);
 }
 
 void DisplayTab::choose_dark(int index) {

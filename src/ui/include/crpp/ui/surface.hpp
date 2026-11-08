@@ -131,6 +131,9 @@ class Ui : public WindowState {
   EngineMotion motion;
   // Every pack there is to choose from.
   std::vector<SkinInfo> skins;
+  // The packs a Repository offers that are not installed, to fetch when one of their Themes is picked.
+  std::vector<SkinInfo> offered;
+  ThemeFetch theme_fetch;
   int palette = -1;
   // This screen in the pack, if the pack is for this Theme and has it.
   [[nodiscard]] const skin::Screen* pack_screen(std::string_view name) const;

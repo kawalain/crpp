@@ -3,6 +3,13 @@ column id form y 10 {
     use form_combo text @tr.display_skin after 4 {
       slot theme_list
     }
+    // A Theme picked before its pack is here: how fetching it goes, with a way out, or why it failed, with another try.
+    use form_hint text @fetch_status after 2 if @fetch_state>0
+    h 14 after 4 if @fetch_state==1 {
+      use progress(percent = @fetch_percent)
+    }
+    use link text @tr.cancel hit fetch_cancel w textw(body, @tr.cancel) h 16 after 6 if @fetch_state==1
+    use link text @tr.display_fetch_retry hit fetch_retry w textw(body, @tr.display_fetch_retry) h 16 after 6 if @fetch_state==2
     use form_combo text @tr.display_dark_mode after 4 {
       slot dark_mode_list
     }

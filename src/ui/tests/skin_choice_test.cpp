@@ -96,12 +96,18 @@ void cloudroom_is_cumulus() {
   CHECK(choice_of(prefs, skins).theme->id == "cumulus");
 }
 
-void a_name_is_by_locale_or_the_first_there_is() {
+void a_name_is_by_locale_or_english_or_the_id() {
   const auto skins = packs();
   CHECK(name_in(skins[0].names, "ko") == "하나");
   CHECK(name_in(skins[0].names, "en") == "One");
+  CHECK(name_in(skins[0].names, "ja") == "One");
   CHECK(name_in(skins[1].names, "ko") == "Two");
+  const std::vector<std::pair<std::string, std::string>> korean_only = {{"ko", "셋"}};
+  CHECK(name_in(korean_only, "ja", "three") == "three");
+  CHECK(name_in(korean_only, "ja") == "셋");
   CHECK(name_in({}, "ko").empty());
+  CHECK(theme_name(skins, "two", "new", "ko") == "new");
+  CHECK(theme_name(skins, "two", "none", "ko").empty());
 }
 
 }  // namespace
@@ -112,6 +118,6 @@ int main() {
   a_theme_no_longer_there_goes_to_the_default_of_its_skin();
   the_palette_follows_the_mode_and_a_theme_without_dark_stays_light();
   cloudroom_is_cumulus();
-  a_name_is_by_locale_or_the_first_there_is();
+  a_name_is_by_locale_or_english_or_the_id();
   return crpp_test_result();
 }

@@ -86,16 +86,23 @@ skin::ReadFile files_of(std::filesystem::path dir) {
 
 }  // namespace
 
-std::expected<void, std::string> App::read_pack(const std::string& overlay) {
+skin::LoadOptions App::load_options(std::string overlay, const std::filesystem::path& folder) const {
   skin::LoadOptions options;
-  options.overlay = overlay;
-  // What a pack extends is a folder beside it.
-  options.parent = [folders = pack_dir_.parent_path()](std::string_view id) -> std::optional<skin::ReadFile> {
-    const std::filesystem::path dir = folders / std::filesystem::path(id);
-    if (!holds_pack(dir)) return std::nullopt;
-    return files_of(dir);
+  options.overlay = std::move(overlay);
+  options.where = narrow(folder.wstring());
+  options.parent = [finder = parent_finder_](const skin::ParentQuery& query) -> std::optional<skin::FoundPack> {
+    const std::filesystem::path from = widen(query.from);
+    std::optional<std::filesystem::path> dir;
+    if (finder) dir = finder(query.id, query.fingerprint, from);
+    else if (query.fingerprint.empty()) dir = from.parent_path() / std::filesystem::path(widen(query.id));  // a folder beside it
+    if (!dir || !holds_pack(*dir)) return std::nullopt;
+    return skin::FoundPack{files_of(*dir), narrow(dir->wstring())};
   };
-  auto pack = skin::load_pack(files_of(pack_dir_), screen_schemas(), options);
+  return options;
+}
+
+std::expected<void, std::string> App::read_pack(const std::string& overlay) {
+  auto pack = skin::load_pack(files_of(pack_dir_), screen_schemas(), load_options(overlay, pack_dir_));
   if (!pack) return std::unexpected(std::move(pack.error()));
   if (const auto missing = skin::missing_constant(*pack)) return std::unexpected("pack: no constant \"" + std::string(*missing) + "\"");
   ui_.forget_render_target();  // brushes are kept by the address of their stops
@@ -137,14 +144,8 @@ bool App::find_skins(std::span<const SkinFolder> where) {
     }
     std::ranges::sort(folders);
     for (const std::filesystem::path& folder : folders) {
-      skin::LoadOptions options;
-      options.parent = [parents = place.dir](std::string_view id) -> std::optional<skin::ReadFile> {
-        const std::filesystem::path other = parents / std::filesystem::path(id);
-        if (!holds_pack(other)) return std::nullopt;
-        return files_of(other);
-      };
       // One that cannot be read is not offered, and the others still are.
-      if (const auto pack = skin::load_pack(files_of(folder), screen_schemas(), options); pack && !skin::missing_constant(*pack)) {
+      if (const auto pack = skin::load_pack(files_of(folder), screen_schemas(), load_options({}, folder)); pack && !skin::missing_constant(*pack)) {
         SkinInfo info = skin_info(*pack, narrow(folder.wstring()));
         if (!place.prefix.empty()) info.id = place.prefix + "/" + info.id;
         ui_.skins.push_back(std::move(info));

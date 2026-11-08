@@ -832,10 +832,10 @@ ReadFile from(Files files) {
 LoadOptions parents(std::map<std::string, Files, std::less<>> packs, std::string overlay = {}) {
   LoadOptions options;
   options.overlay = std::move(overlay);
-  options.parent = [packs = std::move(packs)](std::string_view id) -> std::optional<ReadFile> {
-    const auto found = packs.find(id);
+  options.parent = [packs = std::move(packs)](const ParentQuery& query) -> std::optional<FoundPack> {
+    const auto found = packs.find(query.id);
     if (found == packs.end()) return std::nullopt;
-    return from(found->second);
+    return FoundPack{from(found->second), std::string(query.id)};
   };
   return options;
 }
@@ -1041,8 +1041,53 @@ part a {
   CHECK(!load_pack(from(files), std::span(&test_schema, 1), nobody));
 }
 
+// A pack says its version and pins the pack it extends; the parent is looked for with its
+// Repository's fingerprint, from where the child was found.
+void a_parent_is_pinned_and_looked_for_where_it_is() {
+  const std::string fingerprint(64, 'a');
+  const Files child = {{"pack.cskin", "pack child format 1 version 0.2.1 extends base\n\nparent base {\n  repository \"github:someone/skins\"\n  fingerprint \"" +
+                                          fingerprint + "\"\n  version 0.3\n  sha256 \"" + std::string(64, 'b') + "\"\n}\n"}};
+  const Files base = {{"pack.cskin", parent_pack}, {"screens/home.cskin", std::string(R"C(use b)C")}};
+  std::vector<std::string> asked;
+  LoadOptions options;
+  options.where = "here";
+  options.parent = [&](const ParentQuery& query) -> std::optional<FoundPack> {
+    asked.push_back(std::string(query.id) + "|" + std::string(query.fingerprint) + "|" + std::string(query.from));
+    if (query.id != "base") return std::nullopt;
+    return FoundPack{from(base), "there"};
+  };
+  const auto pack = load_pack(from(child), std::span(&test_schema, 1), options);
+  CHECK(pack.has_value());
+  if (pack) {
+    CHECK(pack->version == "0.2.1");
+    CHECK(pack->pin && pack->pin->id == "base" && pack->pin->repository == "github:someone/skins" && pack->pin->fingerprint == fingerprint);
+    CHECK(pack->pin->version == "0.3" && pack->pin->sha256 == std::string(64, 'b'));
+  }
+  CHECK(asked == std::vector<std::string>{"base|" + fingerprint + "|here"});
+
+  // A pack that extends nothing has no pin; a quoted version is the same.
+  const auto plain = load_pack(from({{"pack.cskin", std::string(parent_pack).replace(0, 18, "pack base format 1 version \"0.1.0\"")},
+                                     {"screens/home.cskin", "use b"}}),
+                               std::span(&test_schema, 1));
+  CHECK(plain.has_value() && plain->version == "0.1.0" && !plain->pin);
+
+  const auto refused = [&](const std::string& head, const std::string& block, std::string_view why) {
+    const auto pack = load_pack(from({{"pack.cskin", head + "\n\n" + block + "\n"}}), std::span(&test_schema, 1), parents({{"base", base}}));
+    CHECK(!pack.has_value() && pack.error().find(why) != std::string::npos);
+  };
+  refused("pack child format 1 extends base", "parent other {\n  version 0.3\n}", "another pack");
+  refused("pack child format 1", "parent base {\n  version 0.3\n}", "extends none");
+  refused("pack child format 1 extends base", "parent base {\n  fingerprint \"ABC\"\n}", "fingerprint");
+  refused("pack child format 1 extends base", "parent base {\n  version 1.2\n}", "0.y or 0.y.z");
+  refused("pack child format 1 extends base", "parent base {\n  repository \"github:a/b\"\n}", "fingerprint of its key");
+  refused("pack child format 1 version 0.02.1 extends base", "", "0.y.z");
+  CHECK(is_version("0.12.0") && !is_version("0.12") && !is_version("1.0.0") && !is_version("0.1.0.1"));
+  CHECK(is_version_pin("0.3") && is_version_pin("0.3.2") && !is_version_pin("0") && !is_version_pin("0.03"));
+}
+
 int main() {
   a_child_replaces_by_name_and_keeps_the_rest();
+  a_parent_is_pinned_and_looked_for_where_it_is();
   a_child_takes_a_screen_of_its_own();
   extending_is_refused_where_it_cannot_work();
   an_overlay_lies_on_top_for_its_own_themes();

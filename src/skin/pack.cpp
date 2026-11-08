@@ -30,6 +30,23 @@ using store::Json;
          std::ranges::all_of(*words, [](char c) { return static_cast<unsigned char>(c) >= 0x20 && c != 0x7f; });
 }
 
+[[nodiscard]] bool is_hex64(std::string_view s) {
+  return s.size() == 64 && std::ranges::all_of(s, [](char c) { return (c >= '0' && c <= '9') || (c >= 'a' && c <= 'f'); });
+}
+
+// Digits with no leading zero, separated by dots: count of them.
+[[nodiscard]] bool dotted(std::string_view s, std::size_t parts) {
+  for (std::size_t i = 0; i < parts; ++i) {
+    const std::size_t dot = s.find('.');
+    const std::string_view part = s.substr(0, dot);
+    if (part.empty() || part.size() > 9 || (part.size() > 1 && part[0] == '0') || !std::ranges::all_of(part, [](char c) { return c >= '0' && c <= '9'; })) return false;
+    if (i + 1 == parts) return dot == std::string_view::npos;
+    if (dot == std::string_view::npos) return false;
+    s.remove_prefix(dot + 1);
+  }
+  return false;
+}
+
 [[nodiscard]] std::optional<int> find_name(std::span<const Name> names, std::string_view name) {
   for (const Name& n : names) {
     if (n.name == name) return n.id;
@@ -206,7 +223,7 @@ class Loader final : public Names {
   // Lays what `over` names on top of what `base` has.
   static void merge_into(Json& base, const Json& over) {
     for (const Json::Member& m : *over.as_object()) {
-      if (m.key == "id" || m.key == "format" || m.key == "extends") continue;
+      if (m.key == "id" || m.key == "format" || m.key == "extends" || m.key == "version" || m.key == "parent") continue;
       if (m.key == "constants" || m.key == "styles" || m.key == "parts" || m.key == "palettes" || m.key == "themes") {
         if (!base.find(m.key)) base.set(m.key, Json::object());
         if (const Json::Object* items = m.value.as_object()) {
@@ -227,6 +244,7 @@ class Loader final : public Names {
     };
     std::vector<Level> levels;  // nearest first
     ReadFile reader = read_;
+    std::string where = options_.where;
     auto text = reader(pack_file());
     std::string label = pack_file();
     while (true) {
@@ -259,14 +277,25 @@ class Loader final : public Names {
         }
         next = std::string(*extends->as_string());
       }
+      auto pin = read_pin(*root, next);
+      if (!pin) return std::nullopt;
+      if (const Json* version = root->find("version")) {
+        if (!version->as_string() || !is_version(*version->as_string())) {
+          fail("the version is not 0.y.z, as 0.2.1");
+          return std::nullopt;
+        }
+        if (levels.empty()) pack_.version = std::string(*version->as_string());
+      }
+      if (levels.empty() && !next.empty()) pack_.pin = *pin;
       levels.push_back({reader, std::move(*root), name});
       if (next.empty()) break;
-      auto found = options_.parent ? options_.parent(next) : std::nullopt;
+      auto found = options_.parent ? options_.parent({next, pin->fingerprint, where}) : std::nullopt;
       if (!found) {
         fail("extends \"" + next + "\", which is not here");
         return std::nullopt;
       }
-      reader = std::move(*found);
+      reader = std::move(found->read);
+      where = std::move(found->where);
       label = next + "/" + pack_file();
       text = reader(pack_file());
     }
@@ -294,6 +323,31 @@ class Loader final : public Names {
       return std::nullopt;
     }
     return merged;
+  }
+
+  // The parent block, which pins the pack this one extends: its id is that one's.
+  std::optional<ParentPin> read_pin(const Json& root, const std::string& extends) {
+    ParentPin pin{.id = extends};
+    const Json* block = root.find("parent");
+    if (!block) return pin;
+    const auto field = [&](std::string_view key) {
+      const Json* value = block->find(key);
+      return value && value->as_string() ? std::string(*value->as_string()) : std::string();
+    };
+    if (field("id") != extends) {
+      fail(extends.empty() ? "a parent block, but the pack extends none" : "the parent block names another pack than \"" + extends + "\"");
+      return std::nullopt;
+    }
+    pin.repository = field("repository");
+    pin.fingerprint = field("fingerprint");
+    pin.version = field("version");
+    pin.sha256 = field("sha256");
+    if (!pin.fingerprint.empty() && !is_hex64(pin.fingerprint)) fail("a fingerprint is 64 lowercase hex digits");
+    else if (!pin.sha256.empty() && !is_hex64(pin.sha256)) fail("a sha256 is 64 lowercase hex digits");
+    else if (!pin.version.empty() && !is_version_pin(pin.version)) fail("a parent's version is 0.y or 0.y.z");
+    else if (pin.repository.size() > 300 || (!pin.repository.empty() && pin.fingerprint.empty())) fail("a repository needs the fingerprint of its key");
+    else return pin;
+    return std::nullopt;
   }
 
   bool load_themes(const Json& root) {
@@ -1300,5 +1354,9 @@ std::expected<Pack, std::string> load_pack(const ReadFile& read, std::span<const
   if (!loader.load(schemas)) return std::unexpected(loader.error());
   return loader.take();
 }
+
+bool is_version(std::string_view s) { return s.starts_with("0.") && dotted(s, 3); }
+
+bool is_version_pin(std::string_view s) { return s.starts_with("0.") && (dotted(s, 2) || dotted(s, 3)); }
 
 }  // namespace crpp::skin

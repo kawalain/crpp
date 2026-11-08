@@ -258,8 +258,24 @@ struct PackTheme {
   std::vector<std::pair<std::string, std::string>> names;  // by locale id
 };
 
+// What a pack says of the pack it extends besides its id: where it is, and what it must be.
+struct ParentPin {
+  std::string id;
+  std::string repository;   // an address to add its Repository by, or empty
+  std::string fingerprint;  // of its Repository's key, 64 lowercase hex; empty: the same or the official one
+  std::string version;      // 0.y or 0.y.z: that version, or any 0.y.z; empty: any
+  std::string sha256;       // the digest of its own files in its catalog, or empty
+};
+
+// 0.y.z, as a pack says its own version.
+[[nodiscard]] bool is_version(std::string_view s);
+// 0.y or 0.y.z, as a pin asks for one.
+[[nodiscard]] bool is_version_pin(std::string_view s);
+
 struct Pack {
   std::string id;
+  std::string version;            // empty when it says none
+  std::optional<ParentPin> pin;   // the pack it extends, if any
   std::string overlay;  // the one this was read for, or empty
   std::vector<std::pair<std::string, std::string>> names;  // what a user calls this Skin, by locale id
   std::vector<PackTheme> themes;
@@ -305,9 +321,20 @@ struct Pack {
 // Reads a file of the pack by its path inside it. Empty when there is none.
 using ReadFile = std::function<std::optional<std::string>(std::string_view path)>;
 
+// A pack extends another: its id, its Repository's fingerprint when it names one, and where the
+// pack that extends it was found, in the caller's own words.
+struct ParentQuery {
+  std::string_view id, fingerprint, from;
+};
+struct FoundPack {
+  ReadFile read;
+  std::string where;  // what its own parent is looked for from
+};
+
 struct LoadOptions {
   std::string overlay;  // to read the pack with
-  std::function<std::optional<ReadFile>(std::string_view id)> parent;  // finds the pack a pack extends
+  std::string where;    // where the pack itself is, for ParentQuery::from
+  std::function<std::optional<FoundPack>(const ParentQuery& query)> parent;  // finds the pack a pack extends
 };
 
 // A screen with no file is left out, and that screen can tell from Pack::screen.

@@ -124,8 +124,30 @@ holds replaces whatever the pack has by the same name, whole: a constant, style,
 need not share entries with the others.
 
 A pack can extend another with `pack <id> format 1 extends <id>`, in the same way: it gets everything that pack has
-and replaces by name. It is found in a folder beside this one, is another download, and can itself extend one, up to
-four levels. Nothing inside a part or screen can be patched: copy it and change it.
+and replaces by name. It is another download, and can itself extend one, up to four levels. Nothing inside a part or
+screen can be patched: copy it and change it.
+
+A pack may say its version on the same line, `version 0.2.1`. The pack it extends is one of the same Repository, or
+else of the official one. One of another Repository, or one that must be a certain version or content, is pinned
+with a `parent` block after the pack line:
+
+```
+pack aurora format 1 version 0.2.1 extends retro
+
+parent retro {
+  repository "github:someone/skins"
+  fingerprint "<64 hex digits>"
+  version 0.3
+  sha256 "<64 hex digits>"
+}
+```
+
+`fingerprint` is the SHA-256 of that Repository's key, which `sign-catalog.sh` prints and the program shows when the
+Repository is added; `repository` is the address it is added by when it is not yet. `version 0.3` takes any 0.3.x,
+and `0.3.2` only that. `sha256` is the digest of the parent's own files, which `crpp_catalog --digest <catalog.txt>
+<id>` prints. Each is optional. When a parent no longer holds to them, as a Repository serves only its latest files,
+the program asks before it goes on, and keeps the old one meanwhile. `crpp_skin check` looks for the parent in a
+folder beside this one, whichever Repository it belongs to.
 
 ## Trying a pack
 

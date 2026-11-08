@@ -116,13 +116,18 @@ class App {
     std::filesystem::path dir;
     std::string prefix;
   };
-  // Every folder with a pack.cskin in these can be chosen, those of the first first. A pack's parent
-  // is in the same folder. False when there is none.
+  // Every folder with a pack.cskin in these can be chosen, those of the first first; set_parent_finder
+  // says where their parents are. False when there is none.
   bool find_skins(std::span<const SkinFolder> folders);
   bool find_skins(const std::filesystem::path& dir) {
     const SkinFolder one[] = {{dir, {}}};
     return find_skins(one);
   }
+  // Where the pack a pack extends is: its id, its Repository's fingerprint when it names one, and
+  // the folder of the pack that extends it. Without one set, a folder beside it, for no fingerprint.
+  using ParentFinder = std::function<std::optional<std::filesystem::path>(std::string_view id, std::string_view fingerprint,
+                                                                          const std::filesystem::path& from)>;
+  void set_parent_finder(ParentFinder finder) { parent_finder_ = std::move(finder); }
   // Draws what the settings choose, among the packs found.
   void apply_skin_choice(bool system_dark);
   // Draws from the Skin Pack in this folder what it has. The error says what is wrong with it.
@@ -218,6 +223,8 @@ class App {
   [[nodiscard]] std::expected<void, std::string> read_pack(const std::string& overlay);
   void point_at_palette();
   std::filesystem::path pack_dir_;
+  ParentFinder parent_finder_;
+  [[nodiscard]] skin::LoadOptions load_options(std::string overlay, const std::filesystem::path& folder) const;
   std::optional<skin::Pack> pack_;
   std::unique_ptr<Skin> pack_skin_;
   std::optional<skin::Pack> previous_pack_;

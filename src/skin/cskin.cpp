@@ -715,8 +715,12 @@ class Parser {
           auto parent = ident("the id of the pack it extends");
           if (!parent) return false;
           root_.set("extends", Json(std::move(*parent)));
+        } else if (key.text == "version") {
+          auto version = version_text();
+          if (!version) return false;
+          root_.set("version", Json(std::move(*version)));
         } else {
-          return fail_at(key, "a pack has format and extends");
+          return fail_at(key, "a pack has format, version and extends");
         }
       }
       return true;
@@ -754,6 +758,7 @@ class Parser {
       section("themes").set(*id, std::move(theme));
       return true;
     }
+    if (*word == "parent") return parent(head);
     if (*word == "constants") return constants();
     if (*word == "fonts") return fonts();
     if (*word == "style") return style(indent);
@@ -761,6 +766,47 @@ class Parser {
     if (*word == "cursors") return cursors();
     if (*word == "palette") return palette();
     return fail_at(head, "no statement \"" + *word + "\" in pack.cskin");
+  }
+
+  // 0.2.1, which the lexer reads as the numbers 0.2 and .1, or "0.2.1".
+  std::optional<std::string> version_text() {
+    if (is(Tok::String)) return unescape(next().text);
+    std::string out;
+    while (is(Tok::Number) && peek().unit == 0 && (out.empty() || !peek().space_before)) out += next().text;
+    if (out.empty()) {
+      fail("expected a version, as 0.2.1");
+      return std::nullopt;
+    }
+    return out;
+  }
+
+  // parent <id> { repository "<address>" fingerprint "<hex>" version 0.3 sha256 "<hex>" }
+  bool parent(const Token& head) {
+    auto id = ident("the id of the pack it extends");
+    if (!id) return false;
+    Json out = Json::object();
+    out.set("id", Json(std::move(*id)));
+    if (!expect("{")) return false;
+    while (true) {
+      skip_newlines();
+      if (punct("}")) break;
+      const Token& key = peek();
+      auto name = ident("a key of parent");
+      if (!name) return false;
+      if (*name == "version") {
+        auto version = version_text();
+        if (!version) return false;
+        out.set("version", Json(std::move(*version)));
+      } else if (*name == "repository" || *name == "fingerprint" || *name == "sha256") {
+        if (!is(Tok::String)) return fail("expected \"...\" after " + *name);
+        out.set(*name, Json(unescape(next().text)));
+      } else {
+        return fail_at(key, "a parent has repository, fingerprint, version and sha256");
+      }
+    }
+    if (root_.find("parent")) return fail_at(head, "a pack has one parent");
+    root_.set("parent", std::move(out));
+    return true;
   }
 
   bool constants() {

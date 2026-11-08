@@ -40,10 +40,11 @@ int check(const fs::path& given) {
   const auto read_with = [&](const std::string& overlay) {
     skin::LoadOptions options;
     options.overlay = overlay;
-    options.parent = [&](std::string_view id) -> std::optional<skin::ReadFile> {
-      const fs::path beside = folder.parent_path() / std::string(id);
+    // Beside it, even one of another Repository, which an author keeps a copy of to check against.
+    options.parent = [&](const skin::ParentQuery& query) -> std::optional<skin::FoundPack> {
+      const fs::path beside = folder.parent_path() / std::string(query.id);
       if (!fs::exists(beside / "pack.cskin")) return std::nullopt;
-      return files_of(beside);
+      return skin::FoundPack{files_of(beside), beside.generic_string()};
     };
     return skin::load_pack(files_of(folder), ui::screen_schemas(), options);
   };

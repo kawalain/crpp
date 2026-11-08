@@ -89,7 +89,7 @@ void a_field_offers_what_can_be_done_with_its_text(const char* pack) {
   CHECK(r.h.app.char_input(L'x', false) && r.chat->input().text().empty());  // keys are the menu's
   CHECK(r.h.app.key_down(VK_RETURN, false, false) && r.chat->input().text() == L"hello");
   // The character Enter also makes is the menu's too: the draft is not sent.
-  CHECK(r.h.app.char_input(L'', false) && r.chat->input().text() == L"hello");
+  CHECK(r.h.app.char_input(L'\r', false) && r.chat->input().text() == L"hello");
 }
 
 void enter_answers_a_question_and_sends_nothing(const char* pack) {
@@ -105,10 +105,10 @@ void enter_answers_a_question_and_sends_nothing(const char* pack) {
   r.h.render();
   CHECK(r.h.app.key_down(VK_RETURN, false, false));
   CHECK(confirmed == 1 && !r.h.app.dialogs().is_open());
-  CHECK(r.h.app.char_input(L'', false) && r.chat->input().text() == L"draft");
+  CHECK(r.h.app.char_input(L'\r', false) && r.chat->input().text() == L"draft");
   // The next Enter is the field's again.
   r.h.app.key_down(VK_RETURN, false, false);
-  r.h.app.char_input(L'', false);
+  r.h.app.char_input(L'\r', false);
   CHECK(r.chat->input().text().empty());
 }
 

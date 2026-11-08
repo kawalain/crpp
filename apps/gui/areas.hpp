@@ -91,6 +91,8 @@ namespace repositories {  // where Skins come from: the official Repository and 
 void load(Shell& s);
 // Where the packs are: the official ones, then each added Repository's.
 [[nodiscard]] std::vector<ui::App::SkinFolder> skin_folders(const Shell& s);
+// The packs installed from a Repository, as the system tab lists them, after the packs changed.
+void show_packs(Shell& s);
 // The Repository that offers this pack id, or null for the official one.
 [[nodiscard]] AddedRepository* of(Shell& s, std::string_view skin);
 void wire(Shell& s);

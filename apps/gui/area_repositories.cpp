@@ -31,6 +31,23 @@ void show_rows(Shell& s) {
   s.app.settings().system().set_repositories(std::move(rows));
 }
 
+// The catalog a pack's files follow and the folder they are in, with its id there; null for a
+// pack that did not come from a Repository, as those beside a development exe.
+struct Source {
+  const assets::Catalog* catalog = nullptr;
+  const AddedRepository* added = nullptr;
+  std::string pack;
+};
+
+Source source_of(Shell& s, const std::string& skin) {
+  if (const AddedRepository* added = of(s, skin)) {
+    return {added->catalog ? &*added->catalog : nullptr, added, skin.substr(added->id.size() + 1)};
+  }
+  if (s.skins_dir != s.assets_dir / "skins") return {};
+  const assets::Catalog* catalog = s.offered ? &*s.offered : s.catalog ? &*s.catalog : nullptr;
+  return {catalog, nullptr, skin};
+}
+
 void set_adding(Shell& s, SystemTab::Adding::State state, std::string reason = {}) {
   s.app.settings().system().set_adding({state, std::move(reason)});
 }
@@ -162,7 +179,9 @@ void remove(Shell& s, const std::string& id) {
     s.app.toasts().toast(tr().repository_in_use);
     return;
   }
-  const auto of_it = [&](const InstallJob& job) { return job.kind == InstallJob::Kind::Pack && job.skin.starts_with(prefix); };
+  const auto of_it = [&](const InstallJob& job) {
+    return (job.kind == InstallJob::Kind::Pack || job.kind == InstallJob::Kind::Remove) && job.skin.starts_with(prefix);
+  };
   std::erase_if(s.install_queue, of_it);
   if (ThemeFetch& fetch = s.app.ui().theme_fetch; fetch.skin.starts_with(prefix)) fetch = {};
   const fs::path dir = it->dir;
@@ -178,6 +197,44 @@ void remove(Shell& s, const std::string& id) {
 }
 
 }  // namespace
+
+void show_packs(Shell& s) {
+  const std::string_view locale = locale::current().id;
+  const auto& skins = s.app.ui().skins;
+  const SkinChoice choice = choice_of(*s.app.ui().prefs, skins);
+  std::vector<SystemTab::PackRow> rows;
+  s.listed_packs.clear();
+  for (const SkinInfo& info : skins) {
+    const Source source = source_of(s, info.id);
+    if (!source.catalog || !source.catalog->skin(source.pack)) continue;
+    std::uint64_t bytes = 0;
+    for (const assets::File& file : source.catalog->files) {
+      if (file.group == assets::skin_group(source.pack)) bytes += file.size;
+    }
+    // Why it stays: in use, the default the next start would fetch again, or what another needs.
+    std::string reason;
+    if (choice.skin == &info) {
+      reason = tr().system_pack_in_use;
+    } else if (const auto chain = assets::skin_chain(*source.catalog, source.catalog->default_skin);
+               !source.added && std::ranges::find(chain, source.pack) != chain.end()) {
+      reason = tr().system_pack_default;
+    } else {
+      for (const SkinInfo& other : skins) {
+        const Source beside = source_of(s, other.id);
+        if (&other == &info || beside.catalog != source.catalog) continue;
+        const auto chain = assets::skin_chain(*source.catalog, beside.pack);
+        if (std::ranges::find(chain, source.pack) != chain.end()) {
+          reason = locale::fill(tr().system_pack_needed, {std::string(name_in(other.names, locale, other.id))});
+          break;
+        }
+      }
+    }
+    const std::string where = reason.empty() ? (source.added ? source.added->address : std::string(tr().system_pack_official)) : reason;
+    rows.push_back({std::string(name_in(info.names, locale, info.id)), locale::fill(tr().system_pack_detail, {megabytes(bytes), where}), reason.empty()});
+    s.listed_packs.push_back(info.id);
+  }
+  s.app.settings().system().set_packs(std::move(rows));
+}
 
 void load(Shell& s) {
   s.added.clear();
@@ -219,6 +276,13 @@ void wire(Shell& s) {
   Shell* sp = &s;
   SystemTab& tab = s.app.settings().system();
   tab.on_add_repository = [sp](std::string typed) { add(*sp, typed); };
+  tab.on_remove_pack = [sp](std::size_t index) {
+    if (index >= sp->listed_packs.size()) return;
+    const std::string id = sp->listed_packs[index];
+    const std::string name(sp->app.settings().system().packs()[index].name);
+    sp->app.dialogs().show({locale::fill(tr().pack_remove_question, {name}), tr().system_pack_remove, tr().cancel, false,
+                            [sp, id] { remove_pack(*sp, id); }, nullptr});
+  };
   tab.on_remove_repository = [sp](std::size_t index) {
     // The official one is first and has no button.
     const std::size_t first = sp->repository ? 1 : 0;
@@ -228,15 +292,20 @@ void wire(Shell& s) {
                             [sp, id = added.id] { remove(*sp, id); }, nullptr});
   };
   show_rows(s);
+  show_packs(s);
 }
 
 bool scene(Shell& s, std::string_view name) {
-  // settings-system-repositories[-failed]: one added, and one being added that could not be.
+  // settings-system-repositories[-failed|-end]: one added with a pack, and one being added that
+  // could not be, or the end of the tab.
   if (!name.starts_with("settings-system-repositories")) return false;
   s.app.settings().open(SettingsPage::System);
   s.app.settings().set_version("v0.0.0");
   s.added = {{"1a2b3c4d5e6f7a8b", "github:someone/cloudroom-skins", {}, {}, {}}};
   show_rows(s);
+  s.app.settings().system().set_packs({{"오로라", locale::fill(tr().system_pack_detail, {"2.4 MB", "github:someone/cloudroom-skins"}), true},
+                                       {"레트로", locale::fill(tr().system_pack_detail, {"1.1 MB", tr().system_pack_in_use}), false}});
+  if (name.ends_with("-end")) s.app.settings().scroll_to(10000);
   if (name.ends_with("-failed")) {
     s.app.settings().system().address().set_text(L"https://example.org/skins");
     set_adding(s, SystemTab::Adding::State::Failed, tr().repository_reason_none);

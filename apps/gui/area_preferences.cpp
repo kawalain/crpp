@@ -148,6 +148,7 @@ void skins_installed(Shell& s) {
   (void)s.app.find_skins(repositories::skin_folders(s));
   apply_theme(s);
   offer_packs(s);
+  repositories::show_packs(s);
 }
 
 namespace {

@@ -151,15 +151,20 @@ struct AddedRepository {
 struct InstallJob {
   enum class Kind : std::uint8_t {
     First,   // a first start: the catalog and the default Skin, with the progress screen up
-    Behind,  // a later start: the latest catalogs, and what is missing, behind the app
-    Pack     // a pack picked in the display tab, with what it extends
+    Behind,  // a later start: the latest catalogs, and what changed of what is installed, behind the app
+    Pack,    // a pack picked in the display tab, with what it extends
+    Remove   // a pack the user removed in the system tab
   };
   Kind kind = Kind::Behind;
-  std::string skin;  // Pack: as the display tab names it, with its Repository's digits for another one
-  // Pack: where it comes from and goes, taken when it was asked for.
+  std::string skin;  // Pack and Remove: as the display tab names it, with its Repository's digits for another one
+  // Pack and Remove: where it comes from and goes, taken when it was asked for.
   std::shared_ptr<const assets::Catalog> catalog;
   std::string base, pack;  // the Repository's folder, and its id there
   std::filesystem::path dir;
+  // Pack: the groups the installed packs need, which a cancel leaves; Remove: the groups that go.
+  std::vector<std::string> groups;
+  // Behind: files open in this run, which wait for the next start.
+  std::vector<std::string> held;
   // Behind: the Repositories the user added, whose latest catalogs are read too.
   std::vector<AddedRepository> others;
 };
@@ -195,6 +200,8 @@ struct Shell {
   std::vector<AddedRepository> added;
   std::thread repository_worker;  // reads the catalog of one being added
   std::vector<std::filesystem::path> remove_after_install;  // of a Repository removed while its pack was coming
+  std::vector<std::string> listed_packs;  // the system tab's rows of packs, by id
+  bool fonts_loaded = false;              // the font files are open until the app ends
   std::vector<std::string> expected_sounds;  // what the catalog promises, on disk or not
   std::filesystem::path data_dir;  // the Protected store's folder
   std::wstring data_override;      // --data, so a restart keeps it
@@ -236,8 +243,13 @@ void start_install(Shell& s, bool wait);
 // Queues a pack of the latest catalog, unless it is queued or on its way. False when no
 // Repository offers it.
 bool fetch_pack(Shell& s, const std::string& skin);
-// Takes it off the queue, or lets it begin no more files.
+// Takes it off the queue, or lets it begin no more files. What arrived of it goes, unless an
+// installed pack needs it.
 void cancel_pack(Shell& s, const std::string& skin);
+// Removes an installed pack's files, in turn with whatever is being fetched.
+void remove_pack(Shell& s, const std::string& skin);
+// The groups of these packs and of every pack they extend, in that catalog.
+[[nodiscard]] std::vector<std::string> chain_groups(const assets::Catalog& catalog, std::span<const std::string> packs);
 // A nickname like the upstream one: "<adjective> <animal>".
 std::string random_nickname(const std::filesystem::path& words);
 

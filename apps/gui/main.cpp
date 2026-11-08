@@ -196,6 +196,7 @@ int main(int argc, char** argv) {
     return scripted_start_failure;
   };
   if (!shell.app.init(first_install ? std::filesystem::path{} : assets, !font_pending)) return failed_to_start(locale::tr().start_failed);
+  shell.fonts_loaded = !first_install && !font_pending;
   if (!skin_dir.empty()) {
     if (const auto loaded = shell.app.load_skin_dir(skin_dir); !loaded) return failed_to_start(loaded.error());
   } else if (std::string_view(argc >= 2 ? argv[1] : "") != "--shot") {  // a shot without --skin-dir is the C++ layouts, to compare with

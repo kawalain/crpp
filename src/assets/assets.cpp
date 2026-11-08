@@ -239,12 +239,14 @@ std::expected<void, Error> install(const Catalog& catalog, std::string_view base
   for (const File* file : needed) needed_paths.insert(file->path);
   std::ostringstream list;
   for (const File& file : catalog.files) {
-    // What was not needed is listed as before: complete, or of a group not wanted, which
-    // stays listed only while its hash still matches.
+    // What was not needed is listed as before, with the hash it has: of a group not asked for
+    // this time, it may be older than the catalog, and is then missing until it is fetched.
     const auto it = stale.find(file.path);
-    const bool listed = needed_paths.contains(file.path) ? !absent.contains(file.path)
-                                                         : it != stale.end() && it->second == file.sha256;
-    if (listed) list << file.sha256 << ' ' << file.path << '\n';
+    if (needed_paths.contains(file.path)) {
+      if (!absent.contains(file.path)) list << file.sha256 << ' ' << file.path << '\n';
+    } else if (it != stale.end()) {
+      list << it->second << ' ' << file.path << '\n';
+    }
     if (it != stale.end()) stale.erase(it);
   }
   if (!replace_file(dir / installed_name, list.str())) return std::unexpected(Error::Disk);

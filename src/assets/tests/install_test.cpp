@@ -168,6 +168,23 @@ void a_group_not_asked_for_stays_listed_while_it_matches() {
   CHECK(missing(catalog, retro, dir.path).empty());
 }
 
+// A newer catalog used for another pack, as when a Theme is picked: a pack installed before stays
+// wanted, and what changed in it is missing until its turn comes.
+void a_group_not_asked_for_stays_wanted_when_it_changes() {
+  TempDir dir;
+  Catalog catalog = two_skins();
+  Fake fake;
+  serve(fake, catalog);
+  const std::vector<std::string> retro{"skin:retro"}, plain{"skin:plain"};
+  CHECK(install(catalog, base, retro, dir.path, fake, nullptr));
+  catalog.files[2] = file("skin:retro", "skins/retro/pack.cskin", "RR", "gh");
+  CHECK(install(catalog, base, plain, dir.path, fake, nullptr));
+  const auto wanted = wanted_groups(catalog, dir.path);
+  CHECK(std::ranges::find(wanted, "skin:retro") != wanted.end());
+  CHECK(missing(catalog, retro, dir.path).size() == 1);
+  CHECK(read(dir.path / "skins/retro/pack.cskin") == "rr");  // the old one is used until then
+}
+
 void what_an_older_version_installed_is_kept() {
   TempDir dir;
   const Catalog catalog = two_skins();
@@ -378,6 +395,7 @@ int main() {
   wants_what_is_needed_and_what_is_in_use();
   a_new_catalog_fetches_only_what_changed();
   a_group_not_asked_for_stays_listed_while_it_matches();
+  a_group_not_asked_for_stays_wanted_when_it_changes();
   what_an_older_version_installed_is_kept();
   what_does_not_match_is_never_kept();
   a_file_the_repository_lacks_comes_from_its_source();

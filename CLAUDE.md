@@ -437,11 +437,11 @@ exist (real + test).
 - Motion has been compared frame by frame and measured, not felt: how scrolling and
   transitions feel needs the user's own hands, on a real display.
 - The generated stand-in sounds need ears: `crpp_soundtest --synth`.
-- Installing from a Repository has run against a local server only, on a hidden desktop: a first start,
-  a second that fetched nothing, a failure with no server, and "다시 시도" once it was back. The
-  official Repository is not deployed yet, so `CRPP_REPOSITORY_URL` is empty and a build without
-  `assets/` beside it has nowhere to install from. Its second source needs the release's tag and its
-  committed catalog on GitHub, and raw.githubusercontent.com has not been tried as one.
+- Installing from a Repository has run on a hidden desktop only: against a local server a first start,
+  a second that fetched nothing, a failure with no server, and "다시 시도" once it was back; against the
+  official Repository (`https://crpp.105.workers.dev/`, deployed 2026-11-08) a first start that took
+  14 s for 15.3 MB on one connection. Its second source needs the release's tag and its committed
+  catalog on GitHub, and raw.githubusercontent.com has not been tried as one.
 - v0.1.0 updated itself to v0.1.1 from GitHub on one Windows 10 PC with Defender. The cause
   of the detection in `docs/releases/README.md` is unknown, and it may come back with any
   release. The exe has no code signature, so try another machine and SmartScreen.

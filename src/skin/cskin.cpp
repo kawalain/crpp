@@ -225,9 +225,45 @@ std::optional<KeyType> key_type(std::string_view key) {
   return std::ranges::any_of(node_kinds, [&](const KindDoc& k) { return k.key == key; });
 }
 
+// How many letters to change, add or remove to go from one word to the other.
+std::size_t distance(std::string_view a, std::string_view b) {
+  std::vector<std::size_t> row(b.size() + 1);
+  for (std::size_t j = 0; j <= b.size(); ++j) row[j] = j;
+  for (std::size_t i = 1; i <= a.size(); ++i) {
+    std::size_t diagonal = row[0];
+    row[0] = i;
+    for (std::size_t j = 1; j <= b.size(); ++j) {
+      const std::size_t above = row[j];
+      row[j] = std::min({row[j] + 1, row[j - 1] + 1, diagonal + (a[i - 1] == b[j - 1] ? 0 : 1)});
+      diagonal = above;
+    }
+  }
+  return row[b.size()];
+}
+
+// The key a mistyped word most likely meant, as `; did you mean "fill"?`, or nothing.
+std::string guess_key(std::string_view word) {
+  std::string_view best;
+  std::size_t best_distance = word.size() < 4 ? 1 : 2;  // a short word is close to too much
+  const auto consider = [&](std::string_view key) {
+    const std::size_t d = distance(word, key);
+    if (d <= best_distance && (best.empty() || d < best_distance)) {
+      best = key;
+      best_distance = d;
+    }
+  };
+  for (const KindDoc& kind : node_kinds) consider(kind.key);
+  for (const KeyDoc& k : common_keys) consider(k.key);
+  for (const KindDoc& kind : node_kinds) {
+    for (const KeyDoc& k : kind.keys) consider(k.key);
+  }
+  for (const std::string_view more : {"about", "to", "hit_path_at"}) consider(more);
+  return best.empty() ? std::string() : "; did you mean \"" + std::string(best) + "\"?";
+}
+
 class Parser {
  public:
-  Parser(std::string_view source, std::vector<Token> tokens) : s_(source), t_(std::move(tokens)) {}
+  Parser(std::string_view source, std::vector<Token> tokens, bool lines) : s_(source), t_(std::move(tokens)), lines_(lines) {}
 
   std::optional<Json> screen() {
     Json::Array nodes;
@@ -503,6 +539,7 @@ class Parser {
   std::optional<Json> node(int depth) {
     Json node = Json::object();
     const std::size_t indent = peek().indent;
+    const std::size_t line = peek().line;
     std::string kind;
     const auto set_kind = [&](std::string_view k, const Token& at) {
       if (k == "text" && kind == "use") return true;  // what the part reads as @label
@@ -580,7 +617,7 @@ class Parser {
       }
       const auto type = key_type(*key);
       if (!type) {
-        fail_at(key_token, "no key \"" + *key + "\"");
+        fail_at(key_token, "no key \"" + *key + "\"" + guess_key(*key));
         return std::nullopt;
       }
       if (is_kind(*key) && !set_kind(*key, key_token)) return std::nullopt;
@@ -601,6 +638,7 @@ class Parser {
     } else if (kind.empty() || kind == "group" || kind == "column") {
       node.set(kind.empty() ? "group" : kind, Json::array());
     }
+    if (lines_) node.set("@line", Json(static_cast<std::int64_t>(line)));
     return node;
   }
 
@@ -945,14 +983,15 @@ class Parser {
   std::size_t at_ = 0;
   Json root_;
   SourceError error_;
+  bool lines_ = false;
 };
 
 }  // namespace
 
-std::expected<Json, SourceError> read_cskin(std::string_view text, SourceKind kind) {
+std::expected<Json, SourceError> read_cskin(std::string_view text, SourceKind kind, bool lines) {
   auto tokens = Lexer(text).run();
   if (!tokens) return std::unexpected(tokens.error());
-  Parser parser(text, std::move(*tokens));
+  Parser parser(text, std::move(*tokens), lines);
   auto out = kind == SourceKind::Pack ? parser.pack() : parser.screen();
   if (!out) return std::unexpected(parser.error());
   return std::move(*out);

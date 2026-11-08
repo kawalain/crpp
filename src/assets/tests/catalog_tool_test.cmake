@@ -26,7 +26,7 @@ foreach(expected
     message(FATAL_ERROR "the catalog lacks '${expected}'")
   endif()
 endforeach()
-foreach(absent "README.md" "skins/schema/" "signature ")
+foreach(absent "README.md" "signature ")
   string(FIND "${catalog}" "${absent}" at)
   if(NOT at EQUAL -1)
     message(FATAL_ERROR "the catalog lists '${absent}'")

@@ -542,6 +542,13 @@ void a_mistake_in_the_language_says_where() {
   pack.replace(pack.find("face #ff0000"), 12, "face #ff00");
   const auto bad = load_pack(files(pack, "fill face"), std::span(&test_schema, 1));
   CHECK(!bad && bad.error().find("pack.cskin:5:") != std::string::npos);
+  // What only the loader finds is said at the line of its node.
+  const auto named = load("fill face\ngroup {\n  fill face\n  fill nobody\n}\nfill face");
+  CHECK(!named && named.error().starts_with("screens/home.cskin:4: ") && named.error().find("nobody") != std::string::npos);
+  std::string in_part = test_pack;
+  in_part.replace(in_part.find("  fill face w amount"), 20, "  fill face w nobody");
+  const auto part = load_pack(files(in_part, "fill face"), std::span(&test_schema, 1));
+  CHECK(!part && part.error().starts_with("pack.cskin:") && part.error().find(": part \"inner\"") != std::string::npos);
 }
 
 void a_screen_without_a_file_is_left_out() {

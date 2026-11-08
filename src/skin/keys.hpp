@@ -77,7 +77,7 @@ inline constexpr KeyDoc line_keys[] = {
     {"width", KeyType::Expr, "How thick it is."},
 };
 inline constexpr KeyDoc path_keys[] = {
-    {"color", KeyType::Expr, "A Palette entry, as $name."},
+    {"color", KeyType::Expr, "A Palette entry."},
     {"scale", KeyType::Expr, "Its size. 1 when left out."},
     {"scale_y", KeyType::Expr, "Its size downward, when that differs from scale, which is then only across. For a filled path, and below 0 mirrors it."},
     {"width", KeyType::Expr, "Strokes it this thick, instead of filling it."},
@@ -90,7 +90,7 @@ inline constexpr KeyDoc path_keys[] = {
 };
 inline constexpr KeyDoc text_keys[] = {
     {"style", KeyType::Word, "A style of the pack."},
-    {"color", KeyType::Expr, "A Palette entry, as $name."},
+    {"color", KeyType::Expr, "A Palette entry."},
     {"size", KeyType::Expr, "Instead of the style's, where it depends on the screen."},
     {"line_height", KeyType::Expr, "Instead of the style's, where it depends on the screen."},
 };
@@ -100,12 +100,12 @@ inline constexpr KeyDoc picture_keys[] = {
 };
 inline constexpr KeyDoc field_keys[] = {
     {"style", KeyType::Word, "A style of the pack."},
-    {"color", KeyType::Expr, "A Palette entry for its text, as $name."},
+    {"color", KeyType::Expr, "A Palette entry for its text."},
     {"placeholder", KeyType::Text, "What it shows when empty."},
     {"placeholder_style", KeyType::Word, "A style for that, instead of its own."},
-    {"placeholder_color", KeyType::Expr, "A Palette entry, as $name."},
-    {"caret", KeyType::Expr, "A Palette entry, as $name."},
-    {"selection", KeyType::Expr, "A Palette entry, as $name."},
+    {"placeholder_color", KeyType::Expr, "A Palette entry."},
+    {"caret", KeyType::Expr, "A Palette entry."},
+    {"selection", KeyType::Expr, "A Palette entry."},
 };
 inline constexpr KeyDoc slot_keys[] = {
     {"numbers", KeyType::Exprs, "Numbers for the screen, at most 8."},
@@ -169,7 +169,7 @@ inline constexpr std::array<KindDoc, 18> node_kinds{{
     {"slot", KeyType::Screen, "What only the screen can draw, in this box.", slot_keys},
     {"group", KeyType::List, "A list of nodes inside this box.", group_keys},
     {"column", KeyType::List, "A list of nodes under each other: each goes at y = flow, and flow moves below it, by its after as well. Its height is what they took.", clip_keys},
-    {"use", KeyType::Word, "A part of pack.jsonc.", use_keys},
+    {"use", KeyType::Word, "A part of pack.cskin.", use_keys},
     {"content", KeyType::Yes, "Where a part puts the draw list of whoever uses it.", {}},
     {"repeat", KeyType::Expr, "How many times its draw list runs.", repeat_keys},
     {"let", KeyType::Word, "A name for a number, for what comes after it and inside that.", let_keys},

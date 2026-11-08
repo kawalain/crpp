@@ -280,13 +280,15 @@ exist (real + test).
 - `store`: settings, Seats and chat cache in the Protected or Shared store; a
   flushed temp file + rename for every write. `Platform` is the seam for DPAPI
   and file replacement.
-- `skin`: Skin Packs (`docs/adr/0007-skins-are-downloaded-data.md`). `load_pack` turns a pack's JSONC into
-  a compact tree and checks every name in it, under limits on size and depth, so that drawing has
+- `skin`: Skin Packs (`docs/adr/0007-skins-are-downloaded-data.md`). `read_cskin` reads a pack's files, in the pack
+  language of `skins/README.md`, into a tree, and `load_pack` turns that into a compact one and checks every name in it, under limits on size and depth, so that drawing has
   nothing left to refuse. `draw` walks a screen; `Canvas` is the seam for drawing and `Source` for what
   the screen shows. `pack.hpp` describes the format. Expressions are compiled to a short program, and
   running one allocates nothing. Pure. A screen says what a pack can name in a `ScreenSchema`, keeps
   its state, hit ids and callbacks, and `SkinCanvas` in `ui` draws on a `Painter`. `skins/` holds the packs, and how to write one in its README.
-  `keys.hpp` lists what a node may have, for the loader and for the JSON Schemas in `skins/schema`, which `crpp_skin_schema` writes and a test compares.
+  `keys.hpp` lists what a node may have, for the reader and the loader. `crpp_skin check <dir>` loads a pack as the
+  program does and says its first mistake as `file:line`, and tests run it on the official packs; `crpp_skin names`
+  lists what each screen offers.
   A panel with a window of its own reports its size, and `measure_screen` walks the screen without drawing to learn it. What the
   program itself must know of a look, as a frame's sizes and each window's, is in constants that `required_constants` lists; fonts and cursors have sections of their own.
 - `assets`: a Repository's signed catalog (`catalog.hpp`, ADR 0008) and the files it lists in groups:

@@ -34,7 +34,8 @@ struct SourceError {
 
 enum class SourceKind : std::uint8_t { Pack, Screen };
 
-// Expressions stay text, in the pack form of expr.hpp, for the loader to compile.
-[[nodiscard]] std::expected<store::Json, SourceError> read_cskin(std::string_view text, SourceKind kind);
+// Expressions stay text, in the pack form of expr.hpp, for the loader to compile. With `lines`, each
+// node also has "@line", the line it starts on, so that the loader can say where a mistake it finds is.
+[[nodiscard]] std::expected<store::Json, SourceError> read_cskin(std::string_view text, SourceKind kind, bool lines = false);
 
 }  // namespace crpp::skin

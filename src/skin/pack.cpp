@@ -168,8 +168,15 @@ class Loader final : public Names {
   }
 
  private:
+  // Said where: the file, the line of the node being read if there is one, and what in the file.
   bool fail(std::string what) {
-    if (error_.empty()) error_ = where_ + ": " + std::move(what);
+    if (!error_.empty()) return false;
+    std::string where = where_;
+    if (line_ > 0) {
+      const std::size_t file_ends = std::min(where.find_first_of(": "), where.size());
+      where.insert(file_ends, ":" + std::to_string(line_));
+    }
+    error_ = where + ": " + std::move(what);
     return false;
   }
 
@@ -418,7 +425,7 @@ class Loader final : public Names {
       fail("is larger than " + std::to_string(max_file_bytes) + " bytes");
       return std::nullopt;
     }
-    auto read = read_cskin(*text, where_.ends_with(pack_file()) ? SourceKind::Pack : SourceKind::Screen);
+    auto read = read_cskin(*text, where_.ends_with(pack_file()) ? SourceKind::Pack : SourceKind::Screen, true);
     if (!read) {
       where_ += ":" + std::to_string(read.error().line) + ":" + std::to_string(read.error().column);
       fail(read.error().what);
@@ -709,8 +716,14 @@ class Loader final : public Names {
     bool ok = true;
     for (std::size_t i = 0; ok && i < items->size(); ++i) {
       Node node;
+      const std::int64_t outer = line_;
+      const Json* line = (*items)[i].is_object() ? (*items)[i].find("@line") : nullptr;
+      if (line && line->as_i64()) line_ = *line->as_i64();
       ok = compile_node((*items)[i], node, depth, flowing);
-      if (ok) pack_.nodes[first + i] = node;  // not by reference: children grow the vector
+      if (ok) {
+        pack_.nodes[first + i] = node;  // not by reference: children grow the vector
+        line_ = outer;
+      }
     }
     if (ok && then) ok = compile_expr(*then, *then_out);
     scope_ = scope.parent;
@@ -833,6 +846,7 @@ class Loader final : public Names {
 
   bool known_keys(const Json& json, NodeKind kind, std::string_view kind_key) {
     for (const Json::Member& m : *json.as_object()) {
+      if (m.key == "@line") continue;  // where the node is written
       if (m.key != kind_key && !key_allowed(kind, m.key)) return fail("a \"" + std::string(kind_key) + "\" node has no \"" + m.key + "\"");
     }
     return true;
@@ -1161,6 +1175,7 @@ class Loader final : public Names {
   std::vector<ReadFile> layers_;  // what lies on top comes last
   Pack pack_;
   std::string error_, where_;
+  std::int64_t line_ = 0;  // of the node being read, when it has one
   std::vector<std::string> paint_names_, style_names_;
   Scope* scope_ = nullptr;
   const ScreenSchema* schema_ = nullptr;

@@ -172,6 +172,21 @@ void mistakes_say_where() {
   CHECK(refused_at("screen home", 1, 1, SourceKind::Pack));
 }
 
+void a_mistyped_key_gets_a_guess() {
+  const auto said = [](std::string_view source) {
+    const auto read = read_cskin(source, SourceKind::Screen);
+    return read ? std::string() : read.error().what;
+  };
+  CHECK(said("fil ink").ends_with("did you mean \"fill\"?"));
+  CHECK(said("fill ink radus 2").ends_with("did you mean \"radius\"?"));
+  CHECK(said("fill ink zz 2").find("did you mean") == std::string::npos);
+}
+
+void lines_go_with_nodes_when_asked() {
+  const auto read = read_cskin("fill ink\n\ngroup {\n  fill ink\n}", SourceKind::Screen, true);
+  CHECK(read && read->dump() == R"J({"draw":[{"fill":"ink","@line":1},{"group":[{"fill":"ink","@line":4}],"@line":3}]})J");
+}
+
 void depth_is_limited() {
   std::string deep;
   for (int i = 0; i < 40; ++i) deep += "group {\n";
@@ -195,6 +210,8 @@ int main() {
   lets_parts_and_pairs();
   a_pack_has_its_statements();
   mistakes_say_where();
+  a_mistyped_key_gets_a_guess();
+  lines_go_with_nodes_when_asked();
   depth_is_limited();
   return crpp_test_result();
 }

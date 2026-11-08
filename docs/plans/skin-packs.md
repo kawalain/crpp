@@ -189,17 +189,19 @@ hands-on check of Cloud on a real desktop, 7 and 8.
   expressions hide in strings where nothing checks them, three sigils mix and `group` nests deeply. Reading costs
   little (3.5 ms, 183 KB), so only the front end changes: a small language of our own, with nodes, positional
   arguments, `key value`, braces for children, expressions as syntax, and units such as `150ms` and `40%`. The engine,
-  the loaded tree and the compiled expressions stay. A Home screen written in it beside its JSONC comes first, for
-  the user to judge (`pack-language-draft.md`, accepted with its three open points). Colours are `#rrggbb`. Syntax highlighting for Vim, Neovim and VS Code comes later, when the user asks.
+  the loaded tree and the compiled expressions stay. A Home screen written in it beside its JSONC came first, for
+  the user to judge, and was accepted with its three open points. Colours are `#rrggbb`. Syntax highlighting for Vim, Neovim and VS Code comes later, when the user asks.
   Names the exe defines carry `@`: app state, built-ins (`@dark`, `@hot`, `@w`) and wording (`@tr.home_create`), so a
   later exe cannot collide with a pack; a pack's own names (Palette, constants, parts, `let`) are bare, and a clash
   among them is an error. Files are `.cskin` (`pack.cskin`, `screens/home.cskin`). The JSON Schemas and
-  `crpp_skin_schema` go; `crpp_skin check <dir>` runs the app's loader and prints `file:line:col`, with a guess at
-  the name meant, and tests check the official packs with it. `keys.hpp` stays the list of what may be written. A
+  `crpp_skin_schema` go; `crpp_skin check <dir>` runs the app's loader and prints `file:line`, with a guess at
+  a mistyped key, and tests check the official packs with it; `crpp_skin names <screen>` lists what a screen offers,
+  which the schemas used to. `keys.hpp` stays the list of what may be written. A
   one-off converter writes the packs from the loaded JSONC, comments before a node included; every scene must keep
   its hash (`render.sh`, `compare.sh`), then the JSONC loader and the converter go. Nothing of this was released, so
-  ADR 0007 is edited in place to name the language; there is no superseding ADR.
-- **Catalog.** The catalog tool copies each Theme from `pack.jsonc` into a `theme` line with its dark variant and its
+  ADR 0007 is edited in place to name the language; there is no superseding ADR. Done: every scene of the five sets
+  kept its hash, and the JSONC reader and the schemas are gone.
+- **Catalog.** The catalog tool copies each Theme from `pack.cskin` into a `theme` line with its dark variant and its
   names per Locale, so Themes not installed can be listed. The parser skips lines it does not know and still refuses a
   known line that is wrong. `crpp-catalog 1` stays. The catalog is read behind the app at every start, files are not;
   if it cannot be read the saved one is used silently, the cause going to the diagnostic log. Fetching updates of
@@ -220,9 +222,10 @@ hands-on check of Cloud on a real desktop, 7 and 8.
   under the old key. A Repository with a pack in use cannot be removed and says why; its unused packs go with it.
 - **6c.** Removing a pack is refused for the one in use and for its parents. (The rule about the system sync's target
   is gone: a dark variant is in the same Theme and pack.)
-- **6d, a parent elsewhere.** A pack names its parent in `pack.jsonc`, the tool copies it into the catalog's `skin`
-  line, so the app checks it before fetching. `"extends": "retro"` is a pack of the same or the official Repository;
-  `"extends": {"repository", "key", "pack", "version"?, "sha256"?}` one of another. The key is always pinned; a pack
+- **6d, a parent elsewhere.** A pack names its parent in `pack.cskin`, the tool copies it into the catalog's `skin`
+  line, so the app checks it before fetching. `extends retro` is a pack of the same or the official Repository; one
+  of another also names its repository, key and pack, and maybe a version and a sha256, in a form the language
+  settles with 6d. The key is always pinned; a pack
   gets a `version` (`0.y.z`), and `"0.3"` accepts 0.3.x, `"0.3.2"` only that; `sha256` is a digest of the parent's
   sorted file lines (path, size, hash) in its catalog. Both given, both must hold. A parent's Repository not yet added
   is asked for in the same dialog as adding one.

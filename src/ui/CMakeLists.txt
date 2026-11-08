@@ -81,13 +81,13 @@ if(WIN32)
   crpp_target_defaults(crpp_ui_skin_cloud_test)
   add_test(NAME ui.skin_cloud COMMAND crpp_ui_skin_cloud_test)
 
-  # Writes and checks skins/schema, and checks a pack: see skins/README.md.
-  add_executable(crpp_skin_schema tests/skin_schema_tool.cpp)
-  target_link_libraries(crpp_skin_schema PRIVATE crpp_ui)
-  crpp_target_defaults(crpp_skin_schema)
-  add_test(NAME ui.skin_schema COMMAND crpp_skin_schema --check ${PROJECT_SOURCE_DIR}/skins/schema)
-  add_test(NAME ui.skin_pack_retro COMMAND crpp_skin_schema --pack ${PROJECT_SOURCE_DIR}/skins/retro)
-  add_test(NAME ui.skin_pack_cloud COMMAND crpp_skin_schema --pack ${PROJECT_SOURCE_DIR}/skins/cloud)
+  # crpp_skin, which checks a pack as the program loads it: see skins/README.md. The library is crpp_skin already.
+  add_executable(crpp_skin_tool tools/skin_tool.cpp)
+  set_target_properties(crpp_skin_tool PROPERTIES OUTPUT_NAME crpp_skin)
+  target_link_libraries(crpp_skin_tool PRIVATE crpp_ui)
+  crpp_target_defaults(crpp_skin_tool)
+  add_test(NAME ui.skin_check_retro COMMAND crpp_skin_tool check ${PROJECT_SOURCE_DIR}/skins/retro)
+  add_test(NAME ui.skin_check_cloud COMMAND crpp_skin_tool check ${PROJECT_SOURCE_DIR}/skins/cloud)
 
   # Not part of a normal build: see its first lines.
   add_executable(crpp_ui_skin_bench EXCLUDE_FROM_ALL tests/skin_bench.cpp)

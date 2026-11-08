@@ -684,6 +684,20 @@ void Painter::draw_layout(IDWriteTextLayout* layout, float x, float y, Color c) 
   rt_->DrawTextLayout(D2D1::Point2F(x, y), layout, brush_.get());
 }
 
+void Painter::draw_layout(IDWriteTextLayout* layout, float x, float y, Color c, std::span<const DWRITE_TEXT_RANGE> ranges,
+                          Color range_color) {
+  if (!ranges.empty()) {
+    if (range_brush_) range_brush_->SetColor(to_d2d(range_color));
+    else rt_->CreateSolidColorBrush(to_d2d(range_color), range_brush_.put());
+  }
+  // The brush is the range's only while it is drawn: a kept layout holds nothing of this render target.
+  if (range_brush_) {
+    for (const DWRITE_TEXT_RANGE& r : ranges) layout->SetDrawingEffect(range_brush_.get(), r);
+  }
+  draw_layout(layout, x, y, c);
+  for (const DWRITE_TEXT_RANGE& r : ranges) layout->SetDrawingEffect(nullptr, r);
+}
+
 void Painter::fill_text_range(IDWriteTextLayout* layout, float x, float y, std::size_t start, std::size_t end, Color c) {
   if (!layout || end <= start) return;
   DWRITE_HIT_TEST_METRICS runs[16];

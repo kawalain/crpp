@@ -194,6 +194,8 @@ class Painter {
   void shadow_round(Rect r, float radius, float blur, float dy, Color c);
 
   void draw_layout(IDWriteTextLayout* layout, float x, float y, Color c);
+  // The same, with these ranges in a colour of their own, as links are.
+  void draw_layout(IDWriteTextLayout* layout, float x, float y, Color c, std::span<const DWRITE_TEXT_RANGE> ranges, Color range_color);
   // Fills behind [start, end) of a layout drawn at x, y, line by line, as a selection is.
   void fill_text_range(IDWriteTextLayout* layout, float x, float y, std::size_t start, std::size_t end, Color c);
   // Draws text with its CSS line box starting at r.y. Returns the laid-out size.
@@ -214,6 +216,7 @@ class Painter {
   const Gfx& gfx_;
   ID2D1RenderTarget* rt_;
   ComPtr<ID2D1SolidColorBrush> brush_;
+  ComPtr<ID2D1SolidColorBrush> range_brush_;  // made when first needed
   bool classic_ = false;
   float pixels_ = 1, line_ = 1;
   D2D1_MATRIX_3X2_F base_ = D2D1::Matrix3x2F::Identity();

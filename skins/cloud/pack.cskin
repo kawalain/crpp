@@ -34,6 +34,7 @@ palette cumulus {
   hl #66ccff
   sky #66ccff
   hl_text #66ccff
+  link #1f7fd6
   hl_soft mix(hl, white, 70%)
   hl_dark mix(hl, blue, 88%)
   hl_text_soft mix(hl_text, white, 65%)
@@ -75,6 +76,7 @@ palette darkcloud {
   hl_dark #6393be
   hl_soft #3b5878
   hl_text #d0dfed
+  link #7cc8ff
   hl_text_soft #a0b4c9
   hl_text_dark #ecf3fa
   hl_pale #293a50
@@ -114,6 +116,7 @@ palette pastel {
   hl #b1dafd
   sky #b1dafd
   hl_text #b1dafd
+  link #5e9be0
   hl_soft mix(hl, white, 70%)
   hl_dark mix(hl, blue, 88%)
   hl_text_soft mix(hl_text, white, 65%)

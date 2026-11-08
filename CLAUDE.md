@@ -113,6 +113,8 @@ against a real `server/` yet; do that once a local build of it is available.
 - Text has a context menu, where upstream suppresses every one: by a right-click, the menu key or Shift+F10, drawn
   from the Skin Pack. A field offers Cut, Copy, Paste, Delete and Select all, read-only text Copy and Select all, and
   a link in chat its address first. What cannot be done is greyed. Cloud's fades in over 120 ms.
+- A link in chat has a colour of its own, the Palette's `link`, where upstream's is the text's and shows only by
+  an underline under the pointer.
 - The channel balance is explained: "자리에 따라 좌우로 듣기" and "좌우 차이", in words
   instead of a ratio, and locked while virtual surround is off, when it changes nothing.
   Its settings keys are upstream's, but a value means more: straight to the side, 60 is 6 dB

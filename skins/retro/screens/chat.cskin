@@ -6,7 +6,7 @@ note area h @H-input_h-6 {
   hit area
   (1, 1, @W-2, @H-2) {
     slot messages numbers (14, 7, 7, scrollbar_w, round(@font_size*@zoom), round(@font_size*@zoom)+4) styles (chat_text)
-        colors (ink, ink_soft)
+        colors (ink, ink_soft, link)
     use scrollbar(view = @view, content = @content, offset = @offset, track_hit = hit(bar_track), up = hit(bar_up), down = hit(bar_down), thumb_hit = hit(bar_thumb), track_note = note(bar_track))
         x @W-scrollbar_w w scrollbar_w
   }

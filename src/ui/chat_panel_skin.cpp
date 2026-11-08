@@ -68,14 +68,16 @@ void ChatPanel::paint_pack(Painter& p, const skin::Screen& screen, Rect panel) {
         const auto n = values.numbers;
         s_.rows_look_ = {.x = n[0], .right = n[1], .pad = n[2], .face = n[3], .face_gap = n[4], .head_h = n[5], .head_text_y = n[6], .pull = n[7], .gap = n[8],
                          .arrive_ms = n[9], .rise = n[10], .tip_h = n[11], .tip_margin = n[12], .tip_below = n[13],
-                         .body = text_style_of(values.styles[0]), .time = text_style_of(values.styles[1]), .nick = text_style_of(values.styles[2]), .ink = values.colors[0]};
+                         .body = text_style_of(values.styles[0]), .time = text_style_of(values.styles[1]), .nick = text_style_of(values.styles[2]), .ink = values.colors[0],
+                         .link = values.colors.size() > 1 ? values.colors[1] : values.colors[0]};
         s_.paint_rows(p_, rect_of(box));
         return;
       }
       TextStyle body = text_style_of(values.styles[0]);
       body.size = values.numbers[4];
       body.line_height = values.numbers[5];
-      s_.messages_ = {.indent = values.numbers[0], .pad = values.numbers[1], .gap = values.numbers[2], .bar_w = values.numbers[3], .body = body, .ink = values.colors[0], .soft = values.colors[1]};
+      s_.messages_ = {.indent = values.numbers[0], .pad = values.numbers[1], .gap = values.numbers[2], .bar_w = values.numbers[3], .body = body, .ink = values.colors[0], .soft = values.colors[1],
+                    .link = values.colors.size() > 2 ? values.colors[2] : values.colors[0]};
       s_.paint_messages(p_, rect_of(box));
     }
 
@@ -205,8 +207,11 @@ void ChatPanel::paint_rows(Painter& p, Rect area) {
     if (!row.text) continue;
     IDWriteTextLayout* const layout = row.text.get();
     paint_body(p, r, x, row.y_text + rise);
+    DWRITE_TEXT_RANGE ranges[links_per_entry];
+    std::size_t ranges_n = 0;
     for (std::size_t l = 0; l < row.links.size() && l < links_per_entry; ++l) {
       const LinkSpan link = row.links[l];
+      ranges[ranges_n++] = {link.start, link.length};
       const int id = LinkBase + static_cast<int>(dropped_ + index) * links_per_entry + static_cast<int>(l);
       // A link that wraps has one box per line; the tip goes over all of them.
       DWRITE_HIT_TEST_METRICS boxes[8];
@@ -234,7 +239,7 @@ void ChatPanel::paint_rows(Painter& p, Rect area) {
         show_link_tip_ = true;
       }
     }
-    p.draw_layout(layout, x, row.y_text + rise, ink);
+    p.draw_layout(layout, x, row.y_text + rise, ink, std::span(ranges, ranges_n), with_alpha(look.link, arrived));
   }
   for (std::size_t r = kept_from_; r < kept_to_ && r < rows_.size(); ++r) {
     if (r >= in_view_from && r < in_view_to) continue;
@@ -360,8 +365,11 @@ void ChatPanel::paint_messages(Painter& p, Rect inner) {
     IDWriteTextLayout* const layout = row.text.get();
     const float text_x = x + look.indent, text_y = top + row.y_text;
     paint_body(p, r, text_x, text_y);
+    DWRITE_TEXT_RANGE ranges[links_per_entry];
+    std::size_t ranges_n = 0;
     for (std::size_t n = 0; n < row.links.size() && n < links_per_entry; ++n) {
       const LinkSpan link = row.links[n];
+      ranges[ranges_n++] = {link.start, link.length};
       const int id = LinkBase + static_cast<int>(dropped_ + index) * links_per_entry + static_cast<int>(n);
       DWRITE_HIT_TEST_METRICS boxes[8];
       UINT32 count = 0;
@@ -379,7 +387,7 @@ void ChatPanel::paint_messages(Painter& p, Rect inner) {
         show_link_tip_ = true;
       }
     }
-    p.draw_layout(layout, text_x, text_y, look.ink);
+    p.draw_layout(layout, text_x, text_y, look.ink, std::span(ranges, ranges_n), look.link);
   }
   for (std::size_t r = kept_from_; r < kept_to_ && r < rows_.size(); ++r) {
     if (r >= in_view_from && r < in_view_to) continue;

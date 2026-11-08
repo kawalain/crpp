@@ -100,14 +100,14 @@ class ChatPanel final : public Surface {
     float x = 0, right = 0, pad = 0, face = 0, face_gap = 0, head_h = 0, head_text_y = 0, pull = 0, gap = 0;
     float arrive_ms = 0, rise = 0, tip_h = 0, tip_margin = 0, tip_below = 0;
     TextStyle body, time, nick;
-    Color ink;
+    Color ink, link;
   };
 
   // How the plain list of messages looks.
   struct MessageLook {
     float indent = 0, pad = 0, gap = 0, bar_w = 0;
     TextStyle body;
-    Color ink, soft;
+    Color ink, soft, link;
   };
 
   void paint_pack(Painter& p, const skin::Screen& screen, Rect panel);

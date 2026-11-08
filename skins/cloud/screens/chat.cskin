@@ -5,7 +5,7 @@ let text_w = multi ? @W-11-17-17 : one_line_w
 let input_h = min(130, max(42, texth(chat_input, @input_text, text_w)+20))
 hit area note area h @H-10-input_h
 slot rows h @H-10-input_h numbers (17, 21, 24, 25, 7, 27, 2.5, 10, 14, 300, 8, 38, 4, 44)
-    styles (chat_body, chat_time, chat_nick) colors (hl_text)
+    styles (chat_body, chat_time, chat_nick) colors (hl_text, link)
 let ink = @dark ? hl_text : on_accent
 hit input (5, @H-4-input_h, @W-11, input_h) {
   fill hl_mid radius 8

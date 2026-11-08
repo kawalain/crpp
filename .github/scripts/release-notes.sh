@@ -1,6 +1,7 @@
 #!/usr/bin/env bash
 # Writes a release's notes: docs/releases/<tag>.md, whose "주요 변경 사항" comes first, then the
-# commits since the previous version by kind. Stops if the most important changes are missing.
+# commits since the previous version that someone using the app can notice, by kind. Stops if the
+# most important changes are missing.
 #   release-notes.sh --tag v0.1.0 --out dist/release-notes.md [--source <notes.md>]
 # --tag may be HEAD with --source naming a notes file, to look at the result before tagging.
 # --subjects names a file of commit subjects that stands in for the history, for the test.
@@ -18,10 +19,13 @@ done
 [[ -n $source ]] || source="docs/releases/$tag.md"
 
 highlights='## 주요 변경 사항'
-# In the order they are shown. What matches none of them goes last.
-kinds=(feat fix perf refactor docs)
-titles=('새 기능' '버그 수정' '성능 개선' '코드 개선' '문서')
-other='그 밖의 변경'
+# The kinds shown, in their order. The others (refactor, docs, test, build, chore, ...) change
+# nothing a user sees, and neither does a subject that is not a Conventional Commit.
+kinds=(feat fix perf)
+titles=('새 기능' '버그 수정' '성능 개선')
+# Scopes of how the app is built and delivered: the Skin engine and pack format, catalogs and
+# installing, the Repository and releasing. What they bring a user is said under 주요 변경 사항.
+hidden_scopes=' skin skins assets repository release ci build test '
 
 [[ -f $source ]] || { echo "$source is missing: its text opens the changelog" >&2; exit 1; }
 mapfile -t written < <(sed 's/\r$//' "$source")
@@ -48,22 +52,20 @@ fi
 
 declare -A groups=()
 for line in "${lines[@]}"; do
-  [[ -z $line ]] && continue
-  title=$other item=$line
-  if [[ $line =~ ^([a-z]+)(\(([^\)]+)\))?!?:\ (.+)$ ]]; then
-    for i in "${!kinds[@]}"; do
-      [[ ${BASH_REMATCH[1]} == "${kinds[$i]}" ]] && title=${titles[$i]}
-    done
-    item=${BASH_REMATCH[4]}
-    [[ -n ${BASH_REMATCH[3]} ]] && item="**${BASH_REMATCH[3]}:** $item"
-  fi
-  groups[$title]+="- $item"$'\n'
+  [[ $line =~ ^([a-z]+)(\(([^\)]+)\))?!?:\ (.+)$ ]] || continue
+  kind=${BASH_REMATCH[1]} scope=${BASH_REMATCH[3]} item=${BASH_REMATCH[4]}
+  [[ -n $scope && $hidden_scopes == *" $scope "* ]] && continue
+  for i in "${!kinds[@]}"; do
+    [[ $kind == "${kinds[$i]}" ]] || continue
+    [[ -n $scope ]] && item="**$scope:** $item"
+    groups[${titles[$i]}]+="- $item"$'\n'
+  done
 done
 
 mkdir -p "$(dirname "$out")"
 {
   printf '%s\n' "${written[@]}"
-  for title in "${titles[@]}" "$other"; do
+  for title in "${titles[@]}"; do
     [[ -n ${groups[$title]:-} ]] || continue
     printf '\n## %s\n%s' "$title" "${groups[$title]}"
   done

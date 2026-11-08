@@ -6,9 +6,12 @@ notices a new version. They have two parts:
 - The file `v<version>.md` here, written by hand: the most important changes come first,
   under `## 주요 변경 사항` with at least one `-` item. The release workflow refuses a tag
   without it.
-- The commits since the previous version's tag, by kind (`feat`, `fix`, `perf`, `refactor`,
-  `docs`, the rest), added by `.github/scripts/release-notes.sh`. A commit's subject is
-  its line in the changelog, so write it for someone reading that.
+- The commits since the previous version's tag that someone using the app can notice, by kind
+  (`feat`, `fix`, `perf`), added by `.github/scripts/release-notes.sh`. Other kinds are left
+  out, and so are the scopes of building and delivering the app (`skin`, `assets`,
+  `repository`, `release` and the like; the script lists them): what those bring a user goes
+  under the most important changes. A commit's subject is its line in the changelog, so write
+  it for someone reading that.
 
 Details:
 

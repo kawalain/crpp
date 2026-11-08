@@ -3,6 +3,5 @@
 assets/** -text
 skins/** -text
 *.sh text eol=lf
-*.cmd text eol=crlf
 .github/workflows/*.yml text eol=lf
 *.ico binary

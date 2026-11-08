@@ -79,8 +79,8 @@ void verifies_a_real_signature_and_nothing_else() {
   CHECK(!platform.verify(PublicKey{1, 2, 3}, message, signature));
 }
 
-// Made once with .github/scripts/sign-release.ps1 and a key that was then discarded:
-// what the release workflow's .NET signer writes must be what BCrypt accepts.
+// Made once with .github/scripts/sign-release.sh and a key that was then discarded: what
+// OpenSSL signs, turned from DER into r||s by p256.sh, must be what BCrypt accepts.
 void verifies_what_the_release_script_signs() {
   WindowsPlatform platform;
   const std::string text =
@@ -89,11 +89,11 @@ void verifies_what_the_release_script_signs() {
       "asset crpp.exe\n"
       "size 9\n"
       "sha256 9a42d9e2c95e6916da3ddc7688d75883eb13e8d40fac965069b4c9b2f12953aa\n"
-      "signature 7fa26d6750808e6752ac42a760f7231a1c785d3257abb7ab3922fa58b4f101073cc9b0df204924c4fc1c9dc109549424bff1b71434d2416fd1a5124424f04640\n";
+      "signature 5c84fa5fa642599c749c4b8da6ec240488a4f7323b8f3b74e10eb849e8789e0b182d50b7398a521522d42ce7480b880bab64b22d6c7107b6920de2a8b2b08c32\n";
   const auto bytes = bytes_of(text);
   const auto manifest = parse_manifest(bytes);
   CHECK(manifest.has_value());
-  const auto key = parse_public_key("187b22cb0df43f509b4467a0e2d2721a9f1c2d69c72cf9e3e42e2f8cc6dc6594297fd354e061ab9e0f153223e53c3e72552f8ccb18a11b1818718385113c5f6f");
+  const auto key = parse_public_key("c959e4d08b41e195da99b68a245f5d3a04d7b34e48b1dc72443d63f113e84b98902acf2fb079f09b71d52aabed09adddd35d367641230e4c5fd9c77fe1de0fb2");
   CHECK(key.has_value());
   CHECK(platform.verify(*key, std::span(bytes).first(manifest->signed_bytes), manifest->signature));
   CHECK(manifest->sha256 == platform.sha256(bytes_of("fake exe\n")));

@@ -72,11 +72,11 @@ a folder beside this one, is another download, and can itself extend one, up to 
 ## Trying a pack
 
 Check it, which says what is refused and where, then render it. Both stay on this machine. Build first with
-`.github\scripts\msvc-build.cmd build-msvc`.
+`.github/scripts/msvc-build.sh build-msvc` in Git Bash.
 
-```
-build-msvc\src\ui\crpp_skin_schema.exe --pack skins\retro
-tests\shots\render.ps1 -Exe build-msvc\apps\gui\crpp.exe -Out out -Size auto -Extra '--theme','classic','--skin-dir','"skins\retro"'
+```bash
+build-msvc/src/ui/crpp_skin_schema.exe --pack skins/retro
+tests/shots/render.sh --exe build-msvc/apps/gui/crpp.exe --out out --size auto -- --theme classic --skin-dir skins/retro
 ```
 
 Schemas catch wrong keys and names, but not what is inside an expression; `--pack` is the last word, as it runs the

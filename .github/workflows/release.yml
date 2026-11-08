@@ -1,6 +1,6 @@
 # Publishes an existing tag v0.y.z on main: one exe and its signed manifest. Every check
 # comes before anything is published, and a failed run publishes nothing.
-# Releases are normally made with .github/scripts/release.ps1 on a developer's machine. This
+# Releases are normally made with .github/scripts/release.sh on a developer's machine. This
 # runs only by hand, as Actions minutes are limited: gh workflow run release.yml --ref v0.y.z
 # See docs/signing-key.md for the key and docs/releases/README.md for the notes.
 name: Release
@@ -11,12 +11,16 @@ on:
 permissions:
   contents: write
 
+defaults:
+  run:
+    shell: bash
+
 jobs:
   release:
     runs-on: windows-2022
     timeout-minutes: 60
     steps:
-      # Full history: the asset manifest pins the commit that last changed assets/.
+      # Full history: the notes list the commits since the previous tag.
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           fetch-depth: 0
@@ -24,54 +28,50 @@ jobs:
 
       - name: Check the tag, the notes and the key
         id: tag
-        shell: pwsh
         env:
           TAG: ${{ github.ref_name }}
         run: |
-          $ErrorActionPreference = 'Stop'
-          if ($env:TAG -notmatch '^v(0\.(0|[1-9][0-9]*)\.(0|[1-9][0-9]*))$') { throw "not a version tag: $env:TAG" }
-          $version = $Matches[1]
-          git merge-base --is-ancestor HEAD origin/main
-          if ($LASTEXITCODE -ne 0) { throw 'the tag is not on main' }
-          .github/scripts/release-notes.ps1 -Tag $env:TAG -Out dist/release-notes.md
+          set -euo pipefail
+          [[ $TAG =~ ^v(0\.(0|[1-9][0-9]*)\.(0|[1-9][0-9]*))$ ]] || { echo "not a version tag: $TAG" >&2; exit 1; }
+          version=${BASH_REMATCH[1]}
+          git merge-base --is-ancestor HEAD origin/main || { echo 'the tag is not on main' >&2; exit 1; }
+          .github/scripts/release-notes.sh --tag "$TAG" --out dist/release-notes.md
           # The build's version says so if the tree differs from the tag.
-          if (git status --porcelain) { throw "the tree is not clean: $(git status --porcelain)" }
-          if ((Get-Content -Raw src/update/release_public_key.txt).Trim() -eq 'PLACEHOLDER') {
-            throw 'src/update/release_public_key.txt still holds the placeholder; see docs/signing-key.md'
-          }
-          "version=$version" >> $env:GITHUB_OUTPUT
+          dirty=$(git status --porcelain)
+          [[ -z $dirty ]] || { echo "the tree is not clean: $dirty" >&2; exit 1; }
+          if [[ $(tr -d '\r\n' < src/update/release_public_key.txt) == PLACEHOLDER ]]; then
+            echo 'src/update/release_public_key.txt still holds the placeholder; see docs/signing-key.md' >&2
+            exit 1
+          fi
+          echo "version=$version" >> "$GITHUB_OUTPUT"
 
       - name: Build
-        shell: cmd
-        run: .github\scripts\msvc-build.cmd build "-DCRPP_FETCH_DEV_ASSETS=OFF" "-DCRPP_OFFICIAL_BUILD=ON" "-DCRPP_VERSION=${{ steps.tag.outputs.version }}"
+        run: .github/scripts/msvc-build.sh build -DCRPP_FETCH_DEV_ASSETS=OFF -DCRPP_OFFICIAL_BUILD=ON "-DCRPP_VERSION=${{ steps.tag.outputs.version }}"
 
       - name: Test
-        shell: pwsh
-        run: ctest --test-dir build --output-on-failure -E "^input\.raw$"
+        run: ctest --test-dir build --output-on-failure -E '^input\.raw$'
 
+      # The key is a file only for this step, readable by this user alone.
       - name: Sign
-        shell: pwsh
         env:
           CRPP_UPDATE_SIGNING_KEY: ${{ secrets.CRPP_UPDATE_SIGNING_KEY }}
           VERSION: ${{ steps.tag.outputs.version }}
         run: |
-          $ErrorActionPreference = 'Stop'
-          Copy-Item build/apps/gui/crpp.exe dist/crpp.exe
-          .github/scripts/sign-release.ps1 -Exe dist/crpp.exe -Version $env:VERSION -Out dist/crpp-update.manifest
-          Get-Content dist/crpp-update.manifest
+          set -euo pipefail
+          key="$RUNNER_TEMP/crpp-update-signing.pem"
+          trap 'rm -f "$key"' EXIT
+          (umask 077 && printf '%s\n' "$CRPP_UPDATE_SIGNING_KEY" > "$key")
+          cp build/apps/gui/crpp.exe dist/crpp.exe
+          .github/scripts/sign-release.sh dist/crpp.exe "$VERSION" dist/crpp-update.manifest "$key"
+          cat dist/crpp-update.manifest
 
       # Against the key built into this very exe's build: a secret that does not match
       # would otherwise strand every installed copy.
       - name: Verify as the app will
-        shell: pwsh
-        run: |
-          build/src/update/crpp_update_verify.exe dist/crpp-update.manifest dist/crpp.exe
-          if ($LASTEXITCODE -ne 0) { throw 'the release does not verify' }
+        run: build/src/update/crpp_update_verify.exe dist/crpp-update.manifest dist/crpp.exe
 
       - name: Publish
-        shell: pwsh
         env:
           GH_TOKEN: ${{ github.token }}
           TAG: ${{ github.ref_name }}
-        run: |
-          .github/scripts/publish-release.ps1 -Tag $env:TAG
+        run: .github/scripts/publish-release.sh "$TAG"

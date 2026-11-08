@@ -59,16 +59,17 @@ The reasoning is in [ADR 0003](docs/adr/0003-presence-mode-by-default.md) and
 - [Visual Studio Build Tools 2022](https://visualstudio.microsoft.com/downloads/) with the
   C++ tools. No other libraries or package managers are needed.
 - [CMake](https://cmake.org/) 3.28 or later on `PATH`
+- [Git for Windows](https://gitforwindows.org/), whose Git Bash runs the build script
 - Internet access during the first configure, which downloads the font and emoji. If that
   fails the build still works and uses the system's font and emoji.
 
 ### Build
 
-Run this from a PowerShell or Command Prompt window at the repository root. The script sets
-up the compiler, so you don't need a developer prompt:
+Run this in Git Bash at the repository root. The script sets up the compiler, so you don't
+need a developer prompt:
 
-```bat
-.github\scripts\msvc-build.cmd build-msvc
+```bash
+.github/scripts/msvc-build.sh build-msvc
 ```
 
 ## Usage

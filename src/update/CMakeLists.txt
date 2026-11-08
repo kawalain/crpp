@@ -15,9 +15,19 @@ crpp_update_test(update)
 crpp_update_test(notes)
 
 # What the build decides: the version, whether this is a release, and the key.
-find_program(CRPP_PWSH pwsh)
-if(CRPP_PWSH)
-  add_test(NAME update.release_notes COMMAND ${CRPP_PWSH} -NoProfile -File ${PROJECT_SOURCE_DIR}/.github/scripts/release-notes-test.ps1)
+# The scripts are bash. On Windows that is Git's, found beside git.exe: a bash on PATH may be
+# WSL's, which sees another file system.
+if(WIN32)
+  find_package(Git QUIET)
+  if(GIT_EXECUTABLE)
+    get_filename_component(git_dir ${GIT_EXECUTABLE} DIRECTORY)
+    find_program(CRPP_BASH NAMES bash PATHS ${git_dir}/../bin ${git_dir}/../usr/bin NO_DEFAULT_PATH)
+  endif()
+else()
+  find_program(CRPP_BASH bash)
+endif()
+if(CRPP_BASH)
+  add_test(NAME update.release_notes COMMAND ${CRPP_BASH} ${PROJECT_SOURCE_DIR}/.github/scripts/release-notes-test.sh)
 endif()
 
 set(CRPP_VERSION "0.0.0" CACHE STRING "The version this build reports; the release workflow sets it from the tag")

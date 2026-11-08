@@ -50,6 +50,11 @@ if(WIN32)
       COMMAND ${CMAKE_COMMAND} -E copy_directory ${CRPP_ASSET_CACHE} $<TARGET_FILE_DIR:crpp>/assets)
   endif()
 
+  # Puts scripted runs of the app on a hidden desktop: tests/shots/render.sh and the like.
+  add_executable(crpp_hidden_run ${PROJECT_SOURCE_DIR}/tests/shots/hidden_run.cpp)
+  target_compile_definitions(crpp_hidden_run PRIVATE UNICODE _UNICODE _WIN32_WINNT=0x0A00)
+  crpp_target_defaults(crpp_hidden_run)
+
   # Not part of a normal build: see the tool's first lines.
   add_executable(crpp_make_icon EXCLUDE_FROM_ALL tools/make_icon.cpp)
   target_link_libraries(crpp_make_icon PRIVATE crpp_ui)

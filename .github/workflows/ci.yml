@@ -37,8 +37,8 @@ jobs:
         with:
           persist-credentials: false
       - name: Build
-        shell: cmd
-        run: .github\scripts\msvc-build.cmd build
+        shell: bash
+        run: .github/scripts/msvc-build.sh build
       - name: Test
-        shell: pwsh
-        run: ctest --test-dir build --output-on-failure -E "^input\.raw$"
+        shell: bash
+        run: ctest --test-dir build --output-on-failure -E '^input\.raw$'

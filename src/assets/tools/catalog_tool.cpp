@@ -8,7 +8,7 @@
 // the commit or tag at which raw.githubusercontent.com serves this repository's files, the
 // second source of each. --copy also puts every file in <out-dir>, the third-party ones from
 // that cache, so that the folder can be served as it is. Signing is a separate step
-// (.github/scripts/sign-catalog.ps1), so the key never reaches this program.
+// (.github/scripts/sign-catalog.sh), so the key never reaches this program.
 //
 //   crpp_catalog --verify <catalog.txt> [--key <hex>]
 //

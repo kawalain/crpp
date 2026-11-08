@@ -29,8 +29,9 @@ The same steps by hand:
 ## Rules
 
 - The private key never enters the repository, a log, or a chat.
-- `.github/scripts/release.ps1` signs with the key in `~/.crpp-signing`, where the wizard
-  puts it; the release workflow signs with the secret. Both verify each signed manifest
+- `.github/scripts/release.sh` signs with the key in `~/.crpp-signing`, where the wizard
+  puts it, naming the file to OpenSSL; the release workflow writes the secret to a file only
+  its user can read, for that step alone. Both verify each signed manifest
   against the key built into that build before publishing, so a key that does not match
   stops the release.
 - `CRPP_UPDATE_TEST_KEY` exists for trying the flow on a local server. An official build

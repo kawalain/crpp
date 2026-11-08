@@ -58,16 +58,17 @@ Cloudroom++는 [공식 클라이언트](https://github.com/pb29/Cloudroom)를 C+
 - C++ 도구를 포함한 [Visual Studio Build Tools 2022](https://visualstudio.microsoft.com/downloads/).
   다른 라이브러리나 패키지 관리자는 필요 없습니다.
 - `PATH`에 등록된 [CMake](https://cmake.org/) 3.28 이상
+- 빌드 스크립트를 실행할 Git Bash가 들어 있는 [Git for Windows](https://gitforwindows.org/)
 - 첫 구성 단계에서 폰트와 이모지를 내려받기 위한 인터넷 연결. 실패해도 빌드는 되며, 시스템 폰트와 이모지를
   사용합니다.
 
 ### 빌드
 
-저장소 최상위 폴더의 PowerShell이나 명령 프롬프트에서 실행합니다. 스크립트가 컴파일러 환경을 설정하므로
-개발자 프롬프트는 필요 없습니다.
+저장소 최상위 폴더의 Git Bash에서 실행합니다. 스크립트가 컴파일러 환경을 설정하므로 개발자 프롬프트는
+필요 없습니다.
 
-```bat
-.github\scripts\msvc-build.cmd build-msvc
+```bash
+.github/scripts/msvc-build.sh build-msvc
 ```
 
 ## 사용법

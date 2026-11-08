@@ -27,6 +27,9 @@ and developer communities, not from memory.
   `gh workflow run ci.yml`, to keep them portable.
 - Build is CMake + Ninja only; no package manager. Third-party code, if ever
   needed, is vendored in `third_party/` at a pinned version.
+- Every script is bash, run by Git Bash on Windows (never WSL's) and with `shell: bash` in
+  workflows; no PowerShell or `.cmd`. What bash cannot reach, such as a hidden desktop, is a
+  small C++ tool (`crpp_hidden_run`), and signing uses OpenSSL with a key file.
 - Tests use CTest with the tiny `tests/support/check.hpp`; no framework.
   Golden vectors are derived from upstream `server/src/main.rs`.
 - Layout: `src/<module>/` (CMake static library) with `src/<module>/tests/`.
@@ -186,13 +189,14 @@ against a real `server/` yet; do that once a local build of it is available.
 ## Build
 
 ```
-.github\scripts\msvc-build.cmd build-msvc
+.github/scripts/msvc-build.sh build-msvc
 ctest --test-dir build-msvc --output-on-failure
 ```
 
-The script sets up the developer environment (vcvars); `cl` is not on PATH by default.
-The app is a Windows-subsystem program with no console: PowerShell does not wait for it,
-so wait with `Start-Process -Wait`, and read `--smoke`'s result from the exit code.
+The script imports the developer environment (vcvars) into bash; `cl` is not on PATH by default.
+The app is a Windows-subsystem program with no console, which Git Bash waits for; read `--smoke`'s
+result from the exit code. `build-msvc/apps/gui/crpp_hidden_run.exe <seconds> <exe> <args...>` runs
+it on a hidden desktop, ends it after that many seconds with 124, and otherwise returns its code.
 
 Options are read from the end of the command line: `crpp --shot <png> <size> <hour> <scene>
 --data <dir>`. Put first, `--data` is ignored and the real app opens on the user's desktop.
@@ -209,10 +213,10 @@ build, measures a pack against the C++ layout.
 
 Nothing may wait for a person in a scripted run. On a desktop nobody sees the app shows no dialog: when
 it cannot start, as when it refuses a pack, it exits with 3 and leaves the reason in `<png>.error`, or
-in `start-failure.txt` under `--data`. `render.ps1` stops there and at the first scene that takes 30 s.
+in `start-failure.txt` under `--data`. `render.sh` stops there and at the first scene that takes 30 s.
 
-A change that must leave the screen as it was can prove it: `tests/shots/render.ps1` renders
-every scene in `scenes.txt` on a hidden desktop, before and after, and `compare.ps1` compares
+A change that must leave the screen as it was can prove it: `tests/shots/render.sh` renders
+every scene in `scenes.txt` on a hidden desktop, before and after, and `compare.sh` compares
 the folders by hash. A shot holds the clock, so the same scene always gives the same file.
 
 A development build, any build without `CRPP_OFFICIAL_BUILD`, runs beside whatever is already
@@ -229,7 +233,7 @@ server; seed `serverUrl` in its `crpp/settings.json` to test the offline popup. 
 so a run that clicks needs a `serverUrl` on localhost. An exe with an
 `assets/` folder holding a `catalog.txt` beside it, as every build has, runs from that folder and
 `skins/` and installs nothing. To test installing, build with `-DCRPP_UPDATE_TEST_KEY=<hex>`, write a
-Repository with `crpp_catalog`, sign it with `.github/scripts/sign-catalog.ps1` and the test key, serve it
+Repository with `crpp_catalog`, sign it with `.github/scripts/sign-catalog.sh` and the test key's file, serve it
 on localhost and copy the exe elsewhere: `--asset-url <folder>` uses it, signed with the build's key.
 Rebuild without the test key afterwards.
 
@@ -283,7 +287,7 @@ exist (real + test).
   Repository, or a file's second source when the Repository fails, verifies each and keeps what
   already matches. The exe holds only the official Repository's address and the update key
   (`built_in.hpp`); `crpp_catalog` writes a catalog from `assets/`, `skins/` and
-  `cmake/remote_assets.txt`, and `.github/scripts/build-repository.ps1` fills and signs the official
+  `cmake/remote_assets.txt`, and `.github/scripts/build-repository.sh` fills and signs the official
   one. `Platform` is the seam for WinHTTP and BCrypt.
 - `api`: the account HTTP API as pure requests and responses, and `Flow`, the
   prompt's steps. `HttpClient` is the seam for WinHTTP; `Worker` keeps its blocking

@@ -30,6 +30,7 @@ class SetupScreen final : public Surface {
   void click(int id, float x, float y, bool shift) override;
 
  private:
+  void paint_plain(Painter& p, int shown_percent, const std::string& detail);
   Status status_;
 };
 

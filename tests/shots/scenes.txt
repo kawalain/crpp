@@ -1,6 +1,8 @@
 # Every --shot scene, one per line. A line "<motion> --at <ms>" is a moment of a motion.
 setup
 setup-failed
+first-run
+first-run-failed
 offline
 offline-dark
 reconnecting

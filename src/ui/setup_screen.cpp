@@ -4,7 +4,6 @@
 #include <cstdio>
 #include <string>
 
-#include "crpp/ui/controls.hpp"
 #include "crpp/ui/skin_canvas.hpp"
 
 namespace crpp::ui {
@@ -16,6 +15,9 @@ enum NumberId : int { Percent, Failed };
 constexpr skin::Name text_names[] = {{"message", Message}, {"percent_text", PercentText}, {"detail", Detail}};
 constexpr skin::Name number_names[] = {{"percent", Percent}, {"failed", Failed}};
 constexpr skin::Name hit_names[] = {{"retry", SetupScreen::Retry}, {"quit", SetupScreen::Quit}, {"backdrop", SetupScreen::Backdrop}, {"card", SetupScreen::Card}};
+
+// Its own colours, which no pack chooses.
+constexpr Color plain_back = rgb(0x66ccff), plain_ink = rgb(0x2e5f80), plain_track = rgb(0xd9f2ff), plain_card = rgb(0xFFFFFF);
 
 // One decimal, as the font alone is 13 MB.
 std::string megabytes(std::uint64_t bytes) {
@@ -48,7 +50,6 @@ void SetupScreen::click(int id, float, float, bool) {
 }
 
 void SetupScreen::paint(Painter& p) {
-  const Theme& t = ui_.theme;
   p.set_base(D2D1::Matrix3x2F::Identity());
   const int shown_percent = percent();
   const std::string detail = detail_of(status_);
@@ -72,33 +73,53 @@ void SetupScreen::paint(Painter& p) {
     draw_screen(ui_, p, this, *screen, {0, 0, ui_.width, ui_.height}, shown);
     return;
   }
-  // The app's own screen, in the system's font: it is what shows before any Skin Pack is there.
+  paint_plain(p, shown_percent, detail);
+}
+
+// The app's own screen, as plain as can be, in the system's font: it is what shows before any Skin
+// Pack is there, so nothing of a pack can draw it.
+void SetupScreen::paint_plain(Painter& p, int shown_percent, const std::string& detail) {
+  const Rect window{0, 0, ui_.width, ui_.height};
+  p.fill_rect(window, plain_back);
   const float w = std::min(380.0f, ui_.width - 32);
   const float x = (ui_.width - w) / 2;
-  const float y = ui_.height / 2 - 60;
-  const Color ink = t.ink_strong;
-  const TextStyle message{.size = 18, .weight = 700, .line_height = 26, .align = Align::Center, .wrap = true};
+  const TextStyle message{.size = 18, .weight = 700, .line_height = 26, .align = Align::Center, .wrap = true, .keep_words = true};
   const TextStyle note{.size = 15, .line_height = 22, .align = Align::Center};
-  if (status_.failed) {  // as a question with two answers
-    const auto [pad_top, pad_x, pad_bottom, gap, button_h, button_w, button_gap, width, wide_width, margin, text_size, text_line, align] =
-        ui_.skin().dialog_metrics();
-    const float card_w = std::min(wide_width, ui_.width - margin);
-    const TextStyle body{.size = text_size, .weight = 700, .line_height = text_line, .align = align, .wrap = true, .keep_words = true};
-    const float text_w = card_w - 2 * pad_x;
-    DWRITE_TEXT_METRICS size{};
-    if (const auto layout = ui_.gfx.layout(widen(tr().setup_failed), body, text_w)) layout->GetMetrics(&size);
-    const Rect card = paint_modal(ui_, this, p, card_w, pad_top + size.height + gap + button_h + pad_bottom, 1, Backdrop, Card);
-    p.text(std::string_view(tr().setup_failed), {card.x + pad_x, card.y + pad_top, text_w, size.height}, body, t.hl_text);
-    const float left = card.x + (card_w - 2 * button_w - button_gap) / 2, top = card.bottom() - pad_bottom - button_h;
-    paint_modal_button(ui_, this, p, {left, top, button_w, button_h}, tr().setup_retry, true, 1, Retry);
-    paint_modal_button(ui_, this, p, {left + button_w + button_gap, top, button_w, button_h}, tr().setup_quit, false, 1, Quit);
+  if (!status_.failed) {
+    const float y = ui_.height / 2 - 60;
+    p.text(std::string_view(tr().setup_message), {x, y, w, 26}, message, plain_ink);
+    const Rect track{x, y + 46, w, 8};
+    p.fill_round(track, 4, plain_track);
+    if (shown_percent > 0) p.fill_round({track.x, track.y, track.w * static_cast<float>(shown_percent) / 100, track.h}, 4, plain_ink);
+    p.text(std::to_string(shown_percent) + "%", {x, y + 64, w, 22}, note, plain_ink);
+    if (!detail.empty()) p.text(detail, {x, y + 88, w, 22}, note, plain_ink);
     return;
   }
-  p.text(std::string_view(tr().setup_message), {x, y, w, 26}, message, ink);
-  const Rect track{x, y + 46, w, 8};
-  ui_.skin().progress(p, t, track, shown_percent);
-  p.text(std::to_string(shown_percent) + "%", {x, y + 64, w, 22}, note, ink);
-  if (!detail.empty()) p.text(detail, {x, y + 88, w, 22}, note, ink);
+  // A question with two answers, on a card.
+  constexpr float pad = 24, gap = 20, button_h = 36, button_w = 120, button_gap = 10;
+  DWRITE_TEXT_METRICS size{};
+  if (const auto layout = ui_.gfx.layout(widen(tr().setup_failed), message, w - 2 * pad)) layout->GetMetrics(&size);
+  const float h = pad + size.height + gap + button_h + pad;
+  const Rect card{x, (ui_.height - h) / 2, w, h};
+  ui_.add_hit_window(this, window, Backdrop);
+  p.fill_round(card, 12, plain_card);
+  ui_.add_hit_window(this, card, Card);
+  p.text(std::string_view(tr().setup_failed), {card.x + pad, card.y + pad, w - 2 * pad, size.height}, message, plain_ink);
+  const float left = card.x + (w - 2 * button_w - button_gap) / 2, top = card.bottom() - pad - button_h;
+  const TextStyle label{.size = 15, .weight = 700, .line_height = button_h, .align = Align::Center};
+  const auto button = [&](Rect r, const char* text, bool primary, int id) {
+    const bool hot = ui_.hot(this, id);
+    if (primary) {
+      p.fill_round(r, 8, hot ? mix(plain_ink, plain_card, 85) : plain_ink);
+    } else {
+      p.fill_round(r, 8, hot ? plain_track : plain_card);
+      p.stroke_round(r, 8, plain_ink, 1.5f);
+    }
+    p.text(std::string_view(text), r, label, primary ? plain_card : plain_ink);
+    ui_.add_hit_window(this, r, id);
+  };
+  button({left, top, button_w, button_h}, tr().setup_retry, true, Retry);
+  button({left + button_w + button_gap, top, button_w, button_h}, tr().setup_quit, false, Quit);
 }
 
 }  // namespace crpp::ui

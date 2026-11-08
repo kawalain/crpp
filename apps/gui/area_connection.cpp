@@ -98,11 +98,11 @@ void demo_room(Shell& s) {
 }  // namespace
 
 bool scene(Shell& s, std::string_view name) {
-  if (name == "setup") {
+  if (name == "setup" || name == "first-run") {
     s.app.show_setup({.files_done = 76, .files = 180, .bytes_done = 7'046'430, .bytes = 16'777'216});
     return true;
   }
-  if (name == "setup-failed") {
+  if (name == "setup-failed" || name == "first-run-failed") {
     s.app.show_setup({.files_done = 76, .files = 180, .bytes_done = 7'046'430, .bytes = 16'777'216, .failed = true});
     return true;
   }

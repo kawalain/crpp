@@ -170,6 +170,7 @@ int main(int argc, char** argv) {
     assets::WindowsPlatform platform;
     shell.catalog = assets::load_catalog(shell.assets_dir, shell.repository->key, platform);
   }
+  shell.offered = shell.catalog;  // until the latest is read
   const auto absent = assets_beside_exe || !shell.catalog
                           ? std::vector<const assets::File*>{}
                           : assets::missing(*shell.catalog, assets::wanted_groups(*shell.catalog, shell.assets_dir), shell.assets_dir);
@@ -243,7 +244,8 @@ int main(int argc, char** argv) {
     start_install(shell, true);
   } else {
     enter_app(shell);
-    if (!absent.empty()) start_install(shell, false);
+    // Behind the app: the latest catalog, and what is missing. A development build has its own.
+    if (!assets_beside_exe && shell.repository) start_install(shell, false);
   }
 
   MSG msg;

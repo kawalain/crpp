@@ -62,7 +62,7 @@ struct Fetched {
                                                   Platform& platform);
 // Without a signature check: for the folder beside a development exe, as trusted as the exe.
 [[nodiscard]] std::optional<Catalog> load_local_catalog(const std::filesystem::path& dir);
-// Replaces the kept one; only a verified catalog belongs there.
+// Replaces the kept one, unless it is the same; only a verified catalog belongs there.
 [[nodiscard]] bool save_catalog(const std::filesystem::path& dir, std::string_view text);
 
 // The groups kept current: shared files, every Sound pack, the default Skin with the

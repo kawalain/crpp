@@ -175,17 +175,31 @@ void use_catalog(Shell& s, assets::Catalog catalog) {
 }
 
 struct Installed {
-  std::optional<assets::Catalog> catalog;  // a newly fetched one
+  std::optional<assets::Catalog> catalog;  // a newly fetched one, which the files now follow
+  std::optional<assets::Catalog> offered;  // a newly read one, kept for the next start
+  std::optional<assets::Error> offered_error;
   std::expected<void, assets::Error> result;
 };
 
-// On the worker thread. A first start fetches the catalog; a later one keeps its own, as
-// files arrive behind the app for the start after.
+// On the worker thread. A first start fetches the catalog and follows it. A later one reads the
+// latest and keeps it for the start after, and meanwhile fetches what is missing of its own: a
+// file that is about to change may be open, as a font is.
 Installed install(Shell& s, bool wait, const std::function<void(const assets::Progress&)>& progress) {
   assets::WindowsPlatform platform;
   Installed done;
   std::string base = s.repository->url;
   const assets::Catalog* catalog = s.catalog ? &*s.catalog : nullptr;
+  if (!wait) {
+    auto fetched = assets::fetch_catalog(*s.repository, platform);
+    if (fetched && !assets::save_catalog(s.assets_dir, fetched->text)) fetched = std::unexpected(assets::Error::Disk);
+    if (fetched) {
+      if (fetched->from_mirror) base.clear();
+      done.offered = std::move(fetched->catalog);
+    } else {
+      done.offered_error = fetched.error();
+    }
+    if (!catalog) return done;
+  }
   if (wait) {
     auto fetched = assets::fetch_catalog(*s.repository, platform);
     if (!fetched) {
@@ -201,13 +215,20 @@ Installed install(Shell& s, bool wait, const std::function<void(const assets::Pr
     catalog = &*done.catalog;
   }
   const auto groups = assets::wanted_groups(*catalog, s.assets_dir);
+  if (!wait && assets::missing(*catalog, groups, s.assets_dir).empty()) return done;
   done.result = assets::install(*catalog, base, groups, s.assets_dir, platform, progress);
   return done;
 }
 
 // On the UI thread, once the worker has ended.
 void finish_install(Shell& s, bool wait, Installed installed) {
-  if (installed.catalog) use_catalog(s, std::move(*installed.catalog));
+  if (installed.catalog) {
+    s.offered = *installed.catalog;
+    use_catalog(s, std::move(*installed.catalog));
+  }
+  if (installed.offered) s.offered = std::move(*installed.offered);
+  // The kept one stands in, as at the last start; why is for the diagnostic log only.
+  if (installed.offered_error) s.log.note(diag_of(*installed.offered_error));
   if (wait) {
     if (!skin_installed(s)) {
       s.log.note(diag_of(installed.result ? assets::Error::BadContent : installed.result.error()));

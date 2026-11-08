@@ -127,7 +127,12 @@ std::optional<Catalog> load_local_catalog(const fs::path& dir) {
   return std::move(*catalog);
 }
 
-bool save_catalog(const fs::path& dir, std::string_view text) { return replace_file(dir / catalog_name, text); }
+bool save_catalog(const fs::path& dir, std::string_view text) {
+  // Read at every start, and mostly unchanged: the disk is written only for a new one.
+  const auto kept = read_file(dir / catalog_name, max_catalog_size);
+  if (as_text(kept) == text) return true;
+  return replace_file(dir / catalog_name, text);
+}
 
 std::vector<std::string> wanted_groups(const Catalog& catalog, const fs::path& dir) {
   const auto installed = read_installed(dir);

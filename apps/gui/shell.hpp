@@ -159,7 +159,8 @@ struct Shell {
   std::filesystem::path assets_dir;
   std::filesystem::path skins_dir;              // the Skin Packs: beside the exe, or installed
   std::optional<assets::Repository> repository;  // where files come from; empty: nowhere
-  std::optional<assets::Catalog> catalog;        // the kept one, verified
+  std::optional<assets::Catalog> catalog;        // the kept one, verified, which the installed files follow
+  std::optional<assets::Catalog> offered;        // the latest, read behind the app at start: what can be picked
   std::thread assets_worker;
   std::deque<bool> install_queue;  // installs waiting for the worker, by `wait`
   std::vector<std::string> expected_sounds;  // what the catalog promises, on disk or not
@@ -197,7 +198,8 @@ void enter_app(Shell& s);
 [[nodiscard]] bool skin_installed(const Shell& s);
 // Fetches what is missing. With wait, the first start's progress screen stays until the
 // Skin Pack is in place, and says so if it cannot be; otherwise it goes on behind the app,
-// for the next start. While one runs, the next waits its turn.
+// for the next start, after reading the Repository's latest catalog for what can be picked and
+// for the next start to follow. While one runs, the next waits its turn.
 void start_install(Shell& s, bool wait);
 // A nickname like the upstream one: "<adjective> <animal>".
 std::string random_nickname(const std::filesystem::path& words);

@@ -44,7 +44,6 @@ void App::release_graphics() {
     ui_.emoji.emplace(std::move(dir));
   }
   emoji_picker_.forget_graphics();
-  room_.forget_graphics();
   ui_.gfx.release_factory();
 }
 

@@ -32,7 +32,6 @@ struct MemberView {
 class RoomScreen final : public Surface {
  public:
   explicit RoomScreen(Ui& ui);
-  void forget_graphics() { cloud_.reset(); }
 
   // What a Skin Pack can name on this screen.
   [[nodiscard]] static skin::ScreenSchema schema();
@@ -107,25 +106,8 @@ class RoomScreen final : public Surface {
   [[nodiscard]] float members_offset() const { return members_scroll_.offset; }
 
  private:
-  struct Layout {
-    float members_x, members_y, members_h;  // window coordinates
-    bool single_column;
-    Rect chat;  // the chat panel, window coordinates
-  };
-
-  [[nodiscard]] Layout layout() const;
   void paint_pack(Painter& p, const skin::Screen& screen);
-  void paint_luna(Painter& p);
-  void paint_members_luna(Painter& p, Rect area, int cols);
-  void paint_options_luna(Painter& p);
-  void paint_mute_luna(Painter& p);
-  [[nodiscard]] static Rect luna_picture_of(Rect box);
-  void paint_controls(Painter& p);
-  void paint_options_popup(Painter& p);
-  void paint_mute_popup(Painter& p);
-  void paint_members(Painter& p, const Layout& l);
   void paint_tips(Painter& p);
-  void paint_pin(Painter& p, Rect sw, bool on, bool disabled);
   void ask(Dialog dialog);
   void ask_leave();
   void notice_answered(pref::Bool seen);
@@ -134,7 +116,6 @@ class RoomScreen final : public Surface {
   void toggle_chat();
   void toggle_pin(pref::Bool key, bool on);
   [[nodiscard]] bool chat_locked() const;
-  [[nodiscard]] bool shaking() const;
   // A hovered thing's label, if it has one.
   [[nodiscard]] std::optional<HoverTip::Spec> tip_for_hover() const;
   void copy_code();
@@ -162,8 +143,6 @@ class RoomScreen final : public Surface {
   MemberMenu menu_;
   // This session's loudness per member; absent means 100%.
   std::vector<std::pair<std::string, int>> member_volumes_;
-  void make_cloud();
-  ComPtr<ID2D1Geometry> cloud_;
   std::string room_code_;
   std::vector<MemberView> members_;
   std::uint32_t me_ = 0;
@@ -176,10 +155,8 @@ class RoomScreen final : public Surface {
   std::vector<Pulse> pulses_;
   Rect ended_area_;  // of pulses gone since the last frame, which still has to clear them
   bool needs_full_ = false, new_pulse_ = false;
-  Fade mute_fade_;
   Scroll members_scroll_;
-  std::vector<std::pair<std::uint32_t, unsigned long long>> arrivals_;  // slot, when it arrived
-  std::vector<std::pair<std::uint32_t, unsigned>> came_later_;  // under a pack: slot, and which arrival this was
+  std::vector<std::pair<std::uint32_t, unsigned>> came_later_;  // slot, and which arrival this was
   unsigned arrivals_counted_ = 0;
   Rect members_area_;  // window coordinates
   Rect members_track_;
@@ -188,7 +165,7 @@ class RoomScreen final : public Surface {
   // Where the labelled things were last drawn, window coordinates.
   Rect fab_rects_[3], code_rect_, public_rect_, chat_rect_;
   std::vector<std::pair<std::uint32_t, Rect>> member_rects_;
-  std::vector<std::pair<std::uint32_t, Rect>> member_discs_;  // what changes while one types, from a pack
+  std::vector<std::pair<std::uint32_t, Rect>> member_discs_;  // what changes while one types
   HoverTip tip_, copy_tip_;
   std::string copy_text_;
   unsigned long long copy_until_ = 0, hint_muted_until_ = 0;

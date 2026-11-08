@@ -1,7 +1,8 @@
 #!/usr/bin/env bash
 # Signs a Repository's catalog in place: appends the line whose signature covers every byte
 # before it. See src/assets/include/crpp/assets/catalog.hpp for the format. The key must be
-# the one the catalog names.
+# the one the catalog names. It prints the key's fingerprint, which the app shows to a user
+# adding the Repository.
 #   .github/scripts/sign-catalog.sh <catalog.txt> <key.pem>
 set -euo pipefail
 here=$(dirname "$0")
@@ -14,3 +15,6 @@ named=$(sed -n 2p "$catalog")
 [[ $named == "key $("$here/p256.sh" public "$key")" ]] || { echo 'the catalog names another key than the one signing it' >&2; exit 1; }
 signature=$("$here/p256.sh" sign "$key" "$catalog")
 printf 'signature %s\n' "$signature" >> "$catalog"
+# What the app shows a user who adds this Repository, to compare with what its host publishes.
+fingerprint=$(printf '%s' "${named#key }" | xxd -r -p | sha256sum)
+printf 'fingerprint %s\n' "${fingerprint%% *}"

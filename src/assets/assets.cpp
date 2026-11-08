@@ -113,6 +113,20 @@ std::expected<Fetched, Error> fetch_catalog(const Repository& repository, Platfo
   return std::unexpected(first.value_or(Error::Network));
 }
 
+std::string fingerprint(const update::PublicKey& key, Platform& platform) { return platform.sha256(key); }
+
+std::expected<Fetched, Error> fetch_new_catalog(const std::string& folder, Platform& platform) {
+  const std::string url = folder + std::string(catalog_name);
+  const auto bytes = with_retries(platform, [&] { return platform.fetch(url, max_catalog_size, nullptr); });
+  if (!bytes) return std::unexpected(bytes.error());
+  const auto stated = parse_catalog(as_text(*bytes));
+  if (!stated) return std::unexpected(Error::BadContent);
+  auto catalog = checked(as_text(*bytes), stated->key, platform);
+  if (!catalog) return std::unexpected(catalog.error());
+  if (!offers_only_packs(*catalog)) return std::unexpected(Error::BadContent);
+  return Fetched{std::move(*catalog), std::string(as_text(*bytes)), false};
+}
+
 std::optional<Catalog> load_catalog(const fs::path& dir, const update::PublicKey& key, Platform& platform) {
   const auto bytes = read_file(dir / catalog_name, max_catalog_size);
   auto catalog = checked(as_text(bytes), key, platform);

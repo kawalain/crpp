@@ -290,6 +290,52 @@ std::vector<std::string> skin_chain(const Catalog& catalog, std::string_view id)
   return chain;
 }
 
+namespace {
+
+bool github_name(std::string_view s, bool dots) {
+  if (s.empty() || s.size() > 100 || s == "." || s == "..") return false;
+  return std::ranges::all_of(s, [&](char c) {
+    return (c >= 'a' && c <= 'z') || (c >= 'A' && c <= 'Z') || (c >= '0' && c <= '9') || c == '-' || (dots && (c == '.' || c == '_'));
+  });
+}
+
+}  // namespace
+
+std::string folder_of(std::string_view address) {
+  while (!address.empty() && (address.front() == ' ' || address.front() == '\t')) address.remove_prefix(1);
+  while (!address.empty() && (address.back() == ' ' || address.back() == '\t')) address.remove_suffix(1);
+  if (address.starts_with("github:")) {
+    address.remove_prefix(7);
+    std::string_view ref = "HEAD";
+    if (const std::size_t at = address.find('@'); at != std::string_view::npos) {
+      ref = address.substr(at + 1);
+      address = address.substr(0, at);
+    }
+    const std::size_t slash = address.find('/');
+    if (slash == std::string_view::npos) return {};
+    const std::string_view owner = address.substr(0, slash), repo = address.substr(slash + 1);
+    // A ref may hold slashes, as a branch does, but stays a path of its own.
+    if (!github_name(owner, false) || !github_name(repo, true) || !is_path(ref)) return {};
+    return "https://raw.githubusercontent.com/" + std::string(owner) + "/" + std::string(repo) + "/" + std::string(ref) + "/";
+  }
+  // The address of the catalog itself names its folder too.
+  if (address.ends_with(catalog_name) && address.size() > catalog_name.size() && address[address.size() - catalog_name.size() - 1] == '/') {
+    address.remove_suffix(catalog_name.size());
+  }
+  std::string folder(address);
+  if (!folder.ends_with('/')) folder += '/';
+  return is_url(folder) ? folder : std::string();
+}
+
+bool offers_only_packs(const Catalog& catalog) {
+  return std::ranges::all_of(catalog.files, [](const File& file) {
+    const std::string_view group = file.group;
+    if (group.starts_with("skin:")) return file.path.starts_with("skins/" + std::string(group.substr(5)) + "/");
+    if (group.starts_with("sound:")) return file.path.starts_with("sounds/" + std::string(group.substr(6)) + "/");
+    return false;
+  });
+}
+
 std::string skin_group(std::string_view id) { return "skin:" + std::string(id); }
 
 std::vector<std::string> picker_emoji(const Catalog& catalog) {

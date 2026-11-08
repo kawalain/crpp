@@ -407,6 +407,25 @@ void a_kept_catalog_is_checked_again() {
   CHECK(load_local_catalog(dir.path).has_value());  // beside the exe, the signature is not asked for
 }
 
+void a_new_repository_is_trusted_with_the_key_it_states() {
+  Fake fake;
+  const std::string head = "crpp-catalog 1\nkey 01" + std::string(126, '0') + "\nskin aurora 1\n";
+  const std::string signature = "\nsignature 07" + std::string(126, '0') + "\n";
+  const std::string good = head + "file skin:aurora skins/aurora/pack.cskin 3 " + std::string(64, 'b') + signature;
+  fake.served["https://other/catalog.txt"] = good;
+  const auto fetched = fetch_new_catalog("https://other/", fake);
+  CHECK(fetched && fetched->catalog.key == good_key && fetched->text == good);
+  // Only packs, each in its own folder.
+  fake.served["https://other/catalog.txt"] = head + "file skin:aurora fonts/f.ttf 3 " + std::string(64, 'b') + signature;
+  CHECK(fetch_new_catalog("https://other/", fake).error() == Error::BadContent);
+  fake.served["https://other/catalog.txt"] = signed_good;  // a shared file
+  CHECK(fetch_new_catalog("https://other/", fake).error() == Error::BadContent);
+  fake.served["https://other/catalog.txt"] = signed_bad;
+  CHECK(fetch_new_catalog("https://other/", fake).error() == Error::BadSignature);
+  CHECK(fetch_new_catalog("https://none/", fake).error() == Error::Unavailable);
+  CHECK(fingerprint(good_key, fake) == std::string(good_key.begin(), good_key.end()));
+}
+
 }  // namespace
 
 int main() {
@@ -430,5 +449,6 @@ int main() {
   a_catalog_is_kept_only_when_signed();
   the_mirror_has_the_catalog_when_the_repository_does_not();
   a_kept_catalog_is_checked_again();
+  a_new_repository_is_trusted_with_the_key_it_states();
   return crpp_test_result();
 }

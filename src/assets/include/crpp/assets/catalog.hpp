@@ -102,6 +102,18 @@ struct CatalogError {
 
 [[nodiscard]] std::string skin_group(std::string_view id);
 
+// The folder of a Repository's catalog, from what a user typed: an HTTPS folder or the
+// address of its catalog, or github:owner/repo[@ref], whose files raw.githubusercontent.com
+// serves at the ref, HEAD when none is given. Plain HTTP only to this machine, for tests.
+// Empty when it is none of these.
+[[nodiscard]] std::string folder_of(std::string_view address);
+
+// What a Repository other than the official one may offer: Skin and Sound packs, each in a
+// folder of its own, skins/<id>/ or sounds/<id>/. Emoji, words and fonts stay the official
+// one's, so the members of a Room see the same.
+[[nodiscard]] bool offers_only_packs(const Catalog& catalog);
+
+
 // The emoji the picker offers, in order: the Unicode ones, then the hand-made ones,
 // whose names are two digits.
 [[nodiscard]] std::vector<std::string> picker_emoji(const Catalog& catalog);

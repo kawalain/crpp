@@ -58,6 +58,16 @@ struct Fetched {
 // The Repository's catalog, verified, from its own folder or else from its mirror.
 [[nodiscard]] std::expected<Fetched, Error> fetch_catalog(const Repository& repository, Platform& platform);
 
+// SHA-256 of the key's 64 bytes, in lowercase hex. A Repository other than the official one
+// is known by its first 16 digits, which name its folder and come before its packs' ids.
+[[nodiscard]] std::string fingerprint(const update::PublicKey& key, Platform& platform);
+inline constexpr std::size_t short_fingerprint = 16;
+
+// The catalog in a folder no key is known for yet, signed by the key it states. Nothing vouches
+// for that key: the user is shown its fingerprint before it is trusted. One that offers more than
+// packs (offers_only_packs) is BadContent.
+[[nodiscard]] std::expected<Fetched, Error> fetch_new_catalog(const std::string& folder, Platform& platform);
+
 // The catalog kept in `dir`, if it is there and signed by `key`.
 [[nodiscard]] std::optional<Catalog> load_catalog(const std::filesystem::path& dir, const update::PublicKey& key,
                                                   Platform& platform);

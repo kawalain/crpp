@@ -158,6 +158,34 @@ void lists_the_picker_and_the_sounds() {
   CHECK((catalog && sound_files(*catalog) == std::vector<std::string>{"keyboard/a/down.wav", "keyboard/soft/x.wav"}));
 }
 
+void an_address_names_a_folder() {
+  CHECK(folder_of("https://packs.example.org/cloudroom") == "https://packs.example.org/cloudroom/");
+  CHECK(folder_of("  https://packs.example.org/a/catalog.txt ") == "https://packs.example.org/a/");
+  CHECK(folder_of("http://127.0.0.1:8765/") == "http://127.0.0.1:8765/");
+  CHECK(folder_of("http://packs.example.org/").empty());  // plain HTTP only to this machine
+  CHECK(folder_of("github:someone/my.packs") == "https://raw.githubusercontent.com/someone/my.packs/HEAD/");
+  CHECK(folder_of("github:someone/packs@v0.2.0") == "https://raw.githubusercontent.com/someone/packs/v0.2.0/");
+  CHECK(folder_of("github:someone/packs@feature/new") == "https://raw.githubusercontent.com/someone/packs/feature/new/");
+  CHECK(folder_of("github:someone/packs@../x").empty());
+  CHECK(folder_of("github:someone/..").empty());
+  CHECK(folder_of("github:some_one/packs").empty());
+  CHECK(folder_of("github:someone").empty());
+  CHECK(folder_of("packs.example.org").empty());
+  CHECK(folder_of("").empty());
+}
+
+void another_repository_offers_only_packs() {
+  Catalog catalog;
+  catalog.files = {{.group = "skin:aurora", .path = "skins/aurora/pack.cskin"}, {.group = "sound:soft", .path = "sounds/soft/a.wav"}};
+  CHECK(offers_only_packs(catalog));
+  catalog.files.push_back({.group = "skin:aurora", .path = "skins/other/pack.cskin"});
+  CHECK(!offers_only_packs(catalog));
+  catalog.files.back() = {.group = "shared", .path = "emoji/a.svg"};
+  CHECK(!offers_only_packs(catalog));
+  catalog.files.back() = {.group = "sound:soft", .path = "sounds/softer/a.wav"};
+  CHECK(!offers_only_packs(catalog));
+}
+
 }  // namespace
 
 int main() {
@@ -172,5 +200,7 @@ int main() {
   checks_what_lines_refer_to();
   follows_a_skin_to_its_parents();
   lists_the_picker_and_the_sounds();
+  an_address_names_a_folder();
+  another_repository_offers_only_packs();
   return crpp_test_result();
 }

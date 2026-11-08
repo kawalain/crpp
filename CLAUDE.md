@@ -171,7 +171,9 @@ against a real `server/` yet; do that once a local build of it is available.
   list with its size, and is fetched when picked, with progress and a cancel under the list.
 - Skins come from Repositories (ADR 0008), listed in the system tab: the official one, which stays, and those
   the user adds by an HTTPS address or `github:owner/repo[@ref]`, after a dialog with the key's fingerprint.
-  A pack of an added one is `<first 16 digits of the fingerprint>/<id>`. Upstream has none of this.
+  A pack of an added one is `<first 16 digits of the fingerprint>/<id>`. A pack may extend one of another
+  Repository, pinned by its key's fingerprint and maybe a version and digest; an update it was not made for
+  waits in the system tab until the user takes it. Upstream has none of this.
 - Upstream's Theme 구름 is 뭉게구름 ("Cumulus"), as the Skin it belongs to is 구름 too. Its id is `cumulus`;
   upstream's keys keep upstream's `cloudroom`, which is read as `cumulus` wherever it is found.
 - The create cloud on Home really grows under the pointer, as upstream's does. The C++ layout asked for it
@@ -307,7 +309,9 @@ exist (real + test).
   (`fetch_new_catalog`) once the user has seen the fingerprint; `apps/gui/area_repositories.cpp` keeps each
   in `repositories/<first 16 digits>/` of the Protected store. Behind the app at every start what is
   installed follows each Repository's latest catalog, used from the next start (`held` keeps an open font for
-  then); `kept_groups` is what an added one keeps, and `uninstall` removes a pack. `Platform` is the seam for
+  then, or a pack held back); `kept_groups` is what an added one keeps, and `uninstall` removes a pack. `pack_chain`
+  follows a pack to its parents across Repositories, and `check_pin` tells whether a parent still holds to a pin
+  (`own_digest`, which `crpp_catalog --digest` prints). `Platform` is the seam for
   WinHTTP and BCrypt.
 - `api`: the account HTTP API as pure requests and responses, and `Flow`, the
   prompt's steps. `HttpClient` is the seam for WinHTTP; `Worker` keeps its blocking
@@ -468,7 +472,8 @@ exist (real + test).
   catalog on GitHub, and raw.githubusercontent.com has not been tried as one.
 - Adding a Repository, fetching a Theme of it and removing it, updates behind the app and removing a
   downloaded Skin have run on a hidden desktop against localhost only, driven by a throwaway build, not by
-  hand. An update of the font itself, which waits a start, has only run in tests. A `github:` address has not been added from a real
+  hand. So have a parent in another Repository, a pin that asks first or holds an update back, adding a
+  parent's Repository with its child, and a key that changed. An update of the font itself, which waits a start, has only run in tests. A `github:` address has not been added from a real
   repository (raw.githubusercontent.com answered `HEAD` and a tag without a redirect), and the field, the
   dialog's long fingerprint and a pack's progress have not been seen on a real desktop.
 - v0.1.0 updated itself to v0.1.1 from GitHub on one Windows 10 PC with Defender. The cause

@@ -17,7 +17,7 @@ use modal(card_w = card_w, card_h = card_h, shown = shown, backdrop_hit = hit(ba
   let head_h = @has_tagline || @has_date || @has_version ? head_end+14 : 0
   text @tr.changelog_failed (pad_x, (@H-27)/2, @W-2*pad_x, 27) style note_failed color ink if !@has_entries
   slot body y head_h h @H-head_h numbers (pad_x, 20, 4, 14, 6, 24, head_h>0 ? 0 : head_top, @W)
-      styles (note_heading, note_item) colors (ink)
+      styles (note_heading, note_item) colors (ink, alpha(hl, 0.4))
   text @tagline (pad_x, head_top, head_w, tagline_h) style note_title color ink if @has_tagline
   text @date (pad_x, date_y, head_w, date_h) style note_date color ink if @has_date
   text @version (pad_x, version_y, head_w, version_h) style note_version color alpha(hl_text_soft, shown)

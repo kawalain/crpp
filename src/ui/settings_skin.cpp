@@ -79,8 +79,8 @@ constexpr skin::Name system_numbers[] = {{"autostart", AutostartN}, {"tray", Sys
                                          {"repositories", RepositoriesN}, {"repo_official", RepoOfficialN}, {"repo_state", RepoStateN},
                                          {"address_focus", AddressFocusN}, {"address_empty", AddressEmptyN}, {"packs", PacksN}, {"pack_removable", PackRemovableN},
                                          {"pack_held", PackHeldN}};
-enum SystemSlot : int { ReleaseSlot, AddressSlot };
-constexpr skin::Name system_slots[] = {{"release_list", ReleaseSlot}, {"address", AddressSlot}};
+enum SystemSlot : int { ReleaseSlot, AddressSlot, FingerprintSlot };
+constexpr skin::Name system_slots[] = {{"release_list", ReleaseSlot}, {"address", AddressSlot}, {"fingerprint", FingerprintSlot}};
 constexpr skin::Name system_hits[] = {{"autostart", SystemTab::Autostart}, {"tray", SystemTab::Tray}, {"detail", SystemTab::Detail}, {"logging", SystemTab::Logging},
                                       {"open_logs", SystemTab::OpenLogs}, {"reset", SystemTab::Reset}, {"address", SystemTab::Address},
                                       {"add_repository", SystemTab::AddRepository}, {"remove_repository", SystemTab::RemoveRepository},
@@ -509,7 +509,15 @@ void SystemTab::paint_pack(Painter& p, const skin::Screen& screen, Rect area) {
       }
     }
 
-    void slot(int id, int, skin::Box at, const skin::SlotValues& values) override {
+    void slot(int id, int index, skin::Box at, const skin::SlotValues& values) override {
+      if (id == FingerprintSlot) {
+        const auto row = static_cast<std::size_t>(index);
+        if (row >= fingerprints_.size() || values.styles.empty() || values.colors.empty()) return;
+        // A pack of format 1 names no selection colour: the text's, lighter.
+        const Color selection = values.colors.size() > 1 ? values.colors[1] : with_alpha(values.colors[0], 0.25f);
+        s_.paint_fingerprint(p_, row, rect_of(at), text_style_of(values.styles[0]), values.colors[0], selection);
+        return;
+      }
       if (id == ReleaseSlot) {
         s_.release_rect_ = rect_of(at);
         s_.release_.paint_button(s_.ui_, &s_, p_, s_.release_rect_);

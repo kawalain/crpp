@@ -106,6 +106,7 @@ void ChangelogView::close() {
   // Nothing of this stays in memory while it is closed.
   entries_ = {};
   lines_ = {};
+  selection_.clear();
   built_ = false;
   idle_at_ = 0;
   hint_ = hint_shown_ = 0;
@@ -122,6 +123,7 @@ void ChangelogView::next() {
 
 void ChangelogView::show(std::size_t index, bool at_bottom) {
   index_ = index;
+  selection_.clear();
   built_ = false;
   scroll_ = {};
   start_at_bottom_ = at_bottom;
@@ -154,6 +156,7 @@ void ChangelogView::lay_out_body(const BodyLook& look, float width) {
       line.x = look.pad_x;
       line.y = y;
       line.layout = runs_layout(gfx, block.runs, look.heading, width - 2 * look.pad_x);
+      for (const update::NoteRun& run : block.runs) line.text += widen(run.text);
       y += layout_height(line.layout.get()) + look.heading_bottom;
     } else {
       const float indent = block.kind == update::NoteKind::Bullet ? look.indent * static_cast<float>(block.indent + 1) : 0;
@@ -161,6 +164,7 @@ void ChangelogView::lay_out_body(const BodyLook& look, float width) {
       line.x = look.pad_x + indent;
       line.y = y;
       line.layout = runs_layout(gfx, block.runs, look.item, width - 2 * look.pad_x - indent);
+      for (const update::NoteRun& run : block.runs) line.text += widen(run.text);
       if (block.kind == update::NoteKind::Bullet) {
         if (block.marker.empty()) {
           line.bullet_x = line.x - 11;
@@ -187,18 +191,30 @@ void ChangelogView::scroll_body() {
   scroll_.advance(ui_);
 }
 
-void ChangelogView::paint_body(Painter& p, Rect body, const TextStyle& item, float marker_h, Color ink) {
+void ChangelogView::paint_body(Painter& p, Rect body, const TextStyle& item, float marker_h, Color ink, Color selection) {
+  body_ = body;
   // The body scrolls under the head, which stays (.cl-head is sticky).
   p.rt()->PushAxisAlignedClip(D2D1::RectF(body.x, body.y, body.right(), body.bottom()), D2D1_ANTIALIAS_MODE_PER_PRIMITIVE);
   const bool fade = push_edge_fade(ui_, p, body, scroll_.fade_top(), scroll_.fade_bottom());
-  for (const Line& line : lines_) {
+  ui_.push_hit_clip(body);
+  for (std::size_t i = 0; i < lines_.size(); ++i) {
+    const Line& line = lines_[i];
     const float y = body.y + line.y - scroll_.drawn();
+    if (line.layout) {
+      DWRITE_TEXT_METRICS m{};
+      line.layout->GetMetrics(&m);
+      ui_.add_hit_window(this, {body.x + line.x, y, line.layout->GetMaxWidth(), m.height}, Text);
+      if (const auto part = selection_.in_block(i, line.text.size())) {
+        p.fill_text_range(line.layout.get(), body.x + line.x, y, part->first, part->second, selection);
+      }
+    }
     if (line.bullet_x >= 0) p.fill_ellipse(body.x + line.bullet_x, y + first_line_ / 2, 2.5f, 2.5f, ink);
     if (!line.marker.empty()) {
       p.text(line.marker, {body.x + line.marker_x - 4, y, marker_w, marker_h}, item, ink);
     }
     if (line.layout) p.draw_layout(line.layout.get(), body.x + line.x, y, ink);
   }
+  ui_.pop_hit_clip();
   pop_edge_fade(p, fade);
   p.rt()->PopAxisAlignedClip();
 }
@@ -244,7 +260,13 @@ void ChangelogView::paint_pack(Painter& p, const skin::Screen& screen) {
       }
       v_.scroll_.view_h = box.h;
       v_.scroll_body();
-      v_.paint_body(p_, rect_of(box), item, item.line_height, values.colors[0]);
+      v_.scroll_while_selecting();
+      // A pack of format 1 names no selection colour: the ink, lighter.
+      const Color selection = values.colors.size() > 1 ? values.colors[1] : with_alpha(values.colors[0], 0.25f);
+      v_.paint_body(p_, rect_of(box), item, item.line_height, values.colors[0], selection);
+      if (v_.selecting_ && v_.scrolled_at_ != 0) {
+        v_.selection_.drag_to(v_.point_at(v_.drag_x_, v_.drag_y_), [this](std::size_t n) { return v_.text_of(n); });
+      }
     }
     void note(int, int, skin::Box box) override { v_.bar_track_ = rect_of(box); }
     void report(int, float value) override {
@@ -268,8 +290,17 @@ void ChangelogView::paint(Painter& p) {
   }
 }
 
-void ChangelogView::click(int id, float, float y, bool) {
-  if (id == Close || id == Backdrop) {
+void ChangelogView::click(int id, float x, float y, bool shift) {
+  if (id == Text) {
+    // The notes take the keys now: Ctrl+C copies what is selected, Ctrl+A selects them all.
+    ui_.selection_owner = this;
+    ui_.capture = this;
+    selecting_ = true;
+    drag_x_ = x;
+    drag_y_ = y;
+    scrolled_at_ = 0;
+    selection_.press(point_at(x, y), ui_.clicks, shift, [this](std::size_t n) { return text_of(n); });
+  } else if (id == Close || id == Backdrop) {
     close();
   } else if (repeats(id)) {
     scroll_.step_towards(bar_track_, y);
@@ -280,7 +311,13 @@ void ChangelogView::click(int id, float, float y, bool) {
   }
 }
 
-void ChangelogView::drag(float, float y) {
+void ChangelogView::drag(float x, float y) {
+  if (selecting_) {
+    drag_x_ = x;
+    drag_y_ = y;
+    selection_.drag_to(point_at(x, y), [this](std::size_t n) { return text_of(n); });
+    return;
+  }
   const float travel = std::max(1.0f, bar_track_.h - scroll_.thumb(bar_track_).h);
   scroll_.jump_to(grab_offset_ + (y - grab_y_) * scroll_.max_offset() / travel);
 }
@@ -312,7 +349,63 @@ bool ChangelogView::escape() {
   return true;
 }
 
-Cursor ChangelogView::cursor(int id) const { return id == Close ? Cursor::Hand : Cursor::Arrow; }
+Cursor ChangelogView::cursor(int id) const {
+  if (id == Text) return Cursor::IBeam;
+  return id == Close ? Cursor::Hand : Cursor::Arrow;
+}
+
+std::wstring_view ChangelogView::text_of(std::size_t line) const {
+  return line < lines_.size() ? std::wstring_view(lines_[line].text) : std::wstring_view{};
+}
+
+std::wstring ChangelogView::selected_text() const {
+  return selection_.text([this](std::size_t n) { return text_of(n); });
+}
+
+TextPoint ChangelogView::point_at(float x, float y) const {
+  if (lines_.empty()) return {};
+  const float ly = y - body_.y + scroll_.drawn();
+  // The last line that starts above the point; above them all, the start of the first.
+  std::size_t i = lines_.size();
+  while (i > 0 && lines_[i - 1].y > ly) --i;
+  if (i == 0) return {0, 0};
+  --i;
+  const Line& line = lines_[i];
+  if (!line.layout) return {i, 0};
+  BOOL trailing = FALSE, inside = FALSE;
+  DWRITE_HIT_TEST_METRICS m{};
+  line.layout->HitTestPoint(x - body_.x - line.x, ly - line.y, &trailing, &inside, &m);
+  return {i, std::min<std::size_t>(m.textPosition + (trailing ? m.length : 0), line.text.size())};
+}
+
+void ChangelogView::scroll_while_selecting() {
+  if (!selecting_) return;
+  const float past = drag_y_ < body_.y ? drag_y_ - body_.y : drag_y_ > body_.bottom() ? drag_y_ - body_.bottom() : 0;
+  if (past == 0) {
+    scrolled_at_ = 0;
+    return;
+  }
+  const float speed = std::clamp(std::abs(past) * 10, 60.0f, 2400.0f);
+  const unsigned long long now = ui_.now_ms;
+  const float elapsed = scrolled_at_ == 0 ? 16.0f : static_cast<float>(std::min<unsigned long long>(now - scrolled_at_, 50));
+  scrolled_at_ = now;
+  scroll_.jump_to(scroll_.offset + (past < 0 ? -speed : speed) * elapsed / 1000);
+  scroll_.clamp();
+  ui_.more_frames = true;
+}
+
+bool ChangelogView::key(unsigned vk, bool ctrl, bool shift) {
+  if (!ctrl || shift) return false;
+  if (vk == 'C' || vk == VK_INSERT) {
+    if (!selection_.empty()) ui_.copy(selected_text());
+    return true;
+  }
+  if (vk == 'A' && !lines_.empty()) {
+    selection_.select({0, 0}, {lines_.size() - 1, lines_.back().text.size()});
+    return true;
+  }
+  return false;
+}
 
 bool ChangelogView::animating() const { return ui_.animations && open_ && was_animating_; }
 

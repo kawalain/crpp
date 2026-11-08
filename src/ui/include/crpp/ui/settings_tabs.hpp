@@ -8,6 +8,7 @@
 #include <vector>
 
 #include "crpp/skin/pack.hpp"
+#include "crpp/ui/read_selection.hpp"
 #include "crpp/ui/controls.hpp"
 #include "crpp/ui/prefs.hpp"
 #include "crpp/ui/settings_rows.hpp"
@@ -209,7 +210,7 @@ class SystemTab final : public SettingsTab {
  public:
   explicit SystemTab(Ui& ui);
   [[nodiscard]] static skin::ScreenSchema schema();
-  enum Id : int { Autostart = 1, Tray, Detail, Logging, OpenLogs, Reset, Address, AddRepository, ReleaseList = 300, RemoveRepository = 500, RemovePack = 700, UpdatePack = 900 };
+  enum Id : int { Autostart = 1, Tray, Detail, Logging, OpenLogs, Reset, Address, AddRepository, ReleaseList = 300, RemoveRepository = 500, RemovePack = 700, UpdatePack = 900, Fingerprint = 1100 };
 
   // A Repository in the list, the official one first, which cannot be removed.
   struct RepositoryRow {
@@ -254,10 +255,22 @@ class SystemTab final : public SettingsTab {
   bool wheel(float x, float y, float delta) override;
   bool escape() override;
   void drag(float x, float y) override;
+  void release() override { selecting_ = false; }
+  void drop_selection() override { selection_.clear(); }
+  bool key(unsigned vk, bool ctrl, bool shift) override;
   void enter(bool shift) override;
   [[nodiscard]] Cursor cursor(int id) const override;
+  // What is selected of the fingerprints, as a copy takes it.
+  [[nodiscard]] std::wstring selected_text() const;
+  // A Repository's fingerprint as drawn, a line of text to select: its box on the stage.
+  void paint_fingerprint(Painter& p, std::size_t row, Rect box, const TextStyle& style, Color ink, Color selection);
 
  private:
+  [[nodiscard]] bool is_fingerprint(int id) const {
+    return id >= Fingerprint && static_cast<std::size_t>(id - Fingerprint) < repositories_.size();
+  }
+  [[nodiscard]] TextPoint fingerprint_point(float x, float y) const;
+  [[nodiscard]] std::wstring_view fingerprint_of(std::size_t row) const;
   void paint_pack(Painter& p, const skin::Screen& screen, Rect area);
   void sync_release();
   void add();
@@ -274,6 +287,15 @@ class SystemTab final : public SettingsTab {
   TextField address_;
   TextStyle address_style_;
   float address_x_ = 0, address_scroll_ = 0;  // where its text starts on the stage, and how far it is scrolled
+  // The fingerprints as drawn last, one block of text each.
+  struct FingerprintLine {
+    std::wstring text;
+    Rect box;
+  };
+  std::vector<FingerprintLine> fingerprints_;
+  TextStyle fingerprint_style_;
+  ReadSelection selection_;
+  bool selecting_ = false;
 };
 
 class AccountTab final : public SettingsTab {

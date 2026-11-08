@@ -1,4 +1,6 @@
 // The update popup and the changelog viewer, driven without a window.
+#include <optional>
+
 #include "check.hpp"
 #include "crpp/update/notes.hpp"
 #include "ui_harness.hpp"
@@ -131,6 +133,44 @@ void the_version_button_says_what_it_does_and_opens() {
   h.app.settings().on_version = [&] { ++opened; };
   CHECK(h.click(h.app.settings(), SettingsPanel::Version));
   CHECK(opened == 1);
+}
+
+class FakeClipboard final : public Clipboard {
+ public:
+  bool set_text(std::wstring_view text) override {
+    held = text;
+    return true;
+  }
+  std::optional<std::wstring> text() override { return held; }
+  bool has_text() override { return held.has_value(); }
+  std::optional<std::wstring> held;
+};
+
+// The notes are text to select and copy, line by line, in either Skin.
+void the_notes_can_be_selected_and_copied(const char* pack) {
+  UiHarness h;
+  CHECK(h.start(951, 692, pack));
+  FakeClipboard clipboard;
+  h.app.ui().clipboard = &clipboard;
+  ChangelogView& view = h.app.changelog();
+  view.open({entry("0.3.0", "## Changes\n- first item\n- second item")}, 0);
+  if (h.app.open_panes().size() > 0) h.on_pane(Pane::Changelog);  // a window of its own under Retro
+  h.render();
+  const Ui::Hit* last = h.app.ui().find_hit(&view, ChangelogView::Text);
+  CHECK(last != nullptr);
+  if (!last) return;
+  const Rect line = last->rect;
+  const float y = line.y + 3;
+  hold_clock_at(5000000);
+  h.app.mouse_move(line.x + 1, y);
+  h.app.mouse_down(line.x + 1, y, false);
+  h.app.mouse_move(line.x + 600, y);
+  h.app.mouse_up(line.x + 600, y);
+  CHECK(view.selected_text() == L"second item");
+  CHECK(h.app.key_down('C', true, false) && clipboard.held == L"second item");
+  CHECK(h.app.key_down('A', true, false));
+  CHECK(view.selected_text() == L"Changes\nfirst item\nsecond item");
+  hold_clock_at(0);
 }
 
 void opens_closes_and_keeps_nothing() {
@@ -310,6 +350,8 @@ void nothing_beneath_it_takes_the_wheel_or_a_click() {
 }  // namespace
 
 int main() {
+  the_notes_can_be_selected_and_copied(CRPP_TEST_SKINS "/cloud");
+  the_notes_can_be_selected_and_copied(CRPP_TEST_SKINS "/retro");
   the_popup_is_hidden_until_told();
   the_button_starts_the_update_and_goes_away_while_busy();
   the_popup_sits_at_the_top_left_on_every_view();

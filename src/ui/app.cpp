@@ -731,6 +731,11 @@ bool App::key_down(unsigned vk, bool ctrl, bool shift) {
       if (s->escape()) return true;
     }
   }
+  // As in a Windows message box, Ctrl+C copies the whole question.
+  if (dialogs_.is_open() && !ui_.focus && ctrl && !shift && (vk == 'C' || vk == VK_INSERT)) {
+    ui_.copy(widen(dialogs_.text()));
+    return true;
+  }
   if (!ui_.focus) return ui_.selection_owner && ui_.selection_owner->key(vk, ctrl, shift);
   ui_.caret_on = true;
   return ui_.focus_owner->key(vk, ctrl, shift);

@@ -10,7 +10,7 @@ text @tr.system_repositories_hint (16, 314, 505, 24) style row_hint color hl_tex
 repeat @repositories {
   let top = 348+@i*58
   text @repo_address (16, top, 355, 26) style row_label color hl_text
-  text @repo_fingerprint (16, top+26, 355, 20) style row_hint color hl_text_soft
+  slot fingerprint (16, top+26, 355, 20) styles (row_hint) colors (hl_text_soft, alpha(hl, 0.4))
   use text_button (381, top+4, 140, 38) text @tr.system_repository_remove hit remove_repository if @repo_official<1
 }
 let add_top = 348+@repositories*58+4

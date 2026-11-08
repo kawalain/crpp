@@ -1,5 +1,7 @@
 #include <ctime>
 
+#include <optional>
+
 #include "check.hpp"
 #include "crpp/ui/controls.hpp"
 #include "ui_harness.hpp"
@@ -127,6 +129,55 @@ void test_system_rows() {
   h.render();
   CHECK(h.click(tab, SystemTab::OpenLogs));
   CHECK(opened == 1);
+}
+
+class FakeClipboard final : public Clipboard {
+ public:
+  bool set_text(std::wstring_view text) override {
+    held = text;
+    return true;
+  }
+  std::optional<std::wstring> text() override { return held; }
+  bool has_text() override { return held.has_value(); }
+  std::optional<std::wstring> held;
+};
+
+// A fingerprint is text to select, to compare with what its publisher says.
+void test_a_fingerprint_can_be_selected_and_copied(const char* pack) {
+  UiHarness h;
+  CHECK(h.start(951, 692, pack));
+  FakeClipboard clipboard;
+  h.app.ui().clipboard = &clipboard;
+  SystemTab& tab = h.app.settings().system();
+  tab.set_repositories({{"https://crpp.kawala.in/", "0123456789abcdef", true}});
+  open(h, SettingsPage::System);
+  for (const Pane pane : h.app.open_panes()) h.on_pane(pane);  // a window of its own under Retro
+  h.app.settings().scroll_to(250);
+  h.render();
+  const Ui::Hit* hit = h.app.ui().find_hit(&tab, SystemTab::Fingerprint);
+  CHECK(hit != nullptr);
+  if (!hit) return;
+  const float y = hit->rect.y + hit->rect.h / 2;
+  hold_clock_at(5000000);
+  h.app.mouse_move(hit->rect.x + 1, y);
+  h.app.mouse_down(hit->rect.x + 1, y, false);
+  h.app.mouse_move(hit->rect.right() - 1, y);
+  h.app.mouse_up(hit->rect.right() - 1, y);
+  CHECK(tab.selected_text() == L"지문 0123 4567 89ab cdef");
+  CHECK(h.app.key_down('C', true, false) && clipboard.held == L"지문 0123 4567 89ab cdef");
+  hold_clock_at(0);
+}
+
+// As in a Windows message box, Ctrl+C copies the question, a fingerprint in it included.
+void test_a_question_is_copied_whole() {
+  UiHarness h;
+  CHECK(h.start());
+  FakeClipboard clipboard;
+  h.app.ui().clipboard = &clipboard;
+  h.app.ui().dialogs->show({"Trust this key?\nab12 cd34", "Add", "Cancel", false, nullptr, nullptr});
+  h.render();
+  CHECK(h.app.key_down('C', true, false));
+  CHECK(clipboard.held == L"Trust this key?\nab12 cd34");
 }
 
 // What is typed goes to the shell as typed, on the button or Enter, and a row's button names its row.
@@ -332,6 +383,9 @@ void test_chat_clock() {
 }  // namespace
 
 int main() {
+  test_a_fingerprint_can_be_selected_and_copied(CRPP_TEST_SKINS "/cloud");
+  test_a_fingerprint_can_be_selected_and_copied(CRPP_TEST_SKINS "/retro");
+  test_a_question_is_copied_whole();
   test_upstreams_name_for_cumulus_is_kept_in_its_keys();
   test_a_repository_is_added_and_removed_by_the_shell();
   test_escape_closes_the_dropdown_then_the_panel();

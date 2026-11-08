@@ -87,9 +87,72 @@ void SystemTab::before_click(const Surface* owner, int id) {
   if (owner != this || !release_.owns(id)) release_.open = false;
 }
 
-bool SystemTab::acts_on_press(int id) const { return id == release_.id_base || id == Address; }
+bool SystemTab::acts_on_press(int id) const { return id == release_.id_base || id == Address || is_fingerprint(id); }
 
-void SystemTab::click(int id, float x, float, bool shift) {
+void SystemTab::paint_fingerprint(Painter& p, std::size_t row, Rect box, const TextStyle& style, Color ink, Color selection) {
+  if (fingerprints_.size() != repositories_.size()) fingerprints_.resize(repositories_.size());
+  FingerprintLine& line = fingerprints_[row];
+  line.text = widen(fingerprint_text(row));
+  line.box = box;
+  fingerprint_style_ = style;
+  const auto layout = ui_.gfx.layout(line.text, style, box.w, box.h);
+  if (!layout) return;
+  ui_.add_hit(this, box, Fingerprint + static_cast<int>(row));
+  if (const auto part = selection_.in_block(row, line.text.size())) {
+    p.fill_text_range(layout.get(), box.x, box.y, part->first, part->second, selection);
+  }
+  p.draw_layout(layout.get(), box.x, box.y, ink);
+}
+
+std::wstring_view SystemTab::fingerprint_of(std::size_t row) const {
+  return row < fingerprints_.size() ? std::wstring_view(fingerprints_[row].text) : std::wstring_view{};
+}
+
+std::wstring SystemTab::selected_text() const {
+  return selection_.text([this](std::size_t n) { return fingerprint_of(n); });
+}
+
+TextPoint SystemTab::fingerprint_point(float x, float y) const {
+  const float sx = ui_.to_stage_x(x), sy = ui_.to_stage_y(y);
+  // The last line that starts above the point.
+  std::size_t row = 0;
+  for (std::size_t i = 0; i < fingerprints_.size(); ++i) {
+    if (fingerprints_[i].box.y <= sy) row = i;
+  }
+  if (row >= fingerprints_.size()) return {};
+  const FingerprintLine& line = fingerprints_[row];
+  if (sy >= line.box.bottom() && row + 1 < fingerprints_.size()) return {row, line.text.size()};
+  const auto layout = ui_.gfx.layout(line.text, fingerprint_style_, line.box.w, line.box.h);
+  if (!layout) return {row, 0};
+  BOOL trailing = FALSE, inside = FALSE;
+  DWRITE_HIT_TEST_METRICS m{};
+  layout->HitTestPoint(sx - line.box.x, sy - line.box.y, &trailing, &inside, &m);
+  return {row, std::min<std::size_t>(m.textPosition + (trailing ? m.length : 0), line.text.size())};
+}
+
+bool SystemTab::key(unsigned vk, bool ctrl, bool shift) {
+  if (ui_.focus == &address_) return Surface::key(vk, ctrl, shift);
+  if (!ctrl || shift) return false;
+  if (vk == 'C' || vk == VK_INSERT) {
+    if (!selection_.empty()) ui_.copy(selected_text());
+    return true;
+  }
+  if (vk == 'A' && !fingerprints_.empty()) {
+    selection_.select({0, 0}, {fingerprints_.size() - 1, fingerprints_.back().text.size()});
+    return true;
+  }
+  return false;
+}
+
+void SystemTab::click(int id, float x, float y, bool shift) {
+  if (is_fingerprint(id)) {
+    // The fingerprints take the keys now: Ctrl+C copies what is selected of them.
+    ui_.selection_owner = this;
+    ui_.capture = this;
+    selecting_ = true;
+    selection_.press(fingerprint_point(x, y), ui_.clicks, shift, [this](std::size_t n) { return fingerprint_of(n); });
+    return;
+  }
   Prefs& prefs = *ui_.prefs;
   const auto flip = [&](pref::Bool key) { prefs.set(key, !prefs.get(key)); };
   if (id == Autostart) {
@@ -122,13 +185,17 @@ void SystemTab::click(int id, float x, float, bool shift) {
   }
 }
 
-void SystemTab::drag(float x, float) {
+void SystemTab::drag(float x, float y) {
+  if (selecting_) {
+    selection_.drag_to(fingerprint_point(x, y), [this](std::size_t n) { return fingerprint_of(n); });
+    return;
+  }
   address_.drag_to(address_.position_at(ui_.gfx, address_style_, ui_.to_stage_x(x) - address_x_ + address_scroll_, 0));
 }
 
 void SystemTab::enter(bool) { add(); }
 
-Cursor SystemTab::cursor(int id) const { return id == Address ? Cursor::IBeam : Cursor::Hand; }
+Cursor SystemTab::cursor(int id) const { return id == Address || is_fingerprint(id) ? Cursor::IBeam : Cursor::Hand; }
 
 bool SystemTab::wheel(float x, float y, float delta) { return release_.wheel(ui_, x, y, delta); }
 

@@ -5,6 +5,7 @@
 #include <string>
 #include <vector>
 
+#include "crpp/ui/read_selection.hpp"
 #include "crpp/ui/controls.hpp"
 #include "crpp/ui/surface.hpp"
 #include "crpp/update/notes.hpp"
@@ -42,7 +43,7 @@ class ChangelogOverscroll {
 class ChangelogView final : public Surface {
  public:
   using Surface::Surface;
-  enum Id : int { Backdrop, Card, Close, BarTrack, BarThumb, BarUp, BarDown };
+  enum Id : int { Backdrop, Card, Close, BarTrack, BarThumb, BarUp, BarDown, Text };
 
   [[nodiscard]] static skin::ScreenSchema schema();
 
@@ -61,10 +62,15 @@ class ChangelogView final : public Surface {
 
   void paint(Painter& p);
   void click(int id, float x, float y, bool shift) override;
-  [[nodiscard]] bool acts_on_press(int id) const override { return repeats(id) || id == BarThumb; }
+  [[nodiscard]] bool acts_on_press(int id) const override { return repeats(id) || id == BarThumb || id == Text; }
   [[nodiscard]] bool repeats(int id) const override { return id == BarTrack || id == BarUp || id == BarDown; }
   [[nodiscard]] float scroll_offset() const { return scroll_.offset; }
   void drag(float x, float y) override;
+  void release() override { selecting_ = false; }
+  void drop_selection() override { selection_.clear(); }
+  bool key(unsigned vk, bool ctrl, bool shift) override;
+  // What is selected of the notes, as a copy takes it.
+  [[nodiscard]] std::wstring selected_text() const;
   bool wheel(float x, float y, float delta) override;
   bool escape() override;
   [[nodiscard]] Cursor cursor(int id) const override;
@@ -79,6 +85,7 @@ class ChangelogView final : public Surface {
     float bullet_x = -1;
     std::wstring marker;
     float marker_x = 0;
+    std::wstring text;  // what the layout holds, for a copy
   };
   // How the notes' lines are laid out and written.
   struct BodyLook {
@@ -88,7 +95,11 @@ class ChangelogView final : public Surface {
   void show(std::size_t index, bool at_bottom);
   void lay_out_body(const BodyLook& look, float width);
   void scroll_body();
-  void paint_body(Painter& p, Rect body, const TextStyle& item, float marker_h, Color ink);
+  void paint_body(Painter& p, Rect body, const TextStyle& item, float marker_h, Color ink, Color selection);
+  [[nodiscard]] TextPoint point_at(float x, float y) const;
+  [[nodiscard]] std::wstring_view text_of(std::size_t line) const;
+  // Under the button past the top or bottom of the notes, they scroll that way.
+  void scroll_while_selecting();
   void paint_pack(Painter& p, const skin::Screen& screen);
   void show_hint(int direction);
 
@@ -104,6 +115,12 @@ class ChangelogView final : public Surface {
   bool start_at_bottom_ = false;
   Rect bar_track_;
   float grab_y_ = 0, grab_offset_ = 0;
+  // Lines of the notes are blocks of text to select; body_ is where they were drawn last.
+  ReadSelection selection_;
+  Rect body_;
+  bool selecting_ = false;
+  float drag_x_ = 0, drag_y_ = 0;
+  unsigned long long scrolled_at_ = 0;
 
   ChangelogOverscroll overscroll_;
   int hint_ = 0, hint_shown_ = 0;  // the wanted direction; the one being drawn or fading

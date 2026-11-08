@@ -314,6 +314,44 @@ void test_a_long_value_keeps_the_caret_in_the_field() {
   CHECK(field && h.app.caret_rect().x > h.app.ui().find_hit(&h.app.prompt(), PromptScreen::Field)->rect.x);
 }
 
+// Held past the field's end, the text goes on moving under a still pointer and the selection with it,
+// as in an edit control of Windows, and it stops at the end.
+void test_a_drag_held_past_the_end_goes_on_scrolling() {
+  UiHarness h;
+  CHECK(h.start());
+  h.app.show_prompt(three_or_more());
+  h.render();
+  type(h, std::wstring(80, L'w'));
+  h.app.key_down(VK_HOME, false, false);
+  h.render();
+  const Ui::Hit* hit = h.app.ui().find_hit(&h.app.prompt(), PromptScreen::Field);
+  CHECK(hit != nullptr);
+  if (!hit) return;
+  const Rect field = hit->rect;
+  const float y = field.y + field.h / 2;
+  h.app.mouse_move(field.x + 2, y);
+  h.app.mouse_down(field.x + 2, y, false);
+  h.app.mouse_move(field.right() + 200, y);
+  h.render();
+  const TextField* text = h.app.ui().focus;
+  CHECK(text != nullptr);
+  if (!text) return;
+  const std::size_t first = text->selected_text().size();
+  CHECK(first > 0 && first < 80);
+  CHECK(h.app.ui().more_frames);
+  // Frames alone, the pointer still: it goes on until all is selected, and then asks for no more.
+  for (int i = 0; i < 400 && text->selected_text().size() < 80; ++i) {
+    Sleep(5);
+    h.render();
+  }
+  CHECK(text->selected_text().size() == 80);
+  CHECK(h.app.caret_rect().x >= field.x && h.app.caret_rect().x <= field.right());
+  h.render();
+  h.render();
+  CHECK(!h.app.ui().more_frames);
+  h.app.mouse_up(field.right() + 200, y);
+}
+
 }  // namespace
 
 int main() {
@@ -332,5 +370,6 @@ int main() {
   test_lock_counts_down_without_polling();
   test_a_room_goes_on_under_the_prompt();
   test_a_long_value_keeps_the_caret_in_the_field();
+  test_a_drag_held_past_the_end_goes_on_scrolling();
   return crpp_test_result();
 }

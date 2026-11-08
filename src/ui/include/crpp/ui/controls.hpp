@@ -1,7 +1,9 @@
 #pragma once
 // Controls shared by the screens. They are drawing functions and small value types;
 // the surface that uses one keeps its state and registers its hits.
+#include <span>
 #include <string>
+#include <string_view>
 #include <vector>
 
 #include "crpp/ui/surface.hpp"
@@ -19,6 +21,30 @@ namespace crpp::ui {
 inline constexpr float slider_thumb = 21;
 // Where on a slider (.volume-slider) x is: r is the hit area, the track runs through its middle.
 [[nodiscard]] int slider_value(Rect r, float x, int min, int max);
+
+// A one-line field in a box. Its text moves sideways to keep the caret in view, and while a drag
+// holds the button past either end it goes on moving that way, faster the farther the pointer is, as
+// a scrolled area does under a drag. Every x is in the coordinates the box is painted in.
+class LineBox {
+ public:
+  // Draws `field` clipped to `box` and returns the caret. `colors` are the text, the placeholder,
+  // the caret, the selection and the background; `held` says the button is down on the field.
+  Rect paint(Ui& ui, Painter& p, TextField& field, Rect box, const TextStyle& style, std::wstring_view placeholder,
+             std::span<const Color> colors, bool focused, bool held);
+  // The place in the text under x.
+  [[nodiscard]] std::size_t position_at(const Ui& ui, const TextField& field, float x) const {
+    return field.position_at(ui.gfx, style_, x - box_.x + scroll_, 0);
+  }
+  // A drag to x. Past an end the selection stops at the edge, and the frames move the text on.
+  void drag(const Ui& ui, TextField& field, float x);
+  void reset() { scroll_ = 0, moved_at_ = 0; }
+
+ private:
+  TextStyle style_{};
+  Rect box_{};
+  float scroll_ = 0, drag_x_ = 0;  // how far the text is moved left; where the drag is
+  unsigned long long moved_at_ = 0;
+};
 
 // A scrolled column of content; the owner draws it at y - drawn(). The wheel sets where
 // it heads and each frame's advance moves it there. Past either end it stretches a little

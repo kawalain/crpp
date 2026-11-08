@@ -335,8 +335,7 @@ class SystemTab final : public SettingsTab {
   Adding adding_;
   std::vector<PackRow> packs_;
   TextField address_;
-  TextStyle address_style_;
-  float address_x_ = 0, address_scroll_ = 0;  // where its text starts on the stage, and how far it is scrolled
+  LineBox address_line_;  // on the stage
   // The fingerprints as drawn last, one block of text each.
   struct FingerprintLine {
     std::wstring text;

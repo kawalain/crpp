@@ -6,6 +6,7 @@
 #include <string_view>
 
 #include "crpp/skin/pack.hpp"
+#include "crpp/ui/controls.hpp"
 #include "crpp/ui/surface.hpp"
 
 namespace crpp::ui {
@@ -75,7 +76,6 @@ class PromptScreen final : public Surface {
 
  private:
   void paint_pack(Painter& p, const skin::Screen& screen, bool is_locked, bool hint_error);
-  [[nodiscard]] TextStyle field_style() const;
  public:
   [[nodiscard]] std::vector<MenuItem> context_menu(int id, float x, float y) override;
   void menu_command(MenuCommand command) override;
@@ -93,9 +93,7 @@ class PromptScreen final : public Surface {
   bool busy_ = false;
   unsigned long long lock_until_ = 0;
   unsigned long long next_wake_ = 0;
-  float scroll_x_ = 0;  // how far the text is scrolled to keep the caret in view
-  float text_x_ = 0;    // where the field's text starts, in window coordinates
-  TextStyle pack_field_style_;
+  LineBox line_;  // in window coordinates
 };
 
 }  // namespace crpp::ui

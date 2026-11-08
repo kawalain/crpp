@@ -70,25 +70,9 @@ void PromptScreen::paint_pack(Painter& p, const skin::Screen& screen, bool is_lo
     void slot(int, int, skin::Box at, const skin::SlotValues& values) override {
       const Rect box = rect_of(at);
       const TextStyle style = text_style_of(values.styles[0]);
-      const Color ink = values.colors[0], soft = values.colors[1], caret_ink = values.colors[2], selection = values.colors[3], back = values.colors[4];
-      s_.pack_field_style_ = style;
-      s_.text_x_ = box.x;
-      p_.rt()->PushAxisAlignedClip(D2D1::RectF(box.x, box.y, box.right(), box.bottom()), D2D1_ANTIALIAS_MODE_ALIASED);
       const bool focused = s_.ui_.focus == &s_.field_;
-      const auto draw_field = [&] {
-        return s_.field_.paint(p_, {box.x - s_.scroll_x_, box.y, box.w + s_.scroll_x_, box.h}, style, ink, widen(s_.prompt_.placeholder), style, soft, caret_ink, selection, focused, s_.ui_.caret_on);
-      };
-      Rect caret = draw_field();
-      const float caret_in_text = caret.x + s_.scroll_x_ - box.x;
-      float wanted = s_.scroll_x_;
-      if (caret_in_text - s_.scroll_x_ > box.w - 2) wanted = caret_in_text - box.w + 2;
-      else if (caret_in_text < s_.scroll_x_) wanted = caret_in_text;
-      if (wanted != s_.scroll_x_) {
-        s_.scroll_x_ = wanted;
-        p_.fill_rect(box, back);
-        caret = draw_field();
-      }
-      p_.rt()->PopAxisAlignedClip();
+      const bool held = s_.ui_.pressed_owner == &s_ && s_.ui_.pressed_id == PromptScreen::Field;
+      const Rect caret = s_.line_.paint(s_.ui_, p_, s_.field_, box, style, widen(s_.prompt_.placeholder), values.colors.first(5), focused, held);
       if (focused) s_.ui_.caret = caret;
     }
 

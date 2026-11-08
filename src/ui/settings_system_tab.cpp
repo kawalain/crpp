@@ -54,26 +54,9 @@ std::string SystemTab::status_text() const {
 }
 
 void SystemTab::paint_address(Painter& p, Rect box, const TextStyle& style, std::span<const Color> colors) {
-  const Color ink = colors[0], soft = colors[1], caret_ink = colors[2], selection = colors[3], back = colors[4];
-  address_style_ = style;
-  address_x_ = box.x;
-  p.rt()->PushAxisAlignedClip(D2D1::RectF(box.x, box.y, box.right(), box.bottom()), D2D1_ANTIALIAS_MODE_ALIASED);
   const bool focused = ui_.focus == &address_;
-  const auto draw_field = [&] {
-    return address_.paint(p, {box.x - address_scroll_, box.y, box.w + address_scroll_, box.h}, style, ink, widen(tr().system_repository_placeholder), style, soft,
-                          caret_ink, selection, focused, ui_.caret_on);
-  };
-  Rect caret = draw_field();
-  const float caret_in_text = caret.x + address_scroll_ - box.x;
-  float wanted = address_scroll_;
-  if (caret_in_text - address_scroll_ > box.w - 2) wanted = caret_in_text - box.w + 2;
-  else if (caret_in_text < address_scroll_) wanted = caret_in_text;
-  if (wanted != address_scroll_) {
-    address_scroll_ = wanted;
-    p.fill_rect(box, back);
-    caret = draw_field();
-  }
-  p.rt()->PopAxisAlignedClip();
+  const bool held = ui_.pressed_owner == this && ui_.pressed_id == Address;
+  const Rect caret = address_line_.paint(ui_, p, address_, box, style, widen(tr().system_repository_placeholder), colors, focused, held);
   if (focused) ui_.caret = ui_.to_window(caret);
 }
 
@@ -138,7 +121,7 @@ std::vector<MenuItem> SystemTab::context_menu(int id, float x, float y) {
   menu_for_address_ = id == Address || (id == -1 && ui_.focus == &address_);
   if (id == Address) {
     ui_.set_focus(this, &address_);
-    address_.right_press(address_.position_at(ui_.gfx, address_style_, ui_.to_stage_x(x) - address_x_ + address_scroll_, 0));
+    address_.right_press(address_line_.position_at(ui_, address_, ui_.to_stage_x(x)));
     return ui_.field_menu(address_);
   }
   if (id == -1 && ui_.focus == &address_) return ui_.field_menu(address_);
@@ -220,7 +203,7 @@ void SystemTab::click(int id, float x, float y, bool shift) {
     if (on_open_logs) on_open_logs();
   } else if (id == Address) {
     ui_.set_focus(this, &address_);
-    address_.press(address_.position_at(ui_.gfx, address_style_, ui_.to_stage_x(x) - address_x_ + address_scroll_, 0), ui_.clicks, shift);
+    address_.press(address_line_.position_at(ui_, address_, ui_.to_stage_x(x)), ui_.clicks, shift);
   } else if (id == AddRepository) {
     add();
   } else if (id >= UpdatePack && static_cast<std::size_t>(id - UpdatePack) < packs_.size()) {
@@ -243,7 +226,7 @@ void SystemTab::drag(float x, float y) {
     selection_.drag_to(fingerprint_point(x, y), [this](std::size_t n) { return fingerprint_of(n); });
     return;
   }
-  address_.drag_to(address_.position_at(ui_.gfx, address_style_, ui_.to_stage_x(x) - address_x_ + address_scroll_, 0));
+  address_line_.drag(ui_, address_, ui_.to_stage_x(x));
 }
 
 void SystemTab::enter(bool) { add(); }

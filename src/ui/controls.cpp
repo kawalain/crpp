@@ -155,6 +155,55 @@ bool Dropdown::wheel(const Ui& ui, float x, float y, float delta) {
   return true;
 }
 
+Rect LineBox::paint(Ui& ui, Painter& p, TextField& field, Rect box, const TextStyle& style, std::wstring_view placeholder,
+                    std::span<const Color> colors, bool focused, bool held) {
+  style_ = style;
+  box_ = box;
+  // Held past an end, the text moves under the pointer and the selection follows the edge.
+  const float past = !held ? 0 : drag_x_ < box.x ? drag_x_ - box.x : drag_x_ > box.right() ? drag_x_ - box.right() : 0;
+  if (past == 0) {
+    moved_at_ = 0;
+  } else {
+    const float speed = std::clamp(std::abs(past) * 10, 60.0f, 2400.0f);  // pixels a second, as the chat's log
+    const float elapsed = moved_at_ == 0 ? 16.0f : static_cast<float>(std::min<unsigned long long>(ui.now_ms - moved_at_, 50));
+    moved_at_ = ui.now_ms;
+    float end = 0;
+    if (const auto layout = ui.gfx.layout(field.shown(), style, 100000)) {
+      DWRITE_TEXT_METRICS m{};
+      layout->GetMetrics(&m);
+      end = m.widthIncludingTrailingWhitespace;
+    }
+    const float to = std::clamp(scroll_ + (past < 0 ? -speed : speed) * elapsed / 1000, 0.0f, std::max(0.0f, end - box.w + 2));
+    if (to != scroll_) {
+      scroll_ = to;
+      ui.more_frames = true;  // only while it moves: at an end a still pointer costs nothing
+    }
+    field.drag_to(position_at(ui, field, std::clamp(drag_x_, box.x, box.right())));
+  }
+  p.rt()->PushAxisAlignedClip(D2D1::RectF(box.x, box.y, box.right(), box.bottom()), D2D1_ANTIALIAS_MODE_ALIASED);
+  const auto draw = [&] {
+    return field.paint(p, {box.x - scroll_, box.y, box.w + scroll_, box.h}, style, colors[0], placeholder, style, colors[1], colors[2],
+                       colors[3], focused, ui.caret_on);
+  };
+  Rect caret = draw();
+  const float caret_in_text = caret.x + scroll_ - box.x;
+  float wanted = scroll_;
+  if (caret_in_text - scroll_ > box.w - 2) wanted = caret_in_text - box.w + 2;
+  else if (caret_in_text < scroll_) wanted = caret_in_text;
+  if (wanted != scroll_) {
+    scroll_ = wanted;
+    p.fill_rect(box, colors[4]);
+    caret = draw();
+  }
+  p.rt()->PopAxisAlignedClip();
+  return caret;
+}
+
+void LineBox::drag(const Ui& ui, TextField& field, float x) {
+  drag_x_ = x;
+  field.drag_to(position_at(ui, field, std::clamp(x, box_.x, box_.right())));
+}
+
 void Scroll::clamp() {
   offset = std::clamp(offset, 0.0f, max_offset());
   target = std::clamp(target, 0.0f, max_offset());

@@ -21,7 +21,7 @@ void PromptScreen::show(Prompt prompt) {
   field_.set_text(widen(prompt_.value));
   busy_ = false;
   lock_until_ = next_wake_ = 0;
-  scroll_x_ = 0;
+  line_.reset();
   seen_ = field_.text();
   valid_ = prompt_.valid && prompt_.valid(prompt_.value);
   take_focus();
@@ -93,12 +93,10 @@ void PromptScreen::submit() {
   if (on_submit) on_submit(std::move(text));
 }
 
-TextStyle PromptScreen::field_style() const { return pack_field_style_; }
-
 std::vector<MenuItem> PromptScreen::context_menu(int id, float x, float) {
   if (id == Field && lock_until_ == 0) {
     take_focus();
-    field_.right_press(field_.position_at(ui_.gfx, field_style(), x - text_x_ + scroll_x_, 0));
+    field_.right_press(line_.position_at(ui_, field_, x));
   } else if (id != -1 || ui_.focus != &field_) {
     return {};
   }
@@ -110,14 +108,14 @@ void PromptScreen::menu_command(MenuCommand command) {
   ui_.field_command(field_, command);
 }
 
-void PromptScreen::drag(float x, float) { field_.drag_to(field_.position_at(ui_.gfx, field_style(), x - text_x_ + scroll_x_, 0)); }
+void PromptScreen::drag(float x, float) { line_.drag(ui_, field_, x); }
 
 void PromptScreen::click(int id, float x, float, bool shift) {
   take_focus();
   switch (id) {
     case Field:
       if (lock_until_ != 0) return;
-      field_.press(field_.position_at(ui_.gfx, field_style(), x - text_x_ + scroll_x_, 0), ui_.clicks, shift);
+      field_.press(line_.position_at(ui_, field_, x), ui_.clicks, shift);
       ui_.capture = this;
       return;
     case Eye:

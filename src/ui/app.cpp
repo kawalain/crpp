@@ -689,6 +689,10 @@ bool App::mouse_down(float x, float y, bool shift) {
   last_press_owner_ = owner;
   last_press_id_ = id;
   ui_.set_focus(nullptr, nullptr);
+  if (ui_.selection_owner && ui_.selection_owner != owner) {
+    ui_.selection_owner->drop_selection();
+    ui_.selection_owner = nullptr;
+  }
   ui_.caret_on = true;
   for (Surface* s : layers()) s->before_click(owner, id);
   // What is under the button is what the look and the release go by, even if the last move saw something else.
@@ -727,7 +731,7 @@ bool App::key_down(unsigned vk, bool ctrl, bool shift) {
       if (s->escape()) return true;
     }
   }
-  if (!ui_.focus) return false;
+  if (!ui_.focus) return ui_.selection_owner && ui_.selection_owner->key(vk, ctrl, shift);
   ui_.caret_on = true;
   return ui_.focus_owner->key(vk, ctrl, shift);
 }

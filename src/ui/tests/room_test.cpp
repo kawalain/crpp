@@ -1,6 +1,7 @@
 // The Room screen through a windowless App.
 #include <cmath>
 #include <filesystem>
+#include <optional>
 #include <fstream>
 #include <string>
 #include <vector>
@@ -437,6 +438,69 @@ void with_assets(UiHarness& h) {
   for (int i = 0; i < 172; ++i) ids.push_back(i < 165 ? "1f" + std::to_string(100 + i) : "0" + std::to_string(i - 164));
   h.app.ui().emoji_ids = std::move(ids);
   h.app.reload_assets(dir);
+}
+
+class FakeClipboard final : public Clipboard {
+ public:
+  bool set_text(std::wstring_view text) override {
+    held = text;
+    return true;
+  }
+  std::optional<std::wstring> text() override { return held; }
+  bool has_text() override { return held.has_value(); }
+  std::optional<std::wstring> held;
+};
+
+// Messages are text to select and copy, in either Skin's chat.
+void messages_can_be_selected_and_copied(const char* pack) {
+  UiHarness h;
+  CHECK(h.start(951, 692, pack));
+  FakeClipboard clipboard;
+  h.app.ui().clipboard = &clipboard;
+  h.app.show_session("ABC234");
+  h.app.room().set_room({{0, "a", "", false}}, 0, 0, false, true);
+  ChatPanel& chat = h.app.room().chat();
+  chat.add({0, "c0", "a", "", "alpha one", 1700000000000});
+  chat.add({0, "c0", "a", "", "beta two", 1700000001000});
+  chat.add({0, "c0", "a", "", "gamma three", 1700000002000});
+  h.render();
+  h.render();
+  const Ui::Hit* last = h.app.ui().find_hit(&chat, ChatPanel::Text);  // the last drawn
+  CHECK(last != nullptr);
+  if (!last) return;
+  const Rect body = last->rect;
+  const float y = body.y + 3;
+
+  // A drag along the line selects it; Ctrl+C copies it.
+  hold_clock_at(5000000);
+  h.app.mouse_move(body.x + 1, y);
+  h.app.mouse_down(body.x + 1, y, false);
+  h.app.mouse_move(body.right() - 1, y);
+  h.app.mouse_up(body.right() - 1, y);
+  h.render();
+  CHECK(chat.selected_text() == L"gamma three");
+  CHECK(h.app.key_down('C', true, false) && clipboard.held == L"gamma three");
+
+  // Ctrl+A takes every message, one per line.
+  CHECK(h.app.key_down('A', true, false));
+  CHECK(chat.selected_text() == L"alpha one\nbeta two\ngamma three");
+
+  // A double click takes a word.
+  hold_clock_at(6000000);
+  h.app.mouse_down(body.x + 1, y, false);
+  h.app.mouse_up(body.x + 1, y);
+  h.app.mouse_down(body.x + 1, y, false);
+  h.app.mouse_up(body.x + 1, y);
+  CHECK(chat.selected_text() == L"gamma");
+
+  // A click in the field takes the keys back, and the selection goes.
+  hold_clock_at(7000000);
+  CHECK(h.click(chat, ChatPanel::Input));
+  CHECK(chat.selected_text().empty());
+  chat.input().set_text(L"typed");
+  CHECK(h.app.key_down('A', true, false) && h.app.key_down('C', true, false));
+  CHECK(clipboard.held == L"typed");
+  hold_clock_at(0);
 }
 
 void test_a_new_message_rises_but_a_history_does_not() {
@@ -1259,6 +1323,8 @@ void test_clearing_the_chat_starts_over() {
 }  // namespace
 
 int main() {
+  messages_can_be_selected_and_copied(CRPP_TEST_SKINS "/cloud");
+  messages_can_be_selected_and_copied(CRPP_TEST_SKINS "/retro");
   test_a_pack_cannot_read_past_a_list();
   test_shadow_layers_follow_css();
   test_a_speaking_disc_fades_in_holds_and_fades_out();

@@ -3,9 +3,10 @@
 #include <windows.h>
 
 #include <algorithm>
-#include <cstdint>
 #include <cwctype>
 #include <vector>
+
+#include "crpp/ui/text_units.hpp"
 
 namespace crpp::ui {
 
@@ -24,48 +25,6 @@ std::size_t step(const std::wstring& s, std::size_t pos, int dir) {
   if (pos >= s.size()) return s.size();
   ++pos;
   if (pos < s.size() && s[pos] >= 0xDC00 && s[pos] <= 0xDFFF && s[pos - 1] >= 0xD800 && s[pos - 1] <= 0xDBFF) ++pos;
-  return pos;
-}
-
-bool is_low_surrogate(wchar_t c) { return c >= 0xDC00 && c <= 0xDFFF; }
-
-// What a word is made of. A word is a run of one kind; spaces between words belong to none,
-// and a line break stops every run.
-enum class Kind : std::uint8_t { Space, Break, Word, Mark };
-
-Kind kind_of(wchar_t c) {
-  if (c == L'\n') return Kind::Break;
-  if (std::iswspace(c) || c == 0x3000) return Kind::Space;
-  if (c < 0x80) return std::iswalnum(c) || c == L'_' ? Kind::Word : Kind::Mark;
-  // Punctuation outside ASCII: general, CJK and full-width. Letters of any script, Hangul
-  // among them, and emoji are words.
-  if ((c >= 0x2000 && c <= 0x206F) || (c >= 0x3001 && c <= 0x303F) || (c >= 0xFF01 && c <= 0xFF0F) ||
-      (c >= 0xFF1A && c <= 0xFF20) || (c >= 0xFF3B && c <= 0xFF40) || (c >= 0xFF5B && c <= 0xFF65)) {
-    return Kind::Mark;
-  }
-  return Kind::Word;
-}
-
-// Where Ctrl+Right goes: past the run at pos, then past the spaces after it.
-std::size_t next_word(const std::wstring& s, std::size_t pos) {
-  if (pos >= s.size()) return s.size();
-  const Kind k = kind_of(s[pos]);
-  if (k == Kind::Break) return pos + 1;
-  if (k != Kind::Space) {
-    while (pos < s.size() && kind_of(s[pos]) == k) ++pos;
-  }
-  while (pos < s.size() && kind_of(s[pos]) == Kind::Space) ++pos;
-  return pos;
-}
-
-// Where Ctrl+Left goes: back past spaces, then to the start of the run before them.
-std::size_t previous_word(const std::wstring& s, std::size_t pos) {
-  pos = std::min(pos, s.size());
-  while (pos > 0 && kind_of(s[pos - 1]) == Kind::Space) --pos;
-  if (pos == 0) return 0;
-  const Kind k = kind_of(s[pos - 1]);
-  if (k == Kind::Break) return pos - 1;
-  while (pos > 0 && kind_of(s[pos - 1]) == k) --pos;
   return pos;
 }
 
@@ -140,22 +99,7 @@ void TextField::erase() {
 }
 
 std::pair<std::size_t, std::size_t> TextField::unit_at(std::size_t pos, int clicks) const {
-  pos = std::min(pos, text_.size());
-  if (clicks <= 1 || text_.empty()) return {pos, pos};
-  if (clicks >= 3) {
-    const std::size_t before = pos == 0 ? std::wstring::npos : text_.rfind(L'\n', pos - 1);
-    const std::size_t end = text_.find(L'\n', pos);
-    return {before == std::wstring::npos ? 0 : before + 1, end == std::wstring::npos ? text_.size() : end};
-  }
-  // The run the character at pos belongs to; at the end, the one before it.
-  std::size_t at = pos < text_.size() ? pos : pos - 1;
-  if (is_low_surrogate(text_[at]) && at > 0) --at;
-  const Kind k = kind_of(text_[at]);
-  if (k == Kind::Break) return {at, at};
-  std::size_t lo = at, hi = at;
-  while (lo > 0 && kind_of(text_[lo - 1]) == k) --lo;
-  while (hi < text_.size() && kind_of(text_[hi]) == k) ++hi;
-  return {lo, hi};
+  return ui::unit_at(text_, pos, clicks);
 }
 
 void TextField::press(std::size_t pos, int clicks, bool extend) {

@@ -1,6 +1,6 @@
 if(WIN32)
   add_library(crpp_ui STATIC
-    gfx.cpp svg.cpp textfield.cpp clipboard.cpp png.cpp surface.cpp controls.cpp cursor_sheet.cpp cursor_image.cpp window_frame.cpp skin_canvas.cpp skin_choice.cpp app.cpp
+    gfx.cpp svg.cpp textfield.cpp text_units.cpp read_selection.cpp clipboard.cpp png.cpp surface.cpp controls.cpp cursor_sheet.cpp cursor_image.cpp window_frame.cpp skin_canvas.cpp skin_choice.cpp app.cpp
     setup_screen.cpp prompt_screen.cpp home_screen.cpp room_screen.cpp chat_panel.cpp notice_card.cpp dialogs.cpp toasts.cpp emoji_picker.cpp
     offline_popup.cpp connection_feedback.cpp
     settings_panel.cpp settings_rows.cpp settings_sound_tab.cpp settings_display_tab.cpp settings_notify_tab.cpp settings_system_tab.cpp
@@ -21,6 +21,12 @@ if(WIN32)
   target_include_directories(crpp_ui_textfield_test PRIVATE ${PROJECT_SOURCE_DIR}/tests/support)
   crpp_target_defaults(crpp_ui_textfield_test)
   add_test(NAME ui.textfield COMMAND crpp_ui_textfield_test)
+
+  add_executable(crpp_ui_read_selection_test tests/read_selection_test.cpp)
+  target_link_libraries(crpp_ui_read_selection_test PRIVATE crpp_ui)
+  target_include_directories(crpp_ui_read_selection_test PRIVATE ${PROJECT_SOURCE_DIR}/tests/support)
+  crpp_target_defaults(crpp_ui_read_selection_test)
+  add_test(NAME ui.read_selection COMMAND crpp_ui_read_selection_test)
 
   add_executable(crpp_ui_flow_test tests/flow_test.cpp)
   target_link_libraries(crpp_ui_flow_test PRIVATE crpp_ui crpp_ui_test_skins)

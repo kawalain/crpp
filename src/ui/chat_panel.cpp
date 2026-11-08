@@ -63,6 +63,7 @@ void ChatPanel::clear() {
   dropped_ += log_.size();
   log_.clear();
   rows_.clear();
+  log_selection_.clear();
   first_ = 0;
   fresh_ = dirty_ = true;
   scroll_ = {};
@@ -112,7 +113,7 @@ bool ChatPanel::tick(unsigned long long now_ms) {
 }
 
 Cursor ChatPanel::cursor(int id) const {
-  if (id == Input) return Cursor::IBeam;
+  if (id == Input || id == Text) return Cursor::IBeam;
   return id == Area ? Cursor::Arrow : Cursor::Hand;
 }
 
@@ -147,7 +148,20 @@ void ChatPanel::click(int id, float x, float y, bool shift) {
     if (on_open_link && !on_open_link(url) && ui_.toasts) ui_.toasts->toast(tr().chat_link_failed);
     return;
   }
+  if (id == Text) {
+    // The messages take the keys now: Ctrl+C copies what is selected, Ctrl+A selects them all.
+    ui_.selection_owner = this;
+    ui_.capture = this;
+    selecting_log_ = true;
+    drag_x_ = x;
+    drag_y_ = y;
+    scrolled_at_ = 0;
+    log_selection_.press(log_point(x, y), ui_.clicks, shift, [this](std::size_t n) { return text_of(n); });
+    return;
+  }
   if (id != Input && id != Send) return;
+  log_selection_.clear();
+  if (ui_.selection_owner == this) ui_.selection_owner = nullptr;
   ui_.set_focus(this, &input_);
   if (id == Send) {
     send();
@@ -162,7 +176,62 @@ std::size_t ChatPanel::input_position(float x, float y) const {
   return input_.position_at(ui_.gfx, pack_input_style_, x - input_box_.x, y - input_box_.y, std::max(1.0f, input_text_w_));
 }
 
-void ChatPanel::release() { selecting_ = false; }
+void ChatPanel::release() { selecting_ = selecting_log_ = false; }
+
+std::wstring_view ChatPanel::text_of(std::size_t number) {
+  if (number < dropped_ || number - dropped_ >= log_.size()) return {};
+  block_text_ = widen(log_[number - dropped_].text);
+  return block_text_;
+}
+
+std::wstring ChatPanel::selected_text() {
+  return log_selection_.text([this](std::size_t n) { return text_of(n); });
+}
+
+TextPoint ChatPanel::log_point(float x, float y) {
+  const std::size_t base = dropped_ + first_;
+  if (rows_.empty()) return {base, 0};
+  const LogGeometry& g = log_geometry_;
+  const float lx = (x - g.x) / g.scale, ly = (y - g.y) / g.scale;
+  // The last row whose text starts above the point; above them all, the start of the first.
+  std::size_t r = rows_.size();
+  while (r > 0 && rows_[r - 1].y_text > ly) --r;
+  if (r == 0) return {base, 0};
+  --r;
+  const Row& row = rows_[r];
+  const std::wstring text = widen(log_[first_ + r].text);
+  if (ly >= row.y_text + row.h_text) return {base + r, text.size()};
+  ComPtr<IDWriteTextLayout> spare;
+  IDWriteTextLayout* layout = row.text.get();
+  if (!layout) {
+    spare = ui_.gfx.layout(text, g.style, g.width, 100000);
+    layout = spare.get();
+  }
+  if (!layout) return {base + r, 0};
+  BOOL trailing = FALSE, inside = FALSE;
+  DWRITE_HIT_TEST_METRICS m{};
+  layout->HitTestPoint(lx, ly - row.y_text, &trailing, &inside, &m);
+  return {base + r, std::min<std::size_t>(m.textPosition + (trailing ? m.length : 0), text.size())};
+}
+
+void ChatPanel::scroll_while_selecting() {
+  if (!selecting_log_) return;
+  const Rect& view = log_geometry_.view;
+  const float past = drag_y_ < view.y ? drag_y_ - view.y : drag_y_ > view.bottom() ? drag_y_ - view.bottom() : 0;
+  if (past == 0) {
+    scrolled_at_ = 0;
+    return;
+  }
+  // Pixels a second: a little past the edge creeps, far past it runs. Frames come only while held there.
+  const float speed = std::clamp(std::abs(past) * 10, 60.0f, 2400.0f);
+  const unsigned long long now = ui_.now_ms;
+  const float elapsed = scrolled_at_ == 0 ? 16.0f : static_cast<float>(std::min<unsigned long long>(now - scrolled_at_, 50));
+  scrolled_at_ = now;
+  scroll_.jump_to(scroll_.offset + (past < 0 ? -speed : speed) * elapsed / 1000);
+  scroll_.clamp();
+  scrolled();
+  ui_.more_frames = true;
+}
 
 bool ChatPanel::wheel(float x, float y, float delta) {
   if (!area_.contains(x, y)) return false;
@@ -183,6 +252,12 @@ void ChatPanel::scrolled() {
 }
 
 void ChatPanel::drag(float x, float y) {
+  if (selecting_log_) {
+    drag_x_ = x;
+    drag_y_ = y;
+    log_selection_.drag_to(log_point(x, y), [this](std::size_t n) { return text_of(n); });
+    return;
+  }
   if (selecting_) {
     input_.drag_to(input_position(x, y));
     return;
@@ -198,6 +273,18 @@ void ChatPanel::enter(bool shift) {
 }
 
 bool ChatPanel::key(unsigned vk, bool ctrl, bool shift) {
+  if (ui_.focus != &input_) {  // the messages have the keys
+    if (ctrl && !shift && (vk == 'C' || vk == VK_INSERT)) {
+      if (!log_selection_.empty()) ui_.copy(selected_text());
+      return true;
+    }
+    if (ctrl && !shift && vk == 'A' && !log_.empty()) {
+      const std::size_t last = dropped_ + log_.size() - 1;
+      log_selection_.select({dropped_, 0}, {last, widen(log_.back().text).size()});
+      return true;
+    }
+    return false;
+  }
   if (vk == VK_UP || vk == VK_DOWN) {
     input_.move_vertical(ui_.gfx, pack_input_style_, input_text_w_, vk == VK_UP ? -1 : 1, shift);
     return true;

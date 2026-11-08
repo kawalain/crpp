@@ -57,6 +57,7 @@ void ChatPanel::paint_pack(Painter& p, const skin::Screen& screen, Rect panel) {
       s_.pack_input_style_ = style;
       s_.input_text_w_ = box.w;
       s_.input_box_ = rect_of(box);
+      s_.selection_color_ = look.selection;  // the messages' selection looks like the field's
       const bool focused = s_.ui_.focus == &s_.input_;
       const Rect caret = s_.input_.paint(p_, rect_of(box), style, look.color, widen(look.placeholder), style, look.placeholder_color, look.caret, look.selection, focused, s_.ui_.caret_on);
       if (focused) s_.ui_.caret = caret;
@@ -159,9 +160,11 @@ void ChatPanel::paint_rows(Painter& p, Rect area) {
   p.rt()->PushAxisAlignedClip(D2D1::RectF(area.x, area.y, area.right(), area.bottom()), D2D1_ANTIALIAS_MODE_PER_PRIMITIVE);
   const bool fade = push_edge_fade(ui_, p, area, scroll_.fade_top(), scroll_.fade_bottom());
   ui_.push_hit_clip(area);
+  scroll_while_selecting();
   const float list_top = area.y - scroll_.drawn();
   p.set_base(D2D1::Matrix3x2F::Scale(zoom_, zoom_) * D2D1::Matrix3x2F::Translation(area.x, list_top));
   const float x = look.x;
+  log_geometry_ = {area.x + x * zoom_, list_top, zoom_, list_w, area, look.body};
   show_link_tip_ = false;
   link_tip_spec_ = {};
   std::size_t in_view_from = rows_.size(), in_view_to = 0;
@@ -201,6 +204,7 @@ void ChatPanel::paint_rows(Painter& p, Rect area) {
     if (!row.text) row.text = ui_.gfx.layout(widen(e.text), look.body, list_w, 100000);
     if (!row.text) continue;
     IDWriteTextLayout* const layout = row.text.get();
+    paint_body(p, r, x, row.y_text + rise);
     for (std::size_t l = 0; l < row.links.size() && l < links_per_entry; ++l) {
       const LinkSpan link = row.links[l];
       const int id = LinkBase + static_cast<int>(dropped_ + index) * links_per_entry + static_cast<int>(l);
@@ -240,6 +244,8 @@ void ChatPanel::paint_rows(Painter& p, Rect area) {
   }
   kept_from_ = in_view_from;
   kept_to_ = in_view_to;
+  // Scrolled under a still pointer, the selection follows what came under it.
+  if (selecting_log_ && scrolled_at_ != 0) log_selection_.drag_to(log_point(drag_x_, drag_y_), [this](std::size_t n) { return text_of(n); });
   ui_.pop_hit_clip();
   p.set_base(D2D1::Matrix3x2F::Identity());
   pop_edge_fade(p, fade);
@@ -248,6 +254,17 @@ void ChatPanel::paint_rows(Painter& p, Rect area) {
   if (show_link_tip_ && link_tip_spec_.anchor.y - look.tip_h < area.y + look.tip_margin) {
     link_tip_spec_.anchor.y = link_tip_spec_.anchor.bottom() + look.tip_below;
   }
+}
+
+void ChatPanel::paint_body(Painter& p, std::size_t r, float x, float y) {
+  const Row& row = rows_[r];
+  const LogGeometry& g = log_geometry_;
+  ui_.add_hit_window(this, {g.x, g.y + row.y_text * g.scale, g.width * g.scale, row.h_text * g.scale}, Text);
+  if (log_selection_.empty()) return;
+  const std::size_t number = dropped_ + first_ + r;
+  if (number < log_selection_.start().block || number > log_selection_.end().block) return;
+  const auto part = log_selection_.in_block(number, widen(log_[first_ + r].text).size());
+  if (part) p.fill_text_range(row.text.get(), x, y, part->first, part->second, selection_color_);
 }
 
 void ChatPanel::append_message(std::size_t index, float list_w) {
@@ -302,11 +319,14 @@ void ChatPanel::paint_messages(Painter& p, Rect inner) {
   if (stick_) scroll_.jump_to(max_scroll);
   scroll_.clamp();
   scroll_.advance(ui_);
+  log_geometry_.view = {inner.x, inner.y, inner.w - look.bar_w, inner.h};
+  scroll_while_selecting();
 
   const TextStyle& body = look.body;
   const TextStyle head{.size = body.size, .line_height = body.line_height, .ellipsis = true, .exact = true};
   const TextStyle time_style{.size = body.size, .line_height = body.line_height, .align = Align::Right, .exact = true};
   const float x = inner.x + look.pad, top = inner.y - scroll_.drawn();
+  log_geometry_ = {x + look.indent, top, 1, text_w_full - look.indent, log_geometry_.view, body};
   show_link_tip_ = false;
   link_tip_spec_ = {};
   p.rt()->PushAxisAlignedClip(D2D1::RectF(inner.x, inner.y, inner.right() - look.bar_w, inner.bottom()), D2D1_ANTIALIAS_MODE_ALIASED);
@@ -339,6 +359,7 @@ void ChatPanel::paint_messages(Painter& p, Rect inner) {
     if (!row.text) continue;
     IDWriteTextLayout* const layout = row.text.get();
     const float text_x = x + look.indent, text_y = top + row.y_text;
+    paint_body(p, r, text_x, text_y);
     for (std::size_t n = 0; n < row.links.size() && n < links_per_entry; ++n) {
       const LinkSpan link = row.links[n];
       const int id = LinkBase + static_cast<int>(dropped_ + index) * links_per_entry + static_cast<int>(n);
@@ -368,6 +389,7 @@ void ChatPanel::paint_messages(Painter& p, Rect inner) {
   }
   kept_from_ = in_view_from;
   kept_to_ = in_view_to;
+  if (selecting_log_ && scrolled_at_ != 0) log_selection_.drag_to(log_point(drag_x_, drag_y_), [this](std::size_t n) { return text_of(n); });
   ui_.pop_hit_clip();
   p.rt()->PopAxisAlignedClip();
 }

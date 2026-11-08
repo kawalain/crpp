@@ -194,6 +194,8 @@ class Painter {
   void shadow_round(Rect r, float radius, float blur, float dy, Color c);
 
   void draw_layout(IDWriteTextLayout* layout, float x, float y, Color c);
+  // Fills behind [start, end) of a layout drawn at x, y, line by line, as a selection is.
+  void fill_text_range(IDWriteTextLayout* layout, float x, float y, std::size_t start, std::size_t end, Color c);
   // Draws text with its CSS line box starting at r.y. Returns the laid-out size.
   D2D1_SIZE_F text(std::wstring_view s, Rect r, const TextStyle& style, Color c);
   // A colour glyph of the system's emoji font, filling r.

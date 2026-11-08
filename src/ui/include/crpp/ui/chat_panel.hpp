@@ -8,6 +8,7 @@
 #include "crpp/skin/pack.hpp"
 #include "crpp/ui/chat_logic.hpp"
 #include "crpp/ui/controls.hpp"
+#include "crpp/ui/read_selection.hpp"
 #include "crpp/ui/surface.hpp"
 #include "crpp/ui/tip.hpp"
 
@@ -37,7 +38,7 @@ class ChatPanel final : public Surface {
 
   // Fixed values plus LinkBase + message number * links_per_entry + link index. A message's
   // number stays when older ones leave the log, so a drawn id never means another message.
-  enum Id : int { Input, Send, Area, BarUp, BarDown, BarTrack, BarThumb, LinkBase = 1000 };
+  enum Id : int { Input, Send, Area, BarUp, BarDown, BarTrack, BarThumb, Text, LinkBase = 1000 };
   static constexpr int links_per_entry = 64;
 
   // chatScale, percent: the whole list zooms, the compose box does not (.chat-list).
@@ -63,10 +64,13 @@ class ChatPanel final : public Surface {
 
   void paint(Painter& p, Rect panel);  // window coordinates
   void click(int id, float x, float y, bool shift) override;
-  [[nodiscard]] bool acts_on_press(int id) const override { return repeats(id) || id == BarThumb || id == Input; }
+  [[nodiscard]] bool acts_on_press(int id) const override { return repeats(id) || id == BarThumb || id == Input || id == Text; }
   [[nodiscard]] bool repeats(int id) const override { return id == BarUp || id == BarDown || id == BarTrack; }
   void drag(float x, float y) override;
   void release() override;
+  void drop_selection() override { log_selection_.clear(); }
+  // What is selected of the messages, as a copy takes it.
+  [[nodiscard]] std::wstring selected_text();
   bool wheel(float x, float y, float delta) override;
   void enter(bool shift) override;
   bool key(unsigned vk, bool ctrl, bool shift) override;
@@ -137,6 +141,26 @@ class ChatPanel final : public Surface {
   [[nodiscard]] std::size_t input_position(float x, float y) const;
   float input_text_w_ = 0;
   Rect input_box_;  // window coordinates, where the field's text starts
+  // Where the messages' text was drawn last: a row's body starts at x, y + row.y_text * scale in
+  // the window, wrapped at width list units, and shows through view.
+  struct LogGeometry {
+    float x = 0, y = 0, scale = 1, width = 1;
+    Rect view;
+    TextStyle style;
+  };
+  LogGeometry log_geometry_;
+  ReadSelection log_selection_;  // blocks are message numbers
+  bool selecting_log_ = false;    // the button went down on a message
+  float drag_x_ = 0, drag_y_ = 0;
+  unsigned long long scrolled_at_ = 0;  // the last frame that scrolled while selecting
+  Color selection_color_{0, 0, 0, 0.25f};
+  std::wstring block_text_;  // what text_of last gave
+  [[nodiscard]] std::wstring_view text_of(std::size_t number);
+  [[nodiscard]] TextPoint log_point(float x, float y);
+  // Under the button past the top or bottom of the list, it scrolls that way, faster the farther.
+  void scroll_while_selecting();
+  // The body's hit, and what is selected of it drawn behind it, at x, y in drawing units.
+  void paint_body(Painter& p, std::size_t r, float x, float y);
   bool selecting_ = false;  // the button went down in the field
   float grab_y_ = 0, grab_offset_ = 0;
   bool older_pending_ = false;  // a page was added above since the last paint

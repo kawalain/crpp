@@ -74,6 +74,8 @@ struct WindowState {
   // The field that takes typing, and who decides what Enter does in it.
   TextField* focus = nullptr;
   Surface* focus_owner = nullptr;
+  // Whose selection of text that is only read takes the keys while no field does.
+  Surface* selection_owner = nullptr;
   bool caret_on = true;
   Rect caret;  // window coordinates, for IME placement
 
@@ -236,6 +238,8 @@ class Surface {
   virtual bool right_click(int /*id*/, float /*x*/, float /*y*/) { return false; }
   virtual void drag(float /*x*/, float /*y*/) {}
   virtual void release() {}
+  // Another click went elsewhere: a selection of text that is only read goes.
+  virtual void drop_selection() {}
   // Offered top surface first; true stops it there.
   virtual bool wheel(float /*x*/, float /*y*/, float /*delta*/) { return false; }
   // Escape, offered top surface first; true means it closed something.

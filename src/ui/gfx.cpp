@@ -684,6 +684,21 @@ void Painter::draw_layout(IDWriteTextLayout* layout, float x, float y, Color c) 
   rt_->DrawTextLayout(D2D1::Point2F(x, y), layout, brush_.get());
 }
 
+void Painter::fill_text_range(IDWriteTextLayout* layout, float x, float y, std::size_t start, std::size_t end, Color c) {
+  if (!layout || end <= start) return;
+  DWRITE_HIT_TEST_METRICS runs[16];
+  UINT32 count = 0;
+  const auto length = static_cast<UINT32>(end - start);
+  // A range of more lines than that is filled in parts.
+  if (layout->HitTestTextRange(static_cast<UINT32>(start), length, x, y, runs, 16, &count) == E_NOT_SUFFICIENT_BUFFER) {
+    std::vector<DWRITE_HIT_TEST_METRICS> all(count);
+    if (FAILED(layout->HitTestTextRange(static_cast<UINT32>(start), length, x, y, all.data(), count, &count))) return;
+    for (const auto& r : all) fill_rect({r.left, r.top, r.width, r.height}, c);
+    return;
+  }
+  for (UINT32 i = 0; i < count && i < 16; ++i) fill_rect({runs[i].left, runs[i].top, runs[i].width, runs[i].height}, c);
+}
+
 D2D1_SIZE_F Painter::text(std::wstring_view s, Rect r, const TextStyle& style, Color c) {
   const auto layout = gfx_.layout(s, style, r.w, style.wrap ? 10000 : r.h);
   if (!layout) return {0, 0};

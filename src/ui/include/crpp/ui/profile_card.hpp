@@ -25,6 +25,7 @@ class ProfileCard final : public Surface {
  public:
   using Surface::Surface;
   enum Id : int { Backdrop, Card, Icon };
+  [[nodiscard]] bool holds_keys(int id) const override { return id == Backdrop; }
 
   static constexpr unsigned long long answer_timeout_ms = 4000;
   static constexpr unsigned long long refresh_ms = 1000;

@@ -200,6 +200,8 @@ class App {
   bool sys_key(unsigned vk, bool shift);
   // The menu key or Shift+F10: the context menu of what has the keys, at its caret.
   bool context_key();
+  // Tab and Shift+Tab: the keyboard goes to the next stop, or the one before, and that shows.
+  bool move_stop(int step);
   [[nodiscard]] ContextMenu& context_menu() { return context_menu_; }
   bool ime_composition(std::wstring_view composition, std::wstring_view result);
   bool blink();  // caret timer tick
@@ -259,7 +261,12 @@ class App {
   ChangelogView changelog_{ui_};
   Dialogs dialogs_{ui_};
   ContextMenu context_menu_{ui_};
-  bool return_taken_ = false;  // the last key was an Enter a menu or a question took
+  // The character the last key makes, when a menu, a question or a stop took that key: it is not
+  // typed. After a key of the menu, whose access keys are letters, any character.
+  static constexpr wchar_t any_char = 0xFFFF;
+  wchar_t taken_char_ = 0;
+  // Enter or Space on the stop the keyboard is on, as a click on it.
+  bool act_on_stop(unsigned vk);
   PromptScreen prompt_{ui_};
   WindowFrame frame_{ui_};
   WindowFrame pane_frame_{ui_};

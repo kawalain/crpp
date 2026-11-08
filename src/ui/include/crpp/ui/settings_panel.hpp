@@ -20,6 +20,13 @@ class SettingsPanel final : public Surface {
       : Surface(ui), sound_(ui), display_(ui), notify_(ui), system_(ui), account_(ui) {}
 
   enum Id : int { Droplet, Overlay, Thumb, Version, Track, BarUp, BarDown, TabBase = 100 };
+  [[nodiscard]] std::optional<Role> role(int id) const override {
+    if (id >= TabBase) return Role::Tab;
+    if (id == Droplet) return Role::Button;
+    if (id == Version) return Role::Link;
+    return std::nullopt;
+  }
+  [[nodiscard]] bool holds_keys(int id) const override { return id == Overlay; }
 
   // What a Skin Pack can name on this panel.
   [[nodiscard]] static skin::ScreenSchema schema();

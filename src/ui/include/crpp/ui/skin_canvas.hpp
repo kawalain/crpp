@@ -43,11 +43,14 @@ class SkinCanvas final : public skin::Canvas {
   void push_clip(skin::Box box) override;
   void push_soft_clip(skin::Box box) override;
   void pop_clip() override;
-  void hit(skin::Box box, int id) override {
-    if (in_window_) ui_.add_hit_window(owner_, rect_of(box), hit_base_ + id);
-    else ui_.add_hit(owner_, rect_of(box), hit_base_ + id);
+  std::uint32_t next_hit() override { return ui_.next_hit(); }
+  void hit(skin::Box box, int id, const skin::HitPlace& place) override {
+    if (in_window_) ui_.add_hit_window(owner_, rect_of(box), hit_base_ + id, &place);
+    else ui_.add_hit(owner_, rect_of(box), hit_base_ + id, &place);
   }
-  void hit_shape(skin::Box box, int id, std::string_view data, float x, float y) override { ui_.add_hit_shape(owner_, rect_of(box), hit_base_ + id, data, x, y); }
+  void hit_shape(skin::Box box, int id, std::string_view data, float x, float y, const skin::HitPlace& place) override {
+    ui_.add_hit_shape(owner_, rect_of(box), hit_base_ + id, data, x, y, &place);
+  }
   float transition(std::uint64_t key, const skin::TransitionSpec& spec) override;
   void fill_ellipse(skin::Box box, skin::Color color) override { p_.fill_ellipse(box.x + box.w / 2, box.y + box.h / 2, box.w / 2, box.h / 2, color); }
   void stroke_ellipse(skin::Box box, skin::Color color, float width) override { p_.stroke_ellipse(box.x + box.w / 2, box.y + box.h / 2, box.w / 2, box.h / 2, color, width); }
@@ -64,6 +67,7 @@ class SkinCanvas final : public skin::Canvas {
   void pop_layer() override { p_.pop_opacity(); }
   bool hot(int id) override { return ui_.hot(owner_, hit_base_ + id); }
   bool pressed(int id) override { return ui_.pressed(owner_, hit_base_ + id); }
+  bool focused(int id) override { return ui_.focused(owner_, hit_base_ + id); }
 
  private:
   Ui& ui_;

@@ -44,6 +44,10 @@ class ChangelogView final : public Surface {
  public:
   using Surface::Surface;
   enum Id : int { Backdrop, Card, Close, BarTrack, BarThumb, BarUp, BarDown, Text };
+  [[nodiscard]] std::optional<Role> role(int id) const override {
+    return id == Close ? std::optional(Role::Button) : id == Text ? std::optional(Role::List) : std::nullopt;
+  }
+  [[nodiscard]] bool holds_keys(int id) const override { return id == Backdrop; }
 
   [[nodiscard]] static skin::ScreenSchema schema();
 

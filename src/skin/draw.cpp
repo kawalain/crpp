@@ -27,6 +27,7 @@ class Walker final : public Env {
     seed_ = call.seed;
     vars[VarHot] = call.hot ? 1.0f : 0.0f;
     vars[VarPressed] = call.pressed ? 1.0f : 0.0f;
+    vars[VarFocused] = call.focused ? 1.0f : 0.0f;
     for (std::size_t i = 0; i < part.argument_names.size(); ++i) {
       float value_of_argument = this->value(part.argument_defaults[i]);
       for (const auto& [name, given] : call.args) {
@@ -175,8 +176,9 @@ class Walker final : public Env {
       if (named != notes_.end()) source_.note(*named, static_cast<int>(vars[VarI]), at);
     }
     const Box box = n.snap ? canvas_.snap(at) : at;
-    const float hot = vars[VarHot], pressed = vars[VarPressed];
+    const float hot = vars[VarHot], pressed = vars[VarPressed], focused = vars[VarFocused];
     int hit = no_hit;
+    HitPlace place;
     if (n.hit != no_hit) {
       hit = n.hit + static_cast<int>(n.has_hit_index ? value(n.hit_index) : vars[VarI]);
       if (hit < 0) {
@@ -184,9 +186,15 @@ class Walker final : public Env {
       } else {
         vars[VarHot] = canvas_.hot(hit) ? 1.0f : 0.0f;
         vars[VarPressed] = canvas_.pressed(hit) ? 1.0f : 0.0f;
+        vars[VarFocused] = canvas_.focused(hit) ? 1.0f : 0.0f;
+        place.number = canvas_.next_hit();
+        if (n.has_tab_order) place.tab_order = value(n.tab_order);
       }
     }
-    if (n.has_live && value(n.live) == 0) vars[VarHot] = vars[VarPressed] = 0;
+    if (n.has_live && value(n.live) == 0) {
+      vars[VarHot] = vars[VarPressed] = vars[VarFocused] = 0;
+      place.live = false;
+    }
 
     switch (n.kind) {
       case NodeKind::Fill: fill(n, box); break;
@@ -251,13 +259,14 @@ class Walker final : public Env {
     if (hit != no_hit && (!n.has_hit_if || value(n.hit_if) != 0)) {
       if (n.hit_shape != no_text) {
         const HitShape& shape = pack_.hit_shapes[n.hit_shape];
-        canvas_.hit_shape(at, hit, std::string_view(pack_.literals).substr(shape.data, shape.size), vars[VarX] + value(shape.x), vars[VarY] + value(shape.y));
+        canvas_.hit_shape(at, hit, std::string_view(pack_.literals).substr(shape.data, shape.size), vars[VarX] + value(shape.x), vars[VarY] + value(shape.y), place);
       } else {
-        canvas_.hit(at, hit);
+        canvas_.hit(at, hit, place);
       }
     }
     vars[VarHot] = hot;
     vars[VarPressed] = pressed;
+    vars[VarFocused] = focused;
     label_ = outer_label;
     --depth_;
     below_ = vars[Vary] + vars[Varh] + (n.has_after ? value(n.after) : 0);

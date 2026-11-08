@@ -40,6 +40,9 @@ void follow_system_animations(Shell& s) {
   // And how close two clicks must be to be one double click; at 96 DPI the metric is in DIPs.
   s.app.ui().double_click_ms = GetDoubleClickTime();
   s.app.ui().double_click_size = static_cast<float>(GetSystemMetricsForDpi(SM_CXDOUBLECLK, USER_DEFAULT_SCREEN_DPI)) / 2;
+  // "Underline access keys when available": where the keyboard is always shows, as in a dialog.
+  BOOL cues = FALSE;
+  s.app.ui().always_cues = SystemParametersInfoW(SPI_GETKEYBOARDCUES, 0, &cues, 0) && cues != FALSE;
 }
 
 // In Windows' display language, "ko-KR".

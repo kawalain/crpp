@@ -176,6 +176,11 @@ std::size_t ChatPanel::input_position(float x, float y) const {
   return input_.position_at(ui_.gfx, pack_input_style_, x - input_box_.x, y - input_box_.y, std::max(1.0f, input_text_w_));
 }
 
+void ChatPanel::focus(int id) {
+  if (id == Input) ui_.set_focus(this, &input_);
+  else if (id == Text) ui_.selection_owner = this;  // the messages take the keys, as a click on them gives them
+}
+
 std::string ChatPanel::link_of(int id) const {
   const auto number = static_cast<std::size_t>(id - LinkBase) / links_per_entry;
   const auto link = static_cast<std::size_t>(id - LinkBase) % links_per_entry;

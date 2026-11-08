@@ -12,6 +12,7 @@ class UpdatePopup final : public Surface {
  public:
   using Surface::Surface;
   enum Id : int { Card, Button };
+  [[nodiscard]] std::optional<Role> role(int id) const override { return id == Button ? std::optional(Role::Button) : std::nullopt; }
   enum class State : std::uint8_t { Hidden, Available, Busy, Failed };
 
   [[nodiscard]] static skin::ScreenSchema schema();

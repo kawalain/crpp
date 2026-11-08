@@ -709,7 +709,54 @@ bool App::sys_key(unsigned vk, bool shift) {
     context_menu_.close();
     return true;
   }
-  return vk == VK_F10 && shift && context_key();
+  if (vk == VK_F10 && shift) return context_key();
+  // Alt shows where the keyboard is, as it shows a dialog's underlines.
+  if (vk == VK_MENU && !ui_.cues) {
+    ui_.cues = true;
+    return true;
+  }
+  return false;
+}
+
+bool App::move_stop(int step) {
+  const std::vector<const Ui::Hit*> stops = ui_.tab_stops();
+  if (stops.empty()) return false;
+  auto at = std::ranges::find_if(stops, [&](const Ui::Hit* h) { return h->owner == ui_.stop_owner && h->id == ui_.stop_id; });
+  // A field that took the keys without the keyboard, as one does when its screen opens, is where Tab goes on from.
+  if (at == stops.end() && ui_.focus_owner) {
+    at = std::ranges::find_if(stops, [&](const Ui::Hit* h) { return h->owner == ui_.focus_owner && h->owner->role(h->id) == Role::Field; });
+  }
+  const auto n = static_cast<std::ptrdiff_t>(stops.size());
+  const std::ptrdiff_t from = at - stops.begin();
+  const std::ptrdiff_t next = at == stops.end() ? (step > 0 ? 0 : n - 1) : ((from + step) % n + n) % n;
+  Surface* const owner = stops[static_cast<std::size_t>(next)]->owner;
+  const int id = stops[static_cast<std::size_t>(next)]->id;
+  ui_.set_stop(owner, id);
+  ui_.cues = true;
+  ui_.set_focus(nullptr, nullptr);
+  ui_.caret_on = true;
+  owner->focus(id);
+  return true;
+}
+
+bool App::act_on_stop(unsigned vk) {
+  if (!ui_.stop_owner) return false;
+  const std::vector<const Ui::Hit*> stops = ui_.tab_stops();
+  const auto at = std::ranges::find_if(stops, [&](const Ui::Hit* h) { return h->owner == ui_.stop_owner && h->id == ui_.stop_id; });
+  if (at == stops.end()) return false;  // gone, or under what has opened since
+  const Ui::Hit& hit = **at;
+  const Role role = *hit.owner->role(hit.id);
+  const bool acts = vk == VK_RETURN ? role == Role::Button || role == Role::Link || role == Role::Tab
+                                    : role == Role::Button || role == Role::Toggle || role == Role::Tab || role == Role::Dropdown;
+  if (!acts) return false;
+  Surface* const owner = hit.owner;
+  const int id = hit.id;
+  const float x = hit.rect.x + hit.rect.w / 2, y = hit.rect.y + hit.rect.h / 2;
+  ui_.clicks = 1;
+  ui_.cues = true;
+  for (Surface* s : layers()) s->before_click(owner, id);
+  owner->click(id, x, y, false);
+  return true;
 }
 
 bool App::mouse_down(float x, float y, bool shift) {
@@ -727,6 +774,10 @@ bool App::mouse_down(float x, float y, bool shift) {
   last_press_owner_ = owner;
   last_press_id_ = id;
   ui_.set_focus(nullptr, nullptr);
+  // The keyboard goes on from what was clicked, without showing it; a click on nothing it can stop at clears it.
+  if (owner && owner->role(id)) ui_.set_stop(owner, id);
+  else ui_.set_stop(nullptr, 0);
+  ui_.cues = false;
   if (ui_.selection_owner && ui_.selection_owner != owner) {
     ui_.selection_owner->drop_selection();
     ui_.selection_owner = nullptr;
@@ -753,8 +804,9 @@ bool App::wheel(float x, float y, float delta) {
 
 bool App::char_input(wchar_t c, bool shift) {
   if (context_menu_.is_open()) return true;  // an access key, not typing
-  // The character of an Enter a menu or a question took is theirs too, whatever has the keys now.
-  if (std::exchange(return_taken_, false) && c == L'') return true;
+  // The character of a key a menu, a question or a stop took is theirs too, whatever has the keys now.
+  const wchar_t taken = std::exchange(taken_char_, wchar_t{0});
+  if (taken == any_char || (taken != 0 && taken == c)) return true;
   if (!ui_.focus) return false;
   if (c == L'\r') ui_.focus_owner->enter(shift);
   else ui_.focus->insert(std::wstring_view(&c, 1));
@@ -763,14 +815,22 @@ bool App::char_input(wchar_t c, bool shift) {
 }
 
 bool App::key_down(unsigned vk, bool ctrl, bool shift) {
-  return_taken_ = false;
+  taken_char_ = 0;
   if (context_menu_.is_open()) {
-    return_taken_ = vk == VK_RETURN;
+    taken_char_ = any_char;
     return context_menu_.key(vk, ctrl, shift);
   }
   if (vk == VK_APPS) return context_key();
+  if (vk == VK_TAB && !ctrl) {
+    taken_char_ = L'\t';
+    return move_stop(shift ? -1 : 1);
+  }
+  if ((vk == VK_RETURN || vk == VK_SPACE) && !ctrl && !ui_.focus && act_on_stop(vk)) {
+    taken_char_ = vk == VK_RETURN ? L'\r' : L' ';
+    return true;
+  }
   if (vk == VK_RETURN && dialogs_.is_open()) {  // as any window that asks a question
-    return_taken_ = true;
+    taken_char_ = L'\r';
     dialogs_.click(Dialogs::Confirm, 0, 0, false);
     return true;
   }

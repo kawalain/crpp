@@ -13,6 +13,7 @@ class OfflinePopup final : public Surface {
  public:
   using Surface::Surface;
   enum Id : int { Backdrop, Card };
+  [[nodiscard]] bool holds_keys(int id) const override { return id == Backdrop; }
 
   [[nodiscard]] static skin::ScreenSchema schema();
 

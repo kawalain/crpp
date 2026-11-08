@@ -53,6 +53,12 @@ class RoomScreen final : public Surface {
 
   // Hit ids tests click by.
   enum Id : int { Leave, Mute, More, OptCode, OptPublic, OptChat, VolumeSlider, Popup, MembersBar, MembersUp, MembersDown, MembersTrack, MembersThumb, MemberBase = 1000 };
+  [[nodiscard]] std::optional<Role> role(int id) const override {
+    if (id == Leave || id == Mute || id == More || id == OptCode || id >= MemberBase) return Role::Button;
+    if (id == OptPublic || id == OptChat) return Role::Toggle;
+    if (id == VolumeSlider) return Role::Slider;
+    return std::nullopt;
+  }
 
   [[nodiscard]] ChatPanel& chat() { return chat_panel_; }
   [[nodiscard]] ProfileCard& profile_card() { return profile_; }

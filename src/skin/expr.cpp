@@ -216,7 +216,7 @@ class Compiler {
     if (slot) return emit(Op::Slot, 1, *slot);
     if (constant) return emit(Op::Const, 1, 0, *constant);
     if (const auto paint = names_.paint(word)) return emit(Op::Const, 1, 0, static_cast<float>(*paint));
-    if (var_named(word)) return fail("\"" + std::string(word) + "\" is the exe's: write @" + std::string(word));
+    if (reserved_name(word)) return fail("\"" + std::string(word) + "\" is the exe's: write @" + std::string(word));
     return fail("no name \"" + std::string(word) + "\"");
   }
 
@@ -341,7 +341,7 @@ class Compiler {
 }  // namespace
 
 std::optional<Var> var_named(std::string_view name) {
-  static constexpr std::array<std::string_view, VarCount> names{"W", "H", "X", "Y", "x", "y", "w", "h", "u", "font_size", "hot", "pressed", "i", "flow", "dark"};
+  static constexpr std::array<std::string_view, VarCount> names{"W", "H", "X", "Y", "x", "y", "w", "h", "u", "font_size", "hot", "pressed", "i", "flow", "dark", "focused"};
   for (std::size_t i = 0; i < names.size(); ++i) {
     if (names[i] == name) return static_cast<Var>(i);
   }

@@ -22,6 +22,10 @@ class Dialogs final : public Surface {
  public:
   using Surface::Surface;
   enum Id : int { Backdrop, Card, Confirm, Cancel };
+  [[nodiscard]] std::optional<Role> role(int id) const override {
+    return id == Confirm || id == Cancel ? std::optional(Role::Button) : std::nullopt;
+  }
+  [[nodiscard]] bool holds_keys(int id) const override { return id == Backdrop; }
 
   [[nodiscard]] static skin::ScreenSchema schema();
 

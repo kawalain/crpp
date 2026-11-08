@@ -20,6 +20,13 @@ class HomeScreen final : public Surface {
   [[nodiscard]] static skin::ScreenSchema return_schema();
 
   enum Id : int { Create, Join, Code, Find, ReturnBackdrop, ReturnCard, ReturnConfirm, ReturnRandom, SeatBase = 100 };
+  [[nodiscard]] std::optional<Role> role(int id) const override {
+    if (id == Code) return Role::Field;
+    if (id == Create || id == Join || id == Find || id == ReturnConfirm || id == ReturnRandom || id >= SeatBase) return Role::Button;
+    return std::nullopt;
+  }
+  [[nodiscard]] bool holds_keys(int id) const override { return id == ReturnBackdrop; }
+  void focus(int id) override;
 
   std::function<void()> on_create;
   std::function<void(std::string code)> on_join;

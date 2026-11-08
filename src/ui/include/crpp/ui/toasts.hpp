@@ -13,6 +13,7 @@ class Toasts final : public Surface {
  public:
   using Surface::Surface;
   enum Id : int { Action };
+  [[nodiscard]] std::optional<Role> role(int id) const override { return id == Action ? std::optional(Role::Button) : std::nullopt; }
 
   static constexpr unsigned long long default_ms = 5000;
 

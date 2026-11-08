@@ -74,6 +74,12 @@ class SoundTab final : public SettingsTab {
     PenList = 400,
     ReverbList = 500
   };
+  [[nodiscard]] std::optional<Role> role(int id) const override {
+    if (id == SpeakerVolume || id == KeyboardVolume || id == MouseVolume || id == PenVolume || id == Balance) return Role::Slider;
+    if (id == ListenSelf || id == OthersUseMine || id == MuteNotifications || id == MuteOnIdle || id == Spatial || id == BalanceEnabled) return Role::Toggle;
+    if (id == SpeakerList || id == KeyboardList || id == MouseList || id == PenList || id == ReverbList) return Role::Dropdown;
+    return std::nullopt;
+  }
 
   // The tab came on screen: time to fill the lists.
   std::function<void()> on_shown;
@@ -142,6 +148,13 @@ class DisplayTab final : public SettingsTab {
     IdleList = 300,
     LanguageList = 330
   };
+  [[nodiscard]] std::optional<Role> role(int id) const override {
+    if (id == ScaleSlider) return Role::Slider;
+    if (id == ThemeCursor || id == Use24h) return Role::Toggle;
+    if (id == FetchCancel || id == FetchRetry) return Role::Link;
+    if (id == SkinThemeList || id == DarkModeList || id == IdleList || id == LanguageList) return Role::Dropdown;
+    return std::nullopt;
+  }
 
   // Asked whenever the tab comes on screen, for who the chat sample shows.
   std::function<void()> on_shown;
@@ -191,6 +204,11 @@ class NotifyTab final : public SettingsTab {
   using SettingsTab::SettingsTab;
   [[nodiscard]] static skin::ScreenSchema schema();
   enum Id : int { TrayToggle = 1, FlashToggle, SoundBase = 100, PreviewBase = 300 };
+  [[nodiscard]] std::optional<Role> role(int id) const override {
+    if (id == TrayToggle || id == FlashToggle) return Role::Toggle;
+    if (id >= SoundBase) return Role::Button;
+    return std::nullopt;
+  }
 
   // Asked whenever the tab comes on screen, as the sounds may arrive after startup.
   std::function<void()> on_shown;
@@ -211,6 +229,15 @@ class SystemTab final : public SettingsTab {
   explicit SystemTab(Ui& ui);
   [[nodiscard]] static skin::ScreenSchema schema();
   enum Id : int { Autostart = 1, Tray, Detail, Logging, OpenLogs, Reset, Address, AddRepository, ReleaseList = 300, RemoveRepository = 500, RemovePack = 700, UpdatePack = 900, Fingerprint = 1100 };
+  [[nodiscard]] std::optional<Role> role(int id) const override {
+    if (id == Autostart || id == Tray || id == Detail || id == Logging) return Role::Toggle;
+    if (id == Address) return Role::Field;
+    if (id == ReleaseList) return Role::Dropdown;
+    if (id >= Fingerprint) return Role::List;
+    if (id == OpenLogs || id == Reset || id == AddRepository || id >= RemoveRepository) return Role::Button;
+    return std::nullopt;
+  }
+  void focus(int id) override;
 
   // A Repository in the list, the official one first, which cannot be removed.
   struct RepositoryRow {
@@ -306,6 +333,9 @@ class AccountTab final : public SettingsTab {
   using SettingsTab::SettingsTab;
   [[nodiscard]] static skin::ScreenSchema schema();
   enum Id : int { Emoji, Nickname, Handle, Logout };
+  [[nodiscard]] std::optional<Role> role(int id) const override {
+    return id == Emoji || id == Nickname || id == Handle || id == Logout ? std::optional(Role::Button) : std::nullopt;
+  }
 
   struct Profile {
     std::string nickname, handle;

@@ -34,6 +34,12 @@ if(WIN32)
   crpp_target_defaults(crpp_ui_context_menu_test)
   add_test(NAME ui.context_menu COMMAND crpp_ui_context_menu_test)
 
+  add_executable(crpp_ui_focus_test tests/focus_test.cpp)
+  target_link_libraries(crpp_ui_focus_test PRIVATE crpp_ui crpp_ui_test_skins)
+  target_include_directories(crpp_ui_focus_test PRIVATE ${PROJECT_SOURCE_DIR}/tests/support tests)
+  crpp_target_defaults(crpp_ui_focus_test)
+  add_test(NAME ui.focus COMMAND crpp_ui_focus_test)
+
   add_executable(crpp_ui_flow_test tests/flow_test.cpp)
   target_link_libraries(crpp_ui_flow_test PRIVATE crpp_ui crpp_ui_test_skins)
   target_include_directories(crpp_ui_flow_test PRIVATE ${PROJECT_SOURCE_DIR}/tests/support tests)

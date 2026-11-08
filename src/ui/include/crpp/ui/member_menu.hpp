@@ -12,6 +12,10 @@ class MemberMenu final : public Surface {
  public:
   using Surface::Surface;
   enum Id : int { Card, Profile, Slider, Mute };
+  [[nodiscard]] std::optional<Role> role(int id) const override {
+    return id == Profile ? std::optional(Role::Button) : id == Slider ? std::optional(Role::Slider) : id == Mute ? std::optional(Role::Toggle) : std::nullopt;
+  }
+  [[nodiscard]] bool holds_keys(int id) const override { return id == Card; }
 
   std::function<void(std::uint32_t slot)> on_profile;
   std::function<void(std::uint32_t slot, int percent)> on_volume;

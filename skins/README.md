@@ -31,9 +31,10 @@ use tip(shown = 1) text @tr.ok hit create
   name at once. Numbers may say `40%` (0.4) or `150ms`.
 - Every name the program defines carries `@`: the screen's own (`@seats`, `@nickname`), the wording (`@tr.home_create`)
   and the built-ins: `@W @H` the box being drawn in, `@X @Y` where it is on the window, `@x @y @w @h` the node's own box,
-  `@u` a line's thickness, `@font_size`, `@hot` and `@pressed` for the nearest hit around, `@i` the round of a repeat,
-  `@flow` how far down a column has come, and `@dark` for a dark variant. So the program can add names later without
-  taking one of yours.
+  `@u` a line's thickness, `@font_size`, `@hot` and `@pressed` for the nearest hit around, `@focused` when the
+  keyboard is on it and that shows, `@i` the round of a repeat, `@flow` how far down a column has come, and `@dark`
+  for a dark variant. So the program can add names later without taking one of yours: `focused`, added in format 2,
+  is still free as a bare name.
 - The pack's own names are bare: Palette entries, constants, parts, arguments and `let`. A Palette entry that shares
   its name with a constant, argument or `let` is a mistake. `id` gives a node a name its later siblings read as
   `name.x`, `.right`, `.bottom` and so on.
@@ -44,6 +45,10 @@ which is what the reader checks against. `crpp_skin names` lists the screens, an
 program offers on one: its `@numbers` and `@texts`, and the names of its hits, pictures, fields, slots, reports and
 notes. A screen with no file is drawn by the program itself, so a pack can grow one screen at a time. The exception
 is `context_menu`, the menu of what can be done with text: without it no menu shows, and its shortcuts still work.
+
+Tab goes through a screen's controls in the order the pack has their hits, a hit before what is inside it. Which
+hits are controls is the program's to say, the same in every pack. `tab_order` on a node puts its hit elsewhere: lower
+goes first, and those without it count as 0. A hit that is not `live` is passed over.
 
 `report width = …` tells the program what a screen found out. A screen of a panel that has a window of its own reports
 `width` and `height`, and the window takes that size: the program walks the screen without drawing to learn it.

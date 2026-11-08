@@ -21,6 +21,14 @@ struct TextLook {
   bool wrap = false, ellipsis = false, exact = false, keep_words = false;
 };
 
+// Where a hit stands for the keyboard: its number in the walk, the pack's tab_order, and whether it
+// is live now. What is not live is passed over.
+struct HitPlace {
+  std::uint32_t number = 0;
+  float tab_order = 0;
+  bool live = true;
+};
+
 class Canvas {
  public:
   virtual ~Canvas() = default;
@@ -47,9 +55,11 @@ class Canvas {
   // The same with partial pixels along an edge that falls between pixels. pop_clip ends it.
   virtual void push_soft_clip(Box box) { push_clip(box); }
   virtual void pop_clip() = 0;
-  virtual void hit(Box box, int id) = 0;
+  // The number of a hit about to be walked, counted as the pack reads, before what is inside it.
+  [[nodiscard]] virtual std::uint32_t next_hit() { return 0; }
+  virtual void hit(Box box, int id, const HitPlace& place) = 0;
   // A hit of this shape inside its box. Nothing beyond the box where only sizes are being worked out.
-  virtual void hit_shape(Box box, int id, std::string_view /*data*/, float /*x*/, float /*y*/) { hit(box, id); }
+  virtual void hit_shape(Box box, int id, std::string_view /*data*/, float /*x*/, float /*y*/, const HitPlace& place) { hit(box, id, place); }
   // Where a transition is now. Without motion, at its end.
   [[nodiscard]] virtual float transition(std::uint64_t /*key*/, const TransitionSpec& spec) { return spec.on ? 1.0f : 0.0f; }
   virtual void fill_ellipse(Box, Color) {}
@@ -73,6 +83,8 @@ class Canvas {
   virtual void pop_layer() {}
   [[nodiscard]] virtual bool hot(int id) = 0;
   [[nodiscard]] virtual bool pressed(int id) = 0;
+  // The keyboard is on it and that shows.
+  [[nodiscard]] virtual bool focused(int /*id*/) { return false; }
 };
 
 struct FieldLook {
@@ -106,7 +118,7 @@ void draw(const Pack& pack, const Screen& screen, int palette, Box area, Canvas&
 // One part, for what a screen's code draws itself.
 struct PartCall {
   std::string_view label;
-  bool hot = false, pressed = false;
+  bool hot = false, pressed = false, focused = false;
   std::span<const std::pair<std::string_view, float>> args;
   std::uint64_t seed = 0;  // tells its transitions from those of the same part elsewhere
 };

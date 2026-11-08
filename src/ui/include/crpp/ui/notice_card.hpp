@@ -18,6 +18,9 @@ class NoticeCard final : public Surface {
  public:
   using Surface::Surface;
   enum Id : int { Card, Action, Dismiss };
+  [[nodiscard]] std::optional<Role> role(int id) const override {
+    return id == Action || id == Dismiss ? std::optional(Role::Button) : std::nullopt;
+  }
 
   [[nodiscard]] static skin::ScreenSchema schema();
 

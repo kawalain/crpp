@@ -18,6 +18,9 @@ class EmojiPicker final : public Surface {
   using Surface::Surface;
   // Fixed values plus CellBase + index.
   enum Id : int { Backdrop, Card, Track, Thumb, CellBase = 100 };
+  // The grid is one stop, at the emoji in use or the first.
+  [[nodiscard]] std::optional<Role> role(int id) const override;
+  [[nodiscard]] bool holds_keys(int id) const override { return id == Backdrop; }
 
   // Seven rows of eight can show at once; this keeps a little of the scroll around.
   static constexpr std::size_t cache_capacity = 72;

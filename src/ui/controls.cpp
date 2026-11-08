@@ -40,9 +40,11 @@ void Dropdown::paint_button(Ui& ui, Surface* owner, Painter& p, Rect r) const {
     SkinCanvas canvas(ui, p, nullptr);
     skin::Source nothing;
     const std::pair<std::string_view, float> args[] = {{"open", open ? 1.0f : 0.0f}, {"off", disabled ? 1.0f : 0.0f}};
-    skin::draw_part(*ui.pack, *part, ui.palette, {r.x, r.y, r.w, r.h}, canvas, nothing, {.label = text, .hot = !disabled && ui.hot(owner, id_base), .args = args});
+    skin::draw_part(*ui.pack, *part, ui.palette, {r.x, r.y, r.w, r.h}, canvas, nothing,
+                    {.label = text, .hot = !disabled && ui.hot(owner, id_base), .focused = !disabled && ui.focused(owner, id_base), .args = args});
   }
-  ui.add_hit(owner, r, id_base);
+  const skin::HitPlace place{.number = ui.next_hit(), .live = !disabled};
+  ui.add_hit(owner, r, id_base, &place);
 }
 
 void Dropdown::paint_list(Ui& ui, Surface* owner, Painter& p, Rect r) {

@@ -46,6 +46,7 @@ inline constexpr KeyDoc common_keys[] = {
     {"hit_by", KeyType::Expr, "The id of a click as a number, instead of hit, for a part: a screen gives it with hit('name'). Less than 0 is none."},
     {"live", KeyType::Expr, "0: what is inside is never hot or pressed."},
     {"hit_if", KeyType::Expr, "0: it takes no clicks."},
+    {"tab_order", KeyType::Expr, "Where Tab comes to its hit: lower first, 0 when left out, and in the order of the pack among equals."},
     {"note", KeyType::Screen, "Its box goes to the screen under this name."},
     {"note_by", KeyType::Expr, "note as a number, for a part: a screen gives it with note('name'). Less than 0 is none."},
     {"snap", KeyType::Flag, "Its box moves to whole pixels."},

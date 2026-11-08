@@ -54,7 +54,7 @@ class MeasureCanvas final : public skin::Canvas {
   void text(std::string_view, skin::Box, const skin::TextLook&, skin::Color) override {}
   void push_clip(skin::Box) override {}
   void pop_clip() override {}
-  void hit(skin::Box, int) override {}
+  void hit(skin::Box, int, const skin::HitPlace&) override {}
   bool hot(int) override { return false; }
   bool pressed(int) override { return false; }
 

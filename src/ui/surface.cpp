@@ -30,6 +30,7 @@ void Ui::begin_frame(float window_w, float window_h, unsigned long long now) {
   content = modal_area = {0, 0, window_w, window_h};
   hits_.clear();
   hit_clips_.clear();
+  hits_read_ = 0;
   transitions.next_frame();
 }
 
@@ -43,22 +44,34 @@ bool Ui::moves() const { return pack && pack->constant("moves") != 0; }
 
 Rect Ui::screen_area() const { return scales_stage() ? Rect{0, 0, stage_w, stage_h} : content; }
 
-void Ui::add_hit(Surface* owner, Rect r, int id) { add_hit_window(owner, to_window(r), id); }
+void Ui::add_hit(Surface* owner, Rect r, int id, const skin::HitPlace* place) { add_hit_window(owner, to_window(r), id, place); }
 
-void Ui::add_hit_window(Surface* owner, Rect r, int id) {
+void Ui::add_hit_window(Surface* owner, Rect r, int id, const skin::HitPlace* place) {
   if (!hits_enabled) return;
+  Hit hit{r, owner, id};
+  if (place) {
+    hit.number = place->number;
+    hit.tab_order = place->tab_order;
+    hit.live = place->live;
+  } else {
+    hit.number = next_hit();
+  }
   for (const Rect& clip : hit_clips_) {
     const float left = std::max(r.x, clip.x), top = std::max(r.y, clip.y);
     const float right = std::min(r.right(), clip.right()), bottom = std::min(r.bottom(), clip.bottom());
-    if (right <= left || bottom <= top) return;
+    if (right <= left || bottom <= top) {
+      hit.shown = false;  // scrolled away: the keyboard can still come to it, and bring it back
+      break;
+    }
     r = {left, top, right - left, bottom - top};
   }
-  hits_.push_back({r, owner, id});
+  if (hit.shown) hit.rect = r;
+  hits_.push_back(hit);
 }
 
-void Ui::add_hit_shape(Surface* owner, Rect r, int id, std::string_view data, float x, float y) {
+void Ui::add_hit_shape(Surface* owner, Rect r, int id, std::string_view data, float x, float y, const skin::HitPlace* place) {
   const std::size_t before = hits_.size();
-  add_hit(owner, r, id);
+  add_hit(owner, r, id, place);
   if (hits_.size() == before) return;
   hits_.back().shape = data;
   hits_.back().shape_x = x;
@@ -72,7 +85,7 @@ void Ui::pop_hit_clip() { hit_clips_.pop_back(); }
 const Ui::Hit* Ui::hit_at(float x, float y) const {
   // Later hits are drawn on top.
   for (auto it = hits_.rbegin(); it != hits_.rend(); ++it) {
-    if (!it->rect.contains(x, y) || !it->owner->accepts(it->id, x, y)) continue;
+    if (!it->shown || !it->rect.contains(x, y) || !it->owner->accepts(it->id, x, y)) continue;
     if (!it->shape.empty()) {
       BOOL inside = FALSE;
       if (ID2D1PathGeometry* const shape = gfx.path(it->shape)) {
@@ -115,9 +128,40 @@ void hold_wall_clock(long long seconds) noexcept { held_wall_clock = seconds; }
 
 const Ui::Hit* Ui::find_hit(const Surface* owner, int id) const {
   for (auto it = hits_.rbegin(); it != hits_.rend(); ++it) {
+    if (it->shown && it->owner == owner && it->id == id) return &*it;
+  }
+  return nullptr;
+}
+
+const Ui::Hit* Ui::find_stop(const Surface* owner, int id) const {
+  for (auto it = hits_.rbegin(); it != hits_.rend(); ++it) {
     if (it->owner == owner && it->id == id) return &*it;
   }
   return nullptr;
+}
+
+std::vector<const Ui::Hit*> Ui::tab_stops() const {
+  // A modal's backdrop is read before what is on it, and after everything under it.
+  std::uint32_t floor = 0;
+  bool held = false;
+  for (const Hit& hit : hits_) {
+    if (hit.owner && hit.owner->holds_keys(hit.id) && (!held || hit.number > floor)) {
+      floor = hit.number;
+      held = true;
+    }
+  }
+  std::vector<const Hit*> stops;
+  for (const Hit& hit : hits_) {
+    if (!hit.owner || !hit.live || (held && hit.number <= floor) || !hit.owner->role(hit.id)) continue;
+    // A hit drawn in pieces, as a link over two lines, is one stop, where it was first read.
+    const auto same = std::ranges::find_if(stops, [&](const Hit* s) { return s->owner == hit.owner && s->id == hit.id; });
+    if (same == stops.end()) stops.push_back(&hit);
+    else if (hit.number < (*same)->number) *same = &hit;
+  }
+  std::ranges::stable_sort(stops, [](const Hit* a, const Hit* b) {
+    return a->tab_order != b->tab_order ? a->tab_order < b->tab_order : a->number < b->number;
+  });
+  return stops;
 }
 
 ID2D1LinearGradientBrush* Ui::edge_fade_mask(Painter& p, Rect area, float top, float bottom) {

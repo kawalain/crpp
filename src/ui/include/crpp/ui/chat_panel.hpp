@@ -39,6 +39,14 @@ class ChatPanel final : public Surface {
   // Fixed values plus LinkBase + message number * links_per_entry + link index. A message's
   // number stays when older ones leave the log, so a drawn id never means another message.
   enum Id : int { Input, Send, Area, BarUp, BarDown, BarTrack, BarThumb, Text, LinkBase = 1000 };
+  [[nodiscard]] std::optional<Role> role(int id) const override {
+    if (id == Input) return Role::Field;
+    if (id == Send) return Role::Button;
+    if (id == Text) return Role::List;  // the messages, one stop
+    if (id >= LinkBase) return Role::Link;
+    return std::nullopt;
+  }
+  void focus(int id) override;
   static constexpr int links_per_entry = 64;
 
   // chatScale, percent: the whole list zooms, the compose box does not (.chat-list).

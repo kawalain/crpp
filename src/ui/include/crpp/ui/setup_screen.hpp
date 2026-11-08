@@ -12,6 +12,10 @@ class SetupScreen final : public Surface {
  public:
   using Surface::Surface;
   enum Id : int { Retry, Quit, Backdrop, Card };
+  [[nodiscard]] std::optional<Role> role(int id) const override {
+    return id == Retry || id == Quit ? std::optional(Role::Button) : std::nullopt;
+  }
+  [[nodiscard]] bool holds_keys(int id) const override { return id == Backdrop; }
 
   struct Status {
     std::size_t files_done = 0, files = 0;

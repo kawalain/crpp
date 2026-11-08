@@ -51,6 +51,10 @@ void PromptScreen::lock(long long seconds) {
 
 std::string PromptScreen::value() const { return narrow(field_.text()); }
 
+void PromptScreen::focus(int id) {
+  if (id == Field) take_focus();
+}
+
 void PromptScreen::take_focus() {
   if (lock_until_ == 0) ui_.set_focus(this, &field_);
 }

@@ -65,9 +65,15 @@ class Expr {
 //   i      which round of the nearest repeat this is
 //   flow   how far down the nearest column has come, and 0 outside one
 //   dark   1 when this Palette is the dark variant of a Theme
-enum Var : std::uint8_t { VarW, VarH, VarX, VarY, Varx, Vary, Varw, Varh, VarU, VarFontSize, VarHot, VarPressed, VarI, VarFlow, VarDark, VarCount };
+enum Var : std::uint8_t { VarW, VarH, VarX, VarY, Varx, Vary, Varw, Varh, VarU, VarFontSize, VarHot, VarPressed, VarI, VarFlow, VarDark, VarFocused, VarCount };
 
 [[nodiscard]] std::optional<Var> var_named(std::string_view name);
+// Of the exe's names, those a pack may not take as its own. One added later is the exe's only with @, as a
+// pack written before it may use the word.
+[[nodiscard]] inline bool reserved_name(std::string_view name) {
+  const auto var = var_named(name);
+  return var && *var < VarFocused;
+}
 
 // What the other names mean where an expression is being compiled.
 class Names {

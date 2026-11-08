@@ -8,6 +8,7 @@
 #include <utility>
 #include <vector>
 
+#include "crpp/skin/draw.hpp"
 #include "crpp/skin/motion.hpp"
 #include "crpp/skin/pack.hpp"
 #include "crpp/ui/clipboard.hpp"
@@ -34,6 +35,9 @@ struct MenuItem {
   MenuCommand command;
   bool enabled = true;  // shown greyed when not
 };
+
+// What a stop of the keyboard is, which decides the keys it takes. The same in every Skin.
+enum class Role : std::uint8_t { Button, Toggle, Slider, Dropdown, Tab, List, Field, Link };
 
 // Milliseconds on the clock all motion runs on. The system's tick moves in steps of
 // about 16 ms, too coarse for what moves every frame.
@@ -86,6 +90,12 @@ struct WindowState {
   bool caret_on = true;
   Rect caret;  // window coordinates, for IME placement
 
+  // The control the keyboard is on, a hit of a surface with a Role, and whether that shows: Tab, an
+  // arrow or Alt shows it, the mouse hides it, as WM_UPDATEUISTATE does in a dialog.
+  Surface* stop_owner = nullptr;
+  int stop_id = 0;
+  bool cues = false;
+
   // A surface that set this in click(), on a hit that acts on the press, gets drag() until the button goes up.
   Surface* capture = nullptr;
 
@@ -114,11 +124,17 @@ struct WindowState {
     // Only this shape takes it: path data, its origin on the stage.
     std::string_view shape = {};
     float shape_x = 0, shape_y = 0;
+    // For the keyboard: where it was read, as the pack reads; what the pack put first; whether it acts
+    // now; and whether a clip left any of it to click. A hidden one is still a stop.
+    std::uint32_t number = 0;
+    float tab_order = 0;
+    bool live = true, shown = true;
   };
 
  protected:
   std::vector<Hit> hits_;
   std::vector<Rect> hit_clips_;
+  std::uint32_t hits_read_ = 0;
 };
 
 // What the surfaces share: drawing resources, the geometry of the current frame,
@@ -161,6 +177,9 @@ class Ui : public WindowState {
   Toasts* toasts = nullptr;
   EmojiPicker* emoji_picker = nullptr;
 
+  // The system's "Underline access keys": the keyboard's place always shows.
+  bool always_cues = false;
+
   // Off for --shot, tests and a system set to show no animations: every transition
   // shows its end state.
   bool animations = true;
@@ -193,14 +212,25 @@ class Ui : public WindowState {
     focus = field;
   }
 
-  void add_hit(Surface* owner, Rect stage_rect, int id);
-  void add_hit_window(Surface* owner, Rect window_rect, int id);
-  void add_hit_shape(Surface* owner, Rect stage_rect, int id, std::string_view data, float x, float y);
+  // Without a place, a hit is read where it is added and acts.
+  void add_hit(Surface* owner, Rect stage_rect, int id, const skin::HitPlace* place = nullptr);
+  void add_hit_window(Surface* owner, Rect window_rect, int id, const skin::HitPlace* place = nullptr);
+  void add_hit_shape(Surface* owner, Rect stage_rect, int id, std::string_view data, float x, float y, const skin::HitPlace* place = nullptr);
+  // The number of the next hit read, for one whose children are added before it.
+  [[nodiscard]] std::uint32_t next_hit() { return hits_read_++; }
   // Hits added until pop_hit_clip are cut to this rectangle, for scrolled content.
   void push_hit_clip(Rect window_rect);
   void pop_hit_clip();
 
   [[nodiscard]] bool hot(const Surface* owner, int id) const { return hover_owner == owner && hover_id == id; }
+  // The keyboard is on it, and that shows.
+  [[nodiscard]] bool focused(const Surface* owner, int id) const { return owner && (cues || always_cues) && stop_owner == owner && stop_id == id; }
+  void set_stop(Surface* owner, int id) {
+    stop_owner = owner;
+    stop_id = id;
+  }
+  // The stops Tab goes through in this window, in order: above the last hit that holds the keys.
+  [[nodiscard]] std::vector<const Hit*> tab_stops() const;
   [[nodiscard]] float to_stage_x(float x) const { return (x - ox) / scale; }
   [[nodiscard]] float to_stage_y(float y) const { return (y - oy) / scale; }
   [[nodiscard]] Rect to_window(Rect r) const { return {ox + r.x * scale, oy + r.y * scale, r.w * scale, r.h * scale}; }
@@ -214,8 +244,10 @@ class Ui : public WindowState {
   [[nodiscard]] const SvgImage& emoji_image(std::string_view id);
 
   [[nodiscard]] const Hit* hit_at(float x, float y) const;
-  // Where a hit was last drawn, for tests driving the UI without a window.
+  // Where a hit was last drawn and can be clicked, for tests driving the UI without a window.
   [[nodiscard]] const Hit* find_hit(const Surface* owner, int id) const;
+  // The same, though a clip may hide it.
+  [[nodiscard]] const Hit* find_stop(const Surface* owner, int id) const;
 
  private:
   struct FadeMask {
@@ -266,6 +298,13 @@ class Surface {
   [[nodiscard]] virtual Cursor cursor(int /*id*/) const { return Cursor::Hand; }
   // Is this a link? A Skin whose buttons keep the arrow still shows the hand on one.
   [[nodiscard]] virtual bool is_link(int /*id*/) const { return false; }
+
+  // The keyboard: what a hit is to it, if it is a stop at all. Of a list or grid only one is.
+  [[nodiscard]] virtual std::optional<Role> role(int /*id*/) const { return std::nullopt; }
+  // A hit over what is under it, as a backdrop: Tab stays among what is read after it.
+  [[nodiscard]] virtual bool holds_keys(int /*id*/) const { return false; }
+  // The keyboard came to this stop. A field takes the keys here.
+  virtual void focus(int /*id*/) {}
 
   // A running effect that needs frames.
   [[nodiscard]] virtual bool animating() const { return false; }

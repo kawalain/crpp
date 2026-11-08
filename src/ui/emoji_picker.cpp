@@ -117,6 +117,13 @@ void EmojiPicker::show(std::string current, std::function<void(std::string id)> 
   ui_.set_focus(nullptr, nullptr);
 }
 
+std::optional<Role> EmojiPicker::role(int id) const {
+  if (id < CellBase) return std::nullopt;
+  const auto in_use = std::ranges::find(ids_, current_);
+  const int cell = in_use == ids_.end() ? 0 : static_cast<int>(in_use - ids_.begin());
+  return id == CellBase + cell ? std::optional(Role::List) : std::nullopt;
+}
+
 void EmojiPicker::close() {
   open_ = false;
   on_pick_ = nullptr;

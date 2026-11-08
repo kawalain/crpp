@@ -71,6 +71,10 @@ void HomeScreen::show_error(std::string text) {
   }
 }
 
+void HomeScreen::focus(int id) {
+  if (id == Code) ui_.set_focus(this, &code_);
+}
+
 std::vector<MenuItem> HomeScreen::context_menu(int id, float x, float) {
   if (id == Code) {
     ui_.set_focus(this, &code_);

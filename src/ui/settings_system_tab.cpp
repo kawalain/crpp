@@ -130,6 +130,10 @@ TextPoint SystemTab::fingerprint_point(float x, float y) const {
   return {row, std::min<std::size_t>(m.textPosition + (trailing ? m.length : 0), line.text.size())};
 }
 
+void SystemTab::focus(int id) {
+  if (id == Address) ui_.set_focus(this, &address_);
+}
+
 std::vector<MenuItem> SystemTab::context_menu(int id, float x, float y) {
   menu_for_address_ = id == Address || (id == -1 && ui_.focus == &address_);
   if (id == Address) {

@@ -88,7 +88,9 @@ std::expected<Pack, std::string> load(std::string_view nodes) {
 class Log final : public Canvas {
  public:
   std::string out;
-  int hot_id = -1, pressed_id = -1;
+  int hot_id = -1, pressed_id = -1, focused_id = -1;
+  std::uint32_t hits_walked = 0;
+  std::vector<HitPlace> places;
 
   void add(std::string line) { out += std::move(line) + "\n"; }
   static std::string str(float v) {
@@ -124,8 +126,12 @@ class Log final : public Canvas {
   void push_down(float dy) override { add("down " + str(dy)); }
   void path_stretched(std::string_view d, float x, float y, float sx, float sy, Color c) override { add("stretched " + std::string(d) + " " + str(x) + "," + str(y) + " x" + str(sx) + " y" + str(sy) + " " + str(c)); }
   void pop_clip() override { add("unclip"); }
-  void hit(Box b, int id) override { add("hit " + str(b) + " " + std::to_string(id)); }
-  void hit_shape(Box b, int id, std::string_view d, float x, float y) override { add("hitshape " + str(b) + " " + std::to_string(id) + " " + std::string(d) + " " + str(x) + "," + str(y)); }
+  std::uint32_t next_hit() override { return hits_walked++; }
+  void hit(Box b, int id, const HitPlace& place) override {
+    add("hit " + str(b) + " " + std::to_string(id));
+    places.push_back(place);
+  }
+  void hit_shape(Box b, int id, std::string_view d, float x, float y, const HitPlace&) override { add("hitshape " + str(b) + " " + std::to_string(id) + " " + std::string(d) + " " + str(x) + "," + str(y)); }
   float transition(std::uint64_t key, const TransitionSpec& s) override {
     keys.push_back(key);
     add("transition " + std::string(s.on ? "on " : "off ") + str(s.ms_on) + "/" + str(s.ms_off) + (s.first_jumps ? " jump" : "") + (s.curve == Curve::Linear ? " linear" : "") + (s.again != 0 ? " again " + str(s.again) : ""));
@@ -154,6 +160,7 @@ class Log final : public Canvas {
   std::vector<std::uint64_t> keys;
   bool hot(int id) override { return id == hot_id; }
   bool pressed(int id) override { return id == pressed_id; }
+  bool focused(int id) override { return id == focused_id; }
 };
 
 class TestSource final : public Source {
@@ -430,6 +437,33 @@ void right_and_bottom_measure_from_the_far_edge() {
   CHECK(!load(R"C(fill face bottom 1 y 1)C"));
 }
 
+void hits_are_numbered_as_the_pack_reads_them() {
+  // The outer hit is registered after what is inside it, but the keyboard comes to it first.
+  const auto pack = load(R"C(hit join w 10 h 10 {
+  repeat 2 {
+    hit seat w 1 h 1 tab_order @i == 1 ? -1 : 0 live @i == 0 {
+      fill @focused ? ink : face
+    }
+  }
+}
+)C");
+  CHECK(pack.has_value());
+  if (!pack) return;
+  Log log;
+  log.focused_id = 100;
+  TestSource source;
+  source.log = &log;
+  draw(*pack, *pack->screen("home"), 0, {100, 200, 300, 400}, log, source);
+  CHECK(log.out.starts_with("fill 100,200,1,1 0/0/0/0.5\nhit 100,200,1,1 100\nfill 100,200,1,1 1/0/0/1\nhit 100,200,1,1 101\nhit"));
+  CHECK(log.places.size() == 3);
+  if (log.places.size() != 3) return;
+  CHECK(log.places[0].number == 1 && log.places[0].tab_order == 0 && log.places[0].live);
+  CHECK(log.places[1].number == 2 && log.places[1].tab_order == -1 && !log.places[1].live);
+  CHECK(log.places[2].number == 0 && log.places[2].live);
+  // The exe's name came after packs could take the word, as Retro's button did: bare, it is still theirs.
+  CHECK(walk("let focused = 1\nfill focused ? ink : face (0, 0, 1, 1)") == "fill 100,200,1,1 0/0/0/0.5\n");
+}
+
 void hits_can_be_gated_and_counted_otherwise() {
   CHECK(walk(R"C(hit join w 1 h 1 live 0 {
   fill @hot ? ink : face
@@ -633,7 +667,7 @@ void a_walk_ends_however_parts_multiply() {
     void text(std::string_view, Box, const TextLook&, Color) override {}
     void push_clip(Box) override {}
     void pop_clip() override {}
-    void hit(Box, int) override {}
+    void hit(Box, int, const HitPlace&) override {}
     bool hot(int) override { return false; }
     bool pressed(int) override { return false; }
   } counter;
@@ -1124,6 +1158,7 @@ int main() {
   a_part_can_hold_a_list_and_say_how_tall_it_came_out();
   a_part_sizes_itself_where_none_is_given();
   right_and_bottom_measure_from_the_far_edge();
+  hits_are_numbered_as_the_pack_reads_them();
   hits_can_be_gated_and_counted_otherwise();
   numbers_are_read_for_the_round_of_a_repeat();
   lines_paths_and_measures();

@@ -766,7 +766,7 @@ class Loader final : public Names {
   }
 
   bool free_name(std::string_view name) {
-    if (var_named(name) || name.empty()) return fail("\"" + std::string(name) + "\" cannot be a name");
+    if (reserved_name(name) || name.empty()) return fail("\"" + std::string(name) + "\" cannot be a name");
     for (const auto& [n, at] : scope_->lets) {
       if (n == name) return fail("\"" + std::string(name) + "\" is here twice");
     }
@@ -978,6 +978,7 @@ class Loader final : public Names {
     }
     return optional_expr(json, "note_by", out.note_by, &out.has_note_by) && optional_expr(json, "after", out.after, &out.has_after) &&
            optional_expr(json, "live", out.live, &out.has_live) && optional_expr(json, "hit_if", out.hit_if, &out.has_hit_if) &&
+           optional_expr(json, "tab_order", out.tab_order, &out.has_tab_order) &&
            optional_expr(json, "alpha", out.alpha, &out.has_alpha);
   }
 

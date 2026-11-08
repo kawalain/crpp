@@ -48,7 +48,7 @@
 // and each may have: if, id (siblings can then read id.x, .y, .w, .h, .right, .bottom), x or right,
 // y or bottom, w, h (x and y from the box around it, 0 and that box's size by default), after,
 // hit (a name for clicks, counted up by hit_index, or by i if there is none), live (false: it is not
-// lit), hit_if (false: no hit), note (the box goes to the screen under this name), snap (the box moves
+// lit), hit_if (false: no hit), tab_order (where the keyboard comes to it), note (the box goes to the screen under this name), snap (the box moves
 // to whole pixels), hit_path (the hit takes the shape of this path, set at hit_path_x and hit_path_y).
 // A part knows no screen, so it takes hit_by and note_by: a
 // number, which a screen gives it as an argument with hit(name) or note(name), and less than 0 for none.
@@ -136,7 +136,7 @@ struct Node {
   NodeKind kind = NodeKind::Group;
   bool snap = false, clip = false, has_if = false, from_right = false, from_bottom = false;
   bool auto_h = false;      // Column: h is what its nodes took
-  bool has_hit_index = false, has_live = false, has_hit_if = false, has_after = false;
+  bool has_hit_index = false, has_live = false, has_hit_if = false, has_after = false, has_tab_order = false;
   bool round_caps = true;   // Path
   bool soft = false;        // Path. Group: its clip
   bool stretched = false;   // Path: it has scale_y
@@ -164,7 +164,7 @@ struct Node {
   Expr extra;  // Fill, Stroke, Shadow: radius. Line: x2. Path: scale. Picture: opacity. Repeat: how many. Let: value, or to. Report: value
   Expr width;  // Stroke, Line, Path. Fill: down_to. Picture: gray. Let: ms. Shadow: blur
   Expr extra2;  // Line: y2. Let: ms_off. Shadow: dy
-  Expr after, hit_index, live, hit_if, alpha, note_by;
+  Expr after, hit_index, live, hit_if, alpha, note_by, tab_order;
   Expr size, line_height;  // Text. Let: size is again
 };
 

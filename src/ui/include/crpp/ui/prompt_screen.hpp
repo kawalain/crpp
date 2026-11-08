@@ -32,6 +32,14 @@ class PromptScreen final : public Surface {
  public:
   using Surface::Surface;
   enum Id : int { Field, Submit, Eye, Back, Extra, Extra2, Link };
+  [[nodiscard]] std::optional<Role> role(int id) const override {
+    if (id == Field) return Role::Field;
+    if (id == Eye) return Role::Toggle;
+    if (id == Link) return Role::Link;
+    if (id == Submit || id == Back || id == Extra || id == Extra2) return Role::Button;
+    return std::nullopt;
+  }
+  void focus(int id) override;
 
   std::function<void(std::string value)> on_submit;
   std::function<void()> on_back, on_extra, on_extra2, on_link;

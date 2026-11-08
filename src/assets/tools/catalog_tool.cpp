@@ -9,6 +9,11 @@
 // second source of each. --copy also puts every file in <out-dir>, the third-party ones from
 // that cache, so that the folder can be served as it is. Signing is a separate step
 // (.github/scripts/sign-catalog.ps1), so the key never reaches this program.
+//
+//   crpp_catalog --verify <catalog.txt> [--key <hex>]
+//
+// checks a signed catalog as the program will: its key must be this build's (or --key) and
+// its signature must hold.
 #include <algorithm>
 #include <cstdio>
 #include <filesystem>
@@ -16,6 +21,7 @@
 #include <iterator>
 #include <map>
 #include <optional>
+#include <span>
 #include <sstream>
 #include <string>
 #include <vector>
@@ -204,7 +210,30 @@ class Writer {
 
 }  // namespace
 
+int verify(int argc, char** argv) {
+  const auto text = read_text(argv[2]);
+  const auto key = argc == 5 && std::string_view(argv[3]) == "--key" ? update::parse_public_key(argv[4]) : update::built_in_key();
+  if (!text || !key) {
+    std::fprintf(stderr, "crpp_catalog: no catalog, or no key to check it with\n");
+    return 2;
+  }
+  const auto catalog = assets::parse_catalog(*text);
+  if (!catalog) {
+    std::fprintf(stderr, "crpp_catalog: line %zu: %s\n", catalog.error().line, catalog.error().what.c_str());
+    return 1;
+  }
+  assets::WindowsPlatform platform;
+  const std::span<const std::uint8_t> signed_part(reinterpret_cast<const std::uint8_t*>(text->data()), catalog->signed_bytes);
+  if (catalog->key != *key || !catalog->signature || !platform.verify(*key, signed_part, *catalog->signature)) {
+    std::fprintf(stderr, "crpp_catalog: not signed by the key\n");
+    return 1;
+  }
+  std::printf("signed by the key, %zu files\n", catalog->files.size());
+  return 0;
+}
+
 int main(int argc, char** argv) {
+  if (argc >= 3 && std::string_view(argv[1]) == "--verify") return verify(argc, argv);
   const auto options = parse_options(argc, argv);
   if (!options) {
     std::fprintf(stderr, "usage: crpp_catalog <out-dir> --remote <file> [--assets <dir>] [--skins <dir>] [--ref <ref>] "

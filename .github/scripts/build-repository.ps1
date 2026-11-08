@@ -38,6 +38,9 @@ try {
 } finally {
   Remove-Item Env:CRPP_UPDATE_SIGNING_KEY
 }
+# As the program will check it.
+& $Tool --verify (Join-Path $Out 'catalog.txt') --key $PublicKey
+if ($LASTEXITCODE -ne 0) { throw 'the signed catalog does not verify' }
 $files = Get-ChildItem -LiteralPath $Out -Recurse -File
 "$($files.Count) files, $([math]::Round(($files | Measure-Object Length -Sum).Sum / 1MB, 1)) MB in $Out"
 } finally {

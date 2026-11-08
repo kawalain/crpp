@@ -108,24 +108,12 @@ class ChatPanel final : public Surface {
   void append_message(std::size_t index, float list_w);
   void paint_rows(Painter& p, Rect area);
   void append_row_of_look(std::size_t index, float list_w, bool arriving);
-  void paint_luna(Painter& p, Rect panel);
-  [[nodiscard]] TextStyle luna_body() const;
-  [[nodiscard]] TextStyle luna_input() const;
   [[nodiscard]] bool chat_grouped_with_previous(std::size_t index) const;
   // The view moved by hand: it follows new messages again only at the end, and close to
   // the top the next page is laid out.
   void scrolled();
   void send();
-  void sync_rows(float list_w);
-  void append_row(std::size_t index, float list_w, bool arriving);
-  void paint_send(Painter& p, Rect anchor, float out);
-  // How far the send button has gone out of the box, 0 to 1.
-  [[nodiscard]] float multi_progress() const;
-  [[nodiscard]] bool send_moving() const;
-  void paint_calm(Painter& p, Rect anchor);
   void shake();
-  [[nodiscard]] bool shaking() const;
-  [[nodiscard]] bool calm_moving() const;
 
   TextField input_;
   std::vector<ChatEntry> log_;
@@ -147,15 +135,10 @@ class ChatPanel final : public Surface {
   Rect bar_track_;
   float input_text_w_ = 0;
   float grab_y_ = 0, grab_offset_ = 0;
-  bool multi_ = false;  // the text takes two lines or more
-  unsigned long long multi_since_ = 0;
   bool older_pending_ = false;  // a page was added above since the last paint
 
   ChatLimiter limiter_;
   std::string last_sent_;  // what comes back if the server refuses it
-  unsigned long long shake_at_ = 0;
-  bool calm_shown_ = false;  // the state the bubble is moving towards
-  unsigned long long calm_since_ = 0;
   std::string calm_text_;
   HoverTip link_tip_;
   HoverTip::Spec link_tip_spec_;

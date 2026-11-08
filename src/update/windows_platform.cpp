@@ -135,6 +135,10 @@ std::string WindowsPlatform::sha256(std::span<const std::uint8_t> bytes) {
 }
 
 bool WindowsPlatform::verify(const PublicKey& key, std::span<const std::uint8_t> message, const Signature& signature) {
+  return verify_signature(key, message, signature);
+}
+
+bool verify_signature(const PublicKey& key, std::span<const std::uint8_t> message, const Signature& signature) {
   std::array<UCHAR, 32> digest{};
   if (!BCRYPT_SUCCESS(BCryptHash(BCRYPT_SHA256_ALG_HANDLE, nullptr, 0, const_cast<UCHAR*>(message.data()),
                                  static_cast<ULONG>(message.size()), digest.data(), static_cast<ULONG>(digest.size())))) {

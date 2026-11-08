@@ -30,6 +30,9 @@ class WindowsPlatform final : public Platform {
   std::unique_ptr<Impl> impl_;
 };
 
+// ECDSA P-256 over the SHA-256 of message, with BCrypt; also what checks a catalog.
+[[nodiscard]] bool verify_signature(const PublicKey& key, std::span<const std::uint8_t> message, const Signature& signature);
+
 // The path of this process's exe.
 [[nodiscard]] std::filesystem::path running_exe();
 

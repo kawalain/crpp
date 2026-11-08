@@ -161,6 +161,7 @@ struct Shell {
   std::optional<assets::Repository> repository;  // where files come from; empty: nowhere
   std::optional<assets::Catalog> catalog;        // the kept one, verified
   std::thread assets_worker;
+  std::deque<bool> install_queue;  // installs waiting for the worker, by `wait`
   std::vector<std::string> expected_sounds;  // what the catalog promises, on disk or not
   std::filesystem::path data_dir;  // the Protected store's folder
   std::wstring data_override;      // --data, so a restart keeps it
@@ -196,7 +197,7 @@ void enter_app(Shell& s);
 [[nodiscard]] bool skin_installed(const Shell& s);
 // Fetches what is missing. With wait, the first start's progress screen stays until the
 // Skin Pack is in place, and says so if it cannot be; otherwise it goes on behind the app,
-// for the next start.
+// for the next start. While one runs, the next waits its turn.
 void start_install(Shell& s, bool wait);
 // A nickname like the upstream one: "<adjective> <animal>".
 std::string random_nickname(const std::filesystem::path& words);

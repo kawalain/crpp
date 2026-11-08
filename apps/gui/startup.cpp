@@ -205,13 +205,29 @@ Installed install(Shell& s, bool wait, const std::function<void(const assets::Pr
   return done;
 }
 
-}  // namespace
+// On the UI thread, once the worker has ended.
+void finish_install(Shell& s, bool wait, Installed installed) {
+  if (installed.catalog) use_catalog(s, std::move(*installed.catalog));
+  if (wait) {
+    if (!skin_installed(s)) {
+      s.log.note(diag_of(installed.result ? assets::Error::BadContent : installed.result.error()));
+      auto status = s.app.setup().status();
+      status.failed = true;
+      s.app.show_setup(status);
+      return;
+    }
+    s.app.reload_assets(s.assets_dir);
+    area::preferences::skins_installed(s);
+    enter_app(s);
+  }
+  report_assets(s, installed.result);
+}
 
-void start_install(Shell& s, bool wait) {
+void run_install(Shell& s, bool wait) {
   if (wait) {
     s.app.show_setup({});
     s.app.setup().on_retry = [&s] {
-      if (!s.assets_worker.joinable()) start_install(s, true);
+      if (!s.assets_worker.joinable() && s.install_queue.empty()) start_install(s, true);
     };
     s.app.setup().on_quit = [&s] { DestroyWindow(s.hwnd); };
   }
@@ -228,22 +244,25 @@ void start_install(Shell& s, bool wait) {
     });
     s.tasks.post([&s, wait, installed = std::move(installed)]() mutable {
       s.assets_worker.join();
-      if (installed.catalog) use_catalog(s, std::move(*installed.catalog));
-      if (wait) {
-        if (!skin_installed(s)) {
-          s.log.note(diag_of(installed.result ? assets::Error::BadContent : installed.result.error()));
-          auto status = s.app.setup().status();
-          status.failed = true;
-          s.app.show_setup(status);
-          return;
-        }
-        s.app.reload_assets(s.assets_dir);
-        area::preferences::skins_installed(s);
-        enter_app(s);
-      }
-      report_assets(s, installed.result);
+      finish_install(s, wait, std::move(installed));
+      if (s.install_queue.empty() || s.assets_worker.joinable()) return;
+      const bool next = s.install_queue.front();
+      s.install_queue.pop_front();
+      run_install(s, next);
     });
   });
+}
+
+}  // namespace
+
+void start_install(Shell& s, bool wait) {
+  // One install at a time: a second thread would race the first over the same files, and
+  // assigning to a running std::thread ends the program.
+  if (s.assets_worker.joinable() || !s.install_queue.empty()) {
+    s.install_queue.push_back(wait);
+    return;
+  }
+  run_install(s, wait);
 }
 
 }  // namespace crpp::gui

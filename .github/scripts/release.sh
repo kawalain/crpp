@@ -1,8 +1,9 @@
 #!/usr/bin/env bash
-# Builds, signs and publishes a release from this machine. See docs/releases/README.md.
+# Builds, signs and publishes a release from this machine, with the official Repository (ADR 0008).
+# See docs/releases/README.md.
 #   .github/scripts/release.sh <version> [--dry-run] [--notes <file>] [--key <key.pem>]
 # --dry-run does everything up to the tag, and leaves the result in dist/. The private key is
-# named by its file, never passed as text, and only the signing step reads it.
+# named by its file, never passed as text, and only the signing steps read it.
 set -euo pipefail
 here=$(cd "$(dirname "$0")" && pwd)
 cd "$here/../.."
@@ -20,6 +21,8 @@ while [[ $# -gt 0 ]]; do
   esac
 done
 fail() { echo "$*" >&2; exit 1; }
+# Also named in wrangler.jsonc. No package.json pins it, as the build has no package manager.
+wrangler=wrangler@4.152.0
 
 tag="v$version"
 [[ $version =~ ^0\.(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)$ ]] || fail "not a 0.y.z version: $version"
@@ -62,13 +65,20 @@ cp "$built" "$dist/crpp.exe"
 # strand every installed copy.
 build-release/src/update/crpp_update_verify.exe "$dist/crpp-update.manifest" "$dist/crpp.exe" || fail 'the release does not verify'
 
+echo '== Filling the Repository'
+# wrangler.jsonc serves dist/repository. Its second source is this tag on GitHub.
+"$here/build-repository.sh" "$version" --out "$dist/repository" --tool build-release/src/assets/crpp_catalog.exe --key "$key"
+
 if [[ $dry_run == 1 ]]; then
   echo "== Dry run: nothing was tagged or published. The result is in $dist/."
   exit 0
 fi
 
 echo '== Publishing'
+# The tag first, so the catalog's second source exists once it is served; then the Repository,
+# so the new exe never starts against the files of the one before.
 [[ -n $tagged ]] || git tag "$tag"
 git push origin "$tag" || fail 'pushing the tag failed'
+npx --yes "$wrangler" deploy || fail 'deploying the Repository failed; run this again to retry'
 "$here/publish-release.sh" "$tag"
 gh release view "$tag" --json url --jq .url

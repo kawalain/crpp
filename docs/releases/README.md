@@ -34,13 +34,19 @@ To release: commit the notes to `main`, push, then run this in Git Bash:
 
 It refuses a tree that differs from `origin/main`, then builds an official exe in
 `build-release`, tests it, signs it with the key in `~/.crpp-signing` (see
-`docs/signing-key.md`), verifies the result against the key built into it, pushes the tag and
-publishes. `--dry-run` stops before the tag and leaves the result in `dist/`.
+`docs/signing-key.md`) and verifies the result against the key built into it. It fills
+`dist/repository` with the official Repository (ADR 0008) through
+`.github/scripts/build-repository.sh`, signing its catalog with the same key, from `assets/`,
+`skins/` and the third-party files a development build caches in `.cache/remote-assets`. Then it
+pushes the tag, deploys the Repository with `npx --yes wrangler@4.152.0 deploy`
+(`wrangler.jsonc`, your own `CLOUDFLARE_API_TOKEN` or `wrangler login`) and publishes the
+Release. `--dry-run` stops before the tag and leaves the result in `dist/`. A run that fails
+after the tag can be run again: it rebuilds, deploys and publishes what is missing.
 
 GitHub Actions no longer runs by itself, as its minutes are limited. Nothing builds on a push
 or a tag, so GCC's portability check runs only on `gh workflow run ci.yml`; do that before a
 release that changed a pure module. `gh workflow run release.yml --ref v0.y.z` publishes an
-existing tag from a runner instead.
+existing tag from a runner instead; it does not deploy the Repository.
 
 ## If Defender flags a release
 

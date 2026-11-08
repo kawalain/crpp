@@ -100,6 +100,8 @@ class Engine final : private Renderer {
   void set_settings(Settings settings);
   // What the packs should hold, once a first install has said: see Catalog::scan.
   void set_expected(std::vector<std::string> expected);
+  // The Sound packs of the Repositories the user added, after the official ones.
+  void set_added(std::vector<PackRoot> roots);
   void set_members(std::vector<Member> members);
   // One member's volume, on top of the others. It outlives set_members, so it holds
   // across reconnects; 100 is what everyone starts with.
@@ -170,6 +172,8 @@ class Engine final : private Renderer {
   std::optional<Settings> new_settings_;
   std::optional<std::vector<Member>> new_members_;
   std::optional<std::vector<std::string>> new_expected_;
+  std::optional<std::vector<PackRoot>> new_added_;
+  std::vector<PackRoot> added_;
   std::vector<VolumeChange> new_volumes_;
   std::vector<Cue> new_cues_;
   bool check_device_ = false;

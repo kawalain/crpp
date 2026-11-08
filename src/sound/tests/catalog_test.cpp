@@ -1,6 +1,7 @@
 // Runs against the real packs in assets/sounds, whose names these rules must fit.
 #include "crpp/sound/catalog.hpp"
 
+#include <fstream>
 #include <string>
 
 #include "check.hpp"
@@ -115,9 +116,28 @@ void notification_files_are_found_with_or_without_the_number() {
   CHECK(!notification_file(root / "none", "cloud_chat"));
 }
 
+// Another Repository's packs come after the official ones, under its prefix: the default stays.
+void a_second_folder_comes_after_with_its_prefix() {
+  const std::filesystem::path other = std::filesystem::temp_directory_path() / "crpp_sound_roots_test";
+  std::filesystem::remove_all(other);
+  std::filesystem::create_directories(other / "keyboard" / "aaa");
+  std::ofstream(other / "keyboard" / "aaa" / "pack.json") << R"({"name": {"en": "First"}})";
+  std::ofstream(other / "keyboard" / "aaa" / "alpha_r1.wav") << "x";
+  const PackRoot roots[] = {{CRPP_SOUNDS_DIR, {}, {}}, {other, "0123456789abcdef", {"keyboard/bbb/alpha_r1.wav"}}};
+  const auto catalog = Catalog::scan(roots, "en");
+  const auto ids = catalog.packs(Device::Keyboard);
+  CHECK(!ids.empty() && ids.front() == "plastic");
+  CHECK(std::ranges::find(ids, "0123456789abcdef/aaa") != ids.end() && std::ranges::find(ids, "0123456789abcdef/bbb") != ids.end());
+  const auto choices = catalog.choices(Device::Keyboard);
+  const auto aaa = std::ranges::find(choices, std::string("0123456789abcdef/aaa"), &PackInfo::id);
+  CHECK(aaa != choices.end() && aaa->name == "First");
+  std::filesystem::remove_all(other);
+}
+
 }  // namespace
 
 int main() {
+  a_second_folder_comes_after_with_its_prefix();
   finds_the_packs_in_order();
   kinds_reach_their_devices();
   plain_sounds_match_by_name();

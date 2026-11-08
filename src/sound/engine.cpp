@@ -102,6 +102,14 @@ void Engine::set_expected(std::vector<std::string> expected) {
   wake_.notify_one();
 }
 
+void Engine::set_added(std::vector<PackRoot> roots) {
+  {
+    std::lock_guard lock(mutex_);
+    new_added_ = std::move(roots);
+  }
+  wake_.notify_one();
+}
+
 void Engine::clear_member_volumes() {
   {
     std::lock_guard lock(mutex_);
@@ -161,7 +169,7 @@ void Engine::run() {
     {
       std::unique_lock lock(mutex_);
       const auto ready = [&] {
-        return stopping_ || device_changed_ || pending_count_ > 0 || new_settings_ || new_members_ || new_expected_ ||
+        return stopping_ || device_changed_ || pending_count_ > 0 || new_settings_ || new_members_ || new_expected_ || new_added_ ||
                !new_volumes_.empty() || !new_cues_.empty() || check_device_;
       };
       // Asleep with no timer unless a stream is running and must be stopped later.
@@ -177,6 +185,10 @@ void Engine::run() {
       if (new_expected_) {
         expected_ = std::move(*std::exchange(new_expected_, std::nullopt));
         catalog_ = {};  // read again at the next sound
+      }
+      if (new_added_) {
+        added_ = std::move(*std::exchange(new_added_, std::nullopt));
+        catalog_ = {};
       }
       volumes.swap(new_volumes_);
       cues.swap(new_cues_);
@@ -348,7 +360,11 @@ void Engine::play(const Event& event) {
   if (device_volume <= 0) return;
   const int member_volume = event.own ? 100 : volume_of(event.slot);
   if (member_volume <= 0) return;
-  if (catalog_.empty()) catalog_ = Catalog::scan(sounds_dir_, expected_);
+  if (catalog_.empty()) {
+    std::vector<PackRoot> roots{{sounds_dir_, {}, expected_}};
+    roots.insert(roots.end(), added_.begin(), added_.end());
+    catalog_ = Catalog::scan(roots);
+  }
   const std::string_view pack = pack_for(event, device);
   const auto file = catalog_.pick(event.kind, pack, random_);
   if (!file || !ensure_open()) return;

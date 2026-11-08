@@ -43,6 +43,14 @@ struct PackInfo {
   std::string id, name;
 };
 
+// A folder of Sound packs ("sounds"): the official one, or a Repository's, whose pack ids get its
+// prefix and a slash. `expected`: see Catalog::scan.
+struct PackRoot {
+  std::filesystem::path dir;
+  std::string prefix;
+  std::vector<std::string> expected;
+};
+
 class Catalog {
  public:
   // Reads the folder structure under `root` (the "sounds" folder). `expected` lists files
@@ -50,6 +58,9 @@ class Catalog {
   // a pack still downloading can be chosen, and a sound it deliberately lacks stays silent.
   [[nodiscard]] static Catalog scan(const std::filesystem::path& root, std::span<const std::string> expected = {},
                                      std::string_view language = "ko");
+  // Several folders, each device's packs in their order: the first folder's first pack is the
+  // device's default, which another member's pack this client lacks plays as.
+  [[nodiscard]] static Catalog scan(std::span<const PackRoot> roots, std::string_view language = "ko");
 
   [[nodiscard]] bool empty() const noexcept { return packs_.empty(); }
   // The pack ids of a device, in display order. The first is its default.

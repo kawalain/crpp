@@ -122,30 +122,40 @@ Device device_of(wire::Kind kind) noexcept {
 }
 
 Catalog Catalog::scan(const fs::path& root, std::span<const std::string> expected, std::string_view language) {
+  const PackRoot one[] = {{root, {}, {expected.begin(), expected.end()}}};
+  return scan(one, language);
+}
+
+Catalog Catalog::scan(std::span<const PackRoot> roots, std::string_view language) {
   Catalog catalog;
   const std::array<std::pair<const char*, Device>, 3> folders{
       {{"keyboard", Device::Keyboard}, {"mouse", Device::Mouse}, {"pen", Device::Pen}}};
   for (const auto& [folder, device] : folders) {
-    std::map<std::string, std::set<std::string>> packs;  // sorted: the display order
-    std::error_code ec;
-    for (const auto& entry : fs::directory_iterator(root / folder, ec)) {
-      if (!entry.is_directory(ec) || !fs::is_regular_file(entry.path() / "pack.json", ec)) continue;
-      auto& files = packs[lower(entry.path().filename().string())];
-      for (const auto& file : fs::directory_iterator(entry.path(), ec)) {
-        if (file.is_regular_file(ec)) files.insert(file.path().filename().string());
+    for (const PackRoot& place : roots) {
+      const fs::path& root = place.dir;
+      const std::span<const std::string> expected = place.expected;
+      std::map<std::string, std::set<std::string>> packs;  // sorted: the display order
+      std::error_code ec;
+      for (const auto& entry : fs::directory_iterator(root / folder, ec)) {
+        if (!entry.is_directory(ec) || !fs::is_regular_file(entry.path() / "pack.json", ec)) continue;
+        auto& files = packs[lower(entry.path().filename().string())];
+        for (const auto& file : fs::directory_iterator(entry.path(), ec)) {
+          if (file.is_regular_file(ec)) files.insert(file.path().filename().string());
+        }
       }
-    }
-    const std::string prefix = std::string(folder) + "/";
-    for (const std::string& path : expected) {
-      if (!path.starts_with(prefix)) continue;
-      const auto slash = path.find('/', prefix.size());
-      if (slash == std::string::npos) continue;
-      packs[path.substr(prefix.size(), slash - prefix.size())].insert(path.substr(slash + 1));
-    }
-    for (auto& [id, files] : packs) {
-      const fs::path dir = root / folder / id;
-      std::string name = pack_name(dir / "pack.json", id, language);
-      catalog.packs_.push_back({device, id, std::move(name), dir, {files.begin(), files.end()}});
+      const std::string prefix = std::string(folder) + "/";
+      for (const std::string& path : expected) {
+        if (!path.starts_with(prefix)) continue;
+        const auto slash = path.find('/', prefix.size());
+        if (slash == std::string::npos) continue;
+        packs[path.substr(prefix.size(), slash - prefix.size())].insert(path.substr(slash + 1));
+      }
+      for (auto& [id, files] : packs) {
+        const fs::path dir = root / folder / id;
+        const std::string full = place.prefix.empty() ? id : place.prefix + "/" + id;
+        std::string name = pack_name(dir / "pack.json", id, language);
+        catalog.packs_.push_back({device, full, std::move(name), dir, {files.begin(), files.end()}});
+      }
     }
   }
   return catalog;

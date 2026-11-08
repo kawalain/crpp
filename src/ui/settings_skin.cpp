@@ -71,10 +71,17 @@ constexpr skin::Name notify_numbers[] = {{"tray", TrayN}, {"flash", FlashN}, {"s
 constexpr skin::Name notify_hits[] = {{"tray", NotifyTab::TrayToggle}, {"flash", NotifyTab::FlashToggle}, {"sound", NotifyTab::SoundBase}, {"preview", NotifyTab::PreviewBase}};
 
 // --- system ---
-enum SystemNumber : int { AutostartN, SystemTrayN, DetailN, LoggingN };
-constexpr skin::Name system_numbers[] = {{"autostart", AutostartN}, {"tray", SystemTrayN}, {"detail", DetailN}, {"logging", LoggingN}};
-constexpr skin::Name system_slots[] = {{"release_list", 0}};
-constexpr skin::Name system_hits[] = {{"autostart", SystemTab::Autostart}, {"tray", SystemTab::Tray}, {"detail", SystemTab::Detail}, {"logging", SystemTab::Logging}, {"open_logs", SystemTab::OpenLogs}, {"reset", SystemTab::Reset}};
+enum SystemText : int { RepoAddressT, RepoFingerprintT, RepoStatusT };
+constexpr skin::Name system_texts[] = {{"repo_address", RepoAddressT}, {"repo_fingerprint", RepoFingerprintT}, {"repo_status", RepoStatusT}};
+enum SystemNumber : int { AutostartN, SystemTrayN, DetailN, LoggingN, RepositoriesN, RepoOfficialN, RepoStateN, AddressFocusN, AddressEmptyN };
+constexpr skin::Name system_numbers[] = {{"autostart", AutostartN}, {"tray", SystemTrayN}, {"detail", DetailN}, {"logging", LoggingN},
+                                         {"repositories", RepositoriesN}, {"repo_official", RepoOfficialN}, {"repo_state", RepoStateN},
+                                         {"address_focus", AddressFocusN}, {"address_empty", AddressEmptyN}};
+enum SystemSlot : int { ReleaseSlot, AddressSlot };
+constexpr skin::Name system_slots[] = {{"release_list", ReleaseSlot}, {"address", AddressSlot}};
+constexpr skin::Name system_hits[] = {{"autostart", SystemTab::Autostart}, {"tray", SystemTab::Tray}, {"detail", SystemTab::Detail}, {"logging", SystemTab::Logging},
+                                      {"open_logs", SystemTab::OpenLogs}, {"reset", SystemTab::Reset}, {"address", SystemTab::Address},
+                                      {"add_repository", SystemTab::AddRepository}, {"remove_repository", SystemTab::RemoveRepository}};
 
 // --- account ---
 enum AccountText : int { NicknameT, HandleT, DisplayT };
@@ -83,14 +90,6 @@ constexpr skin::Name account_texts[] = {{"nickname", NicknameT}, {"handle", Hand
 constexpr skin::Name account_numbers[] = {{"has_names", HasNames}, {"has_account", HasAccount}};
 constexpr skin::Name account_pictures[] = {{"me", 0}};
 constexpr skin::Name account_hits[] = {{"emoji", AccountTab::Emoji}, {"nickname", AccountTab::Nickname}, {"change_handle", AccountTab::Handle}, {"logout", AccountTab::Logout}};
-
-// As the first-run screen counts them: one decimal, at least 0.1.
-std::string megabytes(std::uint64_t bytes) {
-  const double mb = std::max(0.1, static_cast<double>(bytes) / (1024.0 * 1024.0));
-  char text[24];
-  std::snprintf(text, sizeof text, "%.1f MB", mb);
-  return text;
-}
 
 // What the row under the Skin says about a Theme picked before its pack is installed.
 std::string fetch_status(const Ui& ui) {
@@ -111,7 +110,7 @@ skin::ScreenSchema SettingsPanel::droplet_schema() { return {.screen = "droplet"
 skin::ScreenSchema SoundTab::schema() { return {.screen = "settings_sound", .texts = sound_texts, .numbers = sound_numbers, .hits = sound_hits, .slots = sound_slots, .reports = height_report, .notes = sound_notes}; }
 skin::ScreenSchema DisplayTab::schema() { return {.screen = "settings_display", .texts = display_texts, .numbers = display_numbers, .pictures = display_pictures, .hits = display_hits, .slots = display_slots, .reports = height_report, .notes = display_notes}; }
 skin::ScreenSchema NotifyTab::schema() { return {.screen = "settings_notify", .texts = notify_texts, .numbers = notify_numbers, .hits = notify_hits, .reports = height_report}; }
-skin::ScreenSchema SystemTab::schema() { return {.screen = "settings_system", .numbers = system_numbers, .hits = system_hits, .slots = system_slots, .reports = height_report}; }
+skin::ScreenSchema SystemTab::schema() { return {.screen = "settings_system", .texts = system_texts, .numbers = system_numbers, .hits = system_hits, .slots = system_slots, .reports = height_report}; }
 skin::ScreenSchema AccountTab::schema() { return {.screen = "settings_account", .texts = account_texts, .numbers = account_numbers, .pictures = account_pictures, .hits = account_hits, .reports = height_report}; }
 
 void SettingsPanel::paint_pack(Painter& p, const skin::Screen& screen) {
@@ -460,22 +459,45 @@ void SystemTab::paint_pack(Painter& p, const skin::Screen& screen, Rect area) {
 
   class Shown final : public skin::Source {
    public:
-    Shown(SystemTab& tab, Painter& painter) : s_(tab), p_(painter) {}
+    Shown(SystemTab& tab, Painter& painter) : s_(tab), p_(painter), status_(tab.status_text()) {
+      for (std::size_t i = 0; i < s_.repositories_.size(); ++i) fingerprints_.push_back(s_.fingerprint_text(i));
+    }
 
-    float number(int id, int) override {
+    std::string_view text(int id, int index) override {
+      const auto at = static_cast<std::size_t>(index);
+      switch (id) {
+        case RepoAddressT: return at < s_.repositories_.size() ? std::string_view(s_.repositories_[at].address) : std::string_view();
+        case RepoFingerprintT: return at < fingerprints_.size() ? std::string_view(fingerprints_[at]) : std::string_view();
+        case RepoStatusT: return status_;
+        default: return {};
+      }
+    }
+
+    float number(int id, int index) override {
       const Prefs& prefs = *s_.ui_.prefs;
+      const auto at = static_cast<std::size_t>(index);
       switch (id) {
         case AutostartN: return yes(prefs.get(pref::start_with_system));
         case SystemTrayN: return yes(prefs.get(pref::minimize_to_tray));
         case DetailN: return yes(prefs.get(pref::input_detail));
         case LoggingN: return yes(prefs.get(pref::log_enabled));
+        case RepositoriesN: return static_cast<float>(s_.repositories_.size());
+        case RepoOfficialN: return yes(at < s_.repositories_.size() && s_.repositories_[at].official);
+        case RepoStateN: return static_cast<float>(s_.adding_.state);
+        case AddressFocusN: return yes(s_.ui_.focus == &s_.address_);
+        case AddressEmptyN: return yes(s_.address_.text().empty() && !s_.address_.composing());
         default: return 0;
       }
     }
 
-    void slot(int, int, skin::Box box, const skin::SlotValues&) override {
-      s_.release_rect_ = rect_of(box);
-      s_.release_.paint_button(s_.ui_, &s_, p_, s_.release_rect_);
+    void slot(int id, int, skin::Box at, const skin::SlotValues& values) override {
+      if (id == ReleaseSlot) {
+        s_.release_rect_ = rect_of(at);
+        s_.release_.paint_button(s_.ui_, &s_, p_, s_.release_rect_);
+        return;
+      }
+      if (values.styles.empty() || values.colors.size() < 5) return;
+      s_.paint_address(p_, rect_of(at), text_style_of(values.styles[0]), values.colors.first(5));
     }
 
     void report(int, float value) override { s_.flow_height_ = value; }
@@ -483,6 +505,8 @@ void SystemTab::paint_pack(Painter& p, const skin::Screen& screen, Rect area) {
    private:
     SystemTab& s_;
     Painter& p_;
+    std::vector<std::string> fingerprints_;
+    std::string status_;
   } shown(*this, p);
 
   SkinCanvas canvas(ui_, p, this);

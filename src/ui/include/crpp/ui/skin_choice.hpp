@@ -33,6 +33,9 @@ struct ThemeFetch {
   std::string reason;  // why it failed, in words
 };
 
+// How much a pack takes to fetch, as the first-run screen counts it: one decimal, at least 0.1.
+[[nodiscard]] std::string megabytes(std::uint64_t bytes);
+
 [[nodiscard]] SkinInfo skin_info(const skin::Pack& pack, std::string dir);
 
 // The name for this locale, or else the English one, or else the id.

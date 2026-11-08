@@ -1,6 +1,7 @@
 #include "crpp/ui/skin_choice.hpp"
 
 #include <algorithm>
+#include <cstdio>
 
 #include "crpp/ui/themes.hpp"
 
@@ -34,6 +35,13 @@ SkinChoice from_upstream(const Prefs& prefs, std::span<const SkinInfo> skins) {
 }
 
 }  // namespace
+
+std::string megabytes(std::uint64_t bytes) {
+  const double mb = std::max(0.1, static_cast<double>(bytes) / (1024.0 * 1024.0));
+  char text[24];
+  std::snprintf(text, sizeof text, "%.1f MB", mb);
+  return text;
+}
 
 SkinInfo skin_info(const skin::Pack& pack, std::string dir) { return {pack.id, std::move(dir), pack.names, pack.themes, pack.default_theme}; }
 

@@ -189,6 +189,38 @@ void test_system_rows() {
   CHECK(opened == 1);
 }
 
+// What is typed goes to the shell as typed, on the button or Enter, and a row's button names its row.
+void test_a_repository_is_added_and_removed_by_the_shell() {
+  UiHarness h;
+  CHECK(h.start());
+  SystemTab& tab = h.app.settings().system();
+  tab.set_repositories({{"https://crpp.kawala.in/", "0123456789abcdef", true}, {"github:someone/skins", "1a2b3c4d5e6f7a8b", false}});
+  open(h, SettingsPage::System);
+  std::vector<std::string> added;
+  std::vector<std::size_t> removed;
+  tab.on_add_repository = [&](std::string address) { added.push_back(std::move(address)); };
+  tab.on_remove_repository = [&](std::size_t index) { removed.push_back(index); };
+  h.app.settings().scroll_to(250);
+  h.render();
+  CHECK(!h.drawn(tab, SystemTab::RemoveRepository));  // the official one stays
+  CHECK(h.click(tab, SystemTab::RemoveRepository + 1));
+  CHECK(removed == std::vector<std::size_t>{1});
+
+  CHECK(h.click(tab, SystemTab::AddRepository));
+  CHECK(added.empty());  // nothing typed
+  CHECK(h.click(tab, SystemTab::Address));
+  CHECK(h.app.ui().focus == &tab.address());
+  for (const wchar_t c : std::wstring_view(L"github:a/b")) h.app.char_input(c, false);
+  h.app.char_input(L'\r', false);
+  CHECK(added == std::vector<std::string>{"github:a/b"});
+  CHECK(h.click(tab, SystemTab::AddRepository));
+  CHECK(added.size() == 2);
+  // Not again while one is being checked.
+  tab.set_adding({SystemTab::Adding::State::Checking, {}});
+  CHECK(h.click(tab, SystemTab::AddRepository));
+  CHECK(added.size() == 2);
+}
+
 void test_language_dropdown_saves_the_locale() {
   UiHarness h;
   CHECK(h.start());
@@ -374,6 +406,7 @@ int main() {
   test_effective_theme();
   test_upstreams_name_for_cumulus_is_kept_in_its_keys();
   test_system_toggle_swaps_the_dropdowns();
+  test_a_repository_is_added_and_removed_by_the_shell();
   test_theme_dropdown_saves_upstreams_id();
   test_escape_closes_the_dropdown_then_the_panel();
   test_click_elsewhere_closes_the_dropdown();

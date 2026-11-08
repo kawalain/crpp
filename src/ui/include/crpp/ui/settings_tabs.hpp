@@ -2,6 +2,7 @@
 // One class per settings tab. Each tab reads and changes settings through ui.prefs.
 #include <array>
 #include <functional>
+#include <span>
 #include <string>
 #include <string_view>
 #include <vector>
@@ -11,6 +12,7 @@
 #include "crpp/ui/prefs.hpp"
 #include "crpp/ui/settings_rows.hpp"
 #include "crpp/ui/surface.hpp"
+#include "crpp/ui/textfield.hpp"
 #include "crpp/ui/themes.hpp"
 
 namespace crpp::ui {
@@ -243,9 +245,31 @@ class SystemTab final : public SettingsTab {
  public:
   explicit SystemTab(Ui& ui);
   [[nodiscard]] static skin::ScreenSchema schema();
-  enum Id : int { Autostart = 1, Tray, Detail, Logging, OpenLogs, Reset, ReleaseList = 300 };
+  enum Id : int { Autostart = 1, Tray, Detail, Logging, OpenLogs, Reset, Address, AddRepository, ReleaseList = 300, RemoveRepository = 500 };
+
+  // A Repository in the list, the official one first, which cannot be removed.
+  struct RepositoryRow {
+    std::string address;
+    std::string fingerprint;  // its first digits, as a pack's id has them
+    bool official = false;
+  };
+  // A Repository being added: its catalog is being read, or could not be, and why.
+  struct Adding {
+    enum class State : std::uint8_t { None, Checking, Failed };
+    State state = State::None;
+    std::string reason;
+  };
+  void set_repositories(std::vector<RepositoryRow> rows) { repositories_ = std::move(rows); }
+  [[nodiscard]] const std::vector<RepositoryRow>& repositories() const { return repositories_; }
+  void set_adding(Adding adding) { adding_ = std::move(adding); }
+  [[nodiscard]] const Adding& adding() const { return adding_; }
+  void clear_address() { address_.clear(); }
+  [[nodiscard]] TextField& address() { return address_; }
 
   std::function<void()> on_open_logs;
+  // What was typed, as typed: the shell reads it as an address.
+  std::function<void(std::string address)> on_add_repository;
+  std::function<void(std::size_t index)> on_remove_repository;
 
   void paint(Painter& p, Rect area) override;
   void paint_popups(Painter& p, Rect area) override;
@@ -255,16 +279,34 @@ class SystemTab final : public SettingsTab {
   [[nodiscard]] bool acts_on_press(int id) const override;
   bool wheel(float x, float y, float delta) override;
   bool escape() override;
+  void drag(float x, float y) override;
+  void enter(bool shift) override;
+  [[nodiscard]] Cursor cursor(int id) const override;
   [[nodiscard]] bool animating() const override;
 
  private:
   void paint_luna(Painter& p, Rect area);
   void paint_pack(Painter& p, const skin::Screen& screen, Rect area);
   void sync_release();
+  void add();
+  // Its text scrolls inside the box, as the prompt's does, to keep the caret in view. Colors: the
+  // text, the placeholder, the caret, the selection and what is behind.
+  void paint_address(Painter& p, Rect box, const TextStyle& style, std::span<const Color> colors);
+  // Where the advanced section begins, below the Repositories.
+  [[nodiscard]] float advanced_top() const;
+  [[nodiscard]] std::string fingerprint_text(std::size_t index) const;
+  [[nodiscard]] std::string status_text() const;
   Dropdown release_;
   Rect release_rect_;
+  // Only a Skin Pack draws the Repositories, until the C++ layouts go.
+  std::vector<RepositoryRow> repositories_;
+  Adding adding_;
+  TextField address_;
+  TextStyle address_style_;
+  float address_x_ = 0, address_scroll_ = 0;  // where its text starts on the stage, and how far it is scrolled
   std::array<ToggleAnim, 4> toggles_;
-  Fade open_logs_, reset_;
+  Fade open_logs_, reset_, add_;
+  std::vector<Fade> remove_;
 };
 
 class AccountTab final : public SettingsTab {

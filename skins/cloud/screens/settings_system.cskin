@@ -3,12 +3,31 @@ use toggle(on = @autostart, hit = hit(autostart)) (16, 76, 505, 36) text @tr.sys
 use toggle(on = @tray, hit = hit(tray)) (16, 120, 505, 36) text @tr.system_tray
 use toggle(on = @detail, hit = hit(detail)) (16, 164, 505, 36) text @tr.system_detail
 text @tr.system_detail_hint (16, 164+28, 439, 60) style row_hint color hl_text_soft
+// Where Skins come from (ADR 0008), which upstream does not have: the official one, which stays,
+// and those the user added, each with the first digits of its key's fingerprint.
+text @tr.system_repositories (9, 274, @W-9, 32) style heading color hl_text
+text @tr.system_repositories_hint (16, 314, 505, 24) style row_hint color hl_text_soft
+repeat @repositories {
+  let top = 348+@i*58
+  text @repo_address (16, top, 355, 26) style row_label color hl_text
+  text @repo_fingerprint (16, top+26, 355, 20) style row_hint color hl_text_soft
+  use text_button (381, top+4, 140, 38) text @tr.system_repository_remove hit remove_repository if @repo_official<1
+}
+let add_top = 348+@repositories*58+4
+(16, add_top, 355, 38) {
+  fill hl_pale radius 10
+  hit address
+  slot address (12, 6, 355-24, 26) styles (row_label) colors (hl_text, hl_text_soft, hl_text, alpha(hl, 0.4), hl_pale)
+}
+use text_button (381, add_top, 140, 38) text @tr.system_repository_add hit add_repository
+text @repo_status (16, add_top+44, 505, 22) style row_hint color @repo_state>1 ? error_text : hl_text_soft if @repo_state>0
 // Time and language are on the display tab.
-text @tr.system_advanced (9, 274, @W-9, 32) style heading color hl_text
-text @tr.system_release (16, 330, 300, 26) style row_label color hl_text
-slot release_list (285, 324, 246, 38)
-use toggle(on = @logging, hit = hit(logging)) (16, 369, 505, 36) text @tr.system_logging
-use text_button (381, 413, 140, 38) text @tr.system_open_logs hit open_logs if @logging
-let reset_top = (@logging ? 413+38 : 369+36)+32
+let advanced_top = add_top+38+(@repo_state>0 ? 30 : 0)+36
+text @tr.system_advanced (9, advanced_top, @W-9, 32) style heading color hl_text
+text @tr.system_release (16, advanced_top+56, 300, 26) style row_label color hl_text
+slot release_list (285, advanced_top+50, 246, 38)
+use toggle(on = @logging, hit = hit(logging)) (16, advanced_top+95, 505, 36) text @tr.system_logging
+use text_button (381, advanced_top+139, 140, 38) text @tr.system_open_logs hit open_logs if @logging
+let reset_top = (@logging ? advanced_top+139+38 : advanced_top+95+36)+32
 use text_button (381, reset_top, 140, 38) text @tr.system_reset hit reset
 report height = reset_top+38+25

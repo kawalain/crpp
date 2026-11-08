@@ -5,6 +5,22 @@ column id form y 10 {
     use form_check(on = @detail) text @tr.system_detail hit detail
     use form_hint text @tr.system_detail_hint x 18 w @W-18 after 4
   }
+  // Where Skins come from (ADR 0008): the official one, which stays, and those the user added.
+  use form_group text @tr.system_repositories {
+    use form_hint text @tr.system_repositories_hint after 8
+    repeat @repositories h @repositories*38 after 4 {
+      text @repo_address style body color ink y @i*38 w @W-87 h 16
+      text @repo_fingerprint style body color ink_soft y @i*38+16 w @W-87 h 16
+      use button text @tr.system_repository_remove hit remove_repository right @W y @i*38+4 if @repo_official<1
+    }
+    h field_h after 4 {
+      use field w @W-87
+      hit address w @W-87
+      slot address (3, 0, @W-87-6, field_h) styles (body) colors (ink, ink_soft, ink, selection, field)
+      use button text @tr.system_repository_add hit add_repository right @W
+    }
+    use form_hint text @repo_status after 2 if @repo_state>0
+  }
   use form_group text @tr.system_advanced {
     use form_combo text @tr.system_release after 4 {
       slot release_list

@@ -86,9 +86,33 @@ void test_a_list_stands_where_the_code_puts_it() {
   CHECK(h.start(1200, 900));
   h.app.show_home();
   h.app.settings().open(SettingsPage::System);
+  h.render();
+  h.app.settings().scroll_to(10000);  // below the Repositories
   SystemTab& system = h.app.settings().system();
   system.click(SystemTab::ReleaseList, 0, 0, false);
   same_places(h, {{&system, SystemTab::ReleaseList + 1}, {&system, SystemTab::ReleaseList + 2}});
+}
+
+// One the user added has a button to remove it, the official one has none, and why one could
+// not be added pushes the rest down.
+void test_the_repositories_stand_where_the_code_puts_them() {
+  const auto place = [](float scroll, const std::vector<int>& ids) {
+    UiHarness h;
+    CHECK(h.start(1200, 900));
+    h.app.show_home();
+    SystemTab& system = h.app.settings().system();
+    system.set_repositories({{"https://crpp.kawala.in/", "0123456789abcdef", true}, {"github:someone/skins", "1a2b3c4d5e6f7a8b", false}});
+    system.set_adding({SystemTab::Adding::State::Failed, "Why."});
+    h.app.settings().open(SettingsPage::System);
+    h.render();
+    h.app.settings().scroll_to(scroll);
+    std::vector<Place> places;
+    for (const int id : ids) places.push_back({&system, id});
+    same_places(h, places);
+    CHECK(!h.app.ui().find_hit(&system, SystemTab::RemoveRepository));
+  };
+  place(260, {SystemTab::RemoveRepository + 1, SystemTab::Address, SystemTab::AddRepository});
+  place(10000, {SystemTab::ReleaseList, SystemTab::Reset});
 }
 
 // One list holds every Skin's Themes, each Skin's under a heading with its name: 구름, 뭉게구름,
@@ -365,7 +389,8 @@ void test_every_tab_stands_where_the_code_puts_it() {
     same_places(other, list);
   };
   compare(SettingsPage::Notify, {NotifyTab::TrayToggle, NotifyTab::FlashToggle, NotifyTab::SoundBase, NotifyTab::SoundBase + 1, NotifyTab::PreviewBase, NotifyTab::PreviewBase + 1});
-  compare(SettingsPage::System, {SystemTab::Autostart, SystemTab::Tray, SystemTab::Detail, SystemTab::ReleaseList, SystemTab::Logging, SystemTab::Reset});
+  compare(SettingsPage::System, {SystemTab::Autostart, SystemTab::Tray, SystemTab::Detail, SystemTab::Address, SystemTab::AddRepository});
+  compare(SettingsPage::System, {SystemTab::ReleaseList, SystemTab::Logging, SystemTab::Reset}, 10000);
   compare(SettingsPage::Display, {DisplayTab::ScaleSlider, DisplayTab::Use24h, DisplayTab::IdleList, DisplayTab::LanguageList}, 10000);
   compare(SettingsPage::Account, {AccountTab::Emoji, AccountTab::Nickname, AccountTab::Handle, AccountTab::Logout});
 }
@@ -792,6 +817,7 @@ int main() {
   test_the_layers_stand_where_the_code_puts_them();
   test_the_prompt_stands_where_the_code_puts_it_and_clicks_land();
   test_a_list_stands_where_the_code_puts_it();
+  test_the_repositories_stand_where_the_code_puts_them();
   test_a_dialog_rises_and_then_asks_for_no_more_frames();
   test_a_toast_comes_goes_and_is_gone();
   test_a_tip_fades_out_before_it_lets_go_of_its_text();

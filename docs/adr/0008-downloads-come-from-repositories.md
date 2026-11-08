@@ -11,7 +11,8 @@ every download to a commit and every change to a release. Now everything the pro
 packs, emoji, word lists and fonts, is listed in the signed catalog of a Repository, and the exe holds only the
 official Repository's address and key.
 
-The official Repository is static files on Cloudflare Workers (`crpp.<subdomain>.workers.dev`, no Worker code),
+The official Repository is static files on Cloudflare Workers at `crpp.kawala.in`, a custom domain (a two-line Worker
+sends any path that is no file to the source repository),
 deployed with Wrangler from the developer's machine by the release script, which also signs the catalog. Requests to
 static files there are free and unlimited, and a file may be up to 25 MiB. When it is blocked, the same files come from
 `raw.githubusercontent.com` at the release's tag; the repository is public.
@@ -38,6 +39,7 @@ catalog for anyone who hosts one.
 - Files already installed whose hash matches the catalog are kept, so an update of v0.1.x fetches only what changed.
 - The Pretendard and Twemoji licence texts travel with their files. The sounds keep the status they have in the public
   repository today.
-- Changing the official address needs a release; a custom domain would remove that tie later.
+- The program knows the custom domain, not the Worker, so the host can change without a release; the domain itself
+  cannot.
 - The release script, not GitHub, now decides what a first run fetches, so a first install works before a push. The
   second source needs the release tag on GitHub.

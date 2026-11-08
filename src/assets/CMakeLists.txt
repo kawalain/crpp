@@ -15,8 +15,9 @@ crpp_assets_test(catalog)
 
 # The official Repository (ADR 0008). Its second source is the catalog committed at the
 # release's tag, so only an official build has one.
-# Static files on Cloudflare Workers (wrangler.jsonc); changing it needs a release.
-set(CRPP_REPOSITORY_URL "https://crpp.105.workers.dev/" CACHE STRING "The official Repository's folder, ending with '/'")
+# Static files on Cloudflare Workers (wrangler.jsonc), under a domain of our own, so the Worker
+# can move without a release.
+set(CRPP_REPOSITORY_URL "https://crpp.kawala.in/" CACHE STRING "The official Repository's folder, ending with '/'")
 if(CRPP_OFFICIAL_BUILD)
   if(NOT CRPP_REPOSITORY_URL MATCHES "^https://.+/$")
     message(FATAL_ERROR "An official build needs CRPP_REPOSITORY_URL, an https:// folder ending with '/'.")

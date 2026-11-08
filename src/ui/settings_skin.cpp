@@ -436,7 +436,10 @@ void NotifyTab::paint_pack(Painter& p, const skin::Screen& screen, Rect area) {
    public:
     explicit Shown(NotifyTab& tab) : s_(tab) {}
 
-    std::string_view text(int, int index) override { return s_.sounds_[static_cast<std::size_t>(index)].name; }
+    std::string_view text(int, int index) override {
+      const auto* const sound = sound_at(index);
+      return sound ? std::string_view(sound->name) : std::string_view{};
+    }
 
     float number(int id, int index) override {
       const Prefs& prefs = *s_.ui_.prefs;
@@ -444,7 +447,10 @@ void NotifyTab::paint_pack(Painter& p, const skin::Screen& screen, Rect area) {
         case TrayN: return yes(prefs.get(pref::chat_tray_notify));
         case FlashN: return yes(prefs.get(pref::chat_taskbar_flash));
         case Sounds: return static_cast<float>(s_.sounds_.size());
-        case SoundOn: return yes(prefs.notification_sound(s_.sounds_[static_cast<std::size_t>(index)].id));
+        case SoundOn: {
+          const auto* const sound = sound_at(index);
+          return yes(sound && prefs.notification_sound(sound->id));
+        }
         default: return 0;
       }
     }
@@ -452,6 +458,9 @@ void NotifyTab::paint_pack(Painter& p, const skin::Screen& screen, Rect area) {
     void report(int, float value) override { s_.flow_height_ = value; }
 
    private:
+    // A round of the pack's repeat may count past the list.
+    [[nodiscard]] const NotifySound* sound_at(int index) const { return index >= 0 && static_cast<std::size_t>(index) < s_.sounds_.size() ? &s_.sounds_[static_cast<std::size_t>(index)] : nullptr; }
+
     NotifyTab& s_;
   } shown(*this);
 

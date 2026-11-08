@@ -122,6 +122,7 @@ void RoomScreen::paint_pack(Painter& p, const skin::Screen& screen) {
     }
 
     void picture(int id, int index, skin::Box box, float opacity, float gray) override {
+      if (id != MutedPicture && !has(index)) return;
       draw_svg(p_, s_.ui_.emoji_image(id == MutedPicture ? muted_emoji : member(index).emoji), rect_of(box), opacity, gray);
     }
 
@@ -148,15 +149,24 @@ void RoomScreen::paint_pack(Painter& p, const skin::Screen& screen) {
         case PublicNote: s_.public_rect_ = r; break;
         case ChatNote: s_.chat_rect_ = r; break;
         case VolumeNote: s_.volume_track_ = r; break;
-        case MemberNote: s_.member_rects_.emplace_back(member(index).slot, r); break;
-        case MemberDisc: s_.member_discs_.emplace_back(member(index).slot, r); break;
+        case MemberNote:
+          if (has(index)) s_.member_rects_.emplace_back(member(index).slot, r);
+          break;
+        case MemberDisc:
+          if (has(index)) s_.member_discs_.emplace_back(member(index).slot, r);
+          break;
         case MembersTrack: s_.members_track_ = r; break;
         default: break;
       }
     }
 
    private:
-    [[nodiscard]] const MemberView& member(int index) const { return s_.members_[static_cast<std::size_t>(index)]; }
+    // A round of the pack's repeat may count past the members: it reads as nobody.
+    [[nodiscard]] bool has(int index) const { return index >= 0 && static_cast<std::size_t>(index) < s_.members_.size(); }
+    [[nodiscard]] const MemberView& member(int index) const {
+      static const MemberView nobody;
+      return has(index) ? s_.members_[static_cast<std::size_t>(index)] : nobody;
+    }
 
     RoomScreen& s_;
     Painter& p_;

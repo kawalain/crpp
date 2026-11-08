@@ -59,11 +59,14 @@ void EmojiPicker::paint_pack(Painter& p, const skin::Screen& screen) {
         case ThumbOver: return e_.ui_.hot(&e_, Track) || e_.ui_.hot(&e_, Thumb) || e_.ui_.capture == &e_ ? 1.0f : 0.0f;
         case ThumbY: return e_.scroll_.thumb(e_.track_).y;
         case ThumbH: return e_.scroll_.thumb(e_.track_).h;
-        default: return e_.ids_[first_ + static_cast<std::size_t>(index)] == e_.current_ ? 1.0f : 0.0f;
+        default: {
+          const std::string* const at = id_at(index);
+          return at && *at == e_.current_ ? 1.0f : 0.0f;
+        }
       }
     }
     void picture(int, int index, skin::Box box, float opacity, float gray) override {
-      draw_svg(p_, e_.cache_->get(e_.ui_.gfx, e_.ids_[first_ + static_cast<std::size_t>(index)]), rect_of(box), opacity, gray);
+      if (const std::string* const at = id_at(index)) draw_svg(p_, e_.cache_->get(e_.ui_.gfx, *at), rect_of(box), opacity, gray);
     }
     void report(int id, float value) override {
       if (id == View) {
@@ -73,7 +76,8 @@ void EmojiPicker::paint_pack(Painter& p, const skin::Screen& screen) {
         e_.scroll_.clamp();
         e_.scroll_.advance(e_.ui_);
       } else if (id == First) {
-        first_ = static_cast<std::size_t>(value);
+        // The pack's number: anything outside the list, NaN included, starts at the end or the top.
+        first_ = value >= 0 ? (value < static_cast<float>(e_.ids_.size()) ? static_cast<std::size_t>(value) : e_.ids_.size()) : 0;
       } else if (id == ShownReport) {
         e_.shown_left_ = value;
       }
@@ -81,9 +85,15 @@ void EmojiPicker::paint_pack(Painter& p, const skin::Screen& screen) {
     void note(int, int, skin::Box box) override { e_.track_ = rect_of(box); }
 
    private:
+    // The emoji at a round of the pack's repeat, which may count past the list.
+    [[nodiscard]] const std::string* id_at(int index) const {
+      if (index < 0 || static_cast<std::size_t>(index) >= e_.ids_.size() - first_) return nullptr;
+      return &e_.ids_[first_ + static_cast<std::size_t>(index)];
+    }
+
     EmojiPicker& e_;
     Painter& p_;
-    std::size_t first_ = 0;
+    std::size_t first_ = 0;  // never past the end of the list
   } shown(*this, p);
   if ((ui_.hot(this, Track) || ui_.hot(this, Thumb) || ui_.capture == this) && !thumb_on_) reveal_thumb();
   shown_left_ = 0;

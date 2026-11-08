@@ -51,7 +51,7 @@ void Dropdown::paint_list(Ui& ui, Surface* owner, Painter& p, Rect r) {
   class Shown final : public skin::Source {
    public:
     Shown(Dropdown& dropdown, Ui& ui, Rect& list, Scroll& scroll) : d_(dropdown), ui_(ui), list_(list), scroll_(scroll) {}
-    std::string_view text(int, int index) override { return d_.options[static_cast<std::size_t>(index)]; }
+    std::string_view text(int, int index) override { return index >= 0 && static_cast<std::size_t>(index) < d_.options.size() ? std::string_view(d_.options[static_cast<std::size_t>(index)]) : std::string_view{}; }
     float number(int id, int index) override {
       switch (id) {
         case Items: return static_cast<float>(d_.options.size());

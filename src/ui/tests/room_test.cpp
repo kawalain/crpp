@@ -595,6 +595,58 @@ void test_releasing_graphics_lets_go_of_the_factory() {
   CHECK(h.render());
 }
 
+// A pack from an added Repository is not trusted: its repeats may count far past every list a
+// screen offers, and it may say where a list starts. Nothing past the end is read.
+void test_a_pack_cannot_read_past_a_list() {
+  namespace fs = std::filesystem;
+  const fs::path dir = fs::temp_directory_path() / "crpp_room_test_greedy_pack";
+  fs::remove_all(dir);
+  fs::copy(CRPP_TEST_SKINS "/cloud", dir, fs::copy_options::recursive);
+  const auto add = [&](const char* screen, std::string_view nodes) { std::ofstream(dir / "screens" / (std::string(screen) + ".cskin"), std::ios::binary | std::ios::app) << '\n' << nodes << '\n'; };
+  add("room", R"C(repeat 4096 {
+  text @member_name style plain color white w 1 h 1
+  fill white w @member_slot+@member_level+@member_muted+@member_offline+@member_new+@member_key h 1
+  picture member w 1 h 1
+  fill white note member w 1 h 1
+  fill white note member_disc w 1 h 1
+})C");
+  add("dropdown", R"C(repeat 4096 {
+  text @item style plain color white w 1 h 1
+  fill white w @selected+@heading h 1
+})C");
+  add("settings_notify", R"C(repeat 4096 {
+  text @sound_name style plain color white w 1 h 1
+  fill white w @sound_on h 1
+})C");
+  for (const char* first : {"1000000000", "0-5", "4096"}) {
+    add("emoji", std::string("report first = ") + first + R"C(
+repeat 4096 {
+  picture cell w 1 h 1
+  fill white w @selected h 1
+})C");
+  }
+
+  UiHarness h;
+  CHECK(h.start(951, 692, nullptr));
+  CHECK(h.app.load_skin_dir(dir).has_value());
+  with_assets(h);
+  enter(h);
+  CHECK(h.render());
+  for (const SettingsPage page : {SettingsPage::Notify, SettingsPage::Display}) {
+    h.app.settings().open(page);
+    CHECK(h.render());
+  }
+  h.app.settings().scroll_to(10000);
+  CHECK(h.render());
+  CHECK(h.click(h.app.settings().display(), DisplayTab::LanguageList));
+  CHECK(h.render());
+  h.app.settings().close();
+  h.app.emoji_picker().show("", [](std::string) {});
+  CHECK(h.render());
+  h.app.emoji_picker().close();
+  fs::remove_all(dir);
+}
+
 void test_only_plain_ids_name_an_emoji_file() {
   CHECK(valid_emoji_id("1f4a7"));
   CHECK(valid_emoji_id("1f408-200d-2b1b"));
@@ -1207,6 +1259,7 @@ void test_clearing_the_chat_starts_over() {
 }  // namespace
 
 int main() {
+  test_a_pack_cannot_read_past_a_list();
   test_shadow_layers_follow_css();
   test_a_speaking_disc_fades_in_holds_and_fades_out();
   test_a_disc_asks_for_a_frame_even_without_motion();

@@ -34,6 +34,9 @@ room-menu
 room-calm
 room-emoji
 room-options
+room-text-menu
+room-text-menu-dark
+room-field-menu
 settings-sound
 settings-sound-dark
 settings-sound-effects

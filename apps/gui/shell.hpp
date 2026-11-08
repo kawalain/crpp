@@ -308,6 +308,8 @@ void forget_cursors(Shell& s);
 [[nodiscard]] LRESULT frame_hit_code(ui::WindowFrame::Zone zone);
 void place_ime(Shell& s, HWND hwnd, UINT dpi);
 [[nodiscard]] std::wstring ime_string(HIMC imc, DWORD kind);
+// Commits what the IME is composing, as a right-click or the menu key does in a field.
+void complete_composition(HWND hwnd);
 
 // --- pane_window.cpp ---
 // Asks for the windows to be brought in line with App, once it is safe to destroy one.

@@ -260,6 +260,8 @@ class SystemTab final : public SettingsTab {
   bool key(unsigned vk, bool ctrl, bool shift) override;
   void enter(bool shift) override;
   [[nodiscard]] Cursor cursor(int id) const override;
+  [[nodiscard]] std::vector<MenuItem> context_menu(int id, float x, float y) override;
+  void menu_command(MenuCommand command) override;
   // What is selected of the fingerprints, as a copy takes it.
   [[nodiscard]] std::wstring selected_text() const;
   // A Repository's fingerprint as drawn, a line of text to select: its box on the stage.
@@ -296,6 +298,7 @@ class SystemTab final : public SettingsTab {
   TextStyle fingerprint_style_;
   ReadSelection selection_;
   bool selecting_ = false;
+  bool menu_for_address_ = false;  // what the open context menu is about
 };
 
 class AccountTab final : public SettingsTab {

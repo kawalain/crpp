@@ -164,7 +164,9 @@ LRESULT CALLBACK pane_proc(HWND hwnd, UINT msg, WPARAM wp, LPARAM lp) {
       KillTimer(hwnd, pane_hold_timer);
       changed(s.app.mouse_cancel());
       return 0;
-    case WM_RBUTTONDOWN:
+    case WM_RBUTTONUP:
+      // As Windows does, on the way up; what is being composed goes in first.
+      complete_composition(hwnd);
       changed(s.app.right_click(dips(GET_X_LPARAM(lp)), dips(GET_Y_LPARAM(lp))));
       return 0;
     case WM_MOUSEWHEEL: {
@@ -179,7 +181,15 @@ LRESULT CALLBACK pane_proc(HWND hwnd, UINT msg, WPARAM wp, LPARAM lp) {
     case WM_CHAR:
       changed(s.app.char_input(static_cast<wchar_t>(wp), (GetKeyState(VK_SHIFT) & 0x8000) != 0));
       return 0;
+    case WM_SYSKEYDOWN:
+      if (wp == VK_F10 && (GetKeyState(VK_SHIFT) & 0x8000) != 0) complete_composition(hwnd);
+      if (s.app.sys_key(static_cast<unsigned>(wp), (GetKeyState(VK_SHIFT) & 0x8000) != 0)) {
+        changed(true);
+        return 0;
+      }
+      break;
     case WM_KEYDOWN:
+      if (wp == VK_APPS) complete_composition(hwnd);
       changed(s.app.key_down(static_cast<unsigned>(wp), (GetKeyState(VK_CONTROL) & 0x8000) != 0, (GetKeyState(VK_SHIFT) & 0x8000) != 0));
       return 0;
     case WM_IME_STARTCOMPOSITION:

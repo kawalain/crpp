@@ -130,6 +130,37 @@ TextPoint SystemTab::fingerprint_point(float x, float y) const {
   return {row, std::min<std::size_t>(m.textPosition + (trailing ? m.length : 0), line.text.size())};
 }
 
+std::vector<MenuItem> SystemTab::context_menu(int id, float x, float y) {
+  menu_for_address_ = id == Address || (id == -1 && ui_.focus == &address_);
+  if (id == Address) {
+    ui_.set_focus(this, &address_);
+    address_.right_press(address_.position_at(ui_.gfx, address_style_, ui_.to_stage_x(x) - address_x_ + address_scroll_, 0));
+    return ui_.field_menu(address_);
+  }
+  if (id == -1 && ui_.focus == &address_) return ui_.field_menu(address_);
+  if (is_fingerprint(id)) {
+    // Outside what is selected, the selection goes, as in a browser.
+    const TextPoint at = fingerprint_point(x, y);
+    if (selection_.empty() || at < selection_.start() || selection_.end() < at) selection_.clear();
+    ui_.selection_owner = this;
+  } else if (id != -1) {
+    return {};
+  }
+  return {{MenuCommand::Copy, !selection_.empty()}, {MenuCommand::SelectAll, !fingerprints_.empty()}};
+}
+
+void SystemTab::menu_command(MenuCommand command) {
+  if (menu_for_address_) {
+    ui_.set_focus(this, &address_);
+    ui_.field_command(address_, command);
+  } else if (command == MenuCommand::Copy) {
+    if (!selection_.empty()) ui_.copy(selected_text());
+  } else if (command == MenuCommand::SelectAll && !fingerprints_.empty()) {
+    ui_.selection_owner = this;
+    selection_.select({0, 0}, {fingerprints_.size() - 1, fingerprints_.back().text.size()});
+  }
+}
+
 bool SystemTab::key(unsigned vk, bool ctrl, bool shift) {
   if (ui_.focus == &address_) return Surface::key(vk, ctrl, shift);
   if (!ctrl || shift) return false;

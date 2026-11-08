@@ -188,6 +188,29 @@ bool Ui::edit_key(TextField& field, unsigned vk, bool ctrl, bool shift) {
   return field.key_down(vk, ctrl, shift);
 }
 
+std::vector<MenuItem> Ui::field_menu(const TextField& field) {
+  return {{MenuCommand::Cut, field.can_copy()},
+          {MenuCommand::Copy, field.can_copy()},
+          {MenuCommand::Paste, clipboard && clipboard->has_text()},
+          {MenuCommand::Delete, field.can_delete()},
+          {MenuCommand::SelectAll, !field.text().empty()}};
+}
+
+void Ui::field_command(TextField& field, MenuCommand command) {
+  switch (command) {
+    case MenuCommand::Cut:
+      if (field.can_copy() && copy(field.selected_text())) field.erase();
+      break;
+    case MenuCommand::Copy:
+      if (field.can_copy()) copy(field.selected_text());
+      break;
+    case MenuCommand::Paste: paste_into(field); break;
+    case MenuCommand::Delete: field.erase(); break;
+    case MenuCommand::SelectAll: field.select_all(); break;
+    case MenuCommand::CopyLink: break;
+  }
+}
+
 bool Surface::key(unsigned vk, bool ctrl, bool shift) { return ui_.focus && ui_.edit_key(*ui_.focus, vk, ctrl, shift); }
 
 }  // namespace crpp::ui

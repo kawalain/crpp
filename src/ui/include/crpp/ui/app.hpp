@@ -17,6 +17,7 @@
 #include <string>
 #include <string_view>
 
+#include "crpp/ui/context_menu.hpp"
 #include "crpp/ui/changelog_view.hpp"
 #include "crpp/ui/dialogs.hpp"
 #include "crpp/ui/emoji_picker.hpp"
@@ -195,6 +196,11 @@ class App {
   bool wheel(float x, float y, float delta);  // delta in notches (+ = up)
   bool char_input(wchar_t c, bool shift);
   bool key_down(unsigned vk, bool ctrl, bool shift);
+  // Keys the system sees first, with Alt or F10. Shift+F10 opens the context menu.
+  bool sys_key(unsigned vk, bool shift);
+  // The menu key or Shift+F10: the context menu of what has the keys, at its caret.
+  bool context_key();
+  [[nodiscard]] ContextMenu& context_menu() { return context_menu_; }
   bool ime_composition(std::wstring_view composition, std::wstring_view result);
   bool blink();  // caret timer tick
   // True while a timed effect (member ring pulse) needs more frames.
@@ -213,6 +219,7 @@ class App {
  private:
   // The surfaces on the current window now, topmost first.
   [[nodiscard]] std::vector<Surface*> layers();
+  [[nodiscard]] std::vector<Surface*> layers_below_menu();
   // The surfaces on every window, for what runs whichever window is in front.
   [[nodiscard]] std::vector<Surface*> all_layers();
   void paint_pane(Painter& p, float width, float height);
@@ -251,6 +258,7 @@ class App {
   UpdatePopup update_popup_{ui_};
   ChangelogView changelog_{ui_};
   Dialogs dialogs_{ui_};
+  ContextMenu context_menu_{ui_};
   PromptScreen prompt_{ui_};
   WindowFrame frame_{ui_};
   WindowFrame pane_frame_{ui_};

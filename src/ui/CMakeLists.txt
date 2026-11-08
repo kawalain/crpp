@@ -4,7 +4,7 @@ if(WIN32)
     setup_screen.cpp prompt_screen.cpp home_screen.cpp room_screen.cpp chat_panel.cpp notice_card.cpp dialogs.cpp toasts.cpp emoji_picker.cpp
     offline_popup.cpp connection_feedback.cpp
     settings_panel.cpp settings_rows.cpp settings_sound_tab.cpp settings_display_tab.cpp settings_notify_tab.cpp settings_system_tab.cpp
-    settings_account_tab.cpp tip.cpp profile_card.cpp member_menu.cpp chat_logic.cpp
+    settings_account_tab.cpp tip.cpp profile_card.cpp member_menu.cpp context_menu.cpp chat_logic.cpp
     update_popup.cpp changelog_view.cpp
     home_screen_skin.cpp prompt_screen_skin.cpp window_frame_skin.cpp room_screen_skin.cpp chat_panel_skin.cpp settings_skin.cpp)
   target_include_directories(crpp_ui PUBLIC include)
@@ -27,6 +27,12 @@ if(WIN32)
   target_include_directories(crpp_ui_read_selection_test PRIVATE ${PROJECT_SOURCE_DIR}/tests/support)
   crpp_target_defaults(crpp_ui_read_selection_test)
   add_test(NAME ui.read_selection COMMAND crpp_ui_read_selection_test)
+
+  add_executable(crpp_ui_context_menu_test tests/context_menu_test.cpp)
+  target_link_libraries(crpp_ui_context_menu_test PRIVATE crpp_ui crpp_ui_test_skins)
+  target_include_directories(crpp_ui_context_menu_test PRIVATE ${PROJECT_SOURCE_DIR}/tests/support tests)
+  crpp_target_defaults(crpp_ui_context_menu_test)
+  add_test(NAME ui.context_menu COMMAND crpp_ui_context_menu_test)
 
   add_executable(crpp_ui_flow_test tests/flow_test.cpp)
   target_link_libraries(crpp_ui_flow_test PRIVATE crpp_ui crpp_ui_test_skins)

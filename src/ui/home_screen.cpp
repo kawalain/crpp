@@ -71,6 +71,21 @@ void HomeScreen::show_error(std::string text) {
   }
 }
 
+std::vector<MenuItem> HomeScreen::context_menu(int id, float x, float) {
+  if (id == Code) {
+    ui_.set_focus(this, &code_);
+    code_.right_press(code_.position_at(ui_.gfx, field_style(), ui_.to_stage_x(x) - code_x_, 0));
+  } else if (id != -1 || ui_.focus != &code_) {
+    return {};
+  }
+  return ui_.field_menu(code_);
+}
+
+void HomeScreen::menu_command(MenuCommand command) {
+  ui_.set_focus(this, &code_);
+  ui_.field_command(code_, command);
+}
+
 void HomeScreen::drag(float x, float) { code_.drag_to(code_.position_at(ui_.gfx, field_style(), ui_.to_stage_x(x) - code_x_, 0)); }
 
 void HomeScreen::click(int id, float x, float, bool shift) {

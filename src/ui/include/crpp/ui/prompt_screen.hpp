@@ -68,6 +68,10 @@ class PromptScreen final : public Surface {
  private:
   void paint_pack(Painter& p, const skin::Screen& screen, bool is_locked, bool hint_error);
   [[nodiscard]] TextStyle field_style() const;
+ public:
+  [[nodiscard]] std::vector<MenuItem> context_menu(int id, float x, float y) override;
+  void menu_command(MenuCommand command) override;
+ private:
   void submit();
   void take_focus();
   void sync_with_field();

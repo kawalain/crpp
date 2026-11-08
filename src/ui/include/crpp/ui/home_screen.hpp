@@ -64,6 +64,10 @@ class HomeScreen final : public Surface {
   void paint_pack(Painter& p, const skin::Screen& screen);
   void paint_return_pack(Painter& p, const skin::Screen& screen);
   [[nodiscard]] TextStyle field_style() const;
+ public:
+  [[nodiscard]] std::vector<MenuItem> context_menu(int id, float x, float y) override;
+  void menu_command(MenuCommand command) override;
+ private:
   void join();
   void find();
   void refresh_seat(unsigned long long now);

@@ -42,7 +42,8 @@ use tip(shown = 1) text @tr.ok hit create
 The node kinds and their keys are listed at the top of `src/skin/include/crpp/skin/pack.hpp`, and in `src/skin/keys.hpp`,
 which is what the reader checks against. `crpp_skin names` lists the screens, and `crpp_skin names <screen>` what the
 program offers on one: its `@numbers` and `@texts`, and the names of its hits, pictures, fields, slots, reports and
-notes. A screen with no file is drawn by the program itself, so a pack can grow one screen at a time.
+notes. A screen with no file is drawn by the program itself, so a pack can grow one screen at a time. The exception
+is `context_menu`, the menu of what can be done with text: without it no menu shows, and its shortcuts still work.
 
 `report width = …` tells the program what a screen found out. A screen of a panel that has a window of its own reports
 `width` and `height`, and the window takes that size: the program walks the screen without drawing to learn it.

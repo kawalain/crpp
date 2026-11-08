@@ -176,6 +176,62 @@ std::size_t ChatPanel::input_position(float x, float y) const {
   return input_.position_at(ui_.gfx, pack_input_style_, x - input_box_.x, y - input_box_.y, std::max(1.0f, input_text_w_));
 }
 
+std::string ChatPanel::link_of(int id) const {
+  const auto number = static_cast<std::size_t>(id - LinkBase) / links_per_entry;
+  const auto link = static_cast<std::size_t>(id - LinkBase) % links_per_entry;
+  if (number < dropped_ || number - dropped_ >= log_.size()) return {};
+  const std::wstring text = widen(log_[number - dropped_].text);
+  const std::vector<LinkSpan> links = find_links(text);
+  if (link >= links.size()) return {};
+  return narrow(text.substr(links[link].start, links[link].length));
+}
+
+std::vector<MenuItem> ChatPanel::context_menu(int id, float x, float y) {
+  menu_link_.clear();
+  menu_for_input_ = id == Input || (id == -1 && ui_.focus == &input_);
+  if (id == Input) {
+    ui_.set_focus(this, &input_);
+    input_.right_press(input_position(x, y));
+  }
+  if (menu_for_input_) return ui_.field_menu(input_);
+  if (id >= LinkBase) {
+    menu_link_ = link_of(id);
+  } else if (id != Text && id != -1) {
+    return {};
+  }
+  if (id != -1) {
+    // Outside what is selected, the selection goes, as in a browser.
+    const TextPoint at = log_point(x, y);
+    if (log_selection_.empty() || at < log_selection_.start() || log_selection_.end() < at) log_selection_.clear();
+    ui_.selection_owner = this;
+  }
+  std::vector<MenuItem> items;
+  if (!menu_link_.empty()) items.push_back({MenuCommand::CopyLink, true});
+  items.push_back({MenuCommand::Copy, !log_selection_.empty()});
+  items.push_back({MenuCommand::SelectAll, !log_.empty()});
+  return items;
+}
+
+void ChatPanel::menu_command(MenuCommand command) {
+  if (menu_for_input_) {
+    ui_.set_focus(this, &input_);
+    ui_.field_command(input_, command);
+  } else if (command == MenuCommand::CopyLink) {
+    ui_.copy(widen(menu_link_));
+  } else if (command == MenuCommand::Copy) {
+    if (!log_selection_.empty()) ui_.copy(selected_text());
+  } else if (command == MenuCommand::SelectAll) {
+    select_all_messages();
+  }
+}
+
+void ChatPanel::select_all_messages() {
+  if (log_.empty()) return;
+  ui_.set_focus(nullptr, nullptr);
+  ui_.selection_owner = this;
+  log_selection_.select({dropped_, 0}, {dropped_ + log_.size() - 1, widen(log_.back().text).size()});
+}
+
 void ChatPanel::release() { selecting_ = selecting_log_ = false; }
 
 std::wstring_view ChatPanel::text_of(std::size_t number) {
@@ -279,8 +335,7 @@ bool ChatPanel::key(unsigned vk, bool ctrl, bool shift) {
       return true;
     }
     if (ctrl && !shift && vk == 'A' && !log_.empty()) {
-      const std::size_t last = dropped_ + log_.size() - 1;
-      log_selection_.select({dropped_, 0}, {last, widen(log_.back().text).size()});
+      select_all_messages();
       return true;
     }
     return false;

@@ -28,6 +28,13 @@ inline constexpr float stage_h = 692;
 
 enum class Cursor : std::uint8_t { Arrow, Hand, IBeam };
 
+// What the context menu offers, in the order it shows them.
+enum class MenuCommand : std::uint8_t { CopyLink, Cut, Copy, Paste, Delete, SelectAll };
+struct MenuItem {
+  MenuCommand command;
+  bool enabled = true;  // shown greyed when not
+};
+
 // Milliseconds on the clock all motion runs on. The system's tick moves in steps of
 // about 16 ms, too coarse for what moves every frame.
 [[nodiscard]] unsigned long long clock_ms() noexcept;
@@ -170,6 +177,9 @@ class Ui : public WindowState {
 
   // What a field does with a key: Ctrl+C, X and V go through the clipboard, the rest to the field.
   bool edit_key(TextField& field, unsigned vk, bool ctrl, bool shift);
+  // A field's context menu, and what its items do.
+  [[nodiscard]] std::vector<MenuItem> field_menu(const TextField& field);
+  void field_command(TextField& field, MenuCommand command);
   // Puts text on the clipboard; a failure says so in a toast.
   bool copy(std::wstring_view text);
   void paste_into(TextField& field);
@@ -240,6 +250,11 @@ class Surface {
   virtual void release() {}
   // Another click went elsewhere: a selection of text that is only read goes.
   virtual void drop_selection() {}
+  // What the context menu offers for a right-click on this hit, at x, y in the window. Empty:
+  // none opens. id -1 is the menu key or Shift+F10, for what has the keys.
+  [[nodiscard]] virtual std::vector<MenuItem> context_menu(int /*id*/, float /*x*/, float /*y*/) { return {}; }
+  // An item of that menu was chosen.
+  virtual void menu_command(MenuCommand /*command*/) {}
   // Offered top surface first; true stops it there.
   virtual bool wheel(float /*x*/, float /*y*/, float /*delta*/) { return false; }
   // Escape, offered top surface first; true means it closed something.

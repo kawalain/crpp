@@ -39,6 +39,8 @@ void wire(Shell& s);
 namespace room {  // the Room screen, its dialogs, profile card and member menu
 void wire(Shell& s);
 [[nodiscard]] bool scene(Shell& s, std::string_view name);
+// A scene that acts on what the first frame drew, as a right-click does: true if it did.
+[[nodiscard]] bool after_frame(Shell& s, std::string_view name);
 }  // namespace room
 
 namespace sound {  // the sound tab and everything it changes in the engine

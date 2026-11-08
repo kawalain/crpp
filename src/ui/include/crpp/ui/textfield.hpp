@@ -2,6 +2,7 @@
 // A text input drawn with DirectWrite, with caret, selection and IME composition
 // (Korean input). Owns only text state; the window forwards
 // keyboard, IME and mouse events to it.
+#include <algorithm>
 #include <string>
 #include <string_view>
 #include <utility>
@@ -43,6 +44,12 @@ class TextField {
   [[nodiscard]] std::wstring selected_text() const;
   [[nodiscard]] bool can_copy() const { return !password && has_selection(); }
   [[nodiscard]] bool can_delete() const { return has_selection(); }
+  // Whether pos is inside the selection, where a right-click leaves it as it is.
+  [[nodiscard]] bool selects(std::size_t pos) const { return has_selection() && pos >= std::min(caret_, anchor_) && pos <= std::max(caret_, anchor_); }
+  // A right-click there: outside the selection the caret moves to it, as in a browser.
+  void right_press(std::size_t pos) {
+    if (!selects(pos)) press(pos, 1, false);
+  }
   // Removes the selection, as Delete does.
   void erase();
 

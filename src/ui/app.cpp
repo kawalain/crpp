@@ -55,7 +55,7 @@ std::span<const skin::ScreenSchema> screen_schemas() {
   static const skin::ScreenSchema schemas[] = {HomeScreen::schema(), HomeScreen::return_schema(), PromptScreen::schema(), WindowFrame::schema(), WindowFrame::menu_schema(), RoomScreen::schema(), ChatPanel::schema(),
                                                SettingsPanel::schema(), SettingsPanel::droplet_schema(), SoundTab::schema(), DisplayTab::schema(), NotifyTab::schema(), SystemTab::schema(), AccountTab::schema(),
                                                SetupScreen::schema(), Dialogs::schema(), OfflinePopup::schema(), NoticeCard::schema(), UpdatePopup::schema(), Toasts::schema(),
-                                               Toasts::bubble_schema(), HoverTip::schema(), MemberMenu::schema(), ProfileCard::schema(), EmojiPicker::schema(), Dropdown::schema(), SoundTab::tip_schema(), ChangelogView::schema()};
+                                               Toasts::bubble_schema(), HoverTip::schema(), MemberMenu::schema(), ProfileCard::schema(), EmojiPicker::schema(), Dropdown::schema(), SoundTab::tip_schema(), ChangelogView::schema(), ContextMenu::schema()};
   return schemas;
 }
 
@@ -436,6 +436,12 @@ std::vector<Surface*> App::all_layers() {
 }
 
 std::vector<Surface*> App::layers() {
+  std::vector<Surface*> list = layers_below_menu();
+  list.insert(list.begin(), &context_menu_);  // over everything in the window it is in
+  return list;
+}
+
+std::vector<Surface*> App::layers_below_menu() {
   std::vector<Surface*> list;
   if (own_frame()) {
     switch (pane_) {
@@ -491,6 +497,7 @@ void App::paint_pane(Painter& p, float width, float height) {
   }
   p.set_base(D2D1::Matrix3x2F::Identity());
   pane_frame_.paint(p);
+  context_menu_.paint(p);
 }
 
 void App::paint(ID2D1RenderTarget* rt, float width, float height) {
@@ -533,6 +540,7 @@ void App::paint(ID2D1RenderTarget* rt, float width, float height) {
   if (own) frame_.paint(p);
   paint_layers(p);
   if (own) frame_.paint_menu(p);
+  context_menu_.paint(p);
 }
 
 void App::paint_layers(Painter& p) {
@@ -670,8 +678,38 @@ bool App::right_click(float x, float y) {
   const Ui::Hit* hit = ui_.hit_at(x, y);
   // Popups close on any button, as for a left click.
   for (Surface* s : layers()) s->before_click(hit ? hit->owner : nullptr, hit ? hit->id : 0);
-  if (hit) hit->owner->right_click(hit->id, x, y);
+  if (!hit || hit->owner->right_click(hit->id, x, y)) return true;
+  // Text and fields offer what can be done with them.
+  if (ui_.selection_owner && ui_.selection_owner != hit->owner) {
+    ui_.selection_owner->drop_selection();
+    ui_.selection_owner = nullptr;
+  }
+  std::vector<MenuItem> items = hit->owner->context_menu(hit->id, x, y);
+  if (!items.empty()) context_menu_.open(hit->owner, std::move(items), x, y, false);
   return true;
+}
+
+bool App::context_key() {
+  Surface* const target = ui_.focus ? ui_.focus_owner : ui_.selection_owner;
+  if (!target) return false;
+  // Under the caret of a field, or where the selection was last pressed.
+  float x = last_press_x_, y = last_press_y_;
+  if (ui_.focus) {
+    x = ui_.caret.x;
+    y = ui_.caret.bottom();
+  }
+  std::vector<MenuItem> items = target->context_menu(-1, x, y);
+  if (items.empty()) return false;
+  context_menu_.open(target, std::move(items), x, y, true);
+  return true;
+}
+
+bool App::sys_key(unsigned vk, bool shift) {
+  if (context_menu_.is_open()) {  // Alt or F10 leaves a menu
+    context_menu_.close();
+    return true;
+  }
+  return vk == VK_F10 && shift && context_key();
 }
 
 bool App::mouse_down(float x, float y, bool shift) {
@@ -714,6 +752,7 @@ bool App::wheel(float x, float y, float delta) {
 }
 
 bool App::char_input(wchar_t c, bool shift) {
+  if (context_menu_.is_open()) return true;  // an access key, not typing
   if (!ui_.focus) return false;
   if (c == L'\r') ui_.focus_owner->enter(shift);
   else ui_.focus->insert(std::wstring_view(&c, 1));
@@ -722,6 +761,8 @@ bool App::char_input(wchar_t c, bool shift) {
 }
 
 bool App::key_down(unsigned vk, bool ctrl, bool shift) {
+  if (context_menu_.is_open()) return context_menu_.key(vk, ctrl, shift);
+  if (vk == VK_APPS) return context_key();
   if (vk == VK_RETURN && pane_ == Pane::Dialog) {  // as any window that asks a question
     dialogs_.click(Dialogs::Confirm, 0, 0, false);
     return true;

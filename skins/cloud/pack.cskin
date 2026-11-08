@@ -396,9 +396,10 @@ part fab(alarmed = 0) {
   }
 }
 
-part menu_item(active = 0, off = 0) {
-  fill active ? (@hot ? hl_dark : hl) : hl_soft radius 9 if active || @hot
-  text @label (12, 8, @W-24, 22) style menu_item color alpha(active || @hot ? on_accent : hl_text, off ? 0.45 : 1)
+// chosen: the item the keys are on, which looks as one under the pointer does.
+part menu_item(active = 0, off = 0, chosen = 0) {
+  fill active ? (@hot ? hl_dark : hl) : hl_soft radius 9 if active || @hot || chosen
+  text @label (12, 8, @W-24, 22) style menu_item color alpha(active || @hot || chosen ? on_accent : hl_text, off ? 0.45 : 1)
 }
 
 part cell(selected = 0) {

@@ -151,6 +151,14 @@ std::wstring ime_string(HIMC imc, DWORD kind) {
   return s;
 }
 
+void complete_composition(HWND hwnd) {
+  HIMC imc = ImmGetContext(hwnd);
+  if (!imc) return;
+  // The IME sends what it had as a result, before the menu opens, as an Edit control's does.
+  if (ImmGetCompositionStringW(imc, GCS_COMPSTR, nullptr, 0) > 0) ImmNotifyIME(imc, NI_COMPOSITIONSTR, CPS_COMPLETE, 0);
+  ImmReleaseContext(hwnd, imc);
+}
+
 namespace {
 
 // The caret timer runs only while a text field can actually take typing.
@@ -238,7 +246,14 @@ LRESULT CALLBACK wnd_proc(HWND hwnd, UINT msg, WPARAM wp, LPARAM lp) {
       }
       break;
     case WM_ACTIVATE:
-      if (s->own_frame && LOWORD(wp) == WA_INACTIVE) repaint(s->app.window_deactivated(), true);
+      if (LOWORD(wp) == WA_INACTIVE) {
+        if (s->own_frame) {
+          repaint(s->app.window_deactivated(), true);
+        } else if (s->app.context_menu().is_open()) {  // a menu goes with the keyboard
+          s->app.context_menu().close();
+          repaint(true, true);
+        }
+      }
       break;
     case wm_sync_panes:
       sync_panes(*s);
@@ -366,7 +381,9 @@ LRESULT CALLBACK wnd_proc(HWND hwnd, UINT msg, WPARAM wp, LPARAM lp) {
       repaint(s->app.wheel(dips(pt.x), dips(pt.y), static_cast<float>(GET_WHEEL_DELTA_WPARAM(wp)) / WHEEL_DELTA), true);
       return 0;
     }
-    case WM_RBUTTONDOWN:
+    case WM_RBUTTONUP:
+      // As Windows does, on the way up; what is being composed goes in first.
+      complete_composition(hwnd);
       repaint(s->app.right_click(dips(GET_X_LPARAM(lp)), dips(GET_Y_LPARAM(lp))));
       return 0;
     case WM_SETCURSOR:
@@ -375,7 +392,15 @@ LRESULT CALLBACK wnd_proc(HWND hwnd, UINT msg, WPARAM wp, LPARAM lp) {
     case WM_CHAR:
       repaint(s->app.char_input(static_cast<wchar_t>(wp), (GetKeyState(VK_SHIFT) & 0x8000) != 0));
       return 0;
+    case WM_SYSKEYDOWN:
+      if (wp == VK_F10 && (GetKeyState(VK_SHIFT) & 0x8000) != 0) complete_composition(hwnd);
+      if (s->app.sys_key(static_cast<unsigned>(wp), (GetKeyState(VK_SHIFT) & 0x8000) != 0)) {
+        repaint(true);
+        return 0;
+      }
+      break;
     case WM_KEYDOWN:
+      if (wp == VK_APPS) complete_composition(hwnd);
       repaint(s->app.key_down(static_cast<unsigned>(wp), (GetKeyState(VK_CONTROL) & 0x8000) != 0,
                               (GetKeyState(VK_SHIFT) & 0x8000) != 0));
       return 0;

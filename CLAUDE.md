@@ -107,6 +107,12 @@ against a real `server/` yet; do that once a local build of it is available.
   resources are always released while the window is hidden, and after 30 s hidden so is
   the GPU driver's memory; see `docs/research/memory-floor.md`.
 - Escape closes every dialog that has a cancel action.
+- More text can be selected and copied: besides chat messages and the fields, the changelog and a Repository's key
+  fingerprint, and a question's words with Ctrl+C, as in a Windows message box. Fields select by word and paragraph
+  with a double or triple click and move and delete by word with Ctrl.
+- Text has a context menu, where upstream suppresses every one: by a right-click, the menu key or Shift+F10, drawn
+  from the Skin Pack. A field offers Cut, Copy, Paste, Delete and Select all, read-only text Copy and Select all, and
+  a link in chat its address first. What cannot be done is greyed. Cloud's fades in over 120 ms.
 - The channel balance is explained: "자리에 따라 좌우로 듣기" and "좌우 차이", in words
   instead of a ratio, and locked while virtual surround is off, when it changes nothing.
   Its settings keys are upstream's, but a value means more: straight to the side, 60 is 6 dB

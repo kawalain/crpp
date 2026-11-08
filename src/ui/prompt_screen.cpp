@@ -91,6 +91,21 @@ void PromptScreen::submit() {
 
 TextStyle PromptScreen::field_style() const { return pack_field_style_; }
 
+std::vector<MenuItem> PromptScreen::context_menu(int id, float x, float) {
+  if (id == Field && lock_until_ == 0) {
+    take_focus();
+    field_.right_press(field_.position_at(ui_.gfx, field_style(), x - text_x_ + scroll_x_, 0));
+  } else if (id != -1 || ui_.focus != &field_) {
+    return {};
+  }
+  return ui_.field_menu(field_);
+}
+
+void PromptScreen::menu_command(MenuCommand command) {
+  take_focus();
+  ui_.field_command(field_, command);
+}
+
 void PromptScreen::drag(float x, float) { field_.drag_to(field_.position_at(ui_.gfx, field_style(), x - text_x_ + scroll_x_, 0)); }
 
 void PromptScreen::click(int id, float x, float, bool shift) {

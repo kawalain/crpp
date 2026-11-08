@@ -1,0 +1,24 @@
+// What can be done with text, as the menus of the time showed it: a raised panel, the item under
+// the pointer or the keys in the selection colour, and each item's shortcut on the right.
+let item_h = 22
+let label_w = 0
+let key_w = 0
+repeat @items {
+  set label_w = max(label_w, ceil(textw(body, @label)))
+  set key_w = max(key_w, ceil(textw(body, @shortcut)))
+}
+let box_w = max(120, 20+label_w+(key_w>0 ? 24+key_w : 0)+16)
+let box_h = 2+@items*item_h
+// Where there is no room, it opens the other way, and stays inside the window.
+let left = @point_x+box_w > @W ? @point_x-box_w : @point_x
+let top = @point_y+box_h > @H ? @point_y-box_h : @point_y
+(max(0, min(left, @W-box_w)), max(0, min(top, @H-box_h)), box_w, box_h) {
+  use panel_menu
+  hit card
+  repeat @items {
+    (1, 1+@i*item_h, @W-2, item_h) hit item hit_index @i live @enabled {
+      use menu_item(off = !@enabled, chosen = @chosen == @i) text @label
+      text @shortcut style body_right color !@enabled ? off_ink : @hot || @chosen == @i ? select_ink : ink x 20 w @W-32
+    }
+  }
+}

@@ -138,12 +138,38 @@ bool scene(Shell& s, std::string_view name) {
     s.app.emoji_picker().show("1f600", nullptr);
     return true;
   }
+  if (name == "room-text-menu") {  // right-clicked on a link, after the first frame
+    demo_session(s.app, true);
+    s.app.room().chat().add({1, "c1", "하늘", "1f431", "자료는 https://example.com/docs?page=1 에 있어요.", wall_clock_seconds() * 1000});
+    return true;
+  }
+  if (name == "room-field-menu") {  // the menu key on a selected draft, after the first frame
+    demo_session(s.app, true);
+    ChatPanel& chat = s.app.room().chat();
+    s.app.ui().set_focus(&chat, &chat.input());
+    chat.input().set_text(L"보낼까 말까");
+    chat.input().select_all();
+    return true;
+  }
   if (name == "room-options") {
     demo_session(s.app, true);
     s.app.ui().prefs->set(pref::pin_chat, true);
     s.app.room().click(RoomScreen::More, 0, 0, false);
     return true;
   }
+  return false;
+}
+
+bool after_frame(Shell& s, std::string_view name) {
+  if (name.starts_with("room-") && name.ends_with("-dark")) name.remove_suffix(5);
+  if (name == "room-text-menu") {
+    const ChatPanel& chat = s.app.room().chat();
+    const Ui::Hit* link = s.app.ui().find_hit(&chat, ChatPanel::LinkBase + 3 * ChatPanel::links_per_entry);
+    if (!link) return false;
+    s.app.right_click(link->rect.x + link->rect.w / 2, link->rect.y + link->rect.h / 2);
+    return true;
+  }
+  if (name == "room-field-menu") return s.app.context_key();
   return false;
 }
 

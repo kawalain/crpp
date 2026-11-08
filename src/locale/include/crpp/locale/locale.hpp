@@ -107,6 +107,13 @@ struct Strings {
   const char* room_copied;
   const char* room_copy_failed;
   const char* copy_failed;
+  // The context menu's items, with & before the access key, as Windows writes them.
+  const char* menu_cut;
+  const char* menu_copy;
+  const char* menu_paste;
+  const char* menu_delete;
+  const char* menu_select_all;
+  const char* menu_copy_link;
   const char* room_leave_question;
   const char* room_leave_delegates;
   const char* room_leave;

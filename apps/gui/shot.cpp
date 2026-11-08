@@ -5,6 +5,7 @@
 #include <map>
 
 #include "areas.hpp"
+#include "crpp/ui/clipboard.hpp"
 #include "crpp/ui/png.hpp"
 #include "shell.hpp"
 
@@ -79,9 +80,19 @@ int run_motion(Shell& s, const Motion& motion, const std::wstring& path, unsigne
   return save_png(s.app, path, w, h, dpi) ? 0 : 1;
 }
 
+// A shot holds the clipboard as it holds the clock: it always has text, and nothing leaves.
+class HeldClipboard final : public Clipboard {
+ public:
+  bool set_text(std::wstring_view) override { return true; }
+  std::optional<std::wstring> text() override { return L"text"; }
+  bool has_text() override { return true; }
+};
+
 }  // namespace
 
 int run_shot(Shell& s, int argc, char** argv, float dpi) {
+  static HeldClipboard clipboard;
+  s.app.ui().clipboard = &clipboard;
   s.app.set_animations(false);
   hold_wall_clock(1700000000);
   unsigned w = 951, h = 692;
@@ -110,6 +121,7 @@ int run_shot(Shell& s, int argc, char** argv, float dpi) {
     s.app.notice().set(Notice{tr().notice_shared, tr().notice_move, tr().notice_close});
   }
   if (!save_png(s.app, widen(argv[2]), w, h, dpi)) return 1;
+  if (argc >= 6 && area::room::after_frame(s, argv[5]) && !save_png(s.app, widen(argv[2]), w, h, dpi)) return 1;
   // A panel with a window of its own is the picture: the one on top.
   const std::vector<Pane> panes = s.app.open_panes();
   if (panes.empty()) return 0;

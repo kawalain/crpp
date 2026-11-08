@@ -394,6 +394,22 @@ void ChangelogView::scroll_while_selecting() {
   ui_.more_frames = true;
 }
 
+std::vector<MenuItem> ChangelogView::context_menu(int id, float x, float y) {
+  if (id == Text) {
+    const TextPoint at = point_at(x, y);
+    if (selection_.empty() || at < selection_.start() || selection_.end() < at) selection_.clear();
+    ui_.selection_owner = this;
+  } else if (id != -1) {
+    return {};
+  }
+  return {{MenuCommand::Copy, !selection_.empty()}, {MenuCommand::SelectAll, !lines_.empty()}};
+}
+
+void ChangelogView::menu_command(MenuCommand command) {
+  ui_.selection_owner = this;
+  key(command == MenuCommand::Copy ? 'C' : 'A', true, false);
+}
+
 bool ChangelogView::key(unsigned vk, bool ctrl, bool shift) {
   if (!ctrl || shift) return false;
   if (vk == 'C' || vk == VK_INSERT) {

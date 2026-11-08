@@ -69,6 +69,8 @@ class ChangelogView final : public Surface {
   void release() override { selecting_ = false; }
   void drop_selection() override { selection_.clear(); }
   bool key(unsigned vk, bool ctrl, bool shift) override;
+  [[nodiscard]] std::vector<MenuItem> context_menu(int id, float x, float y) override;
+  void menu_command(MenuCommand command) override;
   // What is selected of the notes, as a copy takes it.
   [[nodiscard]] std::wstring selected_text() const;
   bool wheel(float x, float y, float delta) override;

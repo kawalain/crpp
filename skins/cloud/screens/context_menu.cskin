@@ -1,0 +1,24 @@
+// What can be done with text, at the pointer or the caret. Upstream has none; it is the member
+// menu's card with as many items as there are, and fades in as a list does.
+let item_h = 38
+let label_w = 0
+repeat @items {
+  set label_w = max(label_w, ceil(textw(menu_item, @label)))
+}
+let box_w = max(128, label_w+24+12)
+let box_h = 2*6+@items*item_h
+// Where there is no room, it opens the other way, and stays inside the window.
+let left = @point_x+box_w > @W-8 ? @point_x-box_w : @point_x
+let top = @point_y+box_h > @H-8 ? @point_y-box_h : @point_y
+let shown = ease(1, 120ms)
+let blur = 16
+(max(8, min(left, @W-box_w-8))-blur, max(8, min(top, @H-box_h-8))-blur, box_w+2*blur, box_h+2*blur+4) opacity shown {
+  (blur, blur, @W-2*blur, @H-2*blur-4) {
+    use panel_info
+    hit card
+    repeat @items {
+      use menu_item(off = !@enabled, chosen = @chosen == @i) (6, 6+@i*item_h, @W-12, item_h) text @label hit item
+          hit_index @i live @enabled
+    }
+  }
+}

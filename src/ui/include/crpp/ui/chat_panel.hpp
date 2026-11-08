@@ -69,6 +69,8 @@ class ChatPanel final : public Surface {
   void drag(float x, float y) override;
   void release() override;
   void drop_selection() override { log_selection_.clear(); }
+  [[nodiscard]] std::vector<MenuItem> context_menu(int id, float x, float y) override;
+  void menu_command(MenuCommand command) override;
   // What is selected of the messages, as a copy takes it.
   [[nodiscard]] std::wstring selected_text();
   bool wheel(float x, float y, float delta) override;
@@ -155,6 +157,11 @@ class ChatPanel final : public Surface {
   unsigned long long scrolled_at_ = 0;  // the last frame that scrolled while selecting
   Color selection_color_{0, 0, 0, 0.25f};
   std::wstring block_text_;  // what text_of last gave
+  // What the open context menu is about: the input, or the messages and maybe a link in them.
+  bool menu_for_input_ = false;
+  std::string menu_link_;
+  [[nodiscard]] std::string link_of(int id) const;
+  void select_all_messages();
   [[nodiscard]] std::wstring_view text_of(std::size_t number);
   [[nodiscard]] TextPoint log_point(float x, float y);
   // Under the button past the top or bottom of the list, it scrolls that way, faster the farther.

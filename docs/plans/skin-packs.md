@@ -203,7 +203,11 @@ before step 7, which removes what Cloud's pack is compared with.
    in both, the same two modes.
 8. **Release path.** `docs/releases/README.md` and its script fill `dist/repository`, sign the catalog with the
    update key and deploy it with `npx --yes wrangler@4.152.0 deploy` (`wrangler.jsonc`). A clean install is tried with
-   a local server, then for real, and the second source once the tag is on GitHub.
+   a local server, then for real, and the second source once the tag is on GitHub. Done on 2026-11-09 with v0.2.0:
+   `release.sh` pushed the tag, deployed the Repository (only the newly signed catalog was uploaded) and published
+   the Release. On a hidden desktop a development build installed the same 329 files from a local copy, from
+   `crpp.kawala.in` and, with only the catalog served locally, from the second sources. The release notes now
+   list only the commits a user can notice.
 
 ## Downloading, decided
 

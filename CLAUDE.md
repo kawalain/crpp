@@ -468,8 +468,10 @@ exist (real + test).
 - Installing from a Repository has run on a hidden desktop only: against a local server a first start,
   a second that fetched nothing, a failure with no server, and "다시 시도" once it was back; against the
   official Repository (deployed 2026-11-08, on `https://crpp.kawala.in/` since) a first start that took
-  14 s for 15.3 MB on one connection. Its second source needs the release's tag and its committed
-  catalog on GitHub, and raw.githubusercontent.com has not been tried as one.
+  14 s for 15.3 MB on one connection, and again after v0.2.0's release script deployed it. The second
+  source ran once: with only v0.2.0's catalog served on localhost, all 327 files came from
+  raw.githubusercontent.com, at the tag and at the third-party pins. A release of the exe from GitHub has not
+  been installed by updating from v0.1.1 yet.
 - Adding a Repository, fetching a Theme of it and removing it, updates behind the app and removing a
   downloaded Skin have run on a hidden desktop against localhost only, driven by a throwaway build, not by
   hand. So have a parent in another Repository, a pin that asks first or holds an update back, adding a

@@ -290,7 +290,8 @@ exist (real + test).
   A panel with a window of its own reports its size, and `measure_screen` walks the screen without drawing to learn it. What the
   program itself must know of a look, as a frame's sizes and each window's, is in constants that `required_constants` lists; fonts and cursors have sections of their own.
 - `assets`: a Repository's signed catalog (`catalog.hpp`, ADR 0008) and the files it lists in groups:
-  shared, one per Skin Pack and per Sound pack. `install` fetches the groups asked for from the
+  `shared`, which holds the official Sound packs, emoji and word lists, one `skin:<id>` per Skin Pack, and
+  `sound:<id>`, which the official catalog does not use. `install` fetches the groups asked for from the
   Repository, or a file's second source when the Repository fails, verifies each and keeps what
   already matches. The exe holds only the official Repository's address and the update key
   (`built_in.hpp`); `crpp_catalog` writes a catalog from `assets/`, `skins/` and

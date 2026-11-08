@@ -386,6 +386,9 @@ exist (real + test).
 - Resample WAV once at load to the device rate; load pack variants lazily.
 - Mixer does no work when no voice is active.
 - Measure idle memory/CPU of every UI change; do not trust third-party numbers.
+- The exe is built for size (`cmake/size.cmake`): `/O1`, whole-program optimisation, no RTTI and Windows' own
+  UCRT took it from 2.21 to 1.54 MB, at no CPU cost that could be measured (`docs/research/binary-size.md`).
+  Code that needs RTTI or `/O2` must show it in numbers first.
 - Nearly all memory while visible is the GPU driver's: an empty hardware Direct2D window is
   already 58 MB private against the app's 63. Software rendering is not the way down: it
   takes about 10 times the CPU to scroll, and owning the D3D11 device saves nothing. Findings:

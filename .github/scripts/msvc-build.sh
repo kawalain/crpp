@@ -3,7 +3,8 @@
 #   .github/scripts/msvc-build.sh <build dir> [-Dname=value ...]
 # vcvars puts cl and Ninja on PATH; vswhere finds it on a runner and on a machine with only
 # the Build Tools. vcvars is a batch file, so cmd runs it once and its environment is taken
-# over here. /MT makes the exe a single file needing no redistributable.
+# over here. /MT makes the exe a single file needing no redistributable; cmake/size.cmake leaves
+# out the Universal CRT, which Windows has.
 set -euo pipefail
 cd "$(dirname "$0")/../.."
 

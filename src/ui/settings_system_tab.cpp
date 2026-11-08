@@ -179,6 +179,13 @@ bool SystemTab::key(unsigned vk, bool ctrl, bool shift) {
   return false;
 }
 
+const Dropdown* SystemTab::dropdown_of(int id) const {
+  for (const Dropdown* box : {&release_}) {
+    if (box->owns(id)) return box;
+  }
+  return nullptr;
+}
+
 bool SystemTab::stop_key(int id, unsigned vk, bool ctrl, bool, bool alt) {
   if (ctrl) return false;
     if (release_.owns(id)) {

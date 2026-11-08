@@ -54,12 +54,16 @@ class RoomScreen final : public Surface {
   // Hit ids tests click by.
   enum Id : int { Leave, Mute, More, OptCode, OptPublic, OptChat, VolumeSlider, Popup, MembersBar, MembersUp, MembersDown, MembersTrack, MembersThumb, MemberBase = 1000 };
   [[nodiscard]] std::optional<Role> role(int id) const override {
-    if (id == Leave || id == Mute || id == More || id == OptCode || id >= MemberBase) return Role::Button;
+    if (id >= MemberBase) return Role::List;
+    if (id == Leave || id == Mute || id == More || id == OptCode) return Role::Button;
     if (id == OptPublic || id == OptChat) return Role::Toggle;
     if (id == VolumeSlider) return Role::Slider;
     return std::nullopt;
   }
   bool stop_key(int id, unsigned vk, bool ctrl, bool shift, bool alt) override;
+  // The members are one stop, on the one the keyboard is on: the arrows go from one to the next, Enter
+  // opens a profile and the menu key the member's menu.
+  [[nodiscard]] int stop_for(int id) const override { return id >= MemberBase ? MemberBase + static_cast<int>(key_slot()) : id; }
 
   [[nodiscard]] ChatPanel& chat() { return chat_panel_; }
   [[nodiscard]] ProfileCard& profile_card() { return profile_; }
@@ -153,6 +157,9 @@ class RoomScreen final : public Surface {
   std::string room_code_;
   std::vector<MemberView> members_;
   std::uint32_t me_ = 0;
+  // The member the keyboard is on, by slot; the first in the list until a key or a click says.
+  std::optional<std::uint32_t> member_key_;
+  [[nodiscard]] std::uint32_t key_slot() const;
   std::optional<std::uint32_t> host_;
   bool public_ = false, chat_ = false;
   bool options_open_ = false, mute_popup_open_ = false;

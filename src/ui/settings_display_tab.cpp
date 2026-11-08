@@ -161,6 +161,13 @@ bool DisplayTab::wheel(float x, float y, float delta) {
   return skin_theme_.wheel(ui_, x, y, delta) || dark_mode_.wheel(ui_, x, y, delta) || idle_.wheel(ui_, x, y, delta) || language_.wheel(ui_, x, y, delta);
 }
 
+const Dropdown* DisplayTab::dropdown_of(int id) const {
+  for (const Dropdown* box : {&skin_theme_, &dark_mode_, &idle_, &language_}) {
+    if (box->owns(id)) return box;
+  }
+  return nullptr;
+}
+
 bool DisplayTab::stop_key(int id, unsigned vk, bool ctrl, bool, bool alt) {
   if (ctrl) return false;
   if (id == ScaleSlider) {

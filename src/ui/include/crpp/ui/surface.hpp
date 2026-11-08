@@ -234,7 +234,7 @@ class Ui : public WindowState {
 
   [[nodiscard]] bool hot(const Surface* owner, int id) const { return hover_owner == owner && hover_id == id; }
   // The keyboard is on it, and that shows.
-  [[nodiscard]] bool focused(const Surface* owner, int id) const { return owner && (cues || always_cues) && stop_owner == owner && stop_id == id; }
+  [[nodiscard]] bool focused(const Surface* owner, int id) const;
   void set_stop(Surface* owner, int id) {
     stop_owner = owner;
     stop_id = id;
@@ -318,8 +318,11 @@ class Surface {
   // Is this a link? A Skin whose buttons keep the arrow still shows the hand on one.
   [[nodiscard]] virtual bool is_link(int /*id*/) const { return false; }
 
-  // The keyboard: what a hit is to it, if it is a stop at all. Of a list or grid only one is.
+  // The keyboard: what a hit is to it, if it is a stop at all.
   [[nodiscard]] virtual std::optional<Role> role(int /*id*/) const { return std::nullopt; }
+  // The stop a hit belongs to. A list, a grid or a row of tabs is one stop, wherever in it the keyboard
+  // or a click is: the item the keyboard is on, or the whole list's own hit. Tab stops only there.
+  [[nodiscard]] virtual int stop_for(int id) const { return id; }
   // A hit over what is under it, as a backdrop: Tab stays among what is read after it.
   [[nodiscard]] virtual bool holds_keys(int /*id*/) const { return false; }
   // The keyboard came to this stop. A field takes the keys here.

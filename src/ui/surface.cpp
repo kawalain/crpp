@@ -141,10 +141,14 @@ const Ui::Hit* Ui::find_stop(const Surface* owner, int id) const {
   return nullptr;
 }
 
+bool Ui::focused(const Surface* owner, int id) const {
+  return owner && (cues || always_cues) && stop_owner == owner && owner->stop_for(stop_id) == id;
+}
+
 const Ui::Hit* Ui::current_stop() const {
   if (!stop_owner) return nullptr;
   for (const Hit* stop : tab_stops()) {
-    if (stop->owner == stop_owner && stop->id == stop_id) return stop;
+    if (stop->owner == stop_owner && stop->id == stop_owner->stop_for(stop_id)) return stop;
   }
   return nullptr;
 }
@@ -164,7 +168,7 @@ std::vector<const Ui::Hit*> Ui::tab_stops() const {
   const std::uint32_t floor = held ? holding->number : 0;
   std::vector<const Hit*> stops;
   for (const Hit& hit : hits_) {
-    if (!hit.owner || !hit.live || (held && hit.number <= floor) || !hit.owner->role(hit.id)) continue;
+    if (!hit.owner || !hit.live || (held && hit.number <= floor) || !hit.owner->role(hit.id) || hit.owner->stop_for(hit.id) != hit.id) continue;
     // A hit drawn in pieces, as a link over two lines, is one stop, where it was first read.
     const auto same = std::ranges::find_if(stops, [&](const Hit* s) { return s->owner == hit.owner && s->id == hit.id; });
     if (same == stops.end()) stops.push_back(&hit);

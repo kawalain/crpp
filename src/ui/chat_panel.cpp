@@ -178,7 +178,41 @@ std::size_t ChatPanel::input_position(float x, float y) const {
 
 void ChatPanel::focus(int id) {
   if (id == Input) ui_.set_focus(this, &input_);
-  else if (id == Text) ui_.selection_owner = this;  // the messages take the keys, as a click on them gives them
+  else if (id == Area) ui_.selection_owner = this;  // the messages take the keys, as a click on them gives them
+}
+
+bool ChatPanel::stop_key(int id, unsigned vk, bool ctrl, bool shift, bool) {
+  if (id != Area || ctrl || log_.empty()) return false;
+  // Only the messages laid out can be gone to: the page in view and those above it already brought in.
+  const std::size_t first = dropped_ + first_, last = dropped_ + log_.size() - 1;
+  const bool on_one = key_message_ >= first && key_message_ <= last;
+  const std::size_t at = on_one ? key_message_ : last;
+  std::size_t to = at;
+  switch (vk) {
+    case VK_UP: to = on_one && at > first ? at - 1 : at; break;
+    case VK_DOWN: to = on_one && at < last ? at + 1 : at; break;
+    case VK_PRIOR: to = at > first + 5 ? at - 5 : first; break;
+    case VK_NEXT: to = std::min(at + 5, last); break;
+    case VK_HOME: to = first; break;
+    case VK_END: to = last; break;
+    default: return false;
+  }
+  if (!shift || !on_one) key_from_ = to;
+  key_message_ = to;
+  const std::size_t lo = std::min(key_from_, to), hi = std::max(key_from_, to);
+  log_selection_.select({lo, 0}, {hi, widen(log_[hi - dropped_].text).size()});
+  ui_.selection_owner = this;
+  // Its row comes into view, in the units the log scrolls by.
+  const std::size_t row = to - dropped_ - first_;
+  if (row < rows_.size()) {
+    const Row& r = rows_[row];
+    const float scale = log_geometry_.scale > 0 ? log_geometry_.scale : 1;
+    const float top = (r.head ? r.y_head : r.y_text) * scale, bottom = (r.y_text + r.h_text) * scale;
+    if (top < scroll_.target) scroll_.go_to(ui_, top);
+    else if (bottom > scroll_.target + scroll_.view_h) scroll_.go_to(ui_, bottom - scroll_.view_h);
+    scrolled();
+  }
+  return true;
 }
 
 std::string ChatPanel::link_of(int id) const {

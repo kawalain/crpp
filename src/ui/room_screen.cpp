@@ -315,7 +315,31 @@ void RoomScreen::paint_tips(Painter& p) {
   copy_tip_.paint(ui_, p, copying ? &copied : nullptr);
 }
 
+std::uint32_t RoomScreen::key_slot() const {
+  if (member_key_ && std::ranges::find(members_, *member_key_, &MemberView::slot) != members_.end()) return *member_key_;
+  return members_.empty() ? 0 : members_.front().slot;
+}
+
 bool RoomScreen::stop_key(int id, unsigned vk, bool ctrl, bool, bool) {
+  if (id >= MemberBase && !ctrl && !members_.empty()) {
+    const auto at = std::ranges::find(members_, key_slot(), &MemberView::slot) - members_.begin();
+    const auto n = static_cast<std::ptrdiff_t>(members_.size());
+    std::ptrdiff_t to = at;
+    switch (vk) {
+      case VK_LEFT:
+      case VK_UP: to = std::max<std::ptrdiff_t>(at - 1, 0); break;
+      case VK_RIGHT:
+      case VK_DOWN: to = std::min(at + 1, n - 1); break;
+      case VK_HOME: to = 0; break;
+      case VK_END: to = n - 1; break;
+      case VK_RETURN:
+      case VK_SPACE: click(MemberBase + static_cast<int>(key_slot()), 0, 0, false); return true;
+      default: return false;
+    }
+    member_key_ = members_[static_cast<std::size_t>(to)].slot;
+    ui_.move_stop_to(this, MemberBase + static_cast<int>(*member_key_));
+    return true;
+  }
   if (id != VolumeSlider || ctrl) return false;
   const std::optional<int> value = slider_key(vk, volume_, 0, 100);
   if (!value) return false;
@@ -487,7 +511,10 @@ void RoomScreen::click(int id, float x, float y, bool) {
       set_volume_from(x);
       break;
     default:
-      if (id >= MemberBase) profile_.request(static_cast<std::uint32_t>(id - MemberBase));
+      if (id >= MemberBase) {
+        member_key_ = static_cast<std::uint32_t>(id - MemberBase);
+        profile_.request(*member_key_);
+      }
       break;
   }
 }

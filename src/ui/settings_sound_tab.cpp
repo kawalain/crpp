@@ -264,6 +264,13 @@ bool SoundTab::wheel(float x, float y, float delta) {
   return std::ranges::any_of(packs_, [&](Picker& picker) { return picker.box.wheel(ui_, x, y, delta); });
 }
 
+const Dropdown* SoundTab::dropdown_of(int id) const {
+  for (const Dropdown* box : {&speaker_.box, &reverb_.box, &packs_[0].box, &packs_[1].box, &packs_[2].box}) {
+    if (box->owns(id)) return box;
+  }
+  return nullptr;
+}
+
 bool SoundTab::stop_key(int id, unsigned vk, bool ctrl, bool, bool alt) {
   if (ctrl) return false;
   if ((id >= SpeakerVolume && id <= PenVolume) || id == Balance) {

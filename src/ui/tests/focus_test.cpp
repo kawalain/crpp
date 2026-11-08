@@ -295,6 +295,42 @@ void a_panel_opens_on_its_tab_and_closes_back(const char* pack) {
   CHECK(h.app.ui().stop_owner == before && h.app.ui().stop_id == before_id);
 }
 
+void the_messages_and_the_members_take_the_arrows(const char* pack) {
+  UiHarness h;
+  CHECK(h.start(951, 692, pack));
+  h.app.show_session("ABC234");
+  RoomScreen& room = h.app.room();
+  room.set_room({{0, "a", "", false, "c0"}, {1, "b", "", false, "c1"}, {2, "c", "", false, "c2"}}, 0, 0, false, true);
+  ChatPanel& chat = room.chat();
+  chat.add({0, "c0", "a", "", "one", 1700000000000});
+  chat.add({1, "c1", "b", "", "two", 1700000000000});
+  chat.add({0, "c0", "a", "", "three", 1700000000000});
+  h.render();
+  h.render();
+  // The messages are one stop; the first arrow is on the last, and Shift takes in those it passes.
+  CHECK(tab_to(h, chat, ChatPanel::Area));
+  press(h, VK_UP);
+  CHECK(chat.selected_text() == L"three");
+  press(h, VK_UP);
+  CHECK(chat.selected_text() == L"two");
+  press(h, VK_UP, false, true);
+  const std::wstring both = chat.selected_text();
+  CHECK(both.find(L"one") != std::wstring::npos && both.find(L"two") != std::wstring::npos && both.find(L"three") == std::wstring::npos);
+  press(h, VK_END);
+  CHECK(chat.selected_text() == L"three");
+  // The members are one stop too, and the arrows go along them.
+  CHECK(tab_to(h, room, RoomScreen::MemberBase));
+  press(h, VK_RIGHT);
+  CHECK(h.app.ui().current_stop() && h.app.ui().current_stop()->id == RoomScreen::MemberBase + 1);
+  // The menu key does what a right-click does: the member's menu, which has the keyboard until it closes.
+  press(h, VK_APPS);
+  CHECK(room.member_menu().is_open());
+  CHECK(h.app.ui().stop_owner == &room.member_menu());
+  press(h, VK_ESCAPE);
+  CHECK(!room.member_menu().is_open());
+  CHECK(h.app.ui().current_stop() && h.app.ui().current_stop()->owner == &room && h.app.ui().current_stop()->id == RoomScreen::MemberBase + 1);
+}
+
 }  // namespace
 
 int main() {
@@ -310,6 +346,7 @@ int main() {
     the_emoji_grid_is_one_stop_and_its_arrows_go_by_rows(pack);
     a_question_starts_on_cancel_and_gives_the_keyboard_back(pack);
     a_panel_opens_on_its_tab_and_closes_back(pack);
+    the_messages_and_the_members_take_the_arrows(pack);
   }
   return crpp_test_result();
 }

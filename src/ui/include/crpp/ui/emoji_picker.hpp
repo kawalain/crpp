@@ -18,8 +18,9 @@ class EmojiPicker final : public Surface {
   using Surface::Surface;
   // Fixed values plus CellBase + index.
   enum Id : int { Backdrop, Card, Track, Thumb, CellBase = 100 };
-  // The grid is one stop, at the emoji in use or the first.
-  [[nodiscard]] std::optional<Role> role(int id) const override;
+  [[nodiscard]] std::optional<Role> role(int id) const override { return id >= CellBase ? std::optional(Role::List) : std::nullopt; }
+  // The grid is one stop, at the emoji the keyboard is on: the one in use, or the first.
+  [[nodiscard]] int stop_for(int id) const override { return id >= CellBase ? CellBase + keyboard_cell() : id; }
   [[nodiscard]] bool holds_keys(int id) const override { return id == Backdrop; }
   // The arrows go from emoji to emoji, Home and End to the ends of a row, and Enter or Space picks one.
   bool stop_key(int id, unsigned vk, bool ctrl, bool shift, bool alt) override;

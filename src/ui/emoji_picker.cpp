@@ -129,10 +129,6 @@ int EmojiPicker::keyboard_cell() const {
   return in_use == ids_.end() ? 0 : static_cast<int>(in_use - ids_.begin());
 }
 
-std::optional<Role> EmojiPicker::role(int id) const {
-  return id >= CellBase && id == CellBase + keyboard_cell() ? std::optional(Role::List) : std::nullopt;
-}
-
 bool EmojiPicker::stop_key(int id, unsigned vk, bool ctrl, bool, bool) {
   if (id < CellBase || ctrl || ids_.empty()) return false;
   const int n = static_cast<int>(ids_.size()), cols = std::max(1, columns_), at = keyboard_cell();

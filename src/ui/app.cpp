@@ -507,7 +507,7 @@ void App::paint_focus(Painter& p) {
   const skin::Part* part = ui_.pack->part("focus_ring");
   if (!part) return;
   for (const Ui::Hit* stop : ui_.tab_stops()) {
-    if (stop->owner != ui_.stop_owner || stop->id != ui_.stop_id) continue;
+    if (stop != ui_.current_stop()) continue;
     // A shape's box is not its edge: a pack draws that itself, with @focused.
     if (!stop->shown || !stop->shape.empty()) return;
     // On the stage, so that it grows with what it is around.
@@ -714,13 +714,19 @@ bool App::right_click(float x, float y) {
 }
 
 bool App::context_key() {
+  const Ui::Hit* const stop = ui_.focus ? nullptr : ui_.current_stop();
+  // On a control the keys do what a right-click on it does, as a member's menu or a switch's pin.
+  if (stop && stop->owner->right_click(stop->id, stop->whole.x + stop->whole.w / 2, stop->whole.y + stop->whole.h / 2)) return true;
   Surface* const target = ui_.focus ? ui_.focus_owner : ui_.selection_owner;
   if (!target) return false;
-  // Under the caret of a field, or where the selection was last pressed.
+  // Under the caret of a field, under the keyboard's stop, or where the selection was last pressed.
   float x = last_press_x_, y = last_press_y_;
   if (ui_.focus) {
     x = ui_.caret.x;
     y = ui_.caret.bottom();
+  } else if (stop && stop->owner == target) {
+    x = stop->whole.x + 8;
+    y = stop->whole.y + 8;
   }
   std::vector<MenuItem> items = target->context_menu(-1, x, y);
   if (items.empty()) return false;
@@ -746,7 +752,7 @@ bool App::sys_key(unsigned vk, bool shift) {
 bool App::move_stop(int step) {
   const std::vector<const Ui::Hit*> stops = ui_.tab_stops();
   if (stops.empty()) return false;
-  auto at = std::ranges::find_if(stops, [&](const Ui::Hit* h) { return h->owner == ui_.stop_owner && h->id == ui_.stop_id; });
+  auto at = std::ranges::find(stops, ui_.current_stop());
   // A field that took the keys without the keyboard, as one does when its screen opens, is where Tab goes on from.
   if (at == stops.end() && ui_.focus_owner) {
     at = std::ranges::find_if(stops, [&](const Ui::Hit* h) { return h->owner == ui_.focus_owner && h->owner->role(h->id) == Role::Field; });

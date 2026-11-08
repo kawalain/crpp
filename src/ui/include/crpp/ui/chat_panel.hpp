@@ -42,11 +42,15 @@ class ChatPanel final : public Surface {
   [[nodiscard]] std::optional<Role> role(int id) const override {
     if (id == Input) return Role::Field;
     if (id == Send) return Role::Button;
-    if (id == Text) return Role::List;  // the messages, one stop
+    if (id == Text || id == Area) return Role::List;
     if (id >= LinkBase) return Role::Link;
     return std::nullopt;
   }
   void focus(int id) override;
+// The messages are one stop, on their area. Up and Down go from message to message and select it,
+// with Shift as many as they pass; Home and End go to the ends.
+[[nodiscard]] int stop_for(int id) const override { return id == Text ? Area : id; }
+bool stop_key(int id, unsigned vk, bool ctrl, bool shift, bool alt) override;
   static constexpr int links_per_entry = 64;
 
   // chatScale, percent: the whole list zooms, the compose box does not (.chat-list).
@@ -165,6 +169,8 @@ class ChatPanel final : public Surface {
   unsigned long long scrolled_at_ = 0;  // the last frame that scrolled while selecting
   Color selection_color_{0, 0, 0, 0.25f};
   std::wstring block_text_;  // what text_of last gave
+  // The message the keyboard is on, and the one its selection began at, by number.
+  std::size_t key_message_ = static_cast<std::size_t>(-1), key_from_ = 0;
   // What the open context menu is about: the input, or the messages and maybe a link in them.
   bool menu_for_input_ = false;
   std::string menu_link_;

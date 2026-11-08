@@ -58,8 +58,13 @@ class Lexer {
       if (at_ >= s_.size()) break;
       if (!token(space)) return std::unexpected(error_);
     }
-    if (!out_.empty() && out_.back().type == Tok::Newline) out_.pop_back();
-    out_.push_back(make(Tok::End, at_, true));
+    Token end = make(Tok::End, at_, true);
+    if (!out_.empty() && out_.back().type == Tok::Newline) {
+      end.line = out_.back().line;  // the text ends where its last line does
+      end.column = out_.back().column;
+      out_.pop_back();
+    }
+    out_.push_back(end);
     return std::move(out_);
   }
 
@@ -77,12 +82,17 @@ class Lexer {
   }
 
   void newline() {
+    // A Newline stands where its line ends, so that what is missing there is said there.
+    Token ending = make(Tok::Newline, at_, false);
     ++at_;
     ++line_;
     column_ = 1;
     indent_ = measure_indent(at_);
     if (depth_ > 0) return;  // inside ( ), a line break is only space
-    if (!out_.empty() && out_.back().type != Tok::Newline) out_.push_back(make(Tok::Newline, at_ - 1, false));
+    if (!out_.empty() && out_.back().type != Tok::Newline) {
+      ending.end = at_;
+      out_.push_back(ending);
+    }
     if (!out_.empty() && out_.back().type == Tok::Newline) out_.back().indent = indent_;
   }
 
@@ -872,7 +882,12 @@ class Parser {
     if (is(Tok::Color)) return Json(std::string(next().text));
     const Token& head = peek();
     auto fn = ident("a colour, mix, alpha or stops");
-    if (!fn || !expect("(")) return std::nullopt;
+    if (!fn) return std::nullopt;
+    if (*fn != "mix" && *fn != "alpha" && *fn != "stops") {
+      fail_at(head, "a Palette entry is a colour, mix, alpha or stops");
+      return std::nullopt;
+    }
+    if (!expect("(")) return std::nullopt;
     if (*fn == "mix") {
       auto a = ident("a colour above it");
       if (!a || !expect(",")) return std::nullopt;

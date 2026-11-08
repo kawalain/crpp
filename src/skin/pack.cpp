@@ -173,7 +173,7 @@ class Loader final : public Names {
     return false;
   }
 
-  [[nodiscard]] std::string pack_file() const { return "pack" + ext_; }
+  static std::string pack_file() { return "pack.cskin"; }
 
   // --- Extending ---
 
@@ -185,7 +185,7 @@ class Loader final : public Names {
   // Lays what `over` names on top of what `base` has.
   static void merge_into(Json& base, const Json& over) {
     for (const Json::Member& m : *over.as_object()) {
-      if (m.key == "id" || m.key == "format" || m.key == "extends" || m.key == "$schema") continue;
+      if (m.key == "id" || m.key == "format" || m.key == "extends") continue;
       if (m.key == "constants" || m.key == "styles" || m.key == "parts" || m.key == "palettes" || m.key == "themes") {
         if (!base.find(m.key)) base.set(m.key, Json::object());
         if (const Json::Object* items = m.value.as_object()) {
@@ -206,14 +206,7 @@ class Loader final : public Names {
     };
     std::vector<Level> levels;  // nearest first
     ReadFile reader = read_;
-    // A pack written in the pack language says so by its pack.cskin, and so do its parents and overlays.
-    auto text = reader("pack.cskin");
-    if (text) {
-      syntax_ = Syntax::Pack;
-      ext_ = ".cskin";
-    } else {
-      text = reader("pack.jsonc");
-    }
+    auto text = reader(pack_file());
     std::string label = pack_file();
     while (true) {
       auto root = parse_file(label, text);
@@ -389,7 +382,7 @@ class Loader final : public Names {
   bool order_parts(Json& root) {
     const Json* parts = root.find("parts");
     const Json::Object* all = parts ? parts->as_object() : nullptr;
-    if (!all) return true;  // load_parts says so
+    if (!all) return true;  // none, or read_cskin has said what is wrong
     enum class Mark : std::uint8_t { None, Open, Done };
     std::vector<Mark> marks(all->size(), Mark::None);
     Json::Object ordered;
@@ -425,27 +418,13 @@ class Loader final : public Names {
       fail("is larger than " + std::to_string(max_file_bytes) + " bytes");
       return std::nullopt;
     }
-    if (syntax_ == Syntax::Pack) {
-      auto read = read_cskin(*text, where_.ends_with("pack.cskin") ? SourceKind::Pack : SourceKind::Screen);
-      if (!read) {
-        where_ += ":" + std::to_string(read.error().line) + ":" + std::to_string(read.error().column);
-        fail(read.error().what);
-        return std::nullopt;
-      }
-      return std::move(*read);
-    }
-    store::JsonPosition at;
-    auto json = Json::parse(*text, &at);
-    if (!json) {
-      where_ += ":" + std::to_string(at.line) + ":" + std::to_string(at.column);
-      fail("is not JSONC");
+    auto read = read_cskin(*text, where_.ends_with(pack_file()) ? SourceKind::Pack : SourceKind::Screen);
+    if (!read) {
+      where_ += ":" + std::to_string(read.error().line) + ":" + std::to_string(read.error().column);
+      fail(read.error().what);
       return std::nullopt;
     }
-    if (!json->is_object()) {
-      fail("is not an object");
-      return std::nullopt;
-    }
-    return std::move(*json);
+    return std::move(*read);
   }
 
   bool load_constants(const Json& constants) {
@@ -597,8 +576,9 @@ class Loader final : public Names {
   // --- Styles ---
 
   bool load_styles(const Json* styles) {
-    const Json::Object* all = styles ? styles->as_object() : nullptr;
-    if (!all) return fail("no styles");
+    if (!styles) return true;  // a pack may have none
+    const Json::Object* all = styles->as_object();
+    if (!all) return fail("styles is not an object");
     // A style can be read by anything, so it knows no local names; its sizes are worked out
     // for each node that uses it, in that node's box.
     for (const Json::Member& m : *all) {
@@ -655,7 +635,7 @@ class Loader final : public Names {
     }
     const auto text = value.as_string();
     if (!text) return fail("a value is neither a number nor an expression");
-    auto compiled = compile(*text, *this, pack_.code, syntax_);
+    auto compiled = compile(*text, *this, pack_.code);
     if (!compiled) return fail(compiled.error());
     if (pack_.code.size() > max_instructions) return fail("too many expressions");
     out = *compiled;
@@ -1109,8 +1089,9 @@ class Loader final : public Names {
   // --- Parts ---
 
   bool load_parts(const Json* parts) {
-    const Json::Object* all = parts ? parts->as_object() : nullptr;
-    if (!all) return fail("no parts");
+    if (!parts) return true;  // a pack may have none
+    const Json::Object* all = parts->as_object();
+    if (!all) return fail("parts is not an object");
     for (const Json::Member& m : *all) {
       where_ = pack_file() + ": part \"" + m.key + "\"";
       if (!m.value.is_object()) return fail("is not an object");
@@ -1150,17 +1131,15 @@ class Loader final : public Names {
   // --- Screens ---
 
   bool load_screen(const ScreenSchema& schema) {
-    const std::string path = "screens/" + std::string(schema.screen) + ext_;
+    const std::string path = "screens/" + std::string(schema.screen) + ".cskin";
     std::optional<std::string> text;
     for (auto layer = layers_.rbegin(); layer != layers_.rend() && !text; ++layer) text = (*layer)(path);
     if (!text) return true;
     const auto root = parse_file(path, text);
     if (!root) return false;
-    if (syntax_ == Syntax::Pack) {
-      // Both are @name in a pack, so the exe must not name one of a screen's numbers like one of its own.
-      for (const Name& number : schema.numbers) {
-        if (var_named(number.name)) return fail("the exe names a number of this screen @" + std::string(number.name) + ", which is its own already");
-      }
+    // Both are @name, so the exe must not name one of a screen's numbers like one of its own.
+    for (const Name& number : schema.numbers) {
+      if (var_named(number.name)) return fail("the exe names a number of this screen @" + std::string(number.name) + ", which is its own already");
     }
     const Json* draw = root->find("draw");
     if (!draw) return fail("has no \"draw\"");
@@ -1182,8 +1161,6 @@ class Loader final : public Names {
   std::vector<ReadFile> layers_;  // what lies on top comes last
   Pack pack_;
   std::string error_, where_;
-  Syntax syntax_ = Syntax::Jsonc;  // how its expressions are written: by pack.cskin or pack.jsonc
-  std::string ext_ = ".jsonc";
   std::vector<std::string> paint_names_, style_names_;
   Scope* scope_ = nullptr;
   const ScreenSchema* schema_ = nullptr;

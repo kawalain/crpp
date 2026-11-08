@@ -63,10 +63,10 @@ std::span<const skin::ScreenSchema> screen_schemas() {
 
 namespace {
 
-// A folder holds a pack when it has its pack.cskin, or the older pack.jsonc.
+// A folder holds a pack when it has its pack.cskin.
 bool holds_pack(const std::filesystem::path& dir) {
   std::error_code error;
-  return std::filesystem::is_regular_file(dir / "pack.cskin", error) || std::filesystem::is_regular_file(dir / "pack.jsonc", error);
+  return std::filesystem::is_regular_file(dir / "pack.cskin", error);
 }
 
 skin::ReadFile files_of(std::filesystem::path dir) {

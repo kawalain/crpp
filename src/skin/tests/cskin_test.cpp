@@ -155,7 +155,8 @@ palette night extends day {
 void mistakes_say_where() {
   CHECK(refused_at("fill ink\nfil ink", 2, 1));
   CHECK(refused_at("fill ink radius", 1, 16));
-  CHECK(refused_at("hit a {\n  fill ink\n", 3, 1));
+  CHECK(refused_at("hit a {\n  fill ink\n", 2, 11));  // where the text ends
+  CHECK(refused_at("fill ink radius\nfill ink", 1, 16));  // where its line ends
   CHECK(refused_at("fill ink }", 1, 10));
   CHECK(refused_at("fill #12345", 1, 6));
   CHECK(refused_at("fill 12px", 1, 6));

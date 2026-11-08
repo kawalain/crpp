@@ -25,63 +25,64 @@ constexpr Name test_reports[] = {{"height", 71}};
 constexpr Name test_notes[] = {{"where", 81}};
 constexpr ScreenSchema test_schema{"home", test_texts, test_numbers, test_pictures, test_fields, test_hits, test_slots, test_reports, test_notes};
 
-const char* const test_pack = R"J({
-  "format": 1,
-  "id": "test",
-  "palettes": {
-    "one": {"face": "#ff0000", "ink": "#00000080", "shade": [[0, "#000000"], [1, "#ffffff"]]},
-    "two": {"shade": [[0, "#111111"], [1, "#222222"]], "ink": "#0000ff", "face": "#00ff00"}
-  },
-  "styles": {
-    "body": {"size": "font_size", "line_height": "h", "ellipsis": true, "exact": true},
-    "big": {"size": 20, "line_height": "font_size+4", "weight": 700, "align": "center", "wrap": true}
-  },
-  "parts": {
-    "by": {
-      "args": {"own": -1, "where": -1},
-      "draw": [{"hit_by": "own", "note_by": "where", "group": [{"fill": "hot ? $ink : $face"}]}]
-    },
-    "inner": {
-      "args": {"amount": 1},
-      "draw": [{"fill": "$face", "w": "amount"}]
-    },
-    "row": {
-      "h": 20,
-      "w": "textw('body', '@label')",
-      "draw": [{"text": "@label", "style": "body", "color": "$face"}]
-    },
-    "box": {
-      "height": "rows.bottom+6",
-      "draw": [
-        {"id": "rows", "x": 10, "y": 14, "w": "W-20", "column": [{"content": true}]},
-        {"frame": "$ink", "h": "rows.bottom+6"}
-      ]
-    },
-    "button": {
-      "snap": true,
-      "args": {"off": 0},
-      "draw": [
-        {"let": "gap", "value": "off ? 2 : 3"},
-        {"fill": "pressed ? $ink : $face", "radius": 3},
-        {"text": "@label", "style": "body", "color": "hot ? $ink : $face", "x": "gap"},
-        {"use": "inner", "args": {"amount": "gap*10"}}
-      ]
-    }
-  }
-})J";
+const char* const test_pack = R"C(pack test format 1
 
-std::string fill_list(std::string_view nodes) { return "{\"draw\":[" + std::string(nodes) + "]}"; }
+
+palette one {
+  face #ff0000
+  ink #00000080
+  shade stops(0: #000000, 1: #ffffff)
+}
+
+palette two {
+  shade stops(0: #111111, 1: #222222)
+  ink #0000ff
+  face #00ff00
+}
+
+style body size @font_size line_height @h ellipsis exact
+style big size 20 line_height @font_size+4 weight 700 align center wrap
+
+
+part by(own = -1, where = -1) {
+  hit_by own note_by where {
+    fill @hot ? ink : face
+  }
+}
+
+part inner(amount = 1) {
+  fill face w amount
+}
+
+part row h 20 w textw(body, @label) {
+  text @label style body color face
+}
+
+part box height rows.bottom+6 {
+  column id rows x 10 y 14 w @W-20 {
+    content
+  }
+  frame ink h rows.bottom+6
+}
+
+part button(off = 0) snap {
+  let gap = off ? 2 : 3
+  fill @pressed ? ink : face radius 3
+  text @label style body color @hot ? ink : face x gap
+  use inner(amount = gap*10)
+}
+)C";
 
 ReadFile files(std::string pack, std::string home) {
   return [pack = std::move(pack), home = std::move(home)](std::string_view path) -> std::optional<std::string> {
-    if (path == "pack.jsonc") return pack;
-    if (path == "screens/home.jsonc" && !home.empty()) return home;
+    if (path == "pack.cskin") return pack;
+    if (path == "screens/home.cskin" && !home.empty()) return home;
     return std::nullopt;
   };
 }
 
 std::expected<Pack, std::string> load(std::string_view nodes) {
-  return load_pack(files(test_pack, fill_list(nodes)), std::span(&test_schema, 1));
+  return load_pack(files(test_pack, std::string(nodes)), std::span(&test_schema, 1));
 }
 
 class Log final : public Canvas {
@@ -198,68 +199,105 @@ std::string walk(std::string_view nodes, int palette = 0, int seats = 0, int hot
 }
 
 void boxes_are_measured_from_the_box_around_them() {
-  CHECK(walk(R"({"fill":"$face"})") == "fill 100,200,300,400 1/0/0/1\n");
-  CHECK(walk(R"({"fill":"$face","x":10,"y":"H-5","w":"W/2","h":5})") == "fill 110,595,150,5 1/0/0/1\n");
-  CHECK(walk(R"({"group":[{"fill":"$face","x":1,"y":2,"w":"W-2","h":"H-4"}],"x":10,"y":20,"w":100,"h":50})") == "fill 111,222,98,46 1/0/0/1\n");
-  CHECK(walk(R"({"fill":"$face","y":10,"h":"y*2"})") == "fill 100,210,300,20 1/0/0/1\n");
+  CHECK(walk(R"C(fill face)C") == "fill 100,200,300,400 1/0/0/1\n");
+  CHECK(walk(R"C(fill face (10, @H-5, @W/2, 5))C") == "fill 110,595,150,5 1/0/0/1\n");
+  CHECK(walk(R"C((10, 20, 100, 50) {
+  fill face (1, 2, @W-2, @H-4)
+}
+)C") == "fill 111,222,98,46 1/0/0/1\n");
+  CHECK(walk(R"C(fill face y 10 h @y*2)C") == "fill 100,210,300,20 1/0/0/1\n");
 }
 
 void siblings_read_each_others_boxes() {
-  CHECK(walk(R"({"fill":"$face","id":"a","x":5,"y":6,"w":7,"h":8},{"fill":"$face","x":"a.right","y":"a.bottom","w":"a.w","h":"a.h"})") ==
+  CHECK(walk(R"C(fill face (5, 6, 7, 8) id a
+fill face (a.right, a.bottom, a.w, a.h)
+)C") ==
         "fill 105,206,7,8 1/0/0/1\nfill 112,214,7,8 1/0/0/1\n");
   // Not a node further on, nor one in another list.
-  CHECK(!load(R"({"fill":"$face","x":"a.x"},{"fill":"$face","id":"a"})"));
-  CHECK(!load(R"({"group":[{"fill":"$face","id":"a"}]},{"fill":"$face","x":"a.x"})"));
-  CHECK(!load(R"({"fill":"$face","id":"a"},{"group":[{"fill":"$face","x":"a.x"}]})"));
+  CHECK(!load(R"C(fill face x a.x
+fill face id a
+)C"));
+  CHECK(!load(R"C(group {
+  fill face id a
+}
+fill face x a.x
+)C"));
+  CHECK(!load(R"C(fill face id a
+group {
+  fill face x a.x
+}
+)C"));
 }
 
 void a_let_is_read_further_on_and_inside() {
-  CHECK(walk(R"({"let":"gap","value":"W/10"},{"group":[{"fill":"$face","x":"gap"}]})") == "fill 130,200,300,400 1/0/0/1\n");
-  CHECK(!load(R"({"fill":"$face","x":"gap"},{"let":"gap","value":1})"));
-  CHECK(!load(R"({"let":"gap","value":1},{"let":"gap","value":2})"));
-  CHECK(!load(R"({"let":"W","value":1})"));
+  CHECK(walk(R"C(let gap = @W/10
+group {
+  fill face x gap
+}
+)C") == "fill 130,200,300,400 1/0/0/1\n");
+  CHECK(!load(R"C(fill face x gap
+let gap = 1
+)C"));
+  CHECK(!load(R"C(let gap = 1
+let gap = 2
+)C"));
+  CHECK(!load(R"C(let W = 1)C"));
 }
 
 void a_part_takes_its_hit_and_note_from_the_screen() {
-  CHECK(walk(R"J({"use":"by","args":{"own":"hit('join')"}})J", 0, 0, 51) == "fill 100,200,300,400 0/0/0/0.5\nhit 100,200,300,400 51\n");
+  CHECK(walk(R"C(use by(own = hit(join)))C", 0, 0, 51) == "fill 100,200,300,400 0/0/0/0.5\nhit 100,200,300,400 51\n");
   // Less than 0 is none, and leaves what is lit from outside alone.
-  CHECK(walk(R"J({"use":"by"})J") == "fill 100,200,300,400 1/0/0/1\n");
-  CHECK(walk(R"J({"use":"by","hit":"join"})J", 0, 0, 51) == "fill 100,200,300,400 0/0/0/0.5\nhit 100,200,300,400 51\n");
-  CHECK(walk(R"J({"use":"by","args":{"where":"note('where')"}})J").starts_with("note 81"));
-  CHECK(!load(R"J({"fill":"$face","x":"hit('nothing')"})J"));
-  CHECK(!load(R"J({"fill":"$face","x":"note('nothing')"})J"));
+  CHECK(walk(R"C(use by)C") == "fill 100,200,300,400 1/0/0/1\n");
+  CHECK(walk(R"C(use by hit join)C", 0, 0, 51) == "fill 100,200,300,400 0/0/0/0.5\nhit 100,200,300,400 51\n");
+  CHECK(walk(R"C(use by(where = note(where)))C").starts_with("note 81"));
+  CHECK(!load(R"C(fill face x hit(nothing))C"));
+  CHECK(!load(R"C(fill face x note(nothing))C"));
 }
 
 void a_text_can_set_its_size() {
-  CHECK(walk(R"J({"text":"x","style":"body","color":"$face","h":10,"size":"h+5","line_height":"h+9"})J") == "text x 100,200,300,10 15/19/400 1/0/0/1\n");
+  CHECK(walk(R"C(text "x" style body color face h 10 size @h+5 line_height @h+9)C") == "text x 100,200,300,10 15/19/400 1/0/0/1\n");
 }
 
 void a_set_changes_a_name_from_further_in() {
-  CHECK(walk(R"J({"let":"widest","value":1},{"repeat":3,"draw":[{"set":"widest","value":"max(widest, i*10)"}]},{"fill":"$face","x":"widest"})J") == "fill 120,200,300,400 1/0/0/1\n");
-  CHECK(walk(R"({"let":"a","value":1},{"if":"0","set":"a","value":5},{"fill":"$face","x":"a"})") == "fill 101,200,300,400 1/0/0/1\n");
-  CHECK(!load(R"({"set":"nothing","value":1})"));
+  CHECK(walk(R"C(let widest = 1
+repeat 3 {
+  set widest = max(widest, @i*10)
+}
+fill face x widest
+)C") == "fill 120,200,300,400 1/0/0/1\n");
+  CHECK(walk(R"C(let a = 1
+set a = 5 if 0
+fill face x a
+)C") == "fill 101,200,300,400 1/0/0/1\n");
+  CHECK(!load(R"C(set nothing = 1)C"));
 }
 
 void conditions_skip_what_they_guard() {
-  CHECK(walk(R"({"if":"@seats>0","fill":"$face"},{"if":"@seats==0","fill":"$ink"})").starts_with("fill 100,200,300,400 0/0/0/0.5"));
-  CHECK(walk(R"({"if":"@seats>0","fill":"$face"},{"if":"@seats==0","fill":"$ink"})", 0, 1).starts_with("fill 100,200,300,400 1/0/0/1"));
+  CHECK(walk(R"C(fill face if @seats>0
+fill ink if @seats==0
+)C").starts_with("fill 100,200,300,400 0/0/0/0.5"));
+  CHECK(walk(R"C(fill face if @seats>0
+fill ink if @seats==0
+)C", 0, 1).starts_with("fill 100,200,300,400 1/0/0/1"));
   // One that was skipped reads as zeros.
-  CHECK(walk(R"({"if":0,"fill":"$face","id":"a","x":5},{"fill":"$face","x":"a.x+1"})") == "fill 101,200,300,400 1/0/0/1\n");
+  CHECK(walk(R"C(fill face id a x 5 if 0
+fill face x a.x+1
+)C") == "fill 101,200,300,400 1/0/0/1\n");
 }
 
 void palettes_choose_colours_and_gradients() {
-  CHECK(walk(R"({"fill":"$face"})", 1) == "fill 100,200,300,400 0/1/0/1\n");
-  CHECK(walk(R"({"fill":"$ink"})", 1) == "fill 100,200,300,400 0/0/1/1\n");
-  CHECK(walk(R"({"fill":"$shade"})") == "down 100,200,300,400 200..600 2\n");
-  CHECK(walk(R"({"fill":"$shade","down_to":20})") == "down 100,200,300,400 200..220 2\n");
-  CHECK(walk(R"({"fill":"$shade","radius":3})") == "rounddown 100,200,300,400 3 200..600 2\n");
-  CHECK(walk(R"({"fill":"$shade","across":true})") == "across 100,200,300,400 2\n");
-  CHECK(walk(R"({"fill":"$face","across":true})") == "fill 100,200,300,400 1/0/0/1\n");  // a plain colour has no direction
-  CHECK(!load(R"({"fill":"$shade","across":true,"radius":3})").has_value());
-  CHECK(!load(R"({"fill":"$shade","across":1})").has_value());
-  CHECK(walk(R"({"fill":"$face","radius":3})") == "round 100,200,300,400 3 1/0/0/1\n");
-  CHECK(walk(R"({"fill":"99"})").empty());  // a number that is no entry draws nothing
-  const auto pack = load(R"({"fill":"$face"})");
+  CHECK(walk(R"C(fill face)C", 1) == "fill 100,200,300,400 0/1/0/1\n");
+  CHECK(walk(R"C(fill ink)C", 1) == "fill 100,200,300,400 0/0/1/1\n");
+  CHECK(walk(R"C(fill shade)C") == "down 100,200,300,400 200..600 2\n");
+  CHECK(walk(R"C(fill shade down_to 20)C") == "down 100,200,300,400 200..220 2\n");
+  CHECK(walk(R"C(fill shade radius 3)C") == "rounddown 100,200,300,400 3 200..600 2\n");
+  CHECK(walk(R"C(fill shade across)C") == "across 100,200,300,400 2\n");
+  CHECK(walk(R"C(fill face across)C") == "fill 100,200,300,400 1/0/0/1\n");  // a plain colour has no direction
+  CHECK(!load(R"C(fill shade across radius 3)C").has_value());
+  CHECK(!load(R"C(fill shade across 1)C").has_value());
+  CHECK(walk(R"C(fill face radius 3)C") == "round 100,200,300,400 3 1/0/0/1\n");
+  CHECK(walk(R"C(fill 99)C").empty());  // a number that is no entry draws nothing
+  const auto pack = load(R"C(fill face)C");
   CHECK(pack->palette_of("one") == 0);
   CHECK(pack->palette_of("two") == 1);
   CHECK(!pack->palette_of("three").has_value());
@@ -267,15 +305,18 @@ void palettes_choose_colours_and_gradients() {
 
 void texts_come_from_three_places() {
   const std::string_view ok = locale::tr().ok;
-  CHECK(walk(R"({"text":"#ok","style":"body","color":"$face","h":16})") == "text " + std::string(ok) + " 100,200,300,16 12/16/400 1/0/0/1\n");
-  CHECK(walk(R"({"text":"@nickname","style":"big","color":"$face"})") == "text Me 100,200,300,400 20/16/700 1/0/0/1\n");
-  CHECK(walk(R"({"text":"plain words","style":"body","color":"$face","h":2})").starts_with("text plain words"));
-  CHECK(!load(R"({"text":"#no_such_key","style":"body","color":"$face"})"));
-  CHECK(!load(R"({"text":"@nobody","style":"body","color":"$face"})"));
+  CHECK(walk(R"C(text @tr.ok style body color face h 16)C") == "text " + std::string(ok) + " 100,200,300,16 12/16/400 1/0/0/1\n");
+  CHECK(walk(R"C(text @nickname style big color face)C") == "text Me 100,200,300,400 20/16/700 1/0/0/1\n");
+  CHECK(walk(R"C(text "plain words" style body color face h 2)C").starts_with("text plain words"));
+  CHECK(!load(R"C(text @tr.no_such_key style body color face)C"));
+  CHECK(!load(R"C(text @nobody style body color face)C"));
 }
 
 void a_repeat_counts_with_i() {
-  const std::string_view rows = R"({"repeat":"@seats","draw":[{"text":"@seat","style":"body","color":"$face","y":"i*20","h":20,"hit":"seat"}]})";
+  const std::string_view rows = R"C(repeat @seats {
+  text @seat style body color face y @i*20 h 20 hit seat
+}
+)C";
   CHECK(walk(rows).empty());
   CHECK(walk(rows, 0, 2) ==
         "text A 100,200,300,20 12/20/400 1/0/0/1\nhit 100,200,300,20 100\n"
@@ -283,98 +324,148 @@ void a_repeat_counts_with_i() {
 }
 
 void a_hit_lights_what_is_inside_it() {
-  const std::string_view row = R"({"repeat":2,"draw":[{"group":[{"fill":"hot ? $ink : $face"}],"hit":"seat"}]})";
+  const std::string_view row = R"C(repeat 2 {
+  hit seat {
+    fill @hot ? ink : face
+  }
+}
+)C";
   const std::string lit = walk(row, 1, 0, 101);
   CHECK(lit == "fill 100,200,300,400 0/1/0/1\nhit 100,200,300,400 100\nfill 100,200,300,400 0/0/1/1\nhit 100,200,300,400 101\n");
 }
 
 void a_part_gets_its_box_label_and_arguments() {
-  const std::string plain = walk(R"({"use":"button","text":"#ok","hit":"join","x":0.25,"y":0.25,"w":50,"h":20})");
+  const std::string plain = walk(R"C(use button (0.25, 0.25, 50, 20) text @tr.ok hit join)C");
   const std::string_view ok = locale::tr().ok;
   // It snaps its box, and the hit keeps the box it was asked for.
   CHECK(plain == "round 100,200,50,20 3 1/0/0/1\ntext " + std::string(ok) + " 103,200,50,20 12/20/400 1/0/0/1\nfill 100,200,30,20 1/0/0/1\nhit 100.25,200.25,50,20 51\n");
-  const std::string hot = walk(R"({"use":"button","text":"x","hit":"join","args":{"off":1}})", 0, 0, 51, 51);
+  const std::string hot = walk(R"C(use button(off = 1) text "x" hit join)C", 0, 0, 51, 51);
   CHECK(hot == "round 100,200,300,400 3 0/0/0/0.5\ntext x 102,200,300,400 12/400/400 0/0/0/0.5\nfill 100,200,20,400 1/0/0/1\nhit 100,200,300,400 51\n");
 }
 
 void a_part_is_inside_its_own_names() {
   // Its let does not reach the screen, and a screen's does not reach it.
-  CHECK(!load(R"({"use":"button"},{"fill":"$face","x":"gap"})"));
-  CHECK(!load(R"({"use":"button","args":{"nothing":1}})"));
-  CHECK(!load(R"({"use":"nothing"})"));
+  CHECK(!load(R"C(use button
+fill face x gap
+)C"));
+  CHECK(!load(R"C(use button(nothing = 1))C"));
+  CHECK(!load(R"C(use nothing)C"));
   // Two uses keep to their own places.
-  CHECK(walk(R"({"let":"keep","value":7},{"use":"inner","args":{"amount":"keep"}},{"use":"inner"},{"fill":"$face","x":"keep"})") ==
+  CHECK(walk(R"C(let keep = 7
+use inner(amount = keep)
+use inner
+fill face x keep
+)C") ==
         "fill 100,200,7,400 1/0/0/1\nfill 100,200,1,400 1/0/0/1\nfill 107,200,300,400 1/0/0/1\n");
 }
 
 void picture_and_field_go_to_the_screen() {
-  CHECK(walk(R"({"picture":"me","x":1,"y":2,"w":3,"h":4})") == "picture 31 101,202,3,4 1 0\n");
-  CHECK(walk(R"({"picture":"me","opacity":0.5,"gray":1,"w":3,"h":4})") == "picture 31 100,200,3,4 0.5 1\n");
-  CHECK(walk(R"({"field":"code","style":"body","color":"$face","placeholder":"type","placeholder_color":"$ink","caret":"$ink","selection":"$ink"})") ==
+  CHECK(walk(R"C(picture me (1, 2, 3, 4))C") == "picture 31 101,202,3,4 1 0\n");
+  CHECK(walk(R"C(picture me opacity 0.5 gray 1 w 3 h 4)C") == "picture 31 100,200,3,4 0.5 1\n");
+  CHECK(walk(R"C(field code style body color face placeholder "type" placeholder_color ink caret ink selection ink)C") ==
         "field 41 100,200,300,400 type 1/0/0/1 0/0/0/0.5\n");
-  CHECK(!load(R"({"picture":"nobody"})"));
-  CHECK(!load(R"({"field":"nobody","style":"body","color":"$face","placeholder":"t","placeholder_color":"$ink","caret":"$ink","selection":"$ink"})"));
+  CHECK(!load(R"C(picture nobody)C"));
+  CHECK(!load(R"C(field nobody style body color face placeholder "t" placeholder_color ink caret ink selection ink)C"));
 }
 
 void a_column_stacks_what_it_draws() {
-  CHECK(walk(R"({"column":[{"fill":"$face","h":10},{"if":0,"fill":"$face","h":99},{"fill":"$face","h":5,"after":3},{"fill":"$face","h":1}],"id":"c","x":1,"y":2,"w":50},{"fill":"$face","y":"c.bottom","w":1,"h":1})") ==
+  CHECK(walk(R"C(column id c x 1 y 2 w 50 {
+  fill face h 10
+  fill face h 99 if 0
+  fill face h 5 after 3
+  fill face h 1
+}
+fill face y c.bottom w 1 h 1
+)C") ==
         "fill 101,202,50,10 1/0/0/1\nfill 101,212,50,5 1/0/0/1\nfill 101,220,50,1 1/0/0/1\nfill 100,221,1,1 1/0/0/1\n");
   // A node can step back up by saying so, and a group inside starts again from the top.
-  CHECK(walk(R"({"column":[{"fill":"$face","h":10},{"group":[{"fill":"$ink","h":2}],"y":"flow-1","h":5}],"w":5})") ==
+  CHECK(walk(R"C(column w 5 {
+  fill face h 10
+  y @flow-1 h 5 {
+    fill ink h 2
+  }
+}
+)C") ==
         "fill 100,200,5,10 1/0/0/1\nfill 100,209,5,2 0/0/0/0.5\n");
 }
 
 void a_part_can_hold_a_list_and_say_how_tall_it_came_out() {
-  const std::string out = walk(R"({"column":[{"use":"box","draw":[{"use":"row","text":"ab"},{"if":"@seats","use":"row","text":"cd"}],"after":14},{"fill":"$face","h":1}],"w":100})", 0, 1);
+  const std::string out = walk(R"C(column w 100 {
+  use box after 14 {
+    use row text "ab"
+    use row text "cd" if @seats
+  }
+  fill face h 1
+}
+)C", 0, 1);
   CHECK(out == "text ab 110,214,20,20 12/20/400 1/0/0/1\ntext cd 110,234,20,20 12/20/400 1/0/0/1\nframe 100,200,100,60 0/0/0/0.5\nfill 100,274,100,1 1/0/0/1\n");
   // Without the second row it is that much shorter.
-  const std::string less = walk(R"({"column":[{"use":"box","draw":[{"use":"row","text":"ab"},{"if":"@seats","use":"row","text":"cd"}],"after":14},{"fill":"$face","h":1}],"w":100})");
+  const std::string less = walk(R"C(column w 100 {
+  use box after 14 {
+    use row text "ab"
+    use row text "cd" if @seats
+  }
+  fill face h 1
+}
+)C");
   CHECK(less == "text ab 110,214,20,20 12/20/400 1/0/0/1\nframe 100,200,100,40 0/0/0/0.5\nfill 100,254,100,1 1/0/0/1\n");
 }
 
 void a_part_sizes_itself_where_none_is_given() {
-  CHECK(walk(R"({"use":"row","text":"abc"})") == "text abc 100,200,30,20 12/20/400 1/0/0/1\n");
-  CHECK(walk(R"({"use":"row","text":"abc","w":7})") == "text abc 100,200,7,20 12/20/400 1/0/0/1\n");
-  CHECK(walk(R"({"use":"row","text":"abc","right":100})") == "text abc 170,200,30,20 12/20/400 1/0/0/1\n");
+  CHECK(walk(R"C(use row text "abc")C") == "text abc 100,200,30,20 12/20/400 1/0/0/1\n");
+  CHECK(walk(R"C(use row text "abc" w 7)C") == "text abc 100,200,7,20 12/20/400 1/0/0/1\n");
+  CHECK(walk(R"C(use row text "abc" right 100)C") == "text abc 170,200,30,20 12/20/400 1/0/0/1\n");
 }
 
 void right_and_bottom_measure_from_the_far_edge() {
-  CHECK(walk(R"({"fill":"$face","right":"W-1","bottom":"H-2","w":10,"h":20})") == "fill 389,578,10,20 1/0/0/1\n");
-  CHECK(!load(R"({"fill":"$face","right":1,"x":1})"));
-  CHECK(!load(R"({"fill":"$face","bottom":1,"y":1})"));
+  CHECK(walk(R"C(fill face right @W-1 bottom @H-2 w 10 h 20)C") == "fill 389,578,10,20 1/0/0/1\n");
+  CHECK(!load(R"C(fill face right 1 x 1)C"));
+  CHECK(!load(R"C(fill face bottom 1 y 1)C"));
 }
 
 void hits_can_be_gated_and_counted_otherwise() {
-  CHECK(walk(R"({"group":[{"fill":"hot ? $ink : $face"}],"hit":"join","w":1,"h":1,"live":0})", 0, 0, 51).starts_with("fill 100,200,1,1 1/0/0/1\nhit"));
-  CHECK(walk(R"({"group":[{"fill":"$face"}],"hit":"join","w":1,"h":1,"hit_if":0})") == "fill 100,200,1,1 1/0/0/1\n");
-  CHECK(walk(R"({"group":[{"fill":"$face"}],"hit":"seat","hit_index":7,"w":1,"h":1})").ends_with("hit 100,200,1,1 107\n"));
+  CHECK(walk(R"C(hit join w 1 h 1 live 0 {
+  fill @hot ? ink : face
+}
+)C", 0, 0, 51).starts_with("fill 100,200,1,1 1/0/0/1\nhit"));
+  CHECK(walk(R"C(hit join w 1 h 1 hit_if 0 {
+  fill face
+}
+)C") == "fill 100,200,1,1 1/0/0/1\n");
+  CHECK(walk(R"C(hit seat hit_index 7 w 1 h 1 {
+  fill face
+}
+)C").ends_with("hit 100,200,1,1 107\n"));
 }
 
 void numbers_are_read_for_the_round_of_a_repeat() {
-  CHECK(walk(R"({"repeat":2,"draw":[{"fill":"$face","x":"@twice","w":1,"h":1}]})") == "fill 100,200,1,1 1/0/0/1\nfill 102,200,1,1 1/0/0/1\n");
+  CHECK(walk(R"C(repeat 2 {
+  fill face x @twice w 1 h 1
+}
+)C") == "fill 100,200,1,1 1/0/0/1\nfill 102,200,1,1 1/0/0/1\n");
 }
 
 void lines_paths_and_measures() {
-  CHECK(walk(R"({"line":"$face","x":1,"y":2,"x2":3,"y2":4,"width":2})") == "line 101,202 103,204 1/0/0/1 2\n");
-  CHECK(walk(R"({"path":"M0 0H1","color":"$face","x":1,"y":2})") == "path M0 0H1 101,202 x1 1/0/0/1 0 round\n");
-  CHECK(walk(R"({"path":"M0 0H1","color":"$face","scale":0.5,"width":2,"caps":"flat"})") == "path M0 0H1 100,200 x0.5 1/0/0/1 2 flat\n");
-  CHECK(!load(R"({"path":"M0","color":"$face","caps":"square"})"));
+  CHECK(walk(R"C(line face (1, 2) to (3, 4) width 2)C") == "line 101,202 103,204 1/0/0/1 2\n");
+  CHECK(walk(R"C(path "M0 0H1" (1, 2) color face)C") == "path M0 0H1 101,202 x1 1/0/0/1 0 round\n");
+  CHECK(walk(R"C(path "M0 0H1" color face scale 0.5 width 2 caps flat)C") == "path M0 0H1 100,200 x0.5 1/0/0/1 2 flat\n");
+  CHECK(!load(R"C(path M0 color face caps square)C"));
   // 40 wide at 10 a letter in 15 makes three lines of 16.
-  CHECK(walk(R"J({"fill":"$face","w":1,"h":"texth('big', 'abcd', 15)"})J") == "fill 100,200,1,48 1/0/0/1\n");
-  CHECK(walk(R"J({"fill":"$face","x":"snap(1.4)","w":1,"h":1})J") == "fill 101,200,1,1 1/0/0/1\n");
+  CHECK(walk(R"C(fill face w 1 h texth(big, "abcd", 15))C") == "fill 100,200,1,48 1/0/0/1\n");
+  CHECK(walk(R"C(fill face x snap(1.4) w 1 h 1)C") == "fill 101,200,1,1 1/0/0/1\n");
 }
 
 void slots_reports_and_notes_go_to_the_screen() {
-  CHECK(walk(R"({"slot":"list","numbers":[3],"styles":["body"],"colors":["$face"]})") == "slot 61 100,200,300,400 1/1/1 3\n");
-  CHECK(walk(R"({"report":"height","value":"W+1"})") == "report 71 301\n");
-  CHECK(walk(R"({"fill":"$face","note":"where","w":1,"h":1})") == "note 81/0 100,200,1,1\nfill 100,200,1,1 1/0/0/1\n");
-  CHECK(!load(R"({"slot":"nothing"})"));
-  CHECK(!load(R"({"report":"nothing","value":1})"));
-  CHECK(!load(R"({"fill":"$face","note":"nothing"})"));
+  CHECK(walk(R"C(slot list numbers (3) styles (body) colors (face))C") == "slot 61 100,200,300,400 1/1/1 3\n");
+  CHECK(walk(R"C(report height = @W+1)C") == "report 71 301\n");
+  CHECK(walk(R"C(fill face note where w 1 h 1)C") == "note 81/0 100,200,1,1\nfill 100,200,1,1 1/0/0/1\n");
+  CHECK(!load(R"C(slot nothing)C"));
+  CHECK(!load(R"C(report nothing = 1)C"));
+  CHECK(!load(R"C(fill face note nothing)C"));
 }
 
 void a_part_can_be_drawn_alone() {
-  const auto pack = load(R"({"fill":"$face"})");
+  const auto pack = load(R"C(fill face)C");
   Log log;
   TestSource source;
   source.log = &log;
@@ -386,23 +477,26 @@ void a_part_can_be_drawn_alone() {
 }
 
 void a_clip_goes_around_a_group() {
-  CHECK(walk(R"({"group":[{"fill":"$face"}],"clip":true,"w":5,"h":6})") == "clip 100,200,5,6\nfill 100,200,5,6 1/0/0/1\nunclip\n");
+  CHECK(walk(R"C(clip w 5 h 6 {
+  fill face
+}
+)C") == "clip 100,200,5,6\nfill 100,200,5,6 1/0/0/1\nunclip\n");
 }
 
 void a_bad_node_is_refused() {
-  CHECK(!load(R"(1)"));
-  CHECK(!load(R"({})"));
-  CHECK(!load(R"({"fill":"$face","frame":"$ink"})"));
-  CHECK(!load(R"({"fill":"$face","colour":"$ink"})"));
-  CHECK(!load(R"({"frame":"$face","radius":1})"));
-  CHECK(!load(R"({"fill":"$nobody"})"));
-  CHECK(!load(R"({"fill":"$face","hit":"nobody"})"));
-  CHECK(!load(R"({"stroke":"$face"})"));
-  CHECK(!load(R"({"text":"x","style":"nobody","color":"$face"})"));
-  CHECK(!load(R"({"repeat":2})"));
-  CHECK(!load(R"({"fill":"$face","x":[1]})"));
-  CHECK(walk(R"({"fill":"$face","x":true,"alpha":0.5})") == "fill 101,200,300,400 1/0/0/0.5\n");
-  CHECK(!load(R"({"fill":"$face","//":"a comment is a comment now"})"));
+  CHECK(!load(R"C(1)C"));
+  CHECK(!load(R"C(fill)C"));
+  CHECK(!load(R"C(fill face frame ink)C"));
+  CHECK(!load(R"C(fill face colour ink)C"));
+  CHECK(!load(R"C(frame face radius 1)C"));
+  CHECK(!load(R"C(fill nobody)C"));
+  CHECK(!load(R"C(fill face hit nobody)C"));
+  CHECK(!load(R"C(stroke face)C"));
+  CHECK(!load(R"C(text "x" style nobody color face)C"));
+  CHECK(!load(R"C(repeat 2)C"));
+  CHECK(!load(R"C(fill face x [1])C"));
+  CHECK(walk(R"C(fill face x 1 alpha 0.5)C") == "fill 101,200,300,400 1/0/0/0.5\n");
+  CHECK(walk(R"C(fill face x 1 // a comment)C") == "fill 101,200,300,400 1/0/0/1\n");
 }
 
 std::expected<Pack, std::string> load_with(std::string_view from, std::string_view to) {
@@ -410,46 +504,44 @@ std::expected<Pack, std::string> load_with(std::string_view from, std::string_vi
   const std::size_t at = pack.find(from);
   CHECK(at != std::string::npos);
   pack.replace(at, from.size(), to);
-  return load_pack(files(pack, fill_list(R"({"fill":"$face"})")), std::span(&test_schema, 1));
+  return load_pack(files(pack, std::string(R"C(fill face)C")), std::span(&test_schema, 1));
 }
 
 void a_bad_pack_is_refused() {
-  CHECK(load_with("\"format\": 1", "\"format\": 1").has_value());
-  CHECK(!load_with("\"format\": 1", "\"format\": 2"));
-  CHECK(!load_with("\"format\": 1,", ""));
-  CHECK(!load_with("\"id\": \"test\",", ""));
+  CHECK(load_with("format 1", "format 1").has_value());
+  CHECK(!load_with("format 1", "format 2"));
+  CHECK(!load_with(" format 1", ""));
+  CHECK(!load_with("pack test format 1", ""));
   CHECK(!load_with("#ff0000", "red"));
   CHECK(!load_with("#ff0000", "#ff00"));
-  CHECK(!load_with("\"face\": \"#00ff00\"", "\"other\": \"#00ff00\""));
-  CHECK(load_with("\"ink\": \"#00000080\"", "\"ink\": {\"mix\": [\"face\", \"face\", 50]}").has_value());
-  CHECK(load_with("\"ink\": \"#00000080\"", "\"ink\": {\"alpha\": [\"face\", 0.5]}").has_value());
-  CHECK(!load_with("\"ink\": \"#00000080\"", "\"ink\": {\"mix\": [\"nobody\", \"face\", 50]}"));
-  CHECK(!load_with("\"ink\": \"#00000080\"", "\"ink\": {\"alpha\": [\"shade\", 0.5]}"));
-  CHECK(!load_with("\"face\": \"#00ff00\"", "\"face\": [[0, \"#000000\"], [1, \"#000000\"]]"));  // a colour in the first
-  CHECK(!load_with("\"size\": 20,", ""));
-  CHECK(!load_with("\"align\": \"center\"", "\"align\": \"middle\""));
+  CHECK(!load_with("face #00ff00", "other #00ff00"));
+  CHECK(load_with("ink #00000080", "ink mix(face, face, 50%)").has_value());
+  CHECK(load_with("ink #00000080", "ink alpha(face, 0.5)").has_value());
+  CHECK(!load_with("ink #00000080", "ink mix(nobody, face, 50%)"));
+  CHECK(!load_with("ink #00000080", "ink alpha(shade, 0.5)"));
+  CHECK(!load_with("face #00ff00", "face stops(0: #000000, 1: #000000)"));  // a colour in the first
+  CHECK(!load_with("size 20 ", ""));
+  CHECK(!load_with("align center", "align middle"));
   CHECK(!load_pack([](std::string_view) { return std::optional<std::string>{}; }, std::span(&test_schema, 1)));
-  CHECK(!load_pack(files("not json", ""), std::span(&test_schema, 1)));
-  CHECK(!load_pack(files(test_pack, "[]"), std::span(&test_schema, 1)));
-  CHECK(!load_pack(files(test_pack, "{}"), std::span(&test_schema, 1)));
+  CHECK(!load_pack(files("not a pack", ""), std::span(&test_schema, 1)));
+  CHECK(!load_pack(files(test_pack, "fill face {"), std::span(&test_schema, 1)));
+  CHECK(!load_pack(files(test_pack, "}"), std::span(&test_schema, 1)));
 }
 
 void an_error_says_where() {
-  const auto pack = load(R"({"fill":"$nobody"})");
-  CHECK(!pack && pack.error().find("screens/home.jsonc") != std::string::npos && pack.error().find("nobody") != std::string::npos);
+  const auto pack = load(R"C(fill nobody)C");
+  CHECK(!pack && pack.error().find("screens/home.cskin") != std::string::npos && pack.error().find("nobody") != std::string::npos);
   const auto bad = load_with("#ff0000", "red");
-  CHECK(!bad && bad.error().find("pack.jsonc") != std::string::npos && bad.error().find("face") != std::string::npos);
+  CHECK(!bad && bad.error().find("pack.cskin:5:8") != std::string::npos);  // face red
 }
 
-void a_file_is_jsonc_and_names_its_schema() {
-  const auto pack = load_pack(files(test_pack, R"J({
-    "$schema": "../schema/screen.home.schema.json",
-    // A comment, and a comma after the last item.
-    "draw": [{"fill": "$face",},],
-  })J"), std::span(&test_schema, 1));
-  CHECK(pack.has_value());
-  const auto broken = load_pack(files(test_pack, "{\n  \"draw\": [\n    {\"fill\" \"$face\"}\n  ]\n}"), std::span(&test_schema, 1));
-  CHECK(!broken && broken.error().find("screens/home.jsonc:3:13") != std::string::npos);
+void a_mistake_in_the_language_says_where() {
+  const auto broken = load_pack(files(test_pack, "// a comment\nfill face\nfill face radius\n"), std::span(&test_schema, 1));
+  CHECK(!broken && broken.error().find("screens/home.cskin:3:17") != std::string::npos);
+  std::string pack = test_pack;
+  pack.replace(pack.find("face #ff0000"), 12, "face #ff00");
+  const auto bad = load_pack(files(pack, "fill face"), std::span(&test_schema, 1));
+  CHECK(!bad && bad.error().find("pack.cskin:5:") != std::string::npos);
 }
 
 void a_screen_without_a_file_is_left_out() {
@@ -460,26 +552,25 @@ void a_screen_without_a_file_is_left_out() {
 
 void sizes_are_limited() {
   // A file too large.
-  CHECK(!load_pack(files(std::string(max_file_bytes + 1, ' ') + "{}", ""), std::span(&test_schema, 1)));
+  CHECK(!load_pack(files(std::string(max_file_bytes + 1, ' ') + test_pack, ""), std::span(&test_schema, 1)));
   // Nodes too deep.
-  std::string deep = R"({"fill":"$face"})";
-  for (int i = 0; i < max_node_depth + 1; ++i) deep = "{\"group\":[" + deep + "]}";
+  std::string deep = R"C(fill face)C";
+  for (int i = 0; i < max_node_depth + 1; ++i) deep = "group {\n" + deep + "\n}";
   CHECK(!load(deep));
   // Too many names.
   std::string names;
-  for (int i = 0; i <= max_frame_slots; ++i) names += (i ? "," : "") + ("{\"let\":\"n" + std::to_string(i) + "\",\"value\":1}");
+  for (int i = 0; i <= max_frame_slots; ++i) names += "let n" + std::to_string(i) + " = 1\n";
   CHECK(!load(names));
 }
 
 void a_walk_ends_however_parts_multiply() {
   // Each part uses the one before it twice, which makes 2^40 nodes.
-  std::string pack = R"({"format":1,"id":"t","palettes":{"one":{"face":"#000000"}},"styles":{},"parts":{"p0":{"draw":[{"fill":"$face"}]})";
+  std::string pack = "pack t format 1\npalette one {\n  face #000000\n}\npart p0 {\n  fill face\n}\n";
   for (int i = 1; i <= 40; ++i) {
     const std::string before = "p" + std::to_string(i - 1);
-    pack += ",\"p" + std::to_string(i) + "\":{\"draw\":[{\"use\":\"" + before + "\"},{\"use\":\"" + before + "\"}]}";
+    pack += "part p" + std::to_string(i) + " {\n  use " + before + "\n  use " + before + "\n}\n";
   }
-  pack += "}}";
-  const auto loaded = load_pack(files(pack, fill_list(R"({"use":"p40"})")), std::span(&test_schema, 1));
+  const auto loaded = load_pack(files(pack, std::string(R"C(use p40)C")), std::span(&test_schema, 1));
   CHECK(loaded.has_value());
   if (!loaded) return;
   class Counter final : public Canvas {
@@ -514,30 +605,43 @@ void a_walk_ends_however_parts_multiply() {
 }  // namespace
 
 void a_group_can_count_from_its_corner_and_go_down() {
-  CHECK(walk(R"J({"x":1,"y":2,"scale":2,"origin":true,"group":[{"fill":"$face","x":3,"y":4,"w":5,"h":6}]})J") == "scale at 101,202 x2\nfill 3,4,5,6 1/0/0/1\nunscale\n");
-  CHECK(walk(R"J({"dy":7,"group":[{"fill":"$face","w":5,"h":6}]})J") == "down 7\nfill 100,200,5,6 1/0/0/1\nunscale\n");
-  CHECK(!load(R"J({"origin":true,"group":[]})J"));
+  CHECK(walk(R"C((1, 2) scale 2 origin {
+  fill face (3, 4, 5, 6)
+}
+)C") == "scale at 101,202 x2\nfill 3,4,5,6 1/0/0/1\nunscale\n");
+  CHECK(walk(R"C(dy 7 {
+  fill face w 5 h 6
+}
+)C") == "down 7\nfill 100,200,5,6 1/0/0/1\nunscale\n");
+  CHECK(!load(R"C(origin)C"));
 }
 
 void a_clip_can_be_soft_and_a_path_stretched() {
-  CHECK(walk(R"J({"clip":true,"soft_clip":true,"group":[]})J") == "softclip 100,200,300,400\nunclip\n");
-  CHECK(walk(R"J({"path":"M0 0","color":"$face","x":1,"y":2,"scale":-2,"scale_y":3})J") == "stretched M0 0 101,202 x-2 y3 1/0/0/1\n");
-  CHECK(!load(R"J({"path":"M0 0","color":"$face","scale_y":3,"width":1})J"));
+  CHECK(walk(R"C(clip soft_clip)C") == "softclip 100,200,300,400\nunclip\n");
+  CHECK(walk(R"C(path "M0 0" (1, 2) color face scale -2 scale_y 3)C") == "stretched M0 0 101,202 x-2 y3 1/0/0/1\n");
+  CHECK(!load(R"C(path "M0 0" color face scale_y 3 width 1)C"));
 }
 
 void a_transition_is_asked_of_the_canvas() {
-  CHECK(walk(R"J({"let":"v","to":"1","ms":150,"ms_off":500,"first":"jump","curve":"linear"},{"fill":"$face","w":"v*10"})J") ==
+  CHECK(walk(R"C(let v = ease(1, 150ms) ms_off 500ms first jump curve linear
+fill face w v*10
+)C") ==
         "transition on 150/500 jump linear\nfill 100,200,5,400 1/0/0/1\n");
-  CHECK(walk(R"J({"let":"v","to":"0","ms":150},{"fill":"$face","w":"v*10"})J") == "transition off 150/150\nfill 100,200,5,400 1/0/0/1\n");
+  CHECK(walk(R"C(let v = ease(0, 150ms)
+fill face w v*10
+)C") == "transition off 150/150\nfill 100,200,5,400 1/0/0/1\n");
   // A transition reads what is hot where it is.
-  CHECK(walk(R"J({"hit":"join","group":[{"let":"v","to":"hot","ms":1}]})J", 0, 0, 51) == "transition on 1/1\nhit 100,200,300,400 51\n");
-  CHECK(walk(R"J({"let":"v","to":"1","ms":1,"again":"3"})J") == "transition on 1/1 again 3\n");
-  CHECK(!load(R"J({"let":"v","value":1,"again":"3"})J"));
-  CHECK(!load(R"J({"let":"v","to":"1"})J"));
-  CHECK(!load(R"J({"let":"v","value":1,"to":"1","ms":1})J"));
-  CHECK(!load(R"J({"let":"v","value":1,"ms":1})J"));
-  CHECK(!load(R"J({"let":"v","to":"1","ms":1,"curve":"bounce"})J"));
-  CHECK(!load(R"J({"let":"v","to":"1","ms":1,"first":"late"})J"));
+  CHECK(walk(R"C(hit join {
+  let v = ease(@hot, 1ms)
+}
+)C", 0, 0, 51) == "transition on 1/1\nhit 100,200,300,400 51\n");
+  CHECK(walk(R"C(let v = ease(1, 1ms) again 3)C") == "transition on 1/1 again 3\n");
+  CHECK(!load(R"C(let v = 1 again 3)C"));
+  CHECK(!load(R"C(let v = ease(1) ms_off 1ms)C"));
+  CHECK(!load(R"C(let v = ease(1, 1ms) value 1)C"));
+  CHECK(!load(R"C(let v = 1 ms 1)C"));
+  CHECK(!load(R"C(let v = ease(1, 1ms) curve bounce)C"));
+  CHECK(!load(R"C(let v = ease(1, 1ms) first late)C"));
 }
 
 void a_transition_can_belong_to_a_number() {
@@ -552,11 +656,17 @@ void a_transition_can_belong_to_a_number() {
     return log.keys;
   };
   // The same number, whichever round it is in; another number is another transition.
-  const auto same = keys_of(R"J({"repeat":"@seats","draw":[{"let":"v","to":"1","ms":1,"key":"7"}]})J");
+  const auto same = keys_of(R"C(repeat @seats {
+  let v = ease(1, 1ms) key 7
+}
+)C");
   CHECK(same.size() == 2 && same[0] == same[1]);
-  const auto apart = keys_of(R"J({"repeat":"@seats","draw":[{"let":"v","to":"1","ms":1,"key":"i"}]})J");
+  const auto apart = keys_of(R"C(repeat @seats {
+  let v = ease(1, 1ms) key @i
+}
+)C");
   CHECK(apart.size() == 2 && apart[0] != apart[1]);
-  CHECK(!load(R"J({"let":"v","value":1,"key":"3"})J"));
+  CHECK(!load(R"C(let v = 1 key 3)C"));
 }
 
 void transitions_are_told_apart_where_they_are() {
@@ -571,27 +681,48 @@ void transitions_are_told_apart_where_they_are() {
     return log.keys;
   };
   // Each round of a repeat, and each of two nodes.
-  const auto rounds = keys_of(R"J({"repeat":"@seats","draw":[{"let":"v","to":"1","ms":1}]})J", 2);
+  const auto rounds = keys_of(R"C(repeat @seats {
+  let v = ease(1, 1ms)
+}
+)C", 2);
   CHECK(rounds.size() == 2 && rounds[0] != rounds[1]);
-  const auto two = keys_of(R"J({"let":"v","to":"1","ms":1},{"let":"u2","to":"1","ms":1})J", 0);
+  const auto two = keys_of(R"C(let v = ease(1, 1ms)
+let u2 = ease(1, 1ms)
+)C", 0);
   CHECK(two.size() == 2 && two[0] != two[1]);
   // And the same frame gives the same keys.
-  CHECK(keys_of(R"J({"let":"v","to":"1","ms":1},{"let":"u2","to":"1","ms":1})J", 0) == two);
+  CHECK(keys_of(R"C(let v = ease(1, 1ms)
+let u2 = ease(1, 1ms)
+)C", 0) == two);
 }
 
 void colours_are_worked_out_in_expressions() {
-  CHECK(walk(R"J({"fill":"mix($face, $ink, 100)"})J") == "fill 100,200,300,400 1/0/0/1\n");
-  CHECK(walk(R"J({"fill":"alpha($face, 0.25)"})J") == "fill 100,200,300,400 1/0/0/0.25\n");
-  CHECK(walk(R"J({"fill":"alpha(mix($face, $face, 50), 0.5)","radius":2})J") == "round 100,200,300,400 2 1/0/0/0.5\n");
-  CHECK(walk(R"J({"let":"c","value":"mix($face, $face, 50)"},{"frame":"c"})J") == "frame 100,200,300,400 1/0/0/1\n");
-  CHECK(!load(R"J({"fill":"mix($face, $ink)"})J"));
+  CHECK(walk(R"C(fill mix(face, ink, 100%))C") == "fill 100,200,300,400 1/0/0/1\n");
+  CHECK(walk(R"C(fill alpha(face, 0.25))C") == "fill 100,200,300,400 1/0/0/0.25\n");
+  CHECK(walk(R"C(fill alpha(mix(face, face, 50%), 0.5) radius 2)C") == "round 100,200,300,400 2 1/0/0/0.5\n");
+  CHECK(walk(R"C(let c = mix(face, face, 50%)
+frame c
+)C") == "frame 100,200,300,400 1/0/0/1\n");
+  CHECK(!load(R"C(fill mix(face, ink))C"));
 }
 
 void dark_says_which_palette_is_a_dark_variant() {
-  const std::string themed = R"J({
-    "format": 1, "id": "test", "themes": {"one": {"names": {"en": "One"}, "dark": "two"}}, "default_theme": "one",
-    "palettes": {"one": {"face": "#ff0000"}, "two": {"face": "#00ff00"}}, "styles": {}, "parts": {}})J";
-  const auto pack = load_pack(files(themed, fill_list(R"J({"fill":"$face","w":"dark ? 1 : 2"})J")), std::span(&test_schema, 1));
+  const std::string themed = R"C(pack test format 1
+
+theme one names en "One" dark two
+
+default_theme one
+
+
+palette one {
+  face #ff0000
+}
+
+palette two {
+  face #00ff00
+}
+)C";
+  const auto pack = load_pack(files(themed, std::string(R"C(fill face w @dark ? 1 : 2)C")), std::span(&test_schema, 1));
   CHECK(pack.has_value());
   if (!pack) return;
   CHECK(walk(*pack, 0, 0, -1, -1) == "fill 100,200,2,400 1/0/0/1\n");
@@ -599,42 +730,48 @@ void dark_says_which_palette_is_a_dark_variant() {
 }
 
 void ellipses_shadows_and_paths_of_other_kinds() {
-  CHECK(walk(R"J({"fill":"$face","ellipse":true,"w":10,"h":20})J") == "ellipse 100,200,10,20 1/0/0/1\n");
-  CHECK(walk(R"J({"stroke":"$face","ellipse":true,"w":10,"h":20,"width":2})J") == "ring 100,200,10,20 1/0/0/1 2\n");
-  CHECK(!load(R"J({"stroke":"$face","w":10,"width":2})J"));
-  CHECK(walk(R"J({"shadow":"$face","radius":14,"blur":16,"dy":4,"w":10,"h":20})J") == "shadow 100,200,10,20 14 16 4 1/0/0/1\n");
-  CHECK(walk(R"J({"path":"M0 0","color":"$shade","x":1,"y":2,"scale":3,"from_y":8,"to_y":9})J") == "pathdown M0 0 101,202 x3 8..9 2\n");
-  CHECK(walk(R"J({"path":"M0 0","color":"$face","x":1,"y":2,"blur":6,"dy":7})J") == "pathshadow M0 0 101,202 x1 6 7 1/0/0/1\n");
-  CHECK(!load(R"J({"path":"M0 0","color":"$face","blur":6,"from_y":1,"to_y":2})J"));
+  CHECK(walk(R"C(fill face ellipse w 10 h 20)C") == "ellipse 100,200,10,20 1/0/0/1\n");
+  CHECK(walk(R"C(stroke face ellipse w 10 h 20 width 2)C") == "ring 100,200,10,20 1/0/0/1 2\n");
+  CHECK(!load(R"C(stroke face w 10 width 2)C"));
+  CHECK(walk(R"C(shadow face radius 14 blur 16 dy 4 w 10 h 20)C") == "shadow 100,200,10,20 14 16 4 1/0/0/1\n");
+  CHECK(walk(R"C(path "M0 0" (1, 2) color shade scale 3 from_y 8 to_y 9)C") == "pathdown M0 0 101,202 x3 8..9 2\n");
+  CHECK(walk(R"C(path "M0 0" (1, 2) color face blur 6 dy 7)C") == "pathshadow M0 0 101,202 x1 6 7 1/0/0/1\n");
+  CHECK(!load(R"C(path "M0 0" color face blur 6 from_y 1 to_y 2)C"));
 }
 
 void a_group_can_grow_fade_and_be_seen_through() {
-  CHECK(walk(R"J({"x":10,"y":20,"w":40,"h":60,"scale":1.5,"group":[{"fill":"$face","w":1}]})J") ==
+  CHECK(walk(R"C((10, 20, 40, 60) scale 1.5 {
+  fill face w 1
+}
+)C") ==
         "scale 130,250 x1.5\nfill 110,220,1,60 1/0/0/1\nunscale\n");
-  CHECK(walk(R"J({"x":10,"y":20,"w":40,"h":60,"scale":2,"about_x":1,"about_y":2,"group":[]})J") == "scale 101,202 x2\nunscale\n");
-  CHECK(walk(R"J({"w":40,"h":60,"opacity":0.5,"group":[{"fill":"$face","w":1}]})J") == "opacity 100,200,40,60 0.5\nfill 100,200,1,60 1/0/0/1\nunlayer\n");
-  CHECK(walk(R"J({"w":40,"h":60,"opacity":1,"group":[]})J") == "opacity 100,200,40,60 1\n");
-  CHECK(walk(R"J({"w":40,"h":60,"fade_top":3,"fade_bottom":0,"group":[]})J") == "fade 100,200,40,60 3 0\nunlayer\n");
-  CHECK(walk(R"J({"w":40,"h":60,"fade_top":0,"group":[]})J") == "fade 100,200,40,60 0 0\n");
+  CHECK(walk(R"C((10, 20, 40, 60) about (1, 2) scale 2)C") == "scale 101,202 x2\nunscale\n");
+  CHECK(walk(R"C(w 40 h 60 opacity 0.5 {
+  fill face w 1
+}
+)C") == "opacity 100,200,40,60 0.5\nfill 100,200,1,60 1/0/0/1\nunlayer\n");
+  CHECK(walk(R"C(w 40 h 60 opacity 1)C") == "opacity 100,200,40,60 1\n");
+  CHECK(walk(R"C(w 40 h 60 fade_top 3 fade_bottom 0)C") == "fade 100,200,40,60 3 0\nunlayer\n");
+  CHECK(walk(R"C(w 40 h 60 fade_top 0)C") == "fade 100,200,40,60 0 0\n");
 }
 
 void a_hit_can_take_the_shape_of_a_path() {
-  CHECK(walk(R"J({"hit":"join","hit_path":"M1 1","hit_path_x":5,"hit_path_y":6,"x":10,"w":20,"h":30,"group":[]})J") == "hitshape 110,200,20,30 51 M1 1 105,206\n");
-  CHECK(!load(R"J({"hit_path":"M1 1","group":[]})J"));
+  CHECK(walk(R"C(hit join hit_path_at (5, 6) hit_path "M1 1" x 10 w 20 h 30)C") == "hitshape 110,200,20,30 51 M1 1 105,206\n");
+  CHECK(!load(R"C(hit_path "M1 1")C"));
 }
 
 void test_cursors_are_all_there_or_refused() {
   const auto with = [](std::string cursors) {
-    const std::map<std::string, std::string> files = {{"pack.jsonc", R"J({"format":1,"id":"t","palettes":{"a":{"ink":"#000000"}},"styles":{},"parts":{"p":{"draw":[{"fill":"$ink"}]}},"cursors":)J" + std::move(cursors) + "}"}};
+    const std::map<std::string, std::string> files = {{"pack.cskin", "pack t format 1\npalette a {\n  ink #000000\n}\npart p {\n  fill ink\n}\ncursors " + std::move(cursors)}};
     return load_pack([files](std::string_view path) -> std::optional<std::string> {
       const auto found = files.find(std::string(path));
       if (found == files.end()) return std::nullopt;
       return found->second;
     }, {});
   };
-  std::string all = "{";
-  for (const std::string_view name : cursor_names) all += '"' + std::string(name) + R"(":{"part":"p","hot":[2,3]},)";
-  all.back() = '}';
+  std::string all = "{\n";
+  for (const std::string_view name : cursor_names) all += "  " + std::string(name) + " part p hot (2, 3)\n";
+  all += "}";
   const auto good = with(all);
   CHECK(good.has_value());
   if (good) {
@@ -642,18 +779,17 @@ void test_cursors_are_all_there_or_refused() {
     CHECK((*good->cursors)[static_cast<std::size_t>(CursorKind::IBeam)].hot_y == 3);
     CHECK(!good->cursors_hard);
   }
-  CHECK(!with(R"({"arrow":{"part":"p","hot":[2,3]}})").has_value());
-  std::string hard = all;
-  hard.insert(1, R"("hard":true,)");
+  CHECK(!with("{\n  arrow part p hot (2, 3)\n}").has_value());
+  std::string hard = "hard " + all;
   const auto with_hard_edges = with(hard);
   CHECK(with_hard_edges.has_value() && with_hard_edges->cursors_hard);
-  hard.replace(hard.find("true"), 4, "1");
+  hard.replace(0, 4, "1");
   CHECK(!with(hard).has_value());
   std::string no_part = all;
-  no_part.replace(no_part.find("\"p\""), 3, "\"nobody\"");
+  no_part.replace(no_part.find("part p "), 7, "part nobody ");
   CHECK(!with(no_part).has_value());
   std::string outside = all;
-  outside.replace(outside.find("[2,3]"), 5, "[2,33]");
+  outside.replace(outside.find("(2, 3)"), 6, "(2, 33)");
   CHECK(!with(outside).has_value());
 }
 
@@ -679,25 +815,63 @@ LoadOptions parents(std::map<std::string, Files, std::less<>> packs, std::string
   return options;
 }
 
-const char* const parent_pack = R"J({
-  "format": 1, "id": "base",
-  "constants": {"gap": 1, "only_base": 7},
-  "palettes": {"one": {"face": "#ff0000", "ink": "#000000"}, "one_dark": {"extends": "one", "face": "#110000"}},
-  "themes": {"one": {"names": {"ko": "하나", "en": "One"}, "dark": "one_dark"}},
-  "default_theme": "one",
-  "styles": {"body": {"size": "font_size", "line_height": "h"}},
-  "parts": {"a": {"draw": [{"fill": "$face"}]}, "b": {"draw": [{"use": "a"}]}}
-})J";
+const char* const parent_pack = R"C(pack base format 1
+
+constants {
+  gap 1
+  only_base 7
+}
+
+
+palette one {
+  face #ff0000
+  ink #000000
+}
+
+palette one_dark extends one {
+  face #110000
+}
+
+theme one names ko "하나" en "One" dark one_dark
+
+default_theme one
+
+style body size @font_size line_height @h
+
+
+part a {
+  fill face
+}
+
+part b {
+  use a
+}
+)C";
 
 void a_child_replaces_by_name_and_keeps_the_rest() {
-  const Files child = {{"pack.jsonc", R"J({
-    "format": 1, "id": "child", "extends": "base",
-    "constants": {"gap": 2},
-    "palettes": {"two": {"extends": "one", "ink": "#00ff00"}},
-    "themes": {"two": {"names": {"ko": "둘"}}},
-    "parts": {"a": {"draw": [{"use": "new_one"}]}, "new_one": {"draw": [{"fill": "$ink"}]}}
-  })J"}};
-  const Files base = {{"pack.jsonc", parent_pack}, {"screens/home.jsonc", fill_list(R"({"use":"b"})")}};
+  const Files child = {{"pack.cskin", R"C(pack child format 1 extends base
+
+constants {
+  gap 2
+}
+
+
+palette two extends one {
+  ink #00ff00
+}
+
+theme two names ko "둘"
+
+
+part a {
+  use new_one
+}
+
+part new_one {
+  fill ink
+}
+)C"}};
+  const Files base = {{"pack.cskin", parent_pack}, {"screens/home.cskin", std::string(R"C(use b)C")}};
   const auto pack = load_pack(from(child), std::span(&test_schema, 1), parents({{"base", base}}));
   CHECK(pack.has_value());
   if (!pack) return;
@@ -721,8 +895,8 @@ void a_child_replaces_by_name_and_keeps_the_rest() {
 }
 
 void a_child_takes_a_screen_of_its_own() {
-  const Files child = {{"pack.jsonc", R"J({"format":1,"id":"child","extends":"base"})J"}, {"screens/home.jsonc", fill_list(R"({"fill":"$ink"})")}};
-  const Files base = {{"pack.jsonc", parent_pack}, {"screens/home.jsonc", fill_list(R"({"use":"b"})")}};
+  const Files child = {{"pack.cskin", R"C(pack child format 1 extends base)C"}, {"screens/home.cskin", std::string(R"C(fill ink)C")}};
+  const Files base = {{"pack.cskin", parent_pack}, {"screens/home.cskin", std::string(R"C(use b)C")}};
   const auto pack = load_pack(from(child), std::span(&test_schema, 1), parents({{"base", base}}));
   CHECK(pack.has_value());
   if (!pack) return;
@@ -732,9 +906,9 @@ void a_child_takes_a_screen_of_its_own() {
 
 void extending_is_refused_where_it_cannot_work() {
   const auto pack_named = [](std::string id, std::string parent) {
-    return Files{{"pack.jsonc", R"J({"format":1,"id":")J" + id + R"J(","extends":")J" + parent + R"J("})J"}};
+    return Files{{"pack.cskin", "pack " + id + " format 1 extends " + parent}};
   };
-  const Files base = {{"pack.jsonc", parent_pack}};
+  const Files base = {{"pack.cskin", parent_pack}};
   CHECK(!load_pack(from(pack_named("child", "base")), {}));  // nothing finds parents
   CHECK(!load_pack(from(pack_named("child", "nobody")), {}, parents({{"base", base}})));
   // Around in a circle.
@@ -745,35 +919,80 @@ void extending_is_refused_where_it_cannot_work() {
   const auto longer = parents({{"l0", pack_named("l0", "l1")}, {"l1", pack_named("l1", "l2")}, {"l2", pack_named("l2", "base")}, {"base", base}});
   CHECK(!load_pack(from(pack_named("top", "l0")), {}, longer));
   // Another format.
-  const Files other = {{"pack.jsonc", R"J({"format":99,"id":"base","palettes":{},"styles":{},"parts":{}})J"}};
+  const Files other = {{"pack.cskin", R"C(pack base format 99)C"}};
   CHECK(!load_pack(from(pack_named("child", "base")), {}, parents({{"base", other}})));
   // Parts that use each other.
-  const Files circle = {{"pack.jsonc", R"J({"format":1,"id":"c","extends":"base","parts":{"a":{"draw":[{"use":"b"}]}}})J"}};
+  const Files circle = {{"pack.cskin", R"C(pack c format 1 extends base
+
+
+part a {
+  use b
+}
+)C"}};
   CHECK(!load_pack(from(circle), {}, parents({{"base", base}})));
   // A Palette extending what is not there, and a Theme naming a Palette that is not there.
-  CHECK(!load_pack(from({{"pack.jsonc", R"J({"format":1,"id":"c","extends":"base","palettes":{"x":{"extends":"nobody"}}})J"}}), {}, parents({{"base", base}})));
-  CHECK(!load_pack(from({{"pack.jsonc", R"J({"format":1,"id":"c","extends":"base","themes":{"x":{"names":{"ko":"x"}}}})J"}}), {}, parents({{"base", base}})));
-  CHECK(!load_pack(from({{"pack.jsonc", R"J({"format":1,"id":"c","extends":"base","default_theme":"nobody"})J"}}), {}, parents({{"base", base}})));
+  CHECK(!load_pack(from({{"pack.cskin", R"C(pack c format 1 extends base
+
+
+palette x extends nobody {
+}
+)C"}}), {}, parents({{"base", base}})));
+  CHECK(!load_pack(from({{"pack.cskin", R"C(pack c format 1 extends base
+
+theme x names ko "x"
+)C"}}), {}, parents({{"base", base}})));
+  CHECK(!load_pack(from({{"pack.cskin", R"C(pack c format 1 extends base
+
+default_theme nobody
+)C"}}), {}, parents({{"base", base}})));
 }
 
 void an_overlay_lies_on_top_for_its_own_themes() {
   const Files files = {
-      {"pack.jsonc", R"J({
-        "format": 1, "id": "base",
-        "constants": {"gap": 1},
-        "palettes": {"plain": {"face": "#ff0000"}},
-        "themes": {"plain": {"names": {"ko": "보통"}}, "fancy": {"names": {"ko": "멋"}, "overlay": "shiny", "dark": "fancy_dark"}},
-        "default_theme": "plain",
-        "styles": {},
-        "parts": {"a": {"draw": [{"fill": "$face"}]}}
-      })J"},
-      {"screens/home.jsonc", fill_list(R"({"use":"a"})")},
-      {"overlays/shiny/pack.jsonc", R"J({
-        "format": 1, "id": "shiny",
-        "constants": {"gap": 2},
-        "palettes": {"fancy": {"face": "#00ff00", "extra": "#0000ff"}, "fancy_dark": {"extends": "fancy", "face": "#001100"}},
-        "parts": {"a": {"draw": [{"fill": "$extra"}]}}
-      })J"},
+      {"pack.cskin", R"C(pack base format 1
+
+constants {
+  gap 1
+}
+
+
+palette plain {
+  face #ff0000
+}
+
+theme plain names ko "보통"
+theme fancy names ko "멋" overlay shiny dark fancy_dark
+
+default_theme plain
+
+
+
+part a {
+  fill face
+}
+)C"},
+      {"screens/home.cskin", std::string(R"C(use a)C")},
+      {"overlays/shiny/pack.cskin", R"C(pack shiny format 1
+
+constants {
+  gap 2
+}
+
+
+palette fancy {
+  face #00ff00
+  extra #0000ff
+}
+
+palette fancy_dark extends fancy {
+  face #001100
+}
+
+
+part a {
+  fill extra
+}
+)C"},
   };
   const auto plain = load_pack(from(files), std::span(&test_schema, 1));
   CHECK(plain.has_value());
@@ -829,7 +1048,7 @@ int main() {
   a_bad_node_is_refused();
   a_bad_pack_is_refused();
   an_error_says_where();
-  a_file_is_jsonc_and_names_its_schema();
+  a_mistake_in_the_language_says_where();
   a_screen_without_a_file_is_left_out();
   sizes_are_limited();
   a_walk_ends_however_parts_multiply();

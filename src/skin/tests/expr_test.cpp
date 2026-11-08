@@ -22,6 +22,7 @@ class TestNames final : public Names {
   }
   std::optional<float> constant(std::string_view name) override {
     if (name == "ten") return 10.0f;
+    if (name == "dozen") return 12.0f;
     return std::nullopt;
   }
   std::optional<std::uint16_t> number(std::string_view name) override {
@@ -31,7 +32,7 @@ class TestNames final : public Names {
   std::optional<std::uint16_t> paint(std::string_view name) override {
     if (name == "ink") return 3;
     if (name == "face") return 4;
-    if (name == "ten") return 5;  // also a constant: in a pack, the two cannot share a name
+    if (name == "ten") return 5;  // also a constant, which the two cannot share
     return std::nullopt;
   }
   std::optional<std::uint16_t> style(std::string_view name) override {
@@ -59,7 +60,7 @@ class TestEnv final : public Env {
   float mix_colors(float, float, float percent) override { return percent; }
 };
 
-float run(std::string_view source, Syntax syntax = Syntax::Jsonc) {
+float run(std::string_view source) {
   TestNames names;
   TestEnv env;
   const float frame[] = {6, 10, 20, 30, 40};  // gap, then field's x y w h
@@ -68,17 +69,15 @@ float run(std::string_view source, Syntax syntax = Syntax::Jsonc) {
   env.vars[VarH] = 100;
   env.vars[VarHot] = 1;
   std::vector<Instr> code;
-  const auto compiled = compile(source, names, code, syntax);
+  const auto compiled = compile(source, names, code);
   CHECK(compiled.has_value());
   return compiled ? eval(code, *compiled, env) : NAN;
 }
 
-float run_pack(std::string_view source) { return run(source, Syntax::Pack); }
-
-bool refused(std::string_view source, Syntax syntax = Syntax::Jsonc) {
+bool refused(std::string_view source) {
   TestNames names;
   std::vector<Instr> code{{Op::Const, 0, 1}};
-  const auto compiled = compile(source, names, code, syntax);
+  const auto compiled = compile(source, names, code);
   CHECK(code.size() == 1);  // a refused expression leaves nothing behind
   return !compiled;
 }
@@ -133,29 +132,52 @@ void functions() {
   CHECK(run("ceil(1.1)") == 2);
   CHECK(run("round(1.5)") == 2);
   CHECK(run("max(75,ceil(20.2)+24)") == 75);
-  CHECK(run("textw('body','#ok')") == 209);
-  CHECK(run("textw('body','#ok',50)") == 259);
-  CHECK(run("texth('body','#ok',W)") == 409);
-  CHECK(run("1+texth('body','#ok',1+1)") == 212);
   CHECK(run("snap(1.3)") == 1.5f);
+  CHECK(refused("min (3, 4)"));  // a call's ( comes right after its name
 }
 
 void names_read_what_they_mean() {
-  CHECK(run("W") == 200);
-  CHECK(run("W-2*H") == 0);
-  CHECK(run("hot ? 1 : 2") == 1);
-  CHECK(run("pressed ? 1 : 2") == 2);
+  CHECK(run("@W") == 200);
+  CHECK(run("@W-2*@H") == 0);
+  CHECK(run("@hot ? 1 : 2") == 1);
+  CHECK(run("@pressed ? 1 : 2") == 2);
+  CHECK(run("@seats") == 5);
   CHECK(run("gap") == 6);
-  CHECK(run("ten+1") == 11);
+  CHECK(run("dozen+1") == 13);
   CHECK(run("field.x") == 10);
   CHECK(run("field.y") == 20);
   CHECK(run("field.w") == 30);
   CHECK(run("field.h") == 40);
   CHECK(run("field.right") == 40);
   CHECK(run("field.bottom") == 60);
-  CHECK(run("@seats") == 5);
-  CHECK(run("$face") == 4);
-  CHECK(run("hot ? $ink : $face") == 3);
+  CHECK(run("ink") == 3);  // a Palette entry is bare
+  CHECK(run("@hot ? ink : face") == 3);
+  CHECK(refused("W"));  // the exe's own name without its @
+  CHECK(refused("$ink"));
+  CHECK(refused("ten"));  // a constant and a Palette entry of one name
+  CHECK(refused("@tr.ok"));
+}
+
+void units_and_fractions() {
+  CHECK(run("40%") == 0.4f);
+  CHECK(run("150ms") == 150);
+  CHECK(run("150ms+1") == 151);
+  CHECK(run("mix(ink, face, 40%)") == 40);  // the percent itself, as exact as before
+  CHECK(run("mix(ink, face, -40%)") == -40);
+  CHECK(run("mix(ink, face, @hot)") == 100);
+  CHECK(run("mix(ink, face, 0.25)") == 25);
+  CHECK(refused("150mss"));
+}
+
+void calls_take_bare_names_and_texts() {
+  CHECK(run("textw(body, @tr.ok)") == 209);
+  CHECK(run("textw(body, @tr.ok, 50)") == 259);
+  CHECK(run("textw(body, @label, 50)") == 258);
+  CHECK(run("texth(body, @tr.ok, @W)") == 409);
+  CHECK(run("1+texth(body, @tr.ok, 1+1)") == 212);
+  CHECK(run("texth(body, \"words\", @W)") == 407);
+  CHECK(run("hit(close)") == 12);
+  CHECK(refused("textw('body', '#ok')"));
 }
 
 void a_lone_number_needs_no_program() {
@@ -165,54 +187,16 @@ void a_lone_number_needs_no_program() {
   CHECK(plain && plain->is_constant() && plain->value() == 12);
   const auto negative = compile("-12", names, code);
   CHECK(negative && negative->is_constant() && negative->value() == -12);
-  const auto paint = compile("$ink", names, code);
+  const auto paint = compile("ink", names, code);
   CHECK(paint && paint->is_constant() && paint->value() == 3);
   CHECK(code.empty());
 }
 
 void bad_expressions_are_refused() {
-  for (const std::string_view source : {"", "1+", "(1", "1)", "1 2", "nobody", "$nobody", "@nobody", "nobody.x", "field.nothing", "nothing(1)", "min(1)", "min(1,2", "ease(1,2)", "bezier(1,2,3,4)", "bezier(1,2,3,4,5,6)", "1?2", "textw('nobody','#ok')",
-                                        "textw('body','#nothing')", "textw('body')", "textw('body','#ok',", "texth('body','#ok')", "texth('nobody','#ok',1)", "snap()", "#", "1=2", "'text'"}) {
+  for (const std::string_view source : {"", "1+", "(1", "1)", "1 2", "nobody", "@nobody", "nobody.x", "field.nothing", "nothing(1)", "min(1)", "min(1,2", "ease(1,2)", "bezier(1,2,3,4)", "bezier(1,2,3,4,5,6)", "1?2", "textw(nobody, @tr.ok)",
+                                        "textw(body, @tr.nothing)", "textw(body)", "textw(body, @tr.ok,", "texth(body, @tr.ok)", "texth(nobody, @tr.ok, 1)", "snap()", "#", "1=2", "'text'"}) {
     CHECK(refused(source));
   }
-}
-
-void a_pack_writes_the_exes_names_with_at() {
-  CHECK(run_pack("@W") == 200);
-  CHECK(run_pack("@W-2*@H") == 0);
-  CHECK(run_pack("@hot ? 1 : 2") == 1);
-  CHECK(run_pack("@seats") == 5);
-  CHECK(run_pack("gap") == 6);
-  CHECK(run_pack("field.right") == 40);
-  CHECK(run_pack("ink") == 3);  // a Palette entry is bare
-  CHECK(run_pack("@hot ? ink : face") == 3);
-  CHECK(refused("W", Syntax::Pack));  // the exe's own name without its @
-  CHECK(refused("$ink", Syntax::Pack));
-  CHECK(refused("ten", Syntax::Pack));  // a constant and a Palette entry of one name
-  CHECK(refused("@tr.ok", Syntax::Pack));
-}
-
-void a_pack_writes_units_and_fractions() {
-  CHECK(run_pack("40%") == 0.4f);
-  CHECK(run_pack("150ms") == 150);
-  CHECK(run_pack("150ms+1") == 151);
-  CHECK(run_pack("mix(ink, face, 40%)") == 40);  // the percent itself, as exact as before
-  CHECK(run_pack("mix(ink, face, -40%)") == -40);
-  CHECK(run_pack("mix(ink, face, @hot)") == 100);
-  CHECK(run_pack("mix(ink, face, 0.25)") == 25);
-  CHECK(run("mix($ink, $face, 40)") == 40);  // the older form takes a percent
-  CHECK(refused("150mss", Syntax::Pack));
-}
-
-void a_pack_calls_with_bare_names_and_texts() {
-  CHECK(run_pack("textw(body, @tr.ok)") == 209);
-  CHECK(run_pack("textw(body, @label, 50)") == 258);
-  CHECK(run_pack("texth(body, \"words\", @W)") == 407);
-  CHECK(run_pack("hit(close)") == 12);
-  CHECK(run_pack("min(3, 4)") == 3);
-  CHECK(refused("min (3, 4)", Syntax::Pack));  // a call's ( comes right after its name
-  CHECK(refused("textw('body', '#ok')", Syntax::Pack));
-  CHECK(run("min (3, 4)") == 3);
 }
 
 void sizes_are_limited() {
@@ -240,10 +224,9 @@ int main() {
   a_choice_nests_to_the_right();
   functions();
   names_read_what_they_mean();
+  units_and_fractions();
+  calls_take_bare_names_and_texts();
   a_lone_number_needs_no_program();
-  a_pack_writes_the_exes_names_with_at();
-  a_pack_writes_units_and_fractions();
-  a_pack_calls_with_bare_names_and_texts();
   bad_expressions_are_refused();
   sizes_are_limited();
   return crpp_test_result();

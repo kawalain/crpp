@@ -1,21 +1,23 @@
 #pragma once
-// A Skin Pack as it stays in memory: a compact tree of nodes, with the JSON it came from gone.
+// A Skin Pack as it stays in memory: a compact tree of nodes, with the text it came from gone.
 // Everything a pack names is checked when it loads, so that drawing has nothing left to refuse.
 //
-// Its files are JSONC. pack.jsonc holds format, constants (names for numbers, anywhere in the pack), fonts, palettes (one per
-// Theme id), styles and parts; screens/<name>.jsonc holds a screen as {"draw": [nodes]}. A Palette entry is "#rrggbb", "#rrggbbaa", stops as
-// [[at, colour], ...], {"mix": ["a", "b", percent]} or {"alpha": ["a", value]} of an entry above it.
+// Its files are in the pack language, which read_cskin (cskin.hpp) reads into a tree and skins/README.md
+// teaches. pack.cskin holds format, constants (names for numbers, anywhere in the pack), fonts, palettes (one per
+// Theme id), styles and parts; screens/<name>.cskin holds a screen's nodes. A Palette entry is #rrggbb, #rrggbbaa,
+// stops(at: colour, ...), mix(a, b, N%) or alpha(a, value) of an entry above it.
 //
-// Each node is one thing to draw, chosen by which of these keys it has:
+// Each node is one thing to draw, chosen by the key it starts with; a node is written `key value key value ...`.
+// The keys, as the tree has them:
 //   fill    a Palette entry, plain or a gradient, with an optional radius; a gradient runs over the
-//           box unless down_to says how far down it ends, or from left to right with across: true.
-//           Fill, frame, stroke and text take alpha. With ellipse: true it fills the ellipse in its box
+//           box unless down_to says how far down it ends, or from left to right with across.
+//           Fill, frame, stroke and text take alpha. With ellipse it fills the ellipse in its box
 //   frame   a line inside the box's edge
 //   stroke  a rounded line, with radius and width, or around the ellipse in its box
 //   shadow  a soft shadow under a rounded box, with radius, blur and dy, as CSS's box-shadow
 //   line    a colour, from x, y to x2, y2 with width
 //   path    SVG path data, drawn from x, y, with color, scale, and a width to stroke it instead of
-//           filling, with caps "round" (the default) or "flat", and soft: true for smooth edges
+//           filling, with caps round (the default) or flat, and soft for smooth edges
 //           under a Skin whose edges are whole pixels. A color that is a gradient runs from from_y to to_y
 //           of the path's own coordinates. With blur it is that shape's shadow, dy further down. With scale_y it is
 //           filled at that size downward and scale across. Data that starts with F1 fills where its shapes overlap
@@ -26,33 +28,33 @@
 //           caret and selection
 //   slot    what only the screen can draw, given numbers, styles and colors
 //   group   a list of nodes, inside this box, with an optional clip, whose edge has partial pixels with
-//           soft_clip: true. opacity draws them as one, at that
+//           soft_clip. opacity draws them as one, at that
 //           opacity. fade_top and fade_bottom fade what they hold out over that length at those edges.
-//           scale grows them around about_x, about_y, or the middle of the box, or with origin: true from
+//           scale grows them around about_x, about_y, or the middle of the box, or with origin from
 //           its corner, which they then count from. dy draws them further down
 //   column  a list of nodes under each other: each goes at y = flow unless it says otherwise, and
 //           flow then moves below it, by its after as well. Its height is what they took
-//   use     a part from pack.jsonc, with args, a text the part reads as @label, and a draw list
-//           that goes where the part has a node {"content": true}
+//   use     a part from pack.cskin, with args, a text the part reads as @label, and nodes in { }
+//           that go where the part has a node `content`
 //   content see use
-//   repeat  a number; its "draw" runs that many times, with i counting
-//   let     a name for a number, with value. With to, it is a transition: it runs from 0 to 1 and back as to
-//           goes on and off, over ms (ms_off when going off, if it says), on a curve: "ease", the
-//           default, or "linear". first: "jump" has a state that is on when first seen start at its end.
+//   repeat  a number; its nodes in { } run that many times, with @i counting
+//   let     `let name = value`. `let name = ease(to, ms)` is a transition: it runs from 0 to 1 and back as to
+//           goes on and off, over ms (ms_off when going off, if it says), on a curve: ease, the
+//           default, or linear. first jump has a state that is on when first seen start at its end.
 //           A new value of again starts it anew: on, it runs up from off; off, it is off at once. In a repeat it
 //           belongs to its round, or with key to that number, as someone whose place in a list can change.
-//   set     a new value for a name above it, as when a repeat looks for the widest
-//   report  a number for the screen, with value
+//   set     `set name = value`, a new value for a name above it, as when a repeat looks for the widest
+//   report  `report name = value`, a number for the screen
 // and each may have: if, id (siblings can then read id.x, .y, .w, .h, .right, .bottom), x or right,
 // y or bottom, w, h (x and y from the box around it, 0 and that box's size by default), after,
 // hit (a name for clicks, counted up by hit_index, or by i if there is none), live (false: it is not
 // lit), hit_if (false: no hit), note (the box goes to the screen under this name), snap (the box moves
 // to whole pixels), hit_path (the hit takes the shape of this path, set at hit_path_x and hit_path_y).
 // A part knows no screen, so it takes hit_by and note_by: a
-// number, which a screen gives it as an argument with hit('name') or note('name'), and less than 0 for none.
+// number, which a screen gives it as an argument with hit(name) or note(name), and less than 0 for none.
 //
 // cursors names, for all seven of cursor_names, a part that draws it in a box of 32 by 32, and its hot
-// point there. A pack without them leaves the pointer to the system. With hard: true they are drawn with
+// point there. A pack without them leaves the pointer to the system. With hard they are drawn with
 // hard edges in that box, then enlarged by whole pixels, so the steps of the grid are part of the look.
 //
 // notification_sounds, when not 0, has a message and someone entering sound as tones made by the program:
@@ -67,7 +69,7 @@
 //
 // A pack may say "extends": an id, its parent. It then gets all of the parent's, and what it names itself replaces
 // what the parent has by that name: a constant, style, part, Palette, Theme, screen, or fonts or cursors as a whole.
-// Nothing inside a part or screen is patched. An overlay is the same thing inside a pack: overlays/<name>/pack.jsonc
+// Nothing inside a part or screen is patched. An overlay is the same thing inside a pack: overlays/<name>/pack.cskin
 // and its screens/, put over the pack when a Theme asks for it.
 //
 // names says what a user calls this Skin, by locale id. themes lists what a user can pick: names by locale, its palette (its id when it says none), its dark variant if it
@@ -210,7 +212,7 @@ struct Part {
 struct Use {
   std::uint32_t part = 0, first_argument = 0, arguments = 0;
   std::uint32_t label = no_text;
-  std::uint32_t first = 0, count = 0;  // what goes where the part says {"content": true}
+  std::uint32_t first = 0, count = 0;  // what goes where the part says content
 };
 
 struct FieldNode {

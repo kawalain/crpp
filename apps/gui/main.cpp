@@ -201,6 +201,9 @@ int main(int argc, char** argv) {
     if (const auto loaded = shell.app.load_skin_dir(skin_dir); !loaded) return failed_to_start(loaded.error());
   } else if (std::string_view(argc >= 2 ? argv[1] : "") != "--shot") {  // a shot without --skin-dir is the C++ layouts, to compare with
     area::repositories::load(shell);
+    shell.app.set_parent_finder([&shell](std::string_view id, std::string_view fingerprint, const std::filesystem::path& from) {
+      return area::repositories::parent_dir(shell, id, fingerprint, from);
+    });
     (void)shell.app.find_skins(area::repositories::skin_folders(shell));
   }
   if (shell.catalog) shell.app.ui().emoji_ids = assets::picker_emoji(*shell.catalog);

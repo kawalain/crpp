@@ -355,7 +355,9 @@ void DisplayTab::paint_pack(Painter& p, const skin::Screen& screen, Rect area) {
       const skin::PackTheme& one = skin.themes[i];
       if (&one == choice.theme) skin_theme_.selected = static_cast<int>(skin_theme_.options.size());
       const std::string name(name_in(one.names, locale, one.id));
-      skin_theme_.options.push_back(s < installed ? name : locale::fill(tr().display_theme_fetch, {name, size}));
+      skin_theme_.options.push_back(s < installed        ? name
+                                    : skin.needs.empty() ? locale::fill(tr().display_theme_fetch, {name, size})
+                                                         : locale::fill(tr().display_theme_needs, {name, skin.needs}));
       skin_theme_.headings.push_back(false);
       theme_at_.emplace_back(static_cast<int>(s), static_cast<int>(i));
     }

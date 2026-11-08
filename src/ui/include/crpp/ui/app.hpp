@@ -85,6 +85,7 @@ class App {
 
   // The parts of the screen; each has its own state and callbacks.
   [[nodiscard]] Ui& ui() { return ui_; }
+  [[nodiscard]] const Ui& ui() const { return ui_; }
   [[nodiscard]] SetupScreen& setup() { return setup_; }
   [[nodiscard]] HomeScreen& home() { return home_; }
   [[nodiscard]] RoomScreen& room() { return room_; }

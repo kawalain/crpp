@@ -23,29 +23,21 @@ std::string short_id(std::string_view fingerprint) { return std::string(fingerpr
 
 void show_rows(Shell& s) {
   std::vector<SystemTab::RepositoryRow> rows;
-  if (s.repository) {
-    assets::WindowsPlatform platform;
-    rows.push_back({s.repository->url, short_id(assets::fingerprint(s.repository->key, platform)), true});
-  }
+  if (s.repository) rows.push_back({s.repository->url, short_id(s.official_fingerprint), true});
   for (const AddedRepository& added : s.added) rows.push_back({added.address, added.id, false});
   s.app.settings().system().set_repositories(std::move(rows));
 }
 
-// The catalog a pack's files follow and the folder they are in, with its id there; null for a
-// pack that did not come from a Repository, as those beside a development exe.
-struct Source {
-  const assets::Catalog* catalog = nullptr;
-  const AddedRepository* added = nullptr;
-  std::string pack;
-};
-
-Source source_of(Shell& s, const std::string& skin) {
-  if (const AddedRepository* added = of(s, skin)) {
-    return {added->catalog ? &*added->catalog : nullptr, added, skin.substr(added->id.size() + 1)};
+// Whether an installed pack other than `skin` extends the pack at that place.
+const SkinInfo* needing(const Shell& s, std::span<const assets::Shelf> shelves, std::string_view skin, std::size_t shelf, std::string_view pack) {
+  for (const SkinInfo& other : s.app.ui().skins) {
+    if (other.id == skin) continue;
+    const assets::Chain chain = chain_of(s, shelves, other.id);
+    for (std::size_t i = 1; i < chain.links.size(); ++i) {
+      if (chain.links[i].shelf == shelf && chain.links[i].pack == pack) return &other;
+    }
   }
-  if (s.skins_dir != s.assets_dir / "skins") return {};
-  const assets::Catalog* catalog = s.offered ? &*s.offered : s.catalog ? &*s.catalog : nullptr;
-  return {catalog, nullptr, skin};
+  return nullptr;
 }
 
 void set_adding(Shell& s, SystemTab::Adding::State state, std::string reason = {}) {
@@ -114,7 +106,8 @@ void keep(Shell& s, const std::string& typed, const std::string& folder, const a
     set_adding(s, SystemTab::Adding::State::Failed, tr().fetch_reason_disk);
     return;
   }
-  s.added.push_back({id, typed, assets::Repository{folder, "", fetched.catalog.key}, dir, fetched.catalog});
+  assets::WindowsPlatform platform;
+  s.added.push_back({id, typed, assets::Repository{folder, "", fetched.catalog.key}, dir, fetched.catalog, assets::fingerprint(fetched.catalog.key, platform)});
   s.app.settings().system().clear_address();
   set_adding(s, SystemTab::Adding::State::None);
   changed(s);
@@ -179,6 +172,17 @@ void remove(Shell& s, const std::string& id) {
     s.app.toasts().toast(tr().repository_in_use);
     return;
   }
+  // Nor one whose packs another Repository's installed pack extends.
+  const auto all = shelves(s);
+  const std::size_t shelf = 1 + static_cast<std::size_t>(it - s.added.begin());
+  for (const SkinInfo& info : s.app.ui().skins) {
+    if (info.id.starts_with(prefix)) continue;
+    const assets::Chain chain = chain_of(s, all, info.id);
+    if (std::ranges::any_of(chain.links, [&](const assets::Chain::Link& link) { return link.shelf == shelf; })) {
+      s.app.toasts().toast(locale::fill(tr().repository_needed, {std::string(name_in(info.names, locale::current().id, info.id))}));
+      return;
+    }
+  }
   const auto of_it = [&](const InstallJob& job) {
     return (job.kind == InstallJob::Kind::Pack || job.kind == InstallJob::Kind::Remove) && job.skin.starts_with(prefix);
   };
@@ -198,38 +202,97 @@ void remove(Shell& s, const std::string& id) {
 
 }  // namespace
 
+std::vector<assets::Shelf> shelves(const Shell& s) {
+  std::vector<assets::Shelf> list;
+  list.push_back({s.official_fingerprint, s.offered ? &*s.offered : s.catalog ? &*s.catalog : nullptr});
+  for (const AddedRepository& added : s.added) list.push_back({added.fingerprint, added.catalog ? &*added.catalog : nullptr});
+  return list;
+}
+
+std::string full_id(const Shell& s, std::size_t shelf, std::string_view pack) {
+  if (shelf == 0 || shelf > s.added.size()) return std::string(pack);
+  return s.added[shelf - 1].id + "/" + std::string(pack);
+}
+
+std::optional<std::pair<std::size_t, std::string>> place(const Shell& s, std::string_view skin) {
+  const std::size_t slash = skin.find('/');
+  if (slash == std::string_view::npos) return std::pair{std::size_t{0}, std::string(skin)};
+  const auto it = std::ranges::find(s.added, skin.substr(0, slash), &AddedRepository::id);
+  if (it == s.added.end()) return std::nullopt;
+  return std::pair{1 + static_cast<std::size_t>(it - s.added.begin()), std::string(skin.substr(slash + 1))};
+}
+
+assets::Chain chain_of(const Shell& s, std::span<const assets::Shelf> shelves, std::string_view skin) {
+  const auto at = place(s, skin);
+  if (!at) return {.gap = assets::Chain::Gap::Missing};
+  return assets::pack_chain(shelves, 0, at->first, at->second);
+}
+
+bool installs_into(const Shell& s, std::size_t shelf) {
+  if (shelf > 0) return shelf <= s.added.size();
+  return s.repository && s.skins_dir == s.assets_dir / "skins";
+}
+
+std::filesystem::path install_dir(const Shell& s, std::size_t shelf) {
+  return shelf == 0 || shelf > s.added.size() ? s.assets_dir : s.added[shelf - 1].dir;
+}
+
+std::string base_of(const Shell& s, std::size_t shelf) {
+  if (shelf > 0 && shelf <= s.added.size()) return s.added[shelf - 1].repository.url;
+  return s.repository ? s.repository->url : std::string();
+}
+
+std::vector<std::string> needed_groups(const Shell& s, std::span<const assets::Shelf> shelves, std::size_t shelf) {
+  std::vector<std::string> groups;
+  const auto add = [&](std::string_view skin) {
+    for (const assets::Chain::Link& link : chain_of(s, shelves, skin).links) {
+      if (link.shelf == shelf && std::ranges::find(groups, assets::skin_group(link.pack)) == groups.end()) groups.push_back(assets::skin_group(link.pack));
+    }
+  };
+  for (const SkinInfo& info : s.app.ui().skins) add(info.id);
+  if (!shelves.empty() && shelves[0].catalog) add(shelves[0].catalog->default_skin);
+  return groups;
+}
+
+std::optional<fs::path> parent_dir(const Shell& s, std::string_view id, std::string_view fingerprint, const fs::path& from) {
+  const fs::path name(widen(id));
+  if (fingerprint.empty()) {
+    if (const fs::path beside = from.parent_path() / name; fs::exists(beside / "pack.cskin")) return beside;
+    return s.skins_dir / name;
+  }
+  if (fingerprint == s.official_fingerprint) return s.skins_dir / name;
+  const auto it = std::ranges::find(s.added, fingerprint, &AddedRepository::fingerprint);
+  if (it == s.added.end()) return std::nullopt;
+  return it->dir / "skins" / name;
+}
+
 void show_packs(Shell& s) {
   const std::string_view locale = locale::current().id;
   const auto& skins = s.app.ui().skins;
   const SkinChoice choice = choice_of(*s.app.ui().prefs, skins);
+  const auto all = shelves(s);
   std::vector<SystemTab::PackRow> rows;
   s.listed_packs.clear();
   for (const SkinInfo& info : skins) {
-    const Source source = source_of(s, info.id);
-    if (!source.catalog || !source.catalog->skin(source.pack)) continue;
+    const auto at = place(s, info.id);
+    if (!at || !installs_into(s, at->first)) continue;
+    const assets::Catalog* catalog = all[at->first].catalog;
+    if (!catalog || !catalog->skin(at->second)) continue;
     std::uint64_t bytes = 0;
-    for (const assets::File& file : source.catalog->files) {
-      if (file.group == assets::skin_group(source.pack)) bytes += file.size;
+    for (const assets::File& file : catalog->files) {
+      if (file.group == assets::skin_group(at->second)) bytes += file.size;
     }
     // Why it stays: in use, the default the next start would fetch again, or what another needs.
     std::string reason;
+    const auto defaults = at->first == 0 ? chain_of(s, all, catalog->default_skin).links : std::vector<assets::Chain::Link>{};
     if (choice.skin == &info) {
       reason = tr().system_pack_in_use;
-    } else if (const auto chain = assets::skin_chain(*source.catalog, source.catalog->default_skin);
-               !source.added && std::ranges::find(chain, source.pack) != chain.end()) {
+    } else if (std::ranges::any_of(defaults, [&](const assets::Chain::Link& link) { return link.shelf == 0 && link.pack == at->second; })) {
       reason = tr().system_pack_default;
-    } else {
-      for (const SkinInfo& other : skins) {
-        const Source beside = source_of(s, other.id);
-        if (&other == &info || beside.catalog != source.catalog) continue;
-        const auto chain = assets::skin_chain(*source.catalog, beside.pack);
-        if (std::ranges::find(chain, source.pack) != chain.end()) {
-          reason = locale::fill(tr().system_pack_needed, {std::string(name_in(other.names, locale, other.id))});
-          break;
-        }
-      }
+    } else if (const SkinInfo* other = needing(s, all, info.id, at->first, at->second)) {
+      reason = locale::fill(tr().system_pack_needed, {std::string(name_in(other->names, locale, other->id))});
     }
-    const std::string where = reason.empty() ? (source.added ? source.added->address : std::string(tr().system_pack_official)) : reason;
+    const std::string where = reason.empty() ? (at->first > 0 ? s.added[at->first - 1].address : std::string(tr().system_pack_official)) : reason;
     rows.push_back({std::string(name_in(info.names, locale, info.id)), locale::fill(tr().system_pack_detail, {megabytes(bytes), where}), reason.empty()});
     s.listed_packs.push_back(info.id);
   }
@@ -239,6 +302,7 @@ void show_packs(Shell& s) {
 void load(Shell& s) {
   s.added.clear();
   assets::WindowsPlatform platform;
+  if (s.repository) s.official_fingerprint = assets::fingerprint(s.repository->key, platform);
   std::error_code ec;
   for (const auto& entry : fs::directory_iterator(s.repositories_dir, ec)) {
     if (!entry.is_directory(ec)) continue;
@@ -251,9 +315,10 @@ void load(Shell& s) {
     auto catalog = assets::load_catalog(dir, stated->key, platform);
     // The folder's name is the key it was added with; another key is not the Repository trusted.
     if (!catalog || !assets::offers_only_packs(*catalog)) continue;
-    const std::string id = short_id(assets::fingerprint(catalog->key, platform));
+    std::string fingerprint = assets::fingerprint(catalog->key, platform);
+    const std::string id = short_id(fingerprint);
     if (narrow(dir.filename().wstring()) != id) continue;
-    s.added.push_back({id, typed, assets::Repository{folder, "", catalog->key}, dir, std::move(*catalog)});
+    s.added.push_back({id, typed, assets::Repository{folder, "", catalog->key}, dir, std::move(*catalog), std::move(fingerprint)});
   }
   std::ranges::sort(s.added, {}, &AddedRepository::address);
   show_rows(s);

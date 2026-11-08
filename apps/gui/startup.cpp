@@ -140,6 +140,17 @@ bool skin_installed(const Shell& s) {
 
 namespace {
 
+// Files open in this run, which an install leaves for the next start.
+std::vector<std::string> open_files(const Shell& s, std::size_t shelf) {
+  std::vector<std::string> held;
+  if (shelf == 0 && s.fonts_loaded && s.catalog) {
+    for (const assets::File& file : s.catalog->files) {
+      if (file.path.ends_with(".ttf")) held.push_back(file.path);
+    }
+  }
+  return held;
+}
+
 DiagEvent diag_of(assets::Error error) {
   switch (error) {
     case assets::Error::Network: return DiagEvent::AssetsNetwork;
@@ -197,16 +208,37 @@ Installed install(Shell& s, const InstallJob& job, const std::atomic<bool>& canc
     return done;
   }
   if (job.kind == InstallJob::Kind::Pack) {
-    const std::string one[] = {job.pack};
-    const auto groups = chain_groups(*job.catalog, one);
-    done.result = assets::install(*job.catalog, job.base, groups, job.dir, platform, progress, &cancel);
+    // Each Repository's share in turn, with progress over them all.
+    const auto bytes_of = [](const InstallPart& part) {
+      std::uint64_t bytes = 0;
+      for (const assets::File* file : assets::missing(*part.catalog, part.groups, part.dir)) bytes += file->size;
+      return bytes;
+    };
+    std::uint64_t total = 0, before = 0;
+    for (const InstallPart& part : job.parts) total += bytes_of(part);
+    for (const InstallPart& part : job.parts) {
+      if (cancel) break;
+      const std::uint64_t share = bytes_of(part);
+      done.result = assets::install(*part.catalog, part.base, part.groups, part.dir, platform,
+                                    [&](const assets::Progress& p) {
+                                      assets::Progress all = p;
+                                      all.bytes_done += before;
+                                      all.bytes = total;
+                                      progress(all);
+                                    },
+                                    &cancel, part.held);
+      before += share;
+      if (!done.result) break;
+    }
     if (cancel) {
       // Not wanted after all: the next start would otherwise finish it behind the app.
-      std::vector<std::string> going;
-      for (const std::string& group : groups) {
-        if (std::ranges::find(job.groups, group) == job.groups.end()) going.push_back(group);
+      for (const InstallPart& part : job.parts) {
+        std::vector<std::string> going;
+        for (const std::string& group : part.groups) {
+          if (std::ranges::find(part.keep, group) == part.keep.end()) going.push_back(group);
+        }
+        (void)assets::uninstall(*part.catalog, going, part.dir);
       }
-      (void)assets::uninstall(*job.catalog, going, job.dir);
     }
     return done;
   }
@@ -311,11 +343,7 @@ void run_install(Shell& s, InstallJob job) {
   }
   if (job.kind == InstallJob::Kind::Behind) {
     job.others = s.added;  // as they are now; the worker reads only its own
-    if (s.fonts_loaded && s.catalog) {
-      for (const assets::File& file : s.catalog->files) {
-        if (file.path.ends_with(".ttf")) job.held.push_back(file.path);
-      }
-    }
+    job.held = open_files(s, 0);
   }
   s.install_running = job;
   s.install_cancel = std::make_shared<std::atomic<bool>>(false);
@@ -358,47 +386,26 @@ void queue_install(Shell& s, InstallJob job) {
   run_install(s, std::move(job));
 }
 
-std::vector<std::string> chain_groups(const assets::Catalog& catalog, std::span<const std::string> packs) {
-  std::vector<std::string> groups;
-  for (const std::string& pack : packs) {
-    for (const std::string& id : assets::skin_chain(catalog, pack)) {
-      if (std::ranges::find(groups, assets::skin_group(id)) == groups.end()) groups.push_back(assets::skin_group(id));
-    }
-  }
-  return groups;
-}
-
 namespace {
 
-// Where a pack of this id comes from and goes: an added Repository's folder, or the official one's.
-// False when no catalog there offers it.
-bool locate(Shell& s, const std::string& skin, InstallJob& job) {
-  if (AddedRepository* other = area::repositories::of(s, skin)) {
-    if (!other->catalog) return false;
-    job.catalog = std::make_shared<const assets::Catalog>(*other->catalog);
-    job.base = other->repository.url;
-    job.dir = other->dir;
-    job.pack = skin.substr(other->id.size() + 1);
-  } else {
-    if (!s.repository || !s.offered || skin.find('/') != std::string::npos) return false;
-    job.catalog = std::make_shared<const assets::Catalog>(*s.offered);
-    job.base = s.repository->url;
-    job.dir = s.assets_dir;
-    job.pack = skin;
+// A pack and what it extends, each Repository's share from its latest catalog. The official packs
+// beside a development exe are there already.
+InstallJob pack_job(Shell& s, std::span<const assets::Shelf> shelves, const assets::Chain& chain, const std::string& skin) {
+  InstallJob job{.kind = InstallJob::Kind::Pack, .skin = skin};
+  std::vector<std::size_t> of_part;
+  for (const assets::Chain::Link& link : chain.links) {
+    if (!area::repositories::installs_into(s, link.shelf)) continue;
+    auto it = std::ranges::find(of_part, link.shelf);
+    if (it == of_part.end()) {
+      of_part.push_back(link.shelf);
+      job.parts.push_back({std::make_shared<const assets::Catalog>(*shelves[link.shelf].catalog), area::repositories::base_of(s, link.shelf),
+                           area::repositories::install_dir(s, link.shelf), {}, area::repositories::needed_groups(s, shelves, link.shelf),
+                           open_files(s, link.shelf)});
+      it = of_part.end() - 1;
+    }
+    job.parts[static_cast<std::size_t>(it - of_part.begin())].groups.push_back(assets::skin_group(link.pack));
   }
-  return !assets::skin_chain(*job.catalog, job.pack).empty();
-}
-
-// The packs installed from the same Repository as this one, by their ids there.
-std::vector<std::string> installed_beside(Shell& s, const std::string& skin) {
-  const std::size_t slash = skin.find('/');
-  const std::string prefix = slash == std::string::npos ? std::string() : skin.substr(0, slash + 1);
-  std::vector<std::string> ids;
-  for (const SkinInfo& info : s.app.ui().skins) {
-    const bool same = prefix.empty() ? info.id.find('/') == std::string::npos : info.id.starts_with(prefix);
-    if (same) ids.push_back(info.id.substr(prefix.size()));
-  }
-  return ids;
+  return job;
 }
 
 }  // namespace
@@ -406,22 +413,25 @@ std::vector<std::string> installed_beside(Shell& s, const std::string& skin) {
 void start_install(Shell& s, bool wait) { queue_install(s, {wait ? InstallJob::Kind::First : InstallJob::Kind::Behind, {}}); }
 
 bool fetch_pack(Shell& s, const std::string& skin) {
-  InstallJob job{.kind = InstallJob::Kind::Pack, .skin = skin};
-  if (!locate(s, skin, job)) return false;
-  auto needed = installed_beside(s, skin);
-  if (job.dir == s.assets_dir) needed.push_back(job.catalog->default_skin);
-  job.groups = chain_groups(*job.catalog, needed);
+  const auto shelves = area::repositories::shelves(s);
+  const assets::Chain chain = area::repositories::chain_of(s, shelves, skin);
+  if (chain.gap != assets::Chain::Gap::None) return false;
   const auto same = [&](const InstallJob& queued) { return queued.kind == InstallJob::Kind::Pack && queued.skin == skin; };
   if ((s.install_running && same(*s.install_running) && !s.install_cancel->load()) || std::ranges::any_of(s.install_queue, same)) return true;
-  queue_install(s, std::move(job));
+  queue_install(s, pack_job(s, shelves, chain, skin));
   return true;
 }
 
 void remove_pack(Shell& s, const std::string& skin) {
-  InstallJob job{.kind = InstallJob::Kind::Remove, .skin = skin};
-  if (!locate(s, skin, job)) return;
-  job.groups = {assets::skin_group(job.pack)};
-  queue_install(s, std::move(job));
+  const auto at = area::repositories::place(s, skin);
+  if (!at || !area::repositories::installs_into(s, at->first)) return;
+  const auto shelves = area::repositories::shelves(s);
+  if (!shelves[at->first].catalog) return;
+  queue_install(s, {.kind = InstallJob::Kind::Remove,
+                    .skin = skin,
+                    .catalog = std::make_shared<const assets::Catalog>(*shelves[at->first].catalog),
+                    .dir = area::repositories::install_dir(s, at->first),
+                    .groups = {assets::skin_group(at->second)}});
 }
 
 void cancel_pack(Shell& s, const std::string& skin) {

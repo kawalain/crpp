@@ -95,6 +95,26 @@ void load(Shell& s);
 void show_packs(Shell& s);
 // The Repository that offers this pack id, or null for the official one.
 [[nodiscard]] AddedRepository* of(Shell& s, std::string_view skin);
+// The Repositories as a chain of packs sees them: the official one first, with its latest catalog,
+// then those added, in order.
+[[nodiscard]] std::vector<assets::Shelf> shelves(const Shell& s);
+// A pack's id in settings and the display tab, from its shelf and its id there.
+[[nodiscard]] std::string full_id(const Shell& s, std::size_t shelf, std::string_view pack);
+// The shelf and the id there of a pack's id; nothing for one of a Repository not added.
+[[nodiscard]] std::optional<std::pair<std::size_t, std::string>> place(const Shell& s, std::string_view skin);
+[[nodiscard]] assets::Chain chain_of(const Shell& s, std::span<const assets::Shelf> shelves, std::string_view skin);
+// Whether files of that shelf are installed by this program: not the official packs beside a
+// development exe.
+[[nodiscard]] bool installs_into(const Shell& s, std::size_t shelf);
+// Where a shelf's files are installed, and where they come from.
+[[nodiscard]] std::filesystem::path install_dir(const Shell& s, std::size_t shelf);
+[[nodiscard]] std::string base_of(const Shell& s, std::size_t shelf);
+// The groups of a shelf the installed packs and the default one need.
+[[nodiscard]] std::vector<std::string> needed_groups(const Shell& s, std::span<const assets::Shelf> shelves, std::size_t shelf);
+// Where the pack a pack in `from` extends is: beside it or in the official Repository without a
+// fingerprint, else in the Repository of that key.
+[[nodiscard]] std::optional<std::filesystem::path> parent_dir(const Shell& s, std::string_view id, std::string_view fingerprint,
+                                                              const std::filesystem::path& from);
 void wire(Shell& s);
 [[nodiscard]] bool scene(Shell& s, std::string_view name);
 }  // namespace repositories

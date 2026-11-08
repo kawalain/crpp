@@ -209,6 +209,8 @@ struct Strings {
   const char* display_dark_on;
   const char* display_dark_system;
   const char* display_theme_fetch;
+  const char* display_theme_needs;
+  const char* display_needs_repository;
   const char* display_fetching;
   const char* display_fetch_failed;
   const char* display_fetch_retry;
@@ -235,6 +237,7 @@ struct Strings {
   const char* repository_key_changed;
   const char* repository_remove_question;
   const char* repository_in_use;
+  const char* repository_needed;
   const char* system_packs;
   const char* system_pack_detail;
   const char* system_pack_official;

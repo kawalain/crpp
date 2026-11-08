@@ -21,6 +21,7 @@ struct SkinInfo {
   std::vector<skin::PackTheme> themes;
   std::string default_theme;
   std::uint64_t to_fetch = 0;  // bytes, for one not installed
+  std::string needs;           // for one not installed: why it cannot be picked yet, in words
 };
 
 // A Theme picked before its pack is installed: its pack is being fetched, or could not be.

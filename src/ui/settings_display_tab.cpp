@@ -285,7 +285,7 @@ void DisplayTab::choose_theme(int index) {
   const std::size_t installed = ui_.skins.size();
   if (static_cast<std::size_t>(skin_index) >= installed) {
     const SkinInfo& skin = ui_.offered[static_cast<std::size_t>(skin_index) - installed];
-    if (on_fetch) on_fetch(skin.id, skin.themes[static_cast<std::size_t>(theme_index)].id);
+    if (on_fetch && skin.needs.empty()) on_fetch(skin.id, skin.themes[static_cast<std::size_t>(theme_index)].id);
     return;
   }
   // Another Theme now: a pack still arriving stays installed without being applied.

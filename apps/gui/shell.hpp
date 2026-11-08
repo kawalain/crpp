@@ -146,6 +146,17 @@ struct AddedRepository {
   assets::Repository repository;
   std::filesystem::path dir;               // its catalog, its address and its packs
   std::optional<assets::Catalog> catalog;  // the latest read
+  std::string fingerprint;                 // all of it, which a pack names its parent's Repository by
+};
+
+// One Repository's share of fetching a pack: the pack itself, or packs it extends that are there.
+struct InstallPart {
+  std::shared_ptr<const assets::Catalog> catalog;
+  std::string base;  // the Repository's folder
+  std::filesystem::path dir;
+  std::vector<std::string> groups;  // what to fetch
+  std::vector<std::string> keep;    // what the installed packs need, which a cancel leaves
+  std::vector<std::string> held;    // paths left as they are
 };
 
 struct InstallJob {
@@ -157,12 +168,12 @@ struct InstallJob {
   };
   Kind kind = Kind::Behind;
   std::string skin;  // Pack and Remove: as the display tab names it, with its Repository's digits for another one
-  // Pack and Remove: where it comes from and goes, taken when it was asked for.
+  // Remove: where it goes from, taken when it was asked for, and the groups that go.
   std::shared_ptr<const assets::Catalog> catalog;
-  std::string base, pack;  // the Repository's folder, and its id there
   std::filesystem::path dir;
-  // Pack: the groups the installed packs need, which a cancel leaves; Remove: the groups that go.
   std::vector<std::string> groups;
+  // Pack: each Repository's share, taken when it was asked for.
+  std::vector<InstallPart> parts;
   // Behind: files open in this run, which wait for the next start.
   std::vector<std::string> held;
   // Behind: the Repositories the user added, whose latest catalogs are read too.
@@ -190,6 +201,7 @@ struct Shell {
   std::filesystem::path assets_dir;
   std::filesystem::path skins_dir;              // the Skin Packs: beside the exe, or installed
   std::optional<assets::Repository> repository;  // where files come from; empty: nowhere
+  std::string official_fingerprint;              // of its key, which a pack may name its parent's Repository by
   std::optional<assets::Catalog> catalog;        // the kept one, verified, which the installed files follow
   std::optional<assets::Catalog> offered;        // the latest, read behind the app at start: what can be picked
   std::thread assets_worker;
@@ -248,8 +260,6 @@ bool fetch_pack(Shell& s, const std::string& skin);
 void cancel_pack(Shell& s, const std::string& skin);
 // Removes an installed pack's files, in turn with whatever is being fetched.
 void remove_pack(Shell& s, const std::string& skin);
-// The groups of these packs and of every pack they extend, in that catalog.
-[[nodiscard]] std::vector<std::string> chain_groups(const assets::Catalog& catalog, std::span<const std::string> packs);
 // A nickname like the upstream one: "<adjective> <animal>".
 std::string random_nickname(const std::filesystem::path& words);
 

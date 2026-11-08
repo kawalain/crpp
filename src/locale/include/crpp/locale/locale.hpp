@@ -106,6 +106,7 @@ struct Strings {
   const char* room_tip_offline;
   const char* room_copied;
   const char* room_copy_failed;
+  const char* copy_failed;
   const char* room_leave_question;
   const char* room_leave_delegates;
   const char* room_leave;

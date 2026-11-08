@@ -10,6 +10,7 @@
 
 #include "crpp/skin/motion.hpp"
 #include "crpp/skin/pack.hpp"
+#include "crpp/ui/clipboard.hpp"
 #include "crpp/ui/gfx.hpp"
 #include "crpp/ui/skin_choice.hpp"
 #include "crpp/ui/svg.hpp"
@@ -146,6 +147,7 @@ class Ui : public WindowState {
 
   // Never null once App exists.
   Prefs* prefs = nullptr;
+  Clipboard* clipboard = nullptr;
   Dialogs* dialogs = nullptr;
   Toasts* toasts = nullptr;
   EmojiPicker* emoji_picker = nullptr;
@@ -157,6 +159,18 @@ class Ui : public WindowState {
 
   // Off while drawing what is on its way out: only what stays takes clicks.
   bool hits_enabled = true;
+
+  // How many presses in a row the last one was, 1 to 3, by the system's double-click time and
+  // size, which the shell sets.
+  int clicks = 1;
+  unsigned double_click_ms = 500;
+  float double_click_size = 4;  // DIPs either way
+
+  // What a field does with a key: Ctrl+C, X and V go through the clipboard, the rest to the field.
+  bool edit_key(TextField& field, unsigned vk, bool ctrl, bool shift);
+  // Puts text on the clipboard; a failure says so in a toast.
+  bool copy(std::wstring_view text);
+  void paste_into(TextField& field);
 
   // It looks pressed while the pointer is on it, or while it is being dragged.
   [[nodiscard]] bool pressed(const Surface* owner, int id) const { return pressed_owner == owner && pressed_id == id && (capture || hot(owner, id)); }

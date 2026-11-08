@@ -37,6 +37,9 @@ void apply_theme(Shell& s) {
 void follow_system_animations(Shell& s) {
   BOOL on = TRUE;
   if (SystemParametersInfoW(SPI_GETCLIENTAREAANIMATION, 0, &on, 0)) s.app.set_animations(on != FALSE);
+  // And how close two clicks must be to be one double click; at 96 DPI the metric is in DIPs.
+  s.app.ui().double_click_ms = GetDoubleClickTime();
+  s.app.ui().double_click_size = static_cast<float>(GetSystemMetricsForDpi(SM_CXDOUBLECLK, USER_DEFAULT_SCREEN_DPI)) / 2;
 }
 
 // In Windows' display language, "ko-KR".

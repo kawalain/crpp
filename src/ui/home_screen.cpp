@@ -11,6 +11,7 @@ namespace crpp::ui {
 HomeScreen::HomeScreen(Ui& ui) : Surface(ui) {
   code_.max_length = 6;
   code_.uppercase = true;
+  code_.compact = true;
 }
 
 TextStyle HomeScreen::field_style() const { return pack_code_style_; }
@@ -70,7 +71,7 @@ void HomeScreen::show_error(std::string text) {
   }
 }
 
-void HomeScreen::drag(float x, float) { code_.click_at(ui_.gfx, field_style(), ui_.to_stage_x(x) - code_x_, true); }
+void HomeScreen::drag(float x, float) { code_.drag_to(code_.position_at(ui_.gfx, field_style(), ui_.to_stage_x(x) - code_x_, 0)); }
 
 void HomeScreen::click(int id, float x, float, bool shift) {
   switch (id) {
@@ -85,7 +86,7 @@ void HomeScreen::click(int id, float x, float, bool shift) {
       break;
     case Code:
       ui_.set_focus(this, &code_);
-      code_.click_at(ui_.gfx, field_style(), ui_.to_stage_x(x) - code_x_, shift);
+      code_.press(code_.position_at(ui_.gfx, field_style(), ui_.to_stage_x(x) - code_x_, 0), ui_.clicks, shift);
       ui_.capture = this;
       break;
     case Find:

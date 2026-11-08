@@ -66,6 +66,7 @@ class ChatPanel final : public Surface {
   [[nodiscard]] bool acts_on_press(int id) const override { return repeats(id) || id == BarThumb || id == Input; }
   [[nodiscard]] bool repeats(int id) const override { return id == BarUp || id == BarDown || id == BarTrack; }
   void drag(float x, float y) override;
+  void release() override;
   bool wheel(float x, float y, float delta) override;
   void enter(bool shift) override;
   bool key(unsigned vk, bool ctrl, bool shift) override;
@@ -133,7 +134,10 @@ class ChatPanel final : public Surface {
   bool use_24h_ = false;
   Rect area_;
   Rect bar_track_;
+  [[nodiscard]] std::size_t input_position(float x, float y) const;
   float input_text_w_ = 0;
+  Rect input_box_;  // window coordinates, where the field's text starts
+  bool selecting_ = false;  // the button went down in the field
   float grab_y_ = 0, grab_offset_ = 0;
   bool older_pending_ = false;  // a page was added above since the last paint
 

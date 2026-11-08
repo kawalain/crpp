@@ -87,6 +87,7 @@ const Strings english{
     .room_tip_offline = "Offline",
     .room_copied = "Copied!",
     .room_copy_failed = "Couldn't copy",
+    .copy_failed = "Couldn't copy. Please try again.",
     .room_leave_question = "Leave this Room?",
     .room_leave_delegates = "Leave this Room?\nSomeone at random becomes the Host.",
     .room_leave = "Leave",

@@ -3,6 +3,7 @@
 #include <windows.h>
 
 #include <algorithm>
+#include <cstdint>
 #include <cwctype>
 #include <vector>
 
@@ -23,6 +24,48 @@ std::size_t step(const std::wstring& s, std::size_t pos, int dir) {
   if (pos >= s.size()) return s.size();
   ++pos;
   if (pos < s.size() && s[pos] >= 0xDC00 && s[pos] <= 0xDFFF && s[pos - 1] >= 0xD800 && s[pos - 1] <= 0xDBFF) ++pos;
+  return pos;
+}
+
+bool is_low_surrogate(wchar_t c) { return c >= 0xDC00 && c <= 0xDFFF; }
+
+// What a word is made of. A word is a run of one kind; spaces between words belong to none,
+// and a line break stops every run.
+enum class Kind : std::uint8_t { Space, Break, Word, Mark };
+
+Kind kind_of(wchar_t c) {
+  if (c == L'\n') return Kind::Break;
+  if (std::iswspace(c) || c == 0x3000) return Kind::Space;
+  if (c < 0x80) return std::iswalnum(c) || c == L'_' ? Kind::Word : Kind::Mark;
+  // Punctuation outside ASCII: general, CJK and full-width. Letters of any script, Hangul
+  // among them, and emoji are words.
+  if ((c >= 0x2000 && c <= 0x206F) || (c >= 0x3001 && c <= 0x303F) || (c >= 0xFF01 && c <= 0xFF0F) ||
+      (c >= 0xFF1A && c <= 0xFF20) || (c >= 0xFF3B && c <= 0xFF40) || (c >= 0xFF5B && c <= 0xFF65)) {
+    return Kind::Mark;
+  }
+  return Kind::Word;
+}
+
+// Where Ctrl+Right goes: past the run at pos, then past the spaces after it.
+std::size_t next_word(const std::wstring& s, std::size_t pos) {
+  if (pos >= s.size()) return s.size();
+  const Kind k = kind_of(s[pos]);
+  if (k == Kind::Break) return pos + 1;
+  if (k != Kind::Space) {
+    while (pos < s.size() && kind_of(s[pos]) == k) ++pos;
+  }
+  while (pos < s.size() && kind_of(s[pos]) == Kind::Space) ++pos;
+  return pos;
+}
+
+// Where Ctrl+Left goes: back past spaces, then to the start of the run before them.
+std::size_t previous_word(const std::wstring& s, std::size_t pos) {
+  pos = std::min(pos, s.size());
+  while (pos > 0 && kind_of(s[pos - 1]) == Kind::Space) --pos;
+  if (pos == 0) return 0;
+  const Kind k = kind_of(s[pos - 1]);
+  if (k == Kind::Break) return pos - 1;
+  while (pos > 0 && kind_of(s[pos - 1]) == k) --pos;
   return pos;
 }
 
@@ -60,6 +103,22 @@ void TextField::insert(std::wstring_view s) {
   caret_ = anchor_ = caret_ + clean.size();
 }
 
+void TextField::paste(std::wstring_view s) {
+  std::wstring clean;
+  clean.reserve(s.size());
+  for (std::size_t i = 0; i < s.size(); ++i) {
+    wchar_t c = s[i];
+    if (c == L'\r') {
+      if (i + 1 < s.size() && s[i + 1] == L'\n') continue;  // CR LF is one break
+      c = L'\n';
+    }
+    if (compact && (std::iswspace(c) || c == 0x3000)) continue;
+    if (c == L'\t' || (c == L'\n' && !multiline)) c = L' ';
+    clean += c;
+  }
+  insert(clean);
+}
+
 void TextField::set_composition(std::wstring_view s) {
   if (!s.empty() && has_selection() && (!accept || std::ranges::all_of(s, accept))) erase_selection();
   composition_ = s;
@@ -68,6 +127,73 @@ void TextField::set_composition(std::wstring_view s) {
 void TextField::move_to(std::size_t pos, bool extend) {
   caret_ = pos;
   if (!extend) anchor_ = pos;
+}
+
+std::wstring TextField::selected_text() const {
+  if (!can_copy()) return {};
+  const auto lo = std::min(caret_, anchor_), hi = std::max(caret_, anchor_);
+  return text_.substr(lo, hi - lo);
+}
+
+void TextField::erase() {
+  if (has_selection()) erase_selection();
+}
+
+std::pair<std::size_t, std::size_t> TextField::unit_at(std::size_t pos, int clicks) const {
+  pos = std::min(pos, text_.size());
+  if (clicks <= 1 || text_.empty()) return {pos, pos};
+  if (clicks >= 3) {
+    const std::size_t before = pos == 0 ? std::wstring::npos : text_.rfind(L'\n', pos - 1);
+    const std::size_t end = text_.find(L'\n', pos);
+    return {before == std::wstring::npos ? 0 : before + 1, end == std::wstring::npos ? text_.size() : end};
+  }
+  // The run the character at pos belongs to; at the end, the one before it.
+  std::size_t at = pos < text_.size() ? pos : pos - 1;
+  if (is_low_surrogate(text_[at]) && at > 0) --at;
+  const Kind k = kind_of(text_[at]);
+  if (k == Kind::Break) return {at, at};
+  std::size_t lo = at, hi = at;
+  while (lo > 0 && kind_of(text_[lo - 1]) == k) --lo;
+  while (hi < text_.size() && kind_of(text_[hi]) == k) ++hi;
+  return {lo, hi};
+}
+
+void TextField::press(std::size_t pos, int clicks, bool extend) {
+  composition_.clear();
+  clicks_ = std::clamp(clicks, 1, 3);
+  const auto [lo, hi] = unit_at(pos, clicks_);
+  if (extend) {
+    // Shift goes on from where the selection began.
+    origin_lo_ = origin_hi_ = anchor_;
+    caret_ = pos < anchor_ ? lo : hi;
+    return;
+  }
+  origin_lo_ = anchor_ = lo;
+  origin_hi_ = caret_ = hi;
+}
+
+void TextField::drag_to(std::size_t pos) {
+  const auto [lo, hi] = unit_at(pos, clicks_);
+  if (pos < origin_lo_) {
+    anchor_ = origin_hi_;
+    caret_ = lo;
+  } else {
+    anchor_ = origin_lo_;
+    caret_ = std::max(hi, origin_hi_);
+  }
+}
+
+std::size_t TextField::position_at(const Gfx& gfx, const TextStyle& style, float x, float y, float wrap_width) const {
+  const auto layout = wrap_width > 0 ? gfx.layout(shown(), style, wrap_width, 10000) : gfx.layout(shown(), style, 10000);
+  if (!layout) return caret_;
+  BOOL trailing = FALSE, inside = FALSE;
+  DWRITE_HIT_TEST_METRICS m{};
+  layout->HitTestPoint(x, wrap_width > 0 ? y : 0, &trailing, &inside, &m);
+  std::size_t pos = m.textPosition + (trailing ? m.length : 0);
+  // Clicks map to the committed text; clamp out of the composition string.
+  if (pos > caret_ + composition_.size()) pos -= composition_.size();
+  else if (pos > caret_) pos = caret_;
+  return std::min(pos, text_.size());
 }
 
 float TextField::measure_height(const Gfx& gfx, const TextStyle& style, float width) const {
@@ -101,20 +227,22 @@ bool TextField::key_down(unsigned vk, bool ctrl, bool shift) {
     case VK_BACK:
       if (has_selection()) erase_selection();
       else if (caret_ > 0) {
-        const auto to = step(text_, caret_, -1);
+        const auto to = ctrl ? previous_word(text_, caret_) : step(text_, caret_, -1);
         text_.erase(to, caret_ - to);
         caret_ = anchor_ = to;
       }
       return true;
     case VK_DELETE:
       if (has_selection()) erase_selection();
-      else if (caret_ < text_.size()) text_.erase(caret_, step(text_, caret_, 1) - caret_);
+      else if (caret_ < text_.size()) text_.erase(caret_, (ctrl ? next_word(text_, caret_) : step(text_, caret_, 1)) - caret_);
       return true;
     case VK_LEFT:
-      move_to(has_selection() && !shift ? std::min(caret_, anchor_) : step(text_, caret_, -1), shift);
+      if (ctrl) move_to(previous_word(text_, caret_), shift);
+      else move_to(has_selection() && !shift ? std::min(caret_, anchor_) : step(text_, caret_, -1), shift);
       return true;
     case VK_RIGHT:
-      move_to(has_selection() && !shift ? std::max(caret_, anchor_) : step(text_, caret_, 1), shift);
+      if (ctrl) move_to(next_word(text_, caret_), shift);
+      else move_to(has_selection() && !shift ? std::max(caret_, anchor_) : step(text_, caret_, 1), shift);
       return true;
     case VK_HOME:
       move_to(0, shift);
@@ -130,35 +258,6 @@ bool TextField::key_down(unsigned vk, bool ctrl, bool shift) {
     select_all();
     return true;
   }
-  if (vk == 'C' || vk == 'X') {
-    if (!password && has_selection() && OpenClipboard(nullptr)) {
-      const auto lo = std::min(caret_, anchor_), hi = std::max(caret_, anchor_);
-      const std::wstring part = text_.substr(lo, hi - lo);
-      if (HGLOBAL mem = GlobalAlloc(GMEM_MOVEABLE, (part.size() + 1) * sizeof(wchar_t))) {
-        auto* dst = static_cast<wchar_t*>(GlobalLock(mem));
-        std::copy(part.begin(), part.end(), dst);
-        dst[part.size()] = L'\0';
-        GlobalUnlock(mem);
-        EmptyClipboard();
-        if (!SetClipboardData(CF_UNICODETEXT, mem)) GlobalFree(mem);
-      }
-      CloseClipboard();
-      if (vk == 'X') erase_selection();
-    }
-    return true;
-  }
-  if (vk == 'V') {
-    if (OpenClipboard(nullptr)) {
-      if (HANDLE h = GetClipboardData(CF_UNICODETEXT)) {
-        if (const auto* s = static_cast<const wchar_t*>(GlobalLock(h))) {
-          insert(s);
-          GlobalUnlock(h);
-        }
-      }
-      CloseClipboard();
-    }
-    return true;
-  }
   return false;
 }
 
@@ -167,19 +266,6 @@ std::wstring TextField::shown() const {
   if (password) base.assign(base.size(), L'•');
   base.insert(caret_, password ? std::wstring(composition_.size(), L'•') : composition_);
   return base;
-}
-
-void TextField::click_at(const Gfx& gfx, const TextStyle& style, float x, bool extend) {
-  const auto layout = gfx.layout(shown(), style, 10000);
-  if (!layout) return;
-  BOOL trailing = FALSE, inside = FALSE;
-  DWRITE_HIT_TEST_METRICS m{};
-  layout->HitTestPoint(x, 0, &trailing, &inside, &m);
-  std::size_t pos = m.textPosition + (trailing ? m.length : 0);
-  // Clicks map to the committed text; clamp out of the composition string.
-  if (pos > caret_ + composition_.size()) pos -= composition_.size();
-  else if (pos > caret_) pos = caret_;
-  move_to(std::min(pos, text_.size()), extend);
 }
 
 Rect TextField::paint(Painter& p, Rect box, const TextStyle& style, Color text, std::wstring_view placeholder,

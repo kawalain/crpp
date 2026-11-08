@@ -234,6 +234,12 @@ class App {
   std::optional<skin::Pack> previous_pack_;
   std::string theme_id_ = "cumulus";  // the Theme a Ui starts with, until a choice is read
   MemoryPrefs memory_prefs_;
+  SystemClipboard system_clipboard_;
+  // The press before, to count clicks in a row.
+  unsigned long long last_press_ms_ = 0;
+  float last_press_x_ = 0, last_press_y_ = 0;
+  const Surface* last_press_owner_ = nullptr;
+  int last_press_id_ = 0;
   SetupScreen setup_{ui_};
   HomeScreen home_{ui_};
   RoomScreen room_{ui_};

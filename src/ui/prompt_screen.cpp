@@ -91,14 +91,14 @@ void PromptScreen::submit() {
 
 TextStyle PromptScreen::field_style() const { return pack_field_style_; }
 
-void PromptScreen::drag(float x, float) { field_.click_at(ui_.gfx, field_style(), x - text_x_ + scroll_x_, true); }
+void PromptScreen::drag(float x, float) { field_.drag_to(field_.position_at(ui_.gfx, field_style(), x - text_x_ + scroll_x_, 0)); }
 
 void PromptScreen::click(int id, float x, float, bool shift) {
   take_focus();
   switch (id) {
     case Field:
       if (lock_until_ != 0) return;
-      field_.click_at(ui_.gfx, field_style(), x - text_x_ + scroll_x_, shift);
+      field_.press(field_.position_at(ui_.gfx, field_style(), x - text_x_ + scroll_x_, 0), ui_.clicks, shift);
       ui_.capture = this;
       return;
     case Eye:

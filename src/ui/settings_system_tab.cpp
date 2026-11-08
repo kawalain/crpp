@@ -104,7 +104,7 @@ void SystemTab::click(int id, float x, float, bool shift) {
     if (on_open_logs) on_open_logs();
   } else if (id == Address) {
     ui_.set_focus(this, &address_);
-    address_.click_at(ui_.gfx, address_style_, ui_.to_stage_x(x) - address_x_ + address_scroll_, shift);
+    address_.press(address_.position_at(ui_.gfx, address_style_, ui_.to_stage_x(x) - address_x_ + address_scroll_, 0), ui_.clicks, shift);
   } else if (id == AddRepository) {
     add();
   } else if (id >= UpdatePack && static_cast<std::size_t>(id - UpdatePack) < packs_.size()) {
@@ -123,7 +123,7 @@ void SystemTab::click(int id, float x, float, bool shift) {
 }
 
 void SystemTab::drag(float x, float) {
-  address_.click_at(ui_.gfx, address_style_, ui_.to_stage_x(x) - address_x_ + address_scroll_, true);
+  address_.drag_to(address_.position_at(ui_.gfx, address_style_, ui_.to_stage_x(x) - address_x_ + address_scroll_, 0));
 }
 
 void SystemTab::enter(bool) { add(); }

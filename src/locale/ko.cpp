@@ -87,6 +87,7 @@ const Strings korean{
     .room_tip_offline = "오프라인",
     .room_copied = "복사했어요!",
     .room_copy_failed = "복사하지 못했어요",
+    .copy_failed = "복사하지 못했어요. 다시 해 주세요.",
     .room_leave_question = "이 구름에서 나갈까요?",
     .room_leave_delegates = "이 구름에서 나갈까요?\n호스트는 다른 사람에게 무작위로 넘어가요.",
     .room_leave = "나가기",

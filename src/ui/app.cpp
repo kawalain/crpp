@@ -11,6 +11,7 @@ namespace crpp::ui {
 
 App::App() {
   ui_.prefs = &memory_prefs_;
+  ui_.clipboard = &system_clipboard_;
   ui_.dialogs = &dialogs_;
   ui_.toasts = &toasts_;
   ui_.emoji_picker = &emoji_picker_;
@@ -677,6 +678,16 @@ bool App::mouse_down(float x, float y, bool shift) {
   const Ui::Hit* hit = ui_.hit_at(x, y);
   Surface* owner = hit ? hit->owner : nullptr;
   const int id = hit ? hit->id : 0;
+  // Two presses close in time and place on the same thing are a double click, three a triple.
+  const auto now = clock_ms();
+  const bool again = owner == last_press_owner_ && id == last_press_id_ && now - last_press_ms_ <= ui_.double_click_ms &&
+                     std::abs(x - last_press_x_) <= ui_.double_click_size && std::abs(y - last_press_y_) <= ui_.double_click_size;
+  ui_.clicks = again && ui_.clicks < 3 ? ui_.clicks + 1 : 1;
+  last_press_ms_ = now;
+  last_press_x_ = x;
+  last_press_y_ = y;
+  last_press_owner_ = owner;
+  last_press_id_ = id;
   ui_.set_focus(nullptr, nullptr);
   ui_.caret_on = true;
   for (Surface* s : layers()) s->before_click(owner, id);

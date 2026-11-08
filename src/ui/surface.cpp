@@ -1,9 +1,13 @@
 #include "crpp/ui/surface.hpp"
 
+#include <windows.h>
+
 #include <algorithm>
 #include <ctime>
 
+#include "crpp/locale/locale.hpp"
 #include "crpp/skin/pack.hpp"
+#include "crpp/ui/toasts.hpp"
 
 namespace crpp::ui {
 
@@ -156,6 +160,34 @@ const SvgImage& Ui::emoji_image(std::string_view id) {
   return *image;
 }
 
-bool Surface::key(unsigned vk, bool ctrl, bool shift) { return ui_.focus && ui_.focus->key_down(vk, ctrl, shift); }
+bool Ui::copy(std::wstring_view text) {
+  if (clipboard && clipboard->set_text(text)) return true;
+  if (toasts) toasts->toast(tr().copy_failed);
+  return false;
+}
+
+void Ui::paste_into(TextField& field) {
+  if (!clipboard) return;
+  if (const auto text = clipboard->text()) field.paste(*text);
+}
+
+bool Ui::edit_key(TextField& field, unsigned vk, bool ctrl, bool shift) {
+  if (ctrl && (vk == 'C' || vk == 'X' || vk == VK_INSERT) && !shift) {
+    // Ctrl+Insert is the older copy, as in any Windows field.
+    if (field.can_copy() && copy(field.selected_text()) && vk == 'X') field.erase();
+    return true;
+  }
+  if ((ctrl && vk == 'V' && !shift) || (shift && !ctrl && vk == VK_INSERT)) {
+    paste_into(field);
+    return true;
+  }
+  if (shift && !ctrl && vk == VK_DELETE) {  // Shift+Delete cuts
+    if (field.can_copy() && copy(field.selected_text())) field.erase();
+    return true;
+  }
+  return field.key_down(vk, ctrl, shift);
+}
+
+bool Surface::key(unsigned vk, bool ctrl, bool shift) { return ui_.focus && ui_.edit_key(*ui_.focus, vk, ctrl, shift); }
 
 }  // namespace crpp::ui

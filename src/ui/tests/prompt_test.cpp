@@ -106,15 +106,46 @@ void test_password_eye() {
   CHECK(h.app.prompt().value() == "secret");
 }
 
+class FakeClipboard final : public Clipboard {
+ public:
+  bool set_text(std::wstring_view text) override {
+    held = text;
+    return works;
+  }
+  std::optional<std::wstring> text() override { return held; }
+  bool has_text() override { return held.has_value(); }
+  std::optional<std::wstring> held;
+  bool works = true;
+};
+
 void test_masked_password_is_not_copied() {
-  // The clipboard is the machine's, so only the field's own state is checked: Ctrl+X
-  // of a masked field must not cut anything.
+  // Ctrl+X of a masked field must neither copy nor cut anything.
+  Ui ui;
+  FakeClipboard clipboard;
+  ui.clipboard = &clipboard;
   TextField field;
   field.password = true;
   field.set_text(L"secret");
   field.select_all();
-  CHECK(field.key_down('X', true, false));
-  CHECK(field.text() == L"secret");
+  CHECK(ui.edit_key(field, 'X', true, false));
+  CHECK(field.text() == L"secret" && !clipboard.held);
+  // Shown, it copies, and pastes back with Shift+Insert.
+  field.password = false;
+  CHECK(ui.edit_key(field, 'C', true, false) && clipboard.held == L"secret");
+  field.set_text(L"");
+  CHECK(ui.edit_key(field, VK_INSERT, false, true) && field.text() == L"secret");
+}
+
+void test_a_copy_that_fails_keeps_the_text() {
+  Ui ui;
+  FakeClipboard clipboard;
+  clipboard.works = false;
+  ui.clipboard = &clipboard;
+  TextField field;
+  field.set_text(L"keep me");
+  field.select_all();
+  CHECK(ui.edit_key(field, 'X', true, false));
+  CHECK(field.text() == L"keep me");
 }
 
 void test_composing_replaces_the_selection() {
@@ -292,6 +323,7 @@ int main() {
   test_input_rules();
   test_password_eye();
   test_masked_password_is_not_copied();
+  test_a_copy_that_fails_keeps_the_text();
   test_composing_replaces_the_selection();
   test_composing_what_the_field_refuses_keeps_the_selection();
   test_dragging_selects_and_typing_replaces();

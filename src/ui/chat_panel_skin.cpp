@@ -56,6 +56,7 @@ void ChatPanel::paint_pack(Painter& p, const skin::Screen& screen, Rect panel) {
       const TextStyle style = text_style_of(look.text);
       s_.pack_input_style_ = style;
       s_.input_text_w_ = box.w;
+      s_.input_box_ = rect_of(box);
       const bool focused = s_.ui_.focus == &s_.input_;
       const Rect caret = s_.input_.paint(p_, rect_of(box), style, look.color, widen(look.placeholder), style, look.placeholder_color, look.caret, look.selection, focused, s_.ui_.caret_on);
       if (focused) s_.ui_.caret = caret;

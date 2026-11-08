@@ -122,7 +122,7 @@ void ChatPanel::paint(Painter& p, Rect panel) {
 
 bool ChatPanel::chat_grouped_with_previous(std::size_t index) const { return chat_grouped(log_[index], index > first_ ? &log_[index - 1] : nullptr); }
 
-void ChatPanel::click(int id, float, float y, bool) {
+void ChatPanel::click(int id, float x, float y, bool shift) {
   if (id == BarUp || id == BarDown || id == BarTrack) {
     scroll_.step_towards(bar_track_, y);
     scrolled();
@@ -149,8 +149,20 @@ void ChatPanel::click(int id, float, float y, bool) {
   }
   if (id != Input && id != Send) return;
   ui_.set_focus(this, &input_);
-  if (id == Send) send();
+  if (id == Send) {
+    send();
+    return;
+  }
+  ui_.capture = this;
+  selecting_ = true;
+  input_.press(input_position(x, y), ui_.clicks, shift);
 }
+
+std::size_t ChatPanel::input_position(float x, float y) const {
+  return input_.position_at(ui_.gfx, pack_input_style_, x - input_box_.x, y - input_box_.y, std::max(1.0f, input_text_w_));
+}
+
+void ChatPanel::release() { selecting_ = false; }
 
 bool ChatPanel::wheel(float x, float y, float delta) {
   if (!area_.contains(x, y)) return false;
@@ -170,7 +182,11 @@ void ChatPanel::scrolled() {
   }
 }
 
-void ChatPanel::drag(float, float y) {
+void ChatPanel::drag(float x, float y) {
+  if (selecting_) {
+    input_.drag_to(input_position(x, y));
+    return;
+  }
   const float travel = std::max(1.0f, bar_track_.h - scroll_.thumb(bar_track_).h);
   scroll_.jump_to(grab_offset_ + (y - grab_y_) * scroll_.max_offset() / travel);
   scrolled();
@@ -186,7 +202,7 @@ bool ChatPanel::key(unsigned vk, bool ctrl, bool shift) {
     input_.move_vertical(ui_.gfx, pack_input_style_, input_text_w_, vk == VK_UP ? -1 : 1, shift);
     return true;
   }
-  return input_.key_down(vk, ctrl, shift);
+  return ui_.edit_key(input_, vk, ctrl, shift);
 }
 
 }  // namespace crpp::ui

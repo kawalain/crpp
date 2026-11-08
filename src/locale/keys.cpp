@@ -93,6 +93,7 @@ constexpr Key keys[] = {
     KEY(room_tip_offline),
     KEY(room_copied),
     KEY(room_copy_failed),
+    KEY(copy_failed),
     KEY(room_leave_question),
     KEY(room_leave_delegates),
     KEY(room_leave),

@@ -194,7 +194,13 @@ before step 7, which removes what Cloud's pack is compared with.
      keyboard and the mouse, the other failed and left nothing, its Repository could not be removed while in use,
      and removing the pack offered it again. A member hearing another Repository's pack has not run in a Room.
 7. **Remove the C++.** Delete Luna's and Cloud's layouts and `Skin`, and fix ADR 0004 and the module design. Measure
-   again.
+   again. Done on 2026-11-09: every screen draws only from a pack, and before any pack is there the first-run screen
+   has a plain look of its own. A Theme a pack does not have draws as the pack's default. Cloud's 82 scenes give the
+   hashes from before but for `luna-controls`, which is gone. Under Retro the ten `-dark` and `-pastel` scenes changed
+   from a wrong screen to the right one in the default Theme. The exe went from 2.38 to 2.12 MB. Idle on Home at
+   100% on a hidden desktop, f664940 against dca19b0, rounds taken in turn: CPU 0.00% in both. With the graphics
+   device released, the default, private bytes were 10.5-10.8 MB in both. With it kept, they were 60.7 or 70.0 MB
+   in both, the same two modes.
 8. **Release path.** `docs/releases/README.md` and its script fill `dist/repository`, sign the catalog with the
    update key and deploy it with `npx --yes wrangler@4.152.0 deploy` (`wrangler.jsonc`). A clean install is tried with
    a local server, then for real, and the second source once the tag is on GitHub.

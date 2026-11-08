@@ -333,7 +333,7 @@ void SoundTab::paint_pack(Painter& p, const skin::Screen& screen, Rect area) {
 
   SkinCanvas canvas(ui_, p, this);
   skin::draw(*ui_.pack, screen, ui_.palette, {area.x, area.y, area.w, area.h}, canvas, shown);
-  paint_tip(p, area);
+  paint_tip(p);
 }
 
 void DisplayTab::paint_pack(Painter& p, const skin::Screen& screen, Rect area) {

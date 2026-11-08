@@ -63,19 +63,12 @@ class SettingsPanel final : public Surface {
   [[nodiscard]] unsigned long long wake_at() const override;
 
  private:
-  [[nodiscard]] bool drop_moving(unsigned long long now) const;
   [[nodiscard]] SettingsTab& tab();
   [[nodiscard]] SettingsTab& tab_of(SettingsPage page);
   [[nodiscard]] const SettingsTab& tab() const { return const_cast<SettingsPanel*>(this)->tab(); }
-  void paint_luna(Painter& p);
   void paint_pack(Painter& p, const skin::Screen& screen);
   [[nodiscard]] static const char* locale::Strings::*tab_name(std::size_t index);
-  void paint_panel(Painter& p);
-  void paint_tabs(Painter& p);
-  void paint_scrollbar_faded(Painter& p);
   void watch_scrollbar();
-  void paint_version(Painter& p);
-  void paint_droplet(Painter& p);
   void reset_scrollbar();
 
   SoundTab sound_;
@@ -88,18 +81,11 @@ class SettingsPanel final : public Surface {
   Scroll scroll_;
   Rect content_area_{settings_view};
   Rect scroll_track_{835, 187, 8, 403};  // .settings-scrollbar
-  Fade panel_;  // the panel coming and going
   SettingsPage left_page_ = SettingsPage::Sound;  // the tab fading out, while left_at_ is set
   float left_scroll_ = 0, left_fade_top_ = 0, left_fade_bottom_ = 0;
   unsigned long long left_at_ = 0;
   std::string version_;
 
-  struct TabAnim {
-    Fade active, hover, grow;
-  };
-  std::array<TabAnim, 5> tab_anim_;
-  Fade droplet_hover_, droplet_grow_, droplet_tip_, version_tip_;
-  Fade bar_, thumb_hover_;
   bool bar_shown_ = false, bar_over_ = false, reveal_pending_ = false;
   unsigned long long hide_at_ = 0;
   float grab_y_ = 0, grab_offset_ = 0;

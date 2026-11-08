@@ -349,7 +349,7 @@ bool scene(Shell& s, std::string_view name) {
     open(SettingsPage::Display);
     if (on) prefs.set(pref::system_theme, true);
     if (big) prefs.set(pref::chat_scale, 150);
-    if (tip) panel.display().click(!s.app.ui().skins.empty() ? DisplayTab::SkinThemeList : on ? DisplayTab::LightList : DisplayTab::ThemeList, 0, 0, false);
+    if (tip) panel.display().click(DisplayTab::SkinThemeList, 0, 0, false);
     if (fetching || failed) {
       // A pack a Repository offers, picked before it is installed.
       Ui& ui = s.app.ui();

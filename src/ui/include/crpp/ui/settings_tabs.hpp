@@ -27,14 +27,13 @@ class SettingsTab : public Surface {
   virtual void paint(Painter& p, Rect area) = 0;
   // Drawn after the clip is gone, with the same area: an open Dropdown's list.
   virtual void paint_popups(Painter& /*p*/, Rect /*area*/) {}
-  [[nodiscard]] virtual float content_height() const = 0;
   // The tab came on screen.
   virtual void shown() {}
 
+  [[nodiscard]] float content_height() const { return flow_height_; }
+
  protected:
-  // Is the height of this tab what its layout came out as, and not known ahead?
-  [[nodiscard]] bool flows(std::string_view screen) const { return ui_.pack_screen(screen) || !ui_.skin().scales_stage(); }
-  // How tall a Skin's flowing layout came out the last time it was drawn.
+  // How tall the pack's layout came out the last time it was drawn.
   float flow_height_ = 0;
 };
 
@@ -91,7 +90,6 @@ class SoundTab final : public SettingsTab {
 
   void paint(Painter& p, Rect area) override;
   void paint_popups(Painter& p, Rect area) override;
-  [[nodiscard]] float content_height() const override;
   void shown() override;
   void before_click(const Surface* owner, int id) override;
   void click(int id, float x, float y, bool shift) override;
@@ -100,7 +98,6 @@ class SoundTab final : public SettingsTab {
   void release() override;
   bool wheel(float x, float y, float delta) override;
   bool escape() override;
-  [[nodiscard]] bool animating() const override;
 
  private:
   struct Picker {
@@ -113,12 +110,8 @@ class SoundTab final : public SettingsTab {
   void set_slider(int id, float window_x);
   void pick(Picker& picker, int id);
   [[nodiscard]] Picker* picker_of_row(std::size_t row);
-  void paint_luna(Painter& p, Rect area);
   void paint_pack(Painter& p, const skin::Screen& screen, Rect area);
-  void paint_tip(Painter& p, Rect area);
-  void paint_tip_luna(Painter& p, int row);
-  void paint_balance(Painter& p, Rect area);
-  void paint_person(Painter& p, float x, float y, Color c, bool marked);
+  void paint_tip(Painter& p);
 
   Picker speaker_;
   std::array<Picker, 3> packs_;  // by SoundDevice
@@ -130,11 +123,8 @@ class SoundTab final : public SettingsTab {
   std::array<Rect, 5> combo_rects_;
   Rect balance_rect_;
   int held_ = -1;  // the slider being dragged
-  int knob_id_ = -1;
-  unsigned long long knob_start_ = 0;
   int tip_row_ = -1;
   bool tip_on_ = false;
-  unsigned long long tip_start_ = 0;
 };
 
 // The theme in use: upstream's effectiveTheme, with an unknown name taken as the default.
@@ -145,15 +135,11 @@ class DisplayTab final : public SettingsTab {
   explicit DisplayTab(Ui& ui);
   [[nodiscard]] static skin::ScreenSchema schema();
   enum Id : int {
-    SystemTheme = 1,
-    ScaleSlider,
+    ScaleSlider = 1,
     ThemeCursor,
     Use24h,
     FetchCancel,
     FetchRetry,
-    ThemeList = 100,
-    LightList = 110,
-    DarkList = 120,
     SkinThemeList = 130,  // every Skin's Themes, each Skin's under its name
     DarkModeList = 190,
     IdleList = 300,
@@ -172,7 +158,6 @@ class DisplayTab final : public SettingsTab {
 
   void paint(Painter& p, Rect area) override;
   void paint_popups(Painter& p, Rect area) override;
-  [[nodiscard]] float content_height() const override;
   void shown() override;
   void before_click(const Surface* owner, int id) override;
   void click(int id, float x, float y, bool shift) override;
@@ -181,28 +166,20 @@ class DisplayTab final : public SettingsTab {
   bool wheel(float x, float y, float delta) override;
   bool escape() override;
   [[nodiscard]] Cursor cursor(int /*id*/) const override { return Cursor::Hand; }
-  [[nodiscard]] bool animating() const override;
 
  private:
-  void paint_luna(Painter& p, Rect area);
   void paint_pack(Painter& p, const skin::Screen& screen, Rect area);
-  void paint_sample(Painter& p, Rect box, float zoom);
-  [[nodiscard]] float chat_top() const;
-  [[nodiscard]] float time_top() const;
   void sync_idle();
   void sync_language();
 
   void choose_theme(int index);
   void choose_dark(int index);
-  Dropdown theme_, light_, dark_;
   Dropdown skin_theme_, dark_mode_;
   // Parallel to skin_theme_'s options: the Skin and its Theme, or -1 for a Skin's heading.
   std::vector<std::pair<int, int>> theme_at_;
   Dropdown idle_, language_;
   Rect list_rect_[6];
   Rect idle_rect_, language_rect_;
-  ToggleAnim system_anim_, use_24h_anim_;
-  Fade slider_tip_;
   Rect slider_;  // stage coordinates
   std::string sample_nick_, sample_emoji_;
 };
@@ -224,21 +201,12 @@ class NotifyTab final : public SettingsTab {
   void set_sounds(std::vector<NotifySound> sounds);
 
   void paint(Painter& p, Rect area) override;
-  [[nodiscard]] float content_height() const override;
   void shown() override;
   void click(int id, float x, float y, bool shift) override;
-  [[nodiscard]] bool animating() const override;
 
  private:
-  void paint_luna(Painter& p, Rect area);
   void paint_pack(Painter& p, const skin::Screen& screen, Rect area);
-  struct Row {
-    ToggleAnim toggle;
-    Fade grow, tip;
-  };
   std::vector<NotifySound> sounds_;
-  std::vector<Row> rows_;
-  ToggleAnim tray_, flash_;
 };
 
 class SystemTab final : public SettingsTab {
@@ -284,7 +252,6 @@ class SystemTab final : public SettingsTab {
 
   void paint(Painter& p, Rect area) override;
   void paint_popups(Painter& p, Rect area) override;
-  [[nodiscard]] float content_height() const override;
   void before_click(const Surface* owner, int id) override;
   void click(int id, float x, float y, bool shift) override;
   [[nodiscard]] bool acts_on_press(int id) const override;
@@ -293,32 +260,24 @@ class SystemTab final : public SettingsTab {
   void drag(float x, float y) override;
   void enter(bool shift) override;
   [[nodiscard]] Cursor cursor(int id) const override;
-  [[nodiscard]] bool animating() const override;
 
  private:
-  void paint_luna(Painter& p, Rect area);
   void paint_pack(Painter& p, const skin::Screen& screen, Rect area);
   void sync_release();
   void add();
   // Its text scrolls inside the box, as the prompt's does, to keep the caret in view. Colors: the
   // text, the placeholder, the caret, the selection and what is behind.
   void paint_address(Painter& p, Rect box, const TextStyle& style, std::span<const Color> colors);
-  // Where the advanced section begins, below the Repositories.
-  [[nodiscard]] float advanced_top() const;
   [[nodiscard]] std::string fingerprint_text(std::size_t index) const;
   [[nodiscard]] std::string status_text() const;
   Dropdown release_;
   Rect release_rect_;
-  // Only a Skin Pack draws the Repositories, until the C++ layouts go.
   std::vector<RepositoryRow> repositories_;
   Adding adding_;
   std::vector<PackRow> packs_;
   TextField address_;
   TextStyle address_style_;
   float address_x_ = 0, address_scroll_ = 0;  // where its text starts on the stage, and how far it is scrolled
-  std::array<ToggleAnim, 4> toggles_;
-  Fade open_logs_, reset_, add_;
-  std::vector<Fade> remove_, remove_pack_, update_pack_;
 };
 
 class AccountTab final : public SettingsTab {
@@ -339,11 +298,9 @@ class AccountTab final : public SettingsTab {
   std::function<void()> on_change_nickname, on_change_handle, on_logout;
 
   void paint(Painter& p, Rect area) override;
-  [[nodiscard]] float content_height() const override;
   void click(int id, float x, float y, bool shift) override;
 
  private:
-  void paint_luna(Painter& p, Rect area);
   void paint_pack(Painter& p, const skin::Screen& screen, Rect area);
   Profile profile_;
 };

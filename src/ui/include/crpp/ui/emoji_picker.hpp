@@ -21,6 +21,8 @@ class EmojiPicker final : public Surface {
   // The grid is one stop, at the emoji in use or the first.
   [[nodiscard]] std::optional<Role> role(int id) const override;
   [[nodiscard]] bool holds_keys(int id) const override { return id == Backdrop; }
+  // The arrows go from emoji to emoji, Home and End to the ends of a row, and Enter or Space picks one.
+  bool stop_key(int id, unsigned vk, bool ctrl, bool shift, bool alt) override;
 
   // Seven rows of eight can show at once; this keeps a little of the scroll around.
   static constexpr std::size_t cache_capacity = 72;
@@ -57,6 +59,11 @@ class EmojiPicker final : public Surface {
   unsigned long long closed_at_ = 0;  // fading out since then
   float shown_left_ = 0;  // what a pack's screen said of its fade
   std::string current_;
+  int cell_ = -1;  // the emoji the keyboard is on, or the one in use
+  // What the pack said of its grid: how many to a row, and how far down one row is from the next.
+  int columns_ = 8;
+  float row_h_ = 0;
+  [[nodiscard]] int keyboard_cell() const;
   std::function<void(std::string id)> on_pick_;
   std::vector<std::string> ids_;
   std::optional<EmojiCache> cache_;

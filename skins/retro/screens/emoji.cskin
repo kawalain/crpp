@@ -11,6 +11,8 @@ let content_h = rows>0 ? rows*step-gap : 0
 report width = box_w
 report height = box_h
 report view = view_h
+report columns = cols
+report row = step
 report content = content_h
 hit backdrop
 ((@W-box_w)/2, (@H-box_h)/2, box_w, box_h) {

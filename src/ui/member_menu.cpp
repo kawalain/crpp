@@ -115,6 +115,14 @@ void MemberMenu::click(int id, float x, float, bool) {
 
 void MemberMenu::drag(float x, float) { set_volume(slider_value(track_, x, 0, 100)); }
 
+bool MemberMenu::stop_key(int id, unsigned vk, bool ctrl, bool, bool) {
+  if (id != Slider || ctrl || self_) return false;
+  const std::optional<int> value = slider_key(vk, volume_, 0, 100);
+  if (!value) return false;
+  if (*value != volume_) set_volume(*value);
+  return true;
+}
+
 bool MemberMenu::escape() {
   if (!open_) return false;
   close();

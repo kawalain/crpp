@@ -27,6 +27,9 @@ class SettingsPanel final : public Surface {
     return std::nullopt;
   }
   [[nodiscard]] bool holds_keys(int id) const override { return id == Overlay; }
+  bool stop_key(int id, unsigned vk, bool ctrl, bool shift, bool alt) override;
+  // Ctrl+Tab and Ctrl+Page Down go to the next tab, with Shift or Page Up the one before, wherever the keyboard is.
+  bool layer_key(unsigned vk, bool ctrl, bool shift) override;
 
   // What a Skin Pack can name on this panel.
   [[nodiscard]] static skin::ScreenSchema schema();

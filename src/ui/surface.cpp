@@ -140,6 +140,14 @@ const Ui::Hit* Ui::find_stop(const Surface* owner, int id) const {
   return nullptr;
 }
 
+const Ui::Hit* Ui::current_stop() const {
+  if (!stop_owner) return nullptr;
+  for (const Hit* stop : tab_stops()) {
+    if (stop->owner == stop_owner && stop->id == stop_id) return stop;
+  }
+  return nullptr;
+}
+
 std::vector<const Ui::Hit*> Ui::tab_stops() const {
   // A modal's backdrop is read before what is on it, and after everything under it.
   std::uint32_t floor = 0;

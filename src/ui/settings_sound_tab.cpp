@@ -264,6 +264,27 @@ bool SoundTab::wheel(float x, float y, float delta) {
   return std::ranges::any_of(packs_, [&](Picker& picker) { return picker.box.wheel(ui_, x, y, delta); });
 }
 
+bool SoundTab::stop_key(int id, unsigned vk, bool ctrl, bool, bool alt) {
+  if (ctrl) return false;
+  if ((id >= SpeakerVolume && id <= PenVolume) || id == Balance) {
+    const bool balance = id == Balance;
+    const pref::Int key = balance ? pref::channel_balance : volume_rows[static_cast<std::size_t>(id - SpeakerVolume)];
+    const std::optional<int> value = slider_key(vk, ui_.prefs->get(key), balance ? balance_min : 0, balance ? balance_max : 100);
+    if (!value) return false;
+    if (*value != ui_.prefs->get(key)) ui_.prefs->set(key, *value);
+    return true;
+  }
+  for (Dropdown* box : {&speaker_.box, &reverb_.box, &packs_[0].box, &packs_[1].box, &packs_[2].box}) {
+    if (box->owns(id)) {
+      const std::optional<int> hit = box->key(ui_, this, vk, alt);
+      if (!hit) return false;
+      if (*hit != Dropdown::taken_alone) click(*hit, 0, 0, false);
+      return true;
+    }
+  }
+  return false;
+}
+
 bool SoundTab::escape() {
   const bool any = speaker_.box.open || reverb_.box.open || std::ranges::any_of(packs_, [](const Picker& picker) { return picker.box.open; });
   close_lists(nullptr);

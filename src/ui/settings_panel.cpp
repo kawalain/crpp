@@ -139,6 +139,37 @@ bool SettingsPanel::wheel(float x, float y, float delta) {
   return true;  // nothing under the panel scrolls
 }
 
+bool SettingsPanel::stop_key(int id, unsigned vk, bool ctrl, bool, bool) {
+  if (id < TabBase || ctrl) return false;
+  const int count = static_cast<int>(tab_buttons.size());
+  const int at = id - TabBase;
+  int to = at;
+  if (vk == VK_LEFT || vk == VK_UP) to = (at + count - 1) % count;
+  else if (vk == VK_RIGHT || vk == VK_DOWN) to = (at + 1) % count;
+  else if (vk == VK_HOME) to = 0;
+  else if (vk == VK_END) to = count - 1;
+  else return false;
+  // Arrows on a row of tabs choose as they go, as a property sheet's do.
+  select(static_cast<SettingsPage>(to));
+  ui_.move_stop_to(this, TabBase + to);
+  return true;
+}
+
+bool SettingsPanel::layer_key(unsigned vk, bool ctrl, bool shift) {
+  if (!open_ || !ctrl) return false;
+  int step = 0;
+  if (vk == VK_TAB) step = shift ? -1 : 1;
+  else if (vk == VK_NEXT) step = 1;
+  else if (vk == VK_PRIOR) step = -1;
+  else return false;
+  const int count = static_cast<int>(tab_buttons.size());
+  const int to = (static_cast<int>(page_) + step + count) % count;
+  select(static_cast<SettingsPage>(to));
+  // The keyboard stays where it was, unless that was on the tabs, where it follows.
+  if (ui_.stop_owner == this && ui_.stop_id >= TabBase) ui_.move_stop_to(this, TabBase + to);
+  return true;
+}
+
 bool SettingsPanel::escape() {
   if (!open_) return false;
   if (!tab().escape()) close();

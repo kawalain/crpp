@@ -732,6 +732,7 @@ bool App::sys_key(unsigned vk, bool shift) {
     return true;
   }
   if (vk == VK_F10 && shift) return context_key();
+  if ((vk == VK_DOWN || vk == VK_UP) && !ui_.focus && stop_key(vk, false, shift, true)) return true;
   // Alt shows where the keyboard is, as it shows a dialog's underlines.
   if (vk == VK_MENU && !ui_.cues) {
     ui_.cues = true;
@@ -761,12 +762,20 @@ bool App::move_stop(int step) {
   return true;
 }
 
+bool App::stop_key(unsigned vk, bool ctrl, bool shift, bool alt) {
+  const Ui::Hit* stop = ui_.current_stop();
+  if (!stop) return false;
+  Surface* const owner = stop->owner;
+  if (!owner->stop_key(stop->id, vk, ctrl, shift, alt)) return false;
+  // An arrow shows where the keyboard is, as Tab does.
+  ui_.cues = true;
+  return true;
+}
+
 bool App::act_on_stop(unsigned vk) {
-  if (!ui_.stop_owner) return false;
-  const std::vector<const Ui::Hit*> stops = ui_.tab_stops();
-  const auto at = std::ranges::find_if(stops, [&](const Ui::Hit* h) { return h->owner == ui_.stop_owner && h->id == ui_.stop_id; });
-  if (at == stops.end()) return false;  // gone, or under what has opened since
-  const Ui::Hit& hit = **at;
+  const Ui::Hit* stop = ui_.current_stop();
+  if (!stop) return false;  // gone, or under what has opened since
+  const Ui::Hit& hit = *stop;
   const Role role = *hit.owner->role(hit.id);
   const bool acts = vk == VK_RETURN ? role == Role::Button || role == Role::Link || role == Role::Tab
                                     : role == Role::Button || role == Role::Toggle || role == Role::Tab || role == Role::Dropdown;
@@ -846,6 +855,13 @@ bool App::key_down(unsigned vk, bool ctrl, bool shift) {
   if (vk == VK_TAB && !ctrl) {
     taken_char_ = L'\t';
     return move_stop(shift ? -1 : 1);
+  }
+  for (Surface* s : layers()) {
+    if (s->layer_key(vk, ctrl, shift)) return true;
+  }
+  if (!ui_.focus && stop_key(vk, ctrl, shift, false)) {
+    if (vk == VK_RETURN || vk == VK_SPACE) taken_char_ = vk == VK_RETURN ? L'\r' : L' ';
+    return true;
   }
   if ((vk == VK_RETURN || vk == VK_SPACE) && !ctrl && !ui_.focus && act_on_stop(vk)) {
     taken_char_ = vk == VK_RETURN ? L'\r' : L' ';

@@ -48,6 +48,8 @@ class ChangelogView final : public Surface {
     return id == Close ? std::optional(Role::Button) : id == Text ? std::optional(Role::List) : std::nullopt;
   }
   [[nodiscard]] bool holds_keys(int id) const override { return id == Backdrop; }
+  // The notes scroll by the keys of a page, while the keyboard is on them.
+  bool stop_key(int id, unsigned vk, bool ctrl, bool shift, bool alt) override;
 
   [[nodiscard]] static skin::ScreenSchema schema();
 

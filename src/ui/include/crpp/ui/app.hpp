@@ -269,6 +269,8 @@ class App {
   wchar_t taken_char_ = 0;
   // Enter or Space on the stop the keyboard is on, as a click on it.
   bool act_on_stop(unsigned vk);
+  // A key the stop the keyboard is on takes itself, with Alt when it came as a key of the system.
+  bool stop_key(unsigned vk, bool ctrl, bool shift, bool alt);
   PromptScreen prompt_{ui_};
   WindowFrame frame_{ui_};
   WindowFrame pane_frame_{ui_};

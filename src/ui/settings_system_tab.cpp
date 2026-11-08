@@ -179,6 +179,17 @@ bool SystemTab::key(unsigned vk, bool ctrl, bool shift) {
   return false;
 }
 
+bool SystemTab::stop_key(int id, unsigned vk, bool ctrl, bool, bool alt) {
+  if (ctrl) return false;
+    if (release_.owns(id)) {
+      const std::optional<int> hit = release_.key(ui_, this, vk, alt);
+      if (!hit) return false;
+      if (*hit != Dropdown::taken_alone) click(*hit, 0, 0, false);
+      return true;
+    }
+  return false;
+}
+
 void SystemTab::click(int id, float x, float y, bool shift) {
   if (is_fingerprint(id)) {
     // The fingerprints take the keys now: Ctrl+C copies what is selected of them.

@@ -161,6 +161,25 @@ bool DisplayTab::wheel(float x, float y, float delta) {
   return skin_theme_.wheel(ui_, x, y, delta) || dark_mode_.wheel(ui_, x, y, delta) || idle_.wheel(ui_, x, y, delta) || language_.wheel(ui_, x, y, delta);
 }
 
+bool DisplayTab::stop_key(int id, unsigned vk, bool ctrl, bool, bool alt) {
+  if (ctrl) return false;
+  if (id == ScaleSlider) {
+    const std::optional<int> value = slider_key(vk, ui_.prefs->get(pref::chat_scale), scale_min, scale_max);
+    if (!value) return false;
+    if (*value != ui_.prefs->get(pref::chat_scale)) ui_.prefs->set(pref::chat_scale, *value);
+    return true;
+  }
+  for (Dropdown* box : {&skin_theme_, &dark_mode_, &idle_, &language_}) {
+    if (box->owns(id)) {
+      const std::optional<int> hit = box->key(ui_, this, vk, alt);
+      if (!hit) return false;
+      if (*hit != Dropdown::taken_alone) click(*hit, 0, 0, false);
+      return true;
+    }
+  }
+  return false;
+}
+
 bool DisplayTab::escape() {
   bool closed = false;
   for (Dropdown* d : {&skin_theme_, &dark_mode_, &idle_, &language_}) {

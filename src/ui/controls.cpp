@@ -101,6 +101,48 @@ bool Dropdown::click(int id) {
   return true;
 }
 
+std::optional<int> Dropdown::key(Ui& ui, Surface* owner, unsigned vk, bool alt) {
+  if (disabled) return std::nullopt;
+  const int n = static_cast<int>(options.size());
+  const auto next_from = [&](int from, int step) {
+    for (int i = from + step; i >= 0 && i < n; i += step) {
+      if (!heading(static_cast<std::size_t>(i))) return i;
+    }
+    return -1;
+  };
+  const bool opener = vk == VK_F4 || (alt && (vk == VK_DOWN || vk == VK_UP));
+  int to = -1;
+  const int from = open && active_ >= 0 ? active_ : selected;
+  switch (vk) {
+    case VK_DOWN: to = next_from(from, 1); break;
+    case VK_UP: to = next_from(from, -1); break;
+    case VK_HOME: to = next_from(-1, 1); break;
+    case VK_END: to = next_from(n, -1); break;
+    // Eight on, or the nearest option there is that way.
+    case VK_NEXT: to = next_from(std::min(from + 7, n - 1), 1) >= 0 ? next_from(std::min(from + 7, n - 1), 1) : next_from(n, -1); break;
+    case VK_PRIOR: to = next_from(std::max(from - 7, 0), -1) >= 0 ? next_from(std::max(from - 7, 0), -1) : next_from(-1, 1); break;
+    default: break;
+  }
+  if (!open) {
+    if (opener || vk == VK_SPACE) {
+      active_ = selected;
+      return id_base;
+    }
+    if (vk == VK_RIGHT) to = next_from(selected, 1);
+    if (vk == VK_LEFT) to = next_from(selected, -1);
+    if (to < 0) return vk == VK_DOWN || vk == VK_UP || vk == VK_LEFT || vk == VK_RIGHT || vk == VK_HOME || vk == VK_END || vk == VK_NEXT || vk == VK_PRIOR ? std::optional(taken_alone) : std::nullopt;
+    return id_base + 1 + to;
+  }
+  if (opener) return id_base;  // closes
+  if (vk == VK_RETURN || vk == VK_SPACE) return active_ >= 0 ? id_base + 1 + active_ : id_base;
+  if (to < 0) return vk == VK_DOWN || vk == VK_UP || vk == VK_HOME || vk == VK_END || vk == VK_NEXT || vk == VK_PRIOR ? std::optional(taken_alone) : std::nullopt;
+  active_ = to;
+  // The pointer's highlight is the one the list has; the keyboard moves it, as in a list of the system.
+  ui.hover_owner = owner;
+  ui.hover_id = id_base + 1 + to;
+  return taken_alone;
+}
+
 bool Dropdown::wheel(const Ui& ui, float x, float y, float delta) {
   if (!open || !list_.contains(ui.to_stage_x(x), ui.to_stage_y(y))) return false;
   scroll_.wheel(ui, delta, 40);
@@ -110,6 +152,45 @@ bool Dropdown::wheel(const Ui& ui, float x, float y, float delta) {
 void Scroll::clamp() {
   offset = std::clamp(offset, 0.0f, max_offset());
   target = std::clamp(target, 0.0f, max_offset());
+}
+
+void Scroll::go_to(const Ui& ui, float at) {
+  if (!ui.animations) {
+    jump_to(at);
+    return;
+  }
+  target = std::clamp(at, 0.0f, max_offset());
+  moved_at = ui.now_ms;
+}
+
+bool Scroll::key(const Ui& ui, unsigned vk, float line) {
+  const float page = std::max(line, view_h - line);
+  switch (vk) {
+    case VK_UP: go_to(ui, target - line); return true;
+    case VK_DOWN: go_to(ui, target + line); return true;
+    case VK_PRIOR: go_to(ui, target - page); return true;
+    case VK_NEXT: go_to(ui, target + page); return true;
+    case VK_HOME: go_to(ui, 0); return true;
+    case VK_END: go_to(ui, max_offset()); return true;
+    default: return false;
+  }
+}
+
+std::optional<int> slider_key(unsigned vk, int value, int min, int max) {
+  const int tenth = std::max(1, (max - min) / 10);
+  int to = value;
+  switch (vk) {
+    case VK_LEFT:
+    case VK_DOWN: to = value - 1; break;
+    case VK_RIGHT:
+    case VK_UP: to = value + 1; break;
+    case VK_PRIOR: to = value + tenth; break;
+    case VK_NEXT: to = value - tenth; break;
+    case VK_HOME: to = min; break;
+    case VK_END: to = max; break;
+    default: return std::nullopt;
+  }
+  return std::clamp(to, min, max);
 }
 
 void Scroll::jump_to(float at) {

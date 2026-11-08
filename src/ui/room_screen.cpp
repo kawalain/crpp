@@ -315,6 +315,17 @@ void RoomScreen::paint_tips(Painter& p) {
   copy_tip_.paint(ui_, p, copying ? &copied : nullptr);
 }
 
+bool RoomScreen::stop_key(int id, unsigned vk, bool ctrl, bool, bool) {
+  if (id != VolumeSlider || ctrl) return false;
+  const std::optional<int> value = slider_key(vk, volume_, 0, 100);
+  if (!value) return false;
+  if (*value != volume_) {
+    volume_ = *value;
+    if (on_volume) on_volume(volume_);
+  }
+  return true;
+}
+
 void RoomScreen::set_volume_from(float x) {
   volume_ = slider_value(volume_track_, x, 0, 100);
   if (on_volume) on_volume(volume_);

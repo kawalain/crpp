@@ -13,12 +13,12 @@ namespace crpp::ui {
 namespace {
 
 enum NumberId : int { Count, Offset, Drawn, Overflow, Selected, Open, FadeTop, FadeBottom, ThumbOn, ThumbOver, ThumbY, ThumbH };
-enum ReportId : int { View, Content, First, Width, Height, ShownReport };
+enum ReportId : int { View, Content, First, Width, Height, ShownReport, Columns, Row };
 constexpr skin::Name number_names[] = {{"count", Count}, {"offset", Offset}, {"scroll", Drawn}, {"overflow", Overflow}, {"selected", Selected}, {"open", Open},
                                        {"fade_top", FadeTop}, {"fade_bottom", FadeBottom}, {"thumb_on", ThumbOn}, {"thumb_over", ThumbOver}, {"thumb_y", ThumbY}, {"thumb_h", ThumbH}};
 constexpr skin::Name picture_names[] = {{"cell", 0}};
 constexpr skin::Name hit_names[] = {{"backdrop", EmojiPicker::Backdrop}, {"card", EmojiPicker::Card}, {"track", EmojiPicker::Track}, {"thumb", EmojiPicker::Thumb}, {"cell", EmojiPicker::CellBase}};
-constexpr skin::Name report_names[] = {{"view", View}, {"content", Content}, {"first", First}, {"width", Width}, {"height", Height}, {"shown", ShownReport}};
+constexpr skin::Name report_names[] = {{"view", View}, {"content", Content}, {"first", First}, {"width", Width}, {"height", Height}, {"shown", ShownReport}, {"columns", Columns}, {"row", Row}};
 constexpr skin::Name note_names[] = {{"track", 0}};
 
 constexpr unsigned long long thumb_hide_ms = 2000;
@@ -80,6 +80,11 @@ void EmojiPicker::paint_pack(Painter& p, const skin::Screen& screen) {
         first_ = value >= 0 ? (value < static_cast<float>(e_.ids_.size()) ? static_cast<std::size_t>(value) : e_.ids_.size()) : 0;
       } else if (id == ShownReport) {
         e_.shown_left_ = value;
+      } else if (id == Columns) {
+        // The pack's number: what is not a count of columns leaves the arrows going by eight.
+        e_.columns_ = value >= 1 && value <= 64 ? static_cast<int>(value) : 8;
+      } else if (id == Row) {
+        e_.row_h_ = value > 0 && value < 1000 ? value : 0;
       }
     }
     void note(int, int, skin::Box box) override { e_.track_ = rect_of(box); }
@@ -104,6 +109,7 @@ void EmojiPicker::show(std::string current, std::function<void(std::string id)> 
   open_ = true;
   closed_at_ = 0;
   current_ = std::move(current);
+  cell_ = -1;
   on_pick_ = std::move(on_pick);
   scroll_ = {};
   thumb_on_ = false;
@@ -117,11 +123,44 @@ void EmojiPicker::show(std::string current, std::function<void(std::string id)> 
   ui_.set_focus(nullptr, nullptr);
 }
 
-std::optional<Role> EmojiPicker::role(int id) const {
-  if (id < CellBase) return std::nullopt;
+int EmojiPicker::keyboard_cell() const {
+  if (cell_ >= 0 && static_cast<std::size_t>(cell_) < ids_.size()) return cell_;
   const auto in_use = std::ranges::find(ids_, current_);
-  const int cell = in_use == ids_.end() ? 0 : static_cast<int>(in_use - ids_.begin());
-  return id == CellBase + cell ? std::optional(Role::List) : std::nullopt;
+  return in_use == ids_.end() ? 0 : static_cast<int>(in_use - ids_.begin());
+}
+
+std::optional<Role> EmojiPicker::role(int id) const {
+  return id >= CellBase && id == CellBase + keyboard_cell() ? std::optional(Role::List) : std::nullopt;
+}
+
+bool EmojiPicker::stop_key(int id, unsigned vk, bool ctrl, bool, bool) {
+  if (id < CellBase || ctrl || ids_.empty()) return false;
+  const int n = static_cast<int>(ids_.size()), cols = std::max(1, columns_), at = keyboard_cell();
+  const int page = cols * std::max(1, static_cast<int>(scroll_.view_h / std::max(1.0f, row_h_)));
+  int to = at;
+  switch (vk) {
+    case VK_LEFT: to = at - 1; break;
+    case VK_RIGHT: to = at + 1; break;
+    case VK_UP: to = at - cols; break;
+    case VK_DOWN: to = at + cols; break;
+    case VK_HOME: to = at - at % cols; break;
+    case VK_END: to = at - at % cols + cols - 1; break;
+    case VK_PRIOR: to = at - page; break;
+    case VK_NEXT: to = at + page; break;
+    case VK_RETURN:
+    case VK_SPACE: click(CellBase + at, 0, 0, false); return true;
+    default: return false;
+  }
+  to = std::clamp(to, 0, n - 1);
+  cell_ = to;
+  // Its row comes into view: only the rows in view are drawn, and a stop must be drawn.
+  if (row_h_ > 0) {
+    const float top = static_cast<float>(to / cols) * row_h_;
+    if (top < scroll_.target) scroll_.jump_to(top);
+    else if (top + row_h_ > scroll_.target + scroll_.view_h) scroll_.jump_to(top + row_h_ - scroll_.view_h);
+  }
+  ui_.move_stop_to(this, CellBase + to);
+  return true;
 }
 
 void EmojiPicker::close() {

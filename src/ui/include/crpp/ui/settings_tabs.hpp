@@ -80,6 +80,7 @@ class SoundTab final : public SettingsTab {
     if (id == SpeakerList || id == KeyboardList || id == MouseList || id == PenList || id == ReverbList) return Role::Dropdown;
     return std::nullopt;
   }
+  bool stop_key(int id, unsigned vk, bool ctrl, bool shift, bool alt) override;
 
   // The tab came on screen: time to fill the lists.
   std::function<void()> on_shown;
@@ -155,6 +156,7 @@ class DisplayTab final : public SettingsTab {
     if (id == SkinThemeList || id == DarkModeList || id == IdleList || id == LanguageList) return Role::Dropdown;
     return std::nullopt;
   }
+  bool stop_key(int id, unsigned vk, bool ctrl, bool shift, bool alt) override;
 
   // Asked whenever the tab comes on screen, for who the chat sample shows.
   std::function<void()> on_shown;
@@ -237,6 +239,7 @@ class SystemTab final : public SettingsTab {
     if (id == OpenLogs || id == Reset || id == AddRepository || id >= RemoveRepository) return Role::Button;
     return std::nullopt;
   }
+  bool stop_key(int id, unsigned vk, bool ctrl, bool shift, bool alt) override;
   void focus(int id) override;
 
   // A Repository in the list, the official one first, which cannot be removed.

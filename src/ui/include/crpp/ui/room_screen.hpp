@@ -59,6 +59,7 @@ class RoomScreen final : public Surface {
     if (id == VolumeSlider) return Role::Slider;
     return std::nullopt;
   }
+  bool stop_key(int id, unsigned vk, bool ctrl, bool shift, bool alt) override;
 
   [[nodiscard]] ChatPanel& chat() { return chat_panel_; }
   [[nodiscard]] ProfileCard& profile_card() { return profile_; }

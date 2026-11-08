@@ -231,6 +231,13 @@ class Ui : public WindowState {
   }
   // The stops Tab goes through in this window, in order: above the last hit that holds the keys.
   [[nodiscard]] std::vector<const Hit*> tab_stops() const;
+  // The stop the keyboard is on, if it is one of those now.
+  [[nodiscard]] const Hit* current_stop() const;
+  // The keyboard goes to this stop of the same surface, and that shows, as an arrow moves it in a list.
+  void move_stop_to(Surface* owner, int id) {
+    set_stop(owner, id);
+    cues = true;
+  }
   [[nodiscard]] float to_stage_x(float x) const { return (x - ox) / scale; }
   [[nodiscard]] float to_stage_y(float y) const { return (y - oy) / scale; }
   [[nodiscard]] Rect to_window(Rect r) const { return {ox + r.x * scale, oy + r.y * scale, r.w * scale, r.h * scale}; }
@@ -305,6 +312,11 @@ class Surface {
   [[nodiscard]] virtual bool holds_keys(int /*id*/) const { return false; }
   // The keyboard came to this stop. A field takes the keys here.
   virtual void focus(int /*id*/) {}
+  // A key while the keyboard is on this stop and no field has the keys: arrows and the like. True if taken.
+  virtual bool stop_key(int /*id*/, unsigned /*vk*/, bool /*ctrl*/, bool /*shift*/, bool /*alt*/) { return false; }
+  // A key the whole layer takes while it is open, wherever the keyboard is in it, as Ctrl+Tab in a
+  // panel of tabs. Offered top layer first.
+  virtual bool layer_key(unsigned /*vk*/, bool /*ctrl*/, bool /*shift*/) { return false; }
 
   // A running effect that needs frames.
   [[nodiscard]] virtual bool animating() const { return false; }

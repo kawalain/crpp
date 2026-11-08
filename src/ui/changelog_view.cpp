@@ -314,6 +314,11 @@ void ChangelogView::drag(float x, float y) {
   scroll_.jump_to(grab_offset_ + (y - grab_y_) * scroll_.max_offset() / travel);
 }
 
+bool ChangelogView::stop_key(int id, unsigned vk, bool ctrl, bool, bool) {
+  if (id != Text || ctrl || !open_) return false;
+  return scroll_.key(ui_, vk, first_line_ > 0 ? first_line_ : 20);
+}
+
 bool ChangelogView::wheel(float, float, float delta) {
   if (!open_) return false;
   const auto now = clock_ms();

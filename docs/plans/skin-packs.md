@@ -157,7 +157,13 @@ before step 7, which removes what Cloud's pack is compared with.
      matches. The font comes with the Cloud pack only. Then, after asking, a first `wrangler deploy` from here.
    - **6b.** The display tab lists Themes not yet installed; picking one shows progress and applies it. The system
      tab's "저장소" row adds and removes Repositories and shows their fingerprints. Details under "Downloading,
-     decided" below. A Sound pack another member lacks already plays as the device's first pack.
+     decided" below. A Sound pack another member lacks already plays as the device's first pack. Done: on a
+     hidden desktop against localhost, a Repository of its own key was added through its dialog, the same one
+     again was refused as known, its pack was fetched and applied, removing it was refused while in use and
+     then took its folder, and an added one and its Skin came back after a restart. Its rows sit between the
+     system tab's own rows and the advanced section. Only a Skin Pack and the C++ Cloud layout draw them; Luna's
+     C++ layout goes in step 7. Not yet: a key that changes behind the app is only logged, as 6d settles its
+     warning, and the add dialog has no Cancel by default.
    - **6c.** Removing unused packs, and updates fetched behind the app and applied on the next start.
    - **6d.** A parent in another Repository, and pinning it.
    - **6e.** Sound packs of other Repositories.

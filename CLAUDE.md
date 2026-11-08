@@ -167,7 +167,11 @@ against a real `server/` yet; do that once a local build of it is available.
   under a heading with its name between lines, so a Theme brings its Skin. They are read from the packs in
   `skins/` beside the exe and kept under `skin`, `skinTheme` and `darkMode`; until those are set upstream's
   `theme`, `systemTheme` and `lightTheme` are read, and the choice never writes them. The dark mode is
-  locked while a Theme has no dark variant, keeping its value.
+  locked while a Theme has no dark variant, keeping its value. A Theme of a pack not yet installed is in the
+  list with its size, and is fetched when picked, with progress and a cancel under the list.
+- Skins come from Repositories (ADR 0008), listed in the system tab: the official one, which stays, and those
+  the user adds by an HTTPS address or `github:owner/repo[@ref]`, after a dialog with the key's fingerprint.
+  A pack of an added one is `<first 16 digits of the fingerprint>/<id>`. Upstream has none of this.
 - Upstream's Theme 구름 is 뭉게구름 ("Cumulus"), as the Skin it belongs to is 구름 too. Its id is `cumulus`;
   upstream's keys keep upstream's `cloudroom`, which is read as `cumulus` wherever it is found.
 - The create cloud on Home really grows under the pointer, as upstream's does. The C++ layout asked for it
@@ -298,7 +302,10 @@ exist (real + test).
   already matches. The exe holds only the official Repository's address and the update key
   (`built_in.hpp`); `crpp_catalog` writes a catalog from `assets/`, `skins/` and
   `cmake/remote_assets.txt`, and `.github/scripts/build-repository.sh` fills and signs the official
-  one. `Platform` is the seam for WinHTTP and BCrypt.
+  one, and `sign-catalog.sh` prints its key's fingerprint. A Repository the user adds (`folder_of` reads
+  its address) offers only packs, in folders of their own, and is trusted by the key its catalog states
+  (`fetch_new_catalog`) once the user has seen the fingerprint; `apps/gui/area_repositories.cpp` keeps each
+  in `repositories/<first 16 digits>/` of the Protected store. `Platform` is the seam for WinHTTP and BCrypt.
 - `api`: the account HTTP API as pure requests and responses, and `Flow`, the
   prompt's steps. `HttpClient` is the seam for WinHTTP; `Worker` keeps its blocking
   calls off the UI thread. `apps/gui/account_controller` joins it to `ui`.
@@ -456,6 +463,10 @@ exist (real + test).
   official Repository (deployed 2026-11-08, on `https://crpp.kawala.in/` since) a first start that took
   14 s for 15.3 MB on one connection. Its second source needs the release's tag and its committed
   catalog on GitHub, and raw.githubusercontent.com has not been tried as one.
+- Adding a Repository, fetching a Theme of it and removing it have run on a hidden desktop against localhost
+  only, driven by a throwaway build, not by hand. A `github:` address has not been added from a real
+  repository (raw.githubusercontent.com answered `HEAD` and a tag without a redirect), and the field, the
+  dialog's long fingerprint and a pack's progress have not been seen on a real desktop.
 - v0.1.0 updated itself to v0.1.1 from GitHub on one Windows 10 PC with Defender. The cause
   of the detection in `docs/releases/README.md` is unknown, and it may come back with any
   release. The exe has no code signature, so try another machine and SmartScreen.

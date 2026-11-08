@@ -127,24 +127,28 @@ void App::point_at_palette() {
   if (const skin::Paint* sky = pack_->paint_named(ui_.palette, "sky")) ui_.theme.sky = sky->color;
 }
 
-bool App::find_skins(const std::filesystem::path& dir) {
+bool App::find_skins(std::span<const SkinFolder> where) {
   ui_.skins.clear();
-  std::error_code error;
-  std::vector<std::filesystem::path> folders;
-  for (const auto& entry : std::filesystem::directory_iterator(dir, error)) {
-    if (entry.is_directory(error) && holds_pack(entry.path())) folders.push_back(entry.path());
-  }
-  std::ranges::sort(folders);
-  for (const std::filesystem::path& folder : folders) {
-    skin::LoadOptions options;
-    options.parent = [parents = dir](std::string_view id) -> std::optional<skin::ReadFile> {
-      const std::filesystem::path other = parents / std::filesystem::path(id);
-      if (!holds_pack(other)) return std::nullopt;
-      return files_of(other);
-    };
-    // One that cannot be read is not offered, and the others still are.
-    if (const auto pack = skin::load_pack(files_of(folder), screen_schemas(), options); pack && !skin::missing_constant(*pack)) {
-      ui_.skins.push_back(skin_info(*pack, narrow(folder.wstring())));
+  for (const SkinFolder& place : where) {
+    std::error_code error;
+    std::vector<std::filesystem::path> folders;
+    for (const auto& entry : std::filesystem::directory_iterator(place.dir, error)) {
+      if (entry.is_directory(error) && holds_pack(entry.path())) folders.push_back(entry.path());
+    }
+    std::ranges::sort(folders);
+    for (const std::filesystem::path& folder : folders) {
+      skin::LoadOptions options;
+      options.parent = [parents = place.dir](std::string_view id) -> std::optional<skin::ReadFile> {
+        const std::filesystem::path other = parents / std::filesystem::path(id);
+        if (!holds_pack(other)) return std::nullopt;
+        return files_of(other);
+      };
+      // One that cannot be read is not offered, and the others still are.
+      if (const auto pack = skin::load_pack(files_of(folder), screen_schemas(), options); pack && !skin::missing_constant(*pack)) {
+        SkinInfo info = skin_info(*pack, narrow(folder.wstring()));
+        if (!place.prefix.empty()) info.id = place.prefix + "/" + info.id;
+        ui_.skins.push_back(std::move(info));
+      }
     }
   }
   return !ui_.skins.empty();

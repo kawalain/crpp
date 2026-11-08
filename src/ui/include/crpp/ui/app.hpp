@@ -110,8 +110,19 @@ class App {
   void set_theme(std::string_view id);
   // The Skin's own notification sounds: 0 none, 1 small bells, 2 plain tones.
   [[nodiscard]] int notification_style() const;
-  // Every folder with a pack.cskin in `dir` can be chosen. False when there is none.
-  bool find_skins(const std::filesystem::path& dir);
+  // A folder of Skin Packs, and what comes before their ids: the first digits of the fingerprint of
+  // the Repository they came from, or nothing for the official one (ADR 0008).
+  struct SkinFolder {
+    std::filesystem::path dir;
+    std::string prefix;
+  };
+  // Every folder with a pack.cskin in these can be chosen, those of the first first. A pack's parent
+  // is in the same folder. False when there is none.
+  bool find_skins(std::span<const SkinFolder> folders);
+  bool find_skins(const std::filesystem::path& dir) {
+    const SkinFolder one[] = {{dir, {}}};
+    return find_skins(one);
+  }
   // Draws what the settings choose, among the packs found.
   void apply_skin_choice(bool system_dark);
   // Draws from the Skin Pack in this folder what it has. The error says what is wrong with it.

@@ -88,6 +88,28 @@ void a_field_offers_what_can_be_done_with_its_text(const char* pack) {
   CHECK(r.h.app.key_down(VK_DOWN, false, false) && menu.chosen() == 2);  // the only one
   CHECK(r.h.app.char_input(L'x', false) && r.chat->input().text().empty());  // keys are the menu's
   CHECK(r.h.app.key_down(VK_RETURN, false, false) && r.chat->input().text() == L"hello");
+  // The character Enter also makes is the menu's too: the draft is not sent.
+  CHECK(r.h.app.char_input(L'', false) && r.chat->input().text() == L"hello");
+}
+
+void enter_answers_a_question_and_sends_nothing(const char* pack) {
+  Room r(pack);
+  int confirmed = 0;
+  // What the answer does may put the keys in a field, which the character of that Enter must not reach.
+  r.h.app.dialogs().show({"Sure?", "Yes", "No", false, [&] {
+                            ++confirmed;
+                            r.h.app.ui().set_focus(r.chat, &r.chat->input());
+                            r.chat->input().set_text(L"draft");
+                          },
+                          nullptr});
+  r.h.render();
+  CHECK(r.h.app.key_down(VK_RETURN, false, false));
+  CHECK(confirmed == 1 && !r.h.app.dialogs().is_open());
+  CHECK(r.h.app.char_input(L'', false) && r.chat->input().text() == L"draft");
+  // The next Enter is the field's again.
+  r.h.app.key_down(VK_RETURN, false, false);
+  r.h.app.char_input(L'', false);
+  CHECK(r.chat->input().text().empty());
 }
 
 void a_link_offers_its_address(const char* pack) {
@@ -165,6 +187,7 @@ int main() {
     a_link_offers_its_address(pack);
     messages_offer_copy_and_select_all(pack);
     escape_alt_and_a_click_elsewhere_close_it(pack);
+    enter_answers_a_question_and_sends_nothing(pack);
   }
   a_password_cannot_be_cut_or_copied();
   return crpp_test_result();

@@ -753,6 +753,8 @@ bool App::wheel(float x, float y, float delta) {
 
 bool App::char_input(wchar_t c, bool shift) {
   if (context_menu_.is_open()) return true;  // an access key, not typing
+  // The character of an Enter a menu or a question took is theirs too, whatever has the keys now.
+  if (std::exchange(return_taken_, false) && c == L'') return true;
   if (!ui_.focus) return false;
   if (c == L'\r') ui_.focus_owner->enter(shift);
   else ui_.focus->insert(std::wstring_view(&c, 1));
@@ -761,9 +763,14 @@ bool App::char_input(wchar_t c, bool shift) {
 }
 
 bool App::key_down(unsigned vk, bool ctrl, bool shift) {
-  if (context_menu_.is_open()) return context_menu_.key(vk, ctrl, shift);
+  return_taken_ = false;
+  if (context_menu_.is_open()) {
+    return_taken_ = vk == VK_RETURN;
+    return context_menu_.key(vk, ctrl, shift);
+  }
   if (vk == VK_APPS) return context_key();
-  if (vk == VK_RETURN && pane_ == Pane::Dialog) {  // as any window that asks a question
+  if (vk == VK_RETURN && dialogs_.is_open()) {  // as any window that asks a question
+    return_taken_ = true;
     dialogs_.click(Dialogs::Confirm, 0, 0, false);
     return true;
   }

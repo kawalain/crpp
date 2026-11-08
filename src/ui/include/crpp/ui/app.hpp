@@ -259,6 +259,7 @@ class App {
   ChangelogView changelog_{ui_};
   Dialogs dialogs_{ui_};
   ContextMenu context_menu_{ui_};
+  bool return_taken_ = false;  // the last key was an Enter a menu or a question took
   PromptScreen prompt_{ui_};
   WindowFrame frame_{ui_};
   WindowFrame pane_frame_{ui_};

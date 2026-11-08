@@ -22,8 +22,7 @@ bool system_prefers_dark() {
 
 void apply_theme(Shell& s) {
   forget_cursors(s);
-  if (!s.app.ui().skins.empty()) s.app.apply_skin_choice(system_prefers_dark());
-  else s.app.set_theme(effective_theme(*s.app.ui().prefs, system_prefers_dark()).id);
+  s.app.apply_skin_choice(system_prefers_dark());
   area::sound::theme_changed(s);
   if (!s.hwnd) return;
   // The title bar too (DWMWA_USE_IMMERSIVE_DARK_MODE). Older Windows refuses; harmless.

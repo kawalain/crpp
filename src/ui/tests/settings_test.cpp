@@ -14,28 +14,10 @@ void open(UiHarness& h, SettingsPage page) {
   h.render();
 }
 
-void test_effective_theme() {
-  MemoryPrefs prefs;
-  CHECK(effective_theme(prefs, false).id == "cumulus");
-  CHECK(effective_theme(prefs, true).id == "cumulus");  // the OS only counts when linked
-  prefs.set(pref::theme, "pastel");
-  CHECK(effective_theme(prefs, true).id == "pastel");
-  prefs.set(pref::theme, "nonsense");
-  CHECK(effective_theme(prefs, false).id == "cumulus");
-
-  prefs.set(pref::system_theme, true);
-  prefs.set(pref::light_theme, "pastel");
-  CHECK(effective_theme(prefs, false).id == "pastel");
-  CHECK(effective_theme(prefs, true).id == "darkcloud");
-  prefs.set(pref::light_theme, "darkcloud");  // not a light theme
-  CHECK(effective_theme(prefs, false).id == "cumulus");
-}
-
 void test_upstreams_name_for_cumulus_is_kept_in_its_keys() {
   CHECK(std::string(pref::theme.fallback) == "cloudroom");
   CHECK(theme_from_upstream("cloudroom") == "cumulus");
-  CHECK(theme_to_upstream("cumulus") == "cloudroom");
-  CHECK(theme_from_upstream("pastel") == "pastel" && theme_to_upstream("pastel") == "pastel");
+  CHECK(theme_from_upstream("pastel") == "pastel");
 }
 
 void test_escape_closes_the_dropdown_then_the_panel() {
@@ -350,7 +332,6 @@ void test_chat_clock() {
 }  // namespace
 
 int main() {
-  test_effective_theme();
   test_upstreams_name_for_cumulus_is_kept_in_its_keys();
   test_a_repository_is_added_and_removed_by_the_shell();
   test_escape_closes_the_dropdown_then_the_panel();

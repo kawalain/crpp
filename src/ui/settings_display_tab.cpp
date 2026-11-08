@@ -20,21 +20,7 @@ int selected_language(const std::string& id) {
   return found == locales.end() ? 0 : static_cast<int>(found - locales.begin()) + 1;
 }
 
-// Which of these Themes a saved id is; the first for an id it does not know.
-int index_of(const std::vector<const ThemeEntry*>& list, const std::string& saved) {
-  const auto it = std::ranges::find(list, theme_from_upstream(saved), &ThemeEntry::id);
-  return it == list.end() ? 0 : static_cast<int>(it - list.begin());
-}
-
 }  // namespace
-
-const ThemeEntry& effective_theme(const Prefs& prefs, bool system_dark) {
-  if (prefs.get(pref::system_theme)) {
-    const auto list = themes_of(system_dark);
-    return *list[static_cast<std::size_t>(index_of(list, prefs.get(system_dark ? pref::dark_theme : pref::light_theme)))];
-  }
-  return theme_named(theme_from_upstream(prefs.get(pref::theme)));
-}
 
 DisplayTab::DisplayTab(Ui& ui) : SettingsTab(ui) {
   skin_theme_.id_base = SkinThemeList;

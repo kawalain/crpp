@@ -5,7 +5,6 @@
 #include <cmath>
 
 #include "areas.hpp"
-#include "crpp/ui/luna.hpp"
 #include "crpp/ui/png.hpp"
 #include "crpp/update/built_in.hpp"
 #include "os_policy.hpp"

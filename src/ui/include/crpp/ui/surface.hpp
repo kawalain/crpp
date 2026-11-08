@@ -11,7 +11,6 @@
 #include "crpp/skin/motion.hpp"
 #include "crpp/skin/pack.hpp"
 #include "crpp/ui/gfx.hpp"
-#include "crpp/ui/skin.hpp"
 #include "crpp/ui/skin_choice.hpp"
 #include "crpp/ui/svg.hpp"
 #include "crpp/ui/textfield.hpp"
@@ -122,9 +121,13 @@ class Ui : public WindowState {
   Gfx gfx;
   std::optional<EmojiCache> emoji;
   std::vector<std::string> emoji_ids;  // what the picker offers, when it can show them
-  Theme theme = light_cloud_palette(rgb(0x66ccff));
+  Theme theme;
 
-  [[nodiscard]] const Skin& skin() const { return skin_of(theme); }
+  // Does the window show the stage scaled to it, or does everything keep its own size in a frame
+  // the app draws? Without a pack, the first.
+  [[nodiscard]] bool scales_stage() const;
+  // Screen transitions, wheel scrolling that settles, stretch at the ends, edge fades.
+  [[nodiscard]] bool moves() const;
 
   // The Skin Pack in use and this Theme's Palette in it, while data draws what it has.
   const skin::Pack* pack = nullptr;
@@ -140,7 +143,6 @@ class Ui : public WindowState {
   // Where a screen is drawn: on the stage when that is scaled to the window, otherwise inside the frame.
   [[nodiscard]] Rect screen_area() const;
 
-  [[nodiscard]] ID2D1PathGeometry* cloud() const { return gfx.path(cloud_path_data); }
 
   // Never null once App exists.
   Prefs* prefs = nullptr;

@@ -177,8 +177,7 @@ against a real `server/` yet; do that once a local build of it is available.
   tab fetches when picked. Upstream has none of this.
 - Upstream's Theme 구름 is 뭉게구름 ("Cumulus"), as the Skin it belongs to is 구름 too. Its id is `cumulus`;
   upstream's keys keep upstream's `cloudroom`, which is read as `cumulus` wherever it is found.
-- The create cloud on Home really grows under the pointer, as upstream's does. The C++ layout asked for it
-  and its cloud reset the transform it was under.
+- The create cloud on Home really grows under the pointer, as upstream's does.
 - A second Skin upstream does not have, Retro, in the look of the desktops of the 1990s and early 2000s
   (`docs/research/retro-messenger-look.md`, `docs/research/retro-themes.md`). Values and shapes are re-created
   as vectors, and nothing is taken from Windows or the old programs: no logo, person icon, sound or font of
@@ -219,10 +218,9 @@ A shot is in Korean and in the Theme of its scene unless `--locale <id>` or
 A scene that opens a panel with a window of its own renders that window. Under `--skin-dir`, the scene `cursors`, which
 is not in `scenes.txt`, is a sheet of the pack's cursors.
 
-A normal run offers every pack in `skins/` beside the exe, and draws with the C++ layouts when there is none. A shot
+A normal run offers every pack in `skins/` beside the exe; with none, it shows only the first-run screen. A shot
 without `--skin-dir` draws from the pack beside the exe that has its `--theme`, or from the default one.
-`--skin-dir <dir>` draws from the unsigned Skin Pack in that folder what it has and offers only that pack, and the C++ layout
-draws the rest until `docs/plans/skin-packs.md` is done.
+`--skin-dir <dir>` draws from the unsigned Skin Pack in that folder and offers only that pack.
 
 Nothing may wait for a person in a scripted run. On a desktop nobody sees the app shows no dialog: when
 it cannot start, as when it refuses a pack, it exits with 3 and leaves the reason in `<png>.error`, or
@@ -348,18 +346,19 @@ exist (real + test).
   every scroll area's wheel, stretch and edge fade. A motion's first frame has made no
   progress yet, so it must ask for the next frame from its start. `--shot ...
   motion-<name> --at <ms>` renders a moment of a motion; `apps/gui/shot.cpp` names them.
-  A Theme is one row of `themes.cpp`: a Skin and a Palette, which is all a new Palette takes. `Skin` draws
-  the controls and decides the window frame and motion (`docs/adr/0005-skins-own-shape-and-layout.md`).
-  Home, Room with its chat, the prompt and settings have a layout per Skin in `*_luna.cpp`, on the same
-  state, hit ids and callbacks; `luna.hpp` holds the Luna controls. `window_frame.cpp` says what each
+  Every screen, control and window frame is drawn from the Skin Pack in use, through `SkinCanvas`
+  (`docs/adr/0005-skins-own-shape-and-layout.md`, ADR 0007); a surface keeps its state, hit ids and
+  callbacks whatever the pack. The program has one look of its own, the first-run screen's plain one in
+  `setup_screen.cpp`, for before any pack is there. What it reads of a pack's whole look is
+  `Ui::scales_stage`, `Ui::moves` and its constants, and of a Theme only `Theme`'s dark and sky. `window_frame.cpp` says what each
   point of an own-drawn frame is, and the shell answers `WM_NCHITTEST` from it. `App::screen_size` names
   the size of the current screen, and the shell fits the window to it when a frame starts.
   With an own frame `App::open_panes` says which panels should have a window, and `pane_window.cpp`
   makes that true on a posted message, so a window is never destroyed under its own click. There is one
   `Ui`: what differs per window is `WindowState`, swapped by `App::use_pane`, and a window's messages run
-  inside a `PaneScope`. Tests go there with `UiHarness::on_pane`. Luna draws boxes and lines on whole
-  pixels through `Painter`, so equal sizes stay equal at any scale; a part of several lines counts from
-  `Painter::snap` in `Painter::line`.
+  inside a `PaneScope`. Tests go there with `UiHarness::on_pane`. A pack with its own frame draws boxes
+  and lines on whole pixels through `Painter`, so equal sizes stay equal at any scale; a part of several
+  lines counts from `Painter::snap` in `Painter::line`.
 
 ## Performance rules
 
@@ -451,8 +450,8 @@ exist (real + test).
 - Retro's colours for Homestead, Metallic and the dark variants are drawn here (`docs/research/retro-themes.md`),
   and only some of their screens have been seen, on a hidden desktop. Choosing a Skin and going from one to
   another has run in tests and on a hidden desktop only: see it on a real one.
-- Cloud from its pack gives the C++ layout's image in every scene, moments of motion included, which proves the look
-  and not the feel. Try scrolling, hovering and every transition by hand.
+- Cloud from its pack gave the old C++ layout's image in every scene, moments of motion included, which proves the
+  look and not the feel. Try scrolling, hovering and every transition by hand.
 - The pack's cursors have only been drawn into bitmaps, with `DrawIconEx` for the blending. See on a real desktop: their edges,
   whether a resize keeps them during the drag, and whether the system puts its pointer shadow on them; Microsoft does not say,
   so they draw none. `CursorBaseSize` for "Pointer size" is undocumented and taken from what Qt does; try other sizes, and whether

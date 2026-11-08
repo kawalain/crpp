@@ -232,7 +232,7 @@ void RoomScreen::paint(Painter& p) {
 
 void RoomScreen::paint_overlay(Painter& p) {
   p.set_base(D2D1::Matrix3x2F::Identity());
-  if (ui_.skin().scales_stage()) profile_.paint(p);  // otherwise it has a window of its own
+  if (ui_.scales_stage()) profile_.paint(p);  // otherwise it has a window of its own
   menu_.paint(p);
 }
 
@@ -240,7 +240,7 @@ void RoomScreen::paint_overlay(Painter& p) {
 std::optional<HoverTip::Spec> RoomScreen::tip_for_hover() const {
   if (ui_.hover_owner != this) return std::nullopt;
   const int id = ui_.hover_id;
-  if ((id == Mute || id == More) && !ui_.skin().scales_stage()) return std::nullopt;  // they say it themselves
+  if ((id == Mute || id == More) && !ui_.scales_stage()) return std::nullopt;  // they say it themselves
   HoverTip::Spec spec;
   spec.shakes = blocked_times_;
   if (id == Leave && controls_shown_) {
@@ -520,7 +520,7 @@ bool RoomScreen::escape() {
 }
 
 bool RoomScreen::wheel(float x, float y, float delta) {
-  if (profile_.is_open() && ui_.skin().scales_stage()) return true;  // modal
+  if (profile_.is_open() && ui_.scales_stage()) return true;  // modal
   if (chat_ && chat_panel_.wheel(x, y, delta)) return true;
   if (!members_area_.contains(x, y) || members_scroll_.max_offset() <= 0) return false;
   members_scroll_.wheel(ui_, delta);

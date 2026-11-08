@@ -1,7 +1,5 @@
 #pragma once
 // A Skin Pack's walk drawn on a Painter, with its hits going to one Surface.
-#include <memory>
-
 #include "crpp/skin/draw.hpp"
 #include "crpp/ui/surface.hpp"
 
@@ -9,9 +7,6 @@ namespace crpp::ui {
 
 [[nodiscard]] TextStyle text_style_of(const skin::TextLook& look);
 [[nodiscard]] inline Rect rect_of(skin::Box box) { return {box.x, box.y, box.w, box.h}; }
-
-// A Skin whose controls are the parts of the pack in use.
-[[nodiscard]] std::unique_ptr<Skin> make_pack_skin(Ui& ui);
 
 // A screen walked on a Painter, with its hits going to `owner`, which may be nothing.
 void draw_screen(Ui& ui, Painter& p, Surface* owner, const skin::Screen& screen, Rect area, skin::Source& source);

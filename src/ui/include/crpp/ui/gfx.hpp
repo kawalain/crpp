@@ -207,9 +207,6 @@ class Painter {
   // A vertical gradient fill over y0..y1 with the given stops (offset, color).
   void fill_vertical_gradient(ID2D1Geometry* g, float y0, float y1,
                               const std::vector<std::pair<float, Color>>& stops);
-  // The upstream cloud shape (see main.js drawCloud) at x,y with the given scale.
-  void cloud(ID2D1PathGeometry* shape, float x, float y, float scale, float shadow_alpha, float sigma,
-             const Theme& theme);
 
  private:
   const Gfx& gfx_;
@@ -223,8 +220,5 @@ class Painter {
   std::array<D2D1_MATRIX_3X2_F, most_groups> groups_{};
   std::size_t group_depth_ = 0;
 };
-
-// Upstream cloud outline (client/src/main.js cloudPath), 0..492 x 8..318.
-extern const char* const cloud_path_data;
 
 }  // namespace crpp::ui

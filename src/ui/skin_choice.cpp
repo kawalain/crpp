@@ -3,7 +3,6 @@
 #include <algorithm>
 #include <cstdio>
 
-#include "crpp/ui/themes.hpp"
 
 namespace crpp::ui {
 
@@ -82,5 +81,7 @@ SkinChoice choice_of(const Prefs& prefs, std::span<const SkinInfo> skins) {
   const std::string dark = prefs.get(pref::dark_mode);
   return {&skin, theme ? theme : default_of(skin), dark == "on" ? DarkMode::On : dark == "system" ? DarkMode::System : DarkMode::Off};
 }
+
+std::string_view theme_from_upstream(std::string_view id) { return id == "cloudroom" ? std::string_view("cumulus") : id; }
 
 }  // namespace crpp::ui

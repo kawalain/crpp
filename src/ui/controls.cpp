@@ -36,7 +36,12 @@ int slider_value(Rect r, float x, int min, int max) {
 
 void Dropdown::paint_button(Ui& ui, Surface* owner, Painter& p, Rect r) const {
   const std::string_view text = selected >= 0 && selected < static_cast<int>(options.size()) ? std::string_view(options[static_cast<std::size_t>(selected)]) : std::string_view{};
-  ui.skin().dropdown_button(p, ui.theme, r, text, open, !disabled && ui.hot(owner, id_base), disabled);
+  if (const skin::Part* part = ui.pack ? ui.pack->part("dropdown") : nullptr) {
+    SkinCanvas canvas(ui, p, nullptr);
+    skin::Source nothing;
+    const std::pair<std::string_view, float> args[] = {{"open", open ? 1.0f : 0.0f}, {"off", disabled ? 1.0f : 0.0f}};
+    skin::draw_part(*ui.pack, *part, ui.palette, {r.x, r.y, r.w, r.h}, canvas, nothing, {.label = text, .hot = !disabled && ui.hot(owner, id_base), .args = args});
+  }
   ui.add_hit(owner, r, id_base);
 }
 
@@ -179,24 +184,8 @@ void Scroll::drag_thumb(Rect track, float y) {
   jump_to((y - t.h / 2 - track.y) / room * max_offset());
 }
 
-Rect paint_modal(Ui& ui, Surface* owner, Painter& p, float w, float h, float shown, int backdrop_id, int card_id) {
-  p.set_base(D2D1::Matrix3x2F::Identity());
-  if (ui.window != 0) {  // it has the window to itself, frame and all
-    ui.add_hit_window(owner, ui.content, card_id);
-    return ui.content;
-  }
-  const Rect window{0, 0, ui.width, ui.height};
-  ui.skin().backdrop(p, ui.theme, window, shown);
-  ui.add_hit_window(owner, ui.modal_area, backdrop_id);
-  const Rect settled{ui.content.x + (ui.content.w - w) / 2, ui.content.y + (ui.content.h - h) / 2, w, h};
-  const Rect card{settled.x, settled.y + 6 * (1 - shown), w, h};
-  ui.skin().panel(p, ui.theme, card, PanelKind::Modal, shown);
-  ui.add_hit_window(owner, settled, card_id);
-  return card;
-}
-
 bool push_edge_fade(Ui& ui, Painter& p, Rect area, float top, float bottom) {
-  if ((top <= 0 && bottom <= 0) || !ui.skin().moves()) return false;
+  if ((top <= 0 && bottom <= 0) || !ui.moves()) return false;
   ID2D1LinearGradientBrush* mask = ui.edge_fade_mask(p, area, top, bottom);
   if (!mask) return false;
   mask->SetStartPoint(D2D1::Point2F(0, area.y));
@@ -205,11 +194,6 @@ bool push_edge_fade(Ui& ui, Painter& p, Rect area, float top, float bottom) {
                                           D2D1_ANTIALIAS_MODE_PER_PRIMITIVE, D2D1::IdentityMatrix(), 1.0f, mask),
                     nullptr);
   return true;
-}
-
-void paint_modal_button(Ui& ui, Surface* owner, Painter& p, Rect r, std::string_view label, bool primary, float shown, int id) {
-  ui.skin().button(p, ui.theme, r, label, {.kind = ButtonKind::Modal, .primary = primary, .hot = ui.hot(owner, id), .shown = shown});
-  ui.add_hit_window(owner, r, id);
 }
 
 }  // namespace crpp::ui

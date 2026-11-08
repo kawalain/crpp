@@ -15,6 +15,8 @@ namespace crpp::ui {
 // CSS's `ease`, for t from 0 to 1.
 [[nodiscard]] float ease(float t);
 
+// How wide a slider's thumb is: its middle stands at r.x + slider_thumb / 2 + (r.w - slider_thumb) * at.
+inline constexpr float slider_thumb = 21;
 // Where on a slider (.volume-slider) x is: r is the hit area, the track runs through its middle.
 [[nodiscard]] int slider_value(Rect r, float x, int min, int max);
 
@@ -83,12 +85,6 @@ class Dropdown {
   Scroll scroll_;
 };
 
-// A modal card (.modal-backdrop, .modal-card) in window coordinates. `shown` is the
-// transition's progress: the backdrop fades and the card rises 6 px as it appears.
-// Registers the backdrop under backdrop_id, so nothing beneath can be clicked.
-// Returns the card's rectangle.
-Rect paint_modal(Ui& ui, Surface* owner, Painter& p, float w, float h, float shown, int backdrop_id, int card_id);
-
 // What is cut off at the top or bottom of a list fades out over the given lengths, 27 px
 // at most (.scroll-area's mask). Returns whether it pushed a layer, as it does not when
 // neither edge cuts anything. Pair with pop_edge_fade.
@@ -97,9 +93,6 @@ inline constexpr float edge_fade_px = 27;
 inline void pop_edge_fade(Painter& p, bool pushed) {
   if (pushed) p.pop_opacity();
 }
-
-// .modal-confirm when primary, else .modal-cancel.
-void paint_modal_button(Ui& ui, Surface* owner, Painter& p, Rect r, std::string_view label, bool primary, float shown, int id);
 
 inline constexpr float modal_fade_ms = 140;
 inline constexpr float modal_pop_ms = 160;

@@ -154,7 +154,7 @@ void ChatPanel::click(int id, float, float y, bool) {
 
 bool ChatPanel::wheel(float x, float y, float delta) {
   if (!area_.contains(x, y)) return false;
-  if (ui_.skin().moves()) scroll_.wheel(ui_, delta);
+  if (ui_.moves()) scroll_.wheel(ui_, delta);
   else scroll_.wheel(ui_, delta, 48);
   scrolled();
   return true;

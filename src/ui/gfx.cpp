@@ -14,9 +14,6 @@
 
 namespace crpp::ui {
 
-const char* const cloud_path_data =
-    "M388.527 317.44H101.915C54.679 317.44 16.386 279.073 16.386 231.744c0-42.356 30.678-77.512 70.979-84.436-.747-4.387-1.158-8.888-1.158-13.489 0-44 35.6-79.669 79.513-79.669 14.343 0 27.786 3.824 39.404 10.482C226.646 30.651 264.524 8.095 307.663 8.095c63.092 0 114.932 48.241 120.801 109.916 37.233 15.702 63.375 52.597 63.375 95.613 0 57.208-46.238 103.593-103.312 103.69Z";
-
 std::wstring widen(std::string_view s) {
   if (s.empty()) return {};
   const int n = MultiByteToWideChar(CP_UTF8, 0, s.data(), static_cast<int>(s.size()), nullptr, 0);
@@ -746,18 +743,6 @@ void Painter::fill_vertical_gradient(ID2D1Geometry* g, float y0, float y1,
           gradient.put()))) {
     rt_->FillGeometry(g, gradient.get());
   }
-}
-
-void Painter::cloud(ID2D1PathGeometry* shape, float x, float y, float scale, float shadow_alpha, float sigma,
-                    const Theme& theme) {
-  push(D2D1::Matrix3x2F::Scale(scale, scale) * D2D1::Matrix3x2F::Translation(x, y));
-  if (theme.cloud_shadow_scale > 0) {
-    // Canvas shadowBlur = sigma * 3 with a 6 px vertical offset (in screen px).
-    shadow_geometry(shape, sigma * 3, 6 / scale, with_alpha(theme.cloud_shadow, shadow_alpha));
-  }
-  fill_geometry(shape, theme.cloud_base);
-  fill_vertical_gradient(shape, 8, 318, {{0.0f, theme.cloud_top}, {1.0f, theme.cloud_bottom}});
-  rt_->SetTransform(base_);
 }
 
 }  // namespace crpp::ui

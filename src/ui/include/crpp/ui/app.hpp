@@ -99,7 +99,7 @@ class App {
   [[nodiscard]] ChangelogView& changelog() { return changelog_; }
   [[nodiscard]] WindowFrame& frame() { return frame_; }
   // Does the app draw the window's frame?
-  [[nodiscard]] bool own_frame() const { return !ui_.skin().scales_stage(); }
+  [[nodiscard]] bool own_frame() const { return !ui_.scales_stage(); }
   [[nodiscard]] ScreenSize screen_size() const;
   [[nodiscard]] FrameMetrics frame_metrics() const;
   // Is the pointer in these windows the pack's? Otherwise it is the system's.
@@ -107,7 +107,7 @@ class App {
   // The settings surfaces read and change; in memory until the shell sets its own.
   void set_prefs(Prefs& prefs) { ui_.prefs = &prefs; }
 
-  // An id from themes.hpp; an unknown one means the default.
+  // A Palette of the pack in use; one it does not have means its default Theme.
   void set_theme(std::string_view id);
   // The Skin's own notification sounds: 0 none, 1 small bells, 2 plain tones.
   [[nodiscard]] int notification_style() const;
@@ -231,7 +231,6 @@ class App {
   std::vector<SkippedPack> skipped_;
   [[nodiscard]] skin::LoadOptions load_options(std::string overlay, const std::filesystem::path& folder) const;
   std::optional<skin::Pack> pack_;
-  std::unique_ptr<Skin> pack_skin_;
   std::optional<skin::Pack> previous_pack_;
   std::string theme_id_ = "cumulus";  // the Theme a Ui starts with, until a choice is read
   MemoryPrefs memory_prefs_;

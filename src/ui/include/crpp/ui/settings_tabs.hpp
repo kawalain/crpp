@@ -13,7 +13,6 @@
 #include "crpp/ui/settings_rows.hpp"
 #include "crpp/ui/surface.hpp"
 #include "crpp/ui/textfield.hpp"
-#include "crpp/ui/themes.hpp"
 
 namespace crpp::ui {
 
@@ -126,9 +125,6 @@ class SoundTab final : public SettingsTab {
   int tip_row_ = -1;
   bool tip_on_ = false;
 };
-
-// The theme in use: upstream's effectiveTheme, with an unknown name taken as the default.
-[[nodiscard]] const ThemeEntry& effective_theme(const Prefs& prefs, bool system_dark);
 
 class DisplayTab final : public SettingsTab {
  public:

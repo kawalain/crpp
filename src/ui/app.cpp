@@ -5,9 +5,7 @@
 #include <fstream>
 #include <utility>
 
-#include "crpp/ui/luna.hpp"
 #include "crpp/ui/skin_canvas.hpp"
-#include "crpp/ui/themes.hpp"
 
 namespace crpp::ui {
 
@@ -34,7 +32,7 @@ bool App::init(const std::filesystem::path& assets_dir, bool load_font) {
   if (!ui_.gfx.init()) return false;
   if (!assets_dir.empty() && load_font) reload_assets(assets_dir);
   else ui_.emoji.emplace(assets_dir);
-  return ui_.cloud() != nullptr;
+  return true;
 }
 
 void App::release_graphics() {
@@ -108,20 +106,15 @@ std::expected<void, std::string> App::read_pack(const std::string& overlay) {
   previous_pack_ = std::move(pack_);  // a hit of the last frame can still point into it
   pack_ = std::move(*pack);
   ui_.pack = &*pack_;
-  pack_skin_ = make_pack_skin(ui_);
   return {};
 }
 
-int App::notification_style() const {
-  if (ui_.theme.from_pack) return static_cast<int>(pack_->constant("notification_sounds"));
-  return ui_.theme.skin == SkinId::Luna ? 1 : 0;
-}
+int App::notification_style() const { return ui_.pack ? static_cast<int>(pack_->constant("notification_sounds")) : 0; }
 
 void App::point_at_palette() {
-  ui_.palette = pack_->palette_of(theme_id_).value_or(-1);
-  ui_.theme.from_pack = ui_.palette >= 0 ? pack_skin_.get() : nullptr;
+  // A Theme the pack does not have is drawn as its default one.
+  ui_.palette = pack_->palette_of(theme_id_).or_else([&] { return pack_->palette_of(pack_->default_theme); }).value_or(0);
   ui_.motion = {};
-  if (ui_.palette < 0) return;
   if (pack_->constant("moves") != 0) {
     const skin::Pack& k = *pack_;
     ui_.motion = {k.constant("scroll_settle_ms"), k.constant("scroll_return_ms"), k.constant("scroll_stretch"), k.constant("edge_fade"),
@@ -199,7 +192,7 @@ std::expected<void, std::string> App::load_skin_dir(const std::filesystem::path&
 
 void App::skin_changed() {
   Gfx::ClassicFonts fonts;
-  if (ui_.theme.from_pack && pack_->fonts) {
+  if (pack_ && pack_->fonts) {
     const auto wide = [](const std::vector<std::string>& names) {
       std::vector<std::wstring> list;
       for (const std::string& name : names) list.push_back(widen(name));
@@ -208,22 +201,14 @@ void App::skin_changed() {
     fonts = {wide(pack_->fonts->korean), wide(pack_->fonts->other), wide(pack_->fonts->caption), pack_->fonts->korean_size, pack_->fonts->other_size};
   }
   ui_.gfx.set_classic_fonts(std::move(fonts));
-  ui_.gfx.set_classic(!ui_.skin().scales_stage());
+  ui_.gfx.set_classic(!ui_.scales_stage());
   set_animations(animations_wanted_);
   room_.chat().locale_changed();  // its rows hold their text, laid out in the other font
 }
 
 void App::set_theme(std::string_view id) {
   ui_.forget_render_target();  // brushes are kept by the address of the colours they show
-  ui_.theme = theme_named(id).theme;
-  theme_id_ = theme_named(id).id;
-  if (pack_ && theme_named(id).id != id) {
-    if (const skin::PackTheme* known = pack_->theme_of_palette(id)) {
-      // Only the pack knows it. What the program still reads of a Theme comes from the table until its layouts go.
-      theme_id_ = std::string(id);
-      ui_.theme = theme_named(known->dark == id ? "luna_blue_dark" : "luna_blue").theme;
-    }
-  }
+  theme_id_ = std::string(id);
   if (pack_) {
     // Read earlier and found good, so a failure now is a pack changed under the app: it draws as if it had no such Theme.
     const skin::PackTheme* theme = pack_->theme_of_palette(theme_id_);
@@ -233,23 +218,23 @@ void App::set_theme(std::string_view id) {
   skin_changed();
 }
 
-bool App::theme_cursors() const { return ui_.theme.from_pack && pack_->cursors && ui_.prefs && ui_.prefs->get(pref::theme_cursor); }
+bool App::theme_cursors() const { return pack_ && pack_->cursors && ui_.prefs && ui_.prefs->get(pref::theme_cursor); }
 
 FrameMetrics App::frame_metrics() const {
-  if (!ui_.theme.from_pack || !own_frame()) return {};
+  if (!pack_ || !own_frame()) return {};
   const skin::Pack& k = *pack_;
   return {k.constant("caption_h"), k.constant("frame_w"), k.constant("menu_h"), k.constant("window_radius"),
           k.constant("frame_edge"), k.constant("frame_corner"), k.constant("frame_button"), k.constant("frame_button_gap"), k.constant("frame_button_top"), k.constant("frame_button_right")};
 }
 
 float App::window_size(std::string_view name, std::string_view side, float code) const {
-  if (!ui_.theme.from_pack) return code;
+  if (!pack_) return code;
   return pack_->constant("window_" + std::string(name) + "_" + std::string(side));
 }
 
 void App::set_animations(bool wanted) {
   animations_wanted_ = wanted;
-  ui_.animations = wanted && ui_.skin().moves();
+  ui_.animations = wanted && ui_.moves();
 }
 
 ScreenSize App::screen_size() const {
@@ -790,7 +775,7 @@ unsigned long long App::wake_at() {
 
 Cursor App::cursor() const {
   // A field keeps its own while dragging; a slider may be dragged far off itself.
-  const bool hand_on_links_only = !ui_.skin().moves();
+  const bool hand_on_links_only = !ui_.moves();
   if (ui_.capture && ui_.capture != ui_.hover_owner) return hand_on_links_only ? Cursor::Arrow : Cursor::Hand;
   if (!ui_.hover_owner) return Cursor::Arrow;
   const Cursor wanted = ui_.hover_owner->cursor(ui_.hover_id);

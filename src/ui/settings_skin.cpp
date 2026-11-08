@@ -117,7 +117,7 @@ skin::ScreenSchema SystemTab::schema() { return {.screen = "settings_system", .t
 skin::ScreenSchema AccountTab::schema() { return {.screen = "settings_account", .texts = account_texts, .numbers = account_numbers, .pictures = account_pictures, .hits = account_hits, .reports = height_report}; }
 
 void SettingsPanel::paint_pack(Painter& p, const skin::Screen& screen) {
-  if (!open_ && !ui_.skin().scales_stage()) return;  // a window of its own, that is going
+  if (!open_ && !ui_.scales_stage()) return;  // a window of its own, that is going
   p.set_base(D2D1::Matrix3x2F::Scale(ui_.scale, ui_.scale) * D2D1::Matrix3x2F::Translation(ui_.ox, ui_.oy));
 
   class Shown final : public skin::Source {

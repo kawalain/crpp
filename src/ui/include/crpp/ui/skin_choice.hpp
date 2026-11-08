@@ -60,4 +60,8 @@ struct SkinChoice {
 // What names no pack or Theme goes to the first pack and that pack's default Theme. Empty when there are no packs.
 [[nodiscard]] SkinChoice choice_of(const Prefs& prefs, std::span<const SkinInfo> skins);
 
+// Upstream's keys (theme, lightTheme, darkTheme) hold upstream's names, and one of them is a name
+// of its own here: upstream's "cloudroom" is "cumulus". Every other id stays as it is.
+[[nodiscard]] std::string_view theme_from_upstream(std::string_view id);
+
 }  // namespace crpp::ui

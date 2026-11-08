@@ -46,7 +46,7 @@ void HomeScreen::find() {
   if (is_busy()) return;
   refresh_seat(clock_ms());
   // A Skin that lists the Seats has no need to ask.
-  if (ui_.skin().scales_stage() && home::find_step(returning()) == home::FindStep::AskReturn) {
+  if (ui_.scales_stage() && home::find_step(returning()) == home::FindStep::AskReturn) {
     return_open_ = true;
     return;
   }

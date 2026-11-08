@@ -100,7 +100,7 @@ void SettingsPanel::before_click(const Surface* owner, int id) {
 }
 
 // A track that jumps to the pointer has nothing to repeat.
-bool SettingsPanel::repeats(int id) const { return id == BarUp || id == BarDown || (id == Track && !ui_.skin().scales_stage()); }
+bool SettingsPanel::repeats(int id) const { return id == BarUp || id == BarDown || (id == Track && !ui_.scales_stage()); }
 
 void SettingsPanel::click(int id, float, float y, bool) {
   if (id == Droplet) {

@@ -15,7 +15,7 @@ void Ui::begin_frame(float window_w, float window_h, unsigned long long now) {
   width = window_w;
   height = window_h;
   now_ms = now;
-  if (skin().scales_stage()) {
+  if (scales_stage()) {
     scale = std::max(window_w / stage_w, window_h / stage_h);
     ox = (window_w - stage_w * scale) / 2;
     oy = (window_h - stage_h * scale) / 2;
@@ -33,7 +33,11 @@ const skin::Screen* Ui::pack_screen(std::string_view name) const {
   return pack && palette >= 0 ? pack->screen(name) : nullptr;
 }
 
-Rect Ui::screen_area() const { return skin().scales_stage() ? Rect{0, 0, stage_w, stage_h} : content; }
+bool Ui::scales_stage() const { return !pack || pack->constant("own_frame") == 0; }
+
+bool Ui::moves() const { return pack && pack->constant("moves") != 0; }
+
+Rect Ui::screen_area() const { return scales_stage() ? Rect{0, 0, stage_w, stage_h} : content; }
 
 void Ui::add_hit(Surface* owner, Rect r, int id) { add_hit_window(owner, to_window(r), id); }
 

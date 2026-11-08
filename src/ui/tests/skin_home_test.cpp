@@ -543,10 +543,13 @@ void test_a_theme_brings_its_overlay() {
   h.render();
   CHECK(h.app.ui().palette >= 0);
   CHECK(h.app.frame_metrics().caption_h == classic_caption);
-  // A Theme of no pack is drawn by the program.
+  // A Theme the pack does not have is drawn as its default one.
+  h.app.set_theme("classic");
+  h.render();
+  const int classic = h.app.ui().palette;
   h.app.set_theme("cumulus");
   h.render();
-  CHECK(h.app.ui().palette < 0);
+  CHECK(h.app.ui().palette == classic);
 }
 
 void test_the_pack_says_how_windows_are_measured() {
@@ -570,7 +573,7 @@ void test_the_pack_says_how_windows_are_measured() {
   CHECK(!h.app.load_skin_dir(pack_with("pack.cskin", "moves 0", "moves 1")).has_value());
   CHECK(h.app.load_skin_dir(pack_with("pack.cskin", "moves 0",
                                       "moves 1 scroll_settle_ms 10 scroll_return_ms 20 scroll_stretch 30 edge_fade 9 screen_fade_ms 40 screen_rise 2 speaking_hold_ms 50 speaking_fade_ms 60")).has_value());
-  CHECK(h.app.ui().skin().moves());
+  CHECK(h.app.ui().moves());
   CHECK(h.app.ui().motion.scroll_stretch == 30);
   CHECK(h.app.ui().motion.speaking_fade_ms == 60);
 

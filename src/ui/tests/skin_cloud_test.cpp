@@ -91,7 +91,9 @@ void test_a_list_stands_where_the_code_puts_it() {
   same_places(h, {{&system, SystemTab::ReleaseList + 1}, {&system, SystemTab::ReleaseList + 2}});
 }
 
-void test_the_rows_choose_a_skin_a_theme_and_a_dark_mode() {
+// One list holds every Skin's Themes, each Skin's under a heading with its name: 구름, 뭉게구름,
+// 파스텔, 레트로, 고전 and so on. Ids are the list's, then one per entry.
+void test_the_rows_choose_a_theme_of_any_skin_and_a_dark_mode() {
   UiHarness h;
   CHECK(h.start(1200, 900));
   App& app = h.app;
@@ -114,10 +116,14 @@ void test_the_rows_choose_a_skin_a_theme_and_a_dark_mode() {
   app.apply_skin_choice(false);
   CHECK(app.ui().theme.dark);
 
-  // 파스텔 has no dark variant: the row locks, and the choice stays for the next Theme.
+  // A Skin's name is a heading, which takes no click.
   h.render();
   CHECK(h.click(display, DisplayTab::SkinThemeList));
-  CHECK(h.click(display, DisplayTab::SkinThemeList + 2));
+  CHECK(!h.drawn(display, DisplayTab::SkinThemeList + 1));
+  CHECK(h.drawn(display, DisplayTab::SkinThemeList + 2));
+  CHECK(!h.drawn(display, DisplayTab::SkinThemeList + 4));
+  // 파스텔 has no dark variant: the row locks, and the choice stays for the next Theme.
+  CHECK(h.click(display, DisplayTab::SkinThemeList + 3));
   CHECK(prefs.get(pref::skin_theme) == "pastel");
   app.apply_skin_choice(false);
   CHECK(!app.ui().theme.dark);
@@ -126,11 +132,11 @@ void test_the_rows_choose_a_skin_a_theme_and_a_dark_mode() {
   CHECK(!h.drawn(display, DisplayTab::DarkModeList + 1));
   CHECK(prefs.get(pref::dark_mode) == "on");
 
-  // Another Skin goes to its default Theme, keeping the mode.
-  CHECK(h.click(display, DisplayTab::SkinList));
-  CHECK(h.click(display, DisplayTab::SkinList + 2));
+  // A Theme of another Skin brings its Skin, keeping the mode.
+  CHECK(h.click(display, DisplayTab::SkinThemeList));
+  CHECK(h.click(display, DisplayTab::SkinThemeList + 6));
   CHECK(prefs.get(pref::skin) == "retro");
-  CHECK(prefs.get(pref::skin_theme) == "classic");
+  CHECK(prefs.get(pref::skin_theme) == "luna_blue");
   app.apply_skin_choice(false);
   CHECK(app.ui().pack->id == "retro");
   CHECK(app.ui().theme.dark);
@@ -287,6 +293,7 @@ void test_every_tab_stands_where_the_code_puts_it() {
   };
   compare(SettingsPage::Notify, {NotifyTab::TrayToggle, NotifyTab::FlashToggle, NotifyTab::SoundBase, NotifyTab::SoundBase + 1, NotifyTab::PreviewBase, NotifyTab::PreviewBase + 1});
   compare(SettingsPage::System, {SystemTab::Autostart, SystemTab::Tray, SystemTab::Detail, SystemTab::ReleaseList, SystemTab::Logging, SystemTab::Reset});
+  compare(SettingsPage::Display, {DisplayTab::ScaleSlider, DisplayTab::Use24h, DisplayTab::IdleList, DisplayTab::LanguageList}, 10000);
   compare(SettingsPage::Account, {AccountTab::Emoji, AccountTab::Nickname, AccountTab::Handle, AccountTab::Logout});
 }
 
@@ -706,7 +713,7 @@ void test_a_path_can_fill_where_its_shapes_overlap() {
 }  // namespace
 
 int main() {
-  test_the_rows_choose_a_skin_a_theme_and_a_dark_mode();
+  test_the_rows_choose_a_theme_of_any_skin_and_a_dark_mode();
   test_the_layers_stand_where_the_code_puts_them();
   test_the_prompt_stands_where_the_code_puts_it_and_clicks_land();
   test_a_list_stands_where_the_code_puts_it();

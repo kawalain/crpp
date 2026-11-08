@@ -10,10 +10,10 @@ namespace crpp::ui {
 namespace {
 constexpr float list_fade_ms = 120;
 
-enum ListNumberId : int { Items, Selected, Up, Offset, FadeTop, FadeBottom };
+enum ListNumberId : int { Items, Selected, Up, Offset, FadeTop, FadeBottom, Heading };
 enum ListReportId : int { View, Content };
 constexpr skin::Name list_text_names[] = {{"item", 0}};
-constexpr skin::Name list_number_names[] = {{"items", Items}, {"selected", Selected}, {"up", Up}, {"scroll", Offset}, {"fade_top", FadeTop}, {"fade_bottom", FadeBottom}};
+constexpr skin::Name list_number_names[] = {{"items", Items}, {"selected", Selected}, {"up", Up}, {"scroll", Offset}, {"fade_top", FadeTop}, {"fade_bottom", FadeBottom}, {"heading", Heading}};
 constexpr skin::Name list_hit_names[] = {{"item", 1}};
 constexpr skin::Name list_report_names[] = {{"view", View}, {"content", Content}};
 constexpr skin::Name list_note_names[] = {{"list", 0}};
@@ -70,6 +70,7 @@ void Dropdown::paint_list(Ui& ui, Surface* owner, Painter& p, Rect r) {
           case Up: return d_.up ? 1.0f : 0.0f;
           case FadeTop: return scroll_.fade_top();
           case FadeBottom: return scroll_.fade_bottom();
+          case Heading: return d_.heading(static_cast<std::size_t>(index)) ? 1.0f : 0.0f;
           default: return scroll_.drawn();
         }
       }
@@ -122,6 +123,10 @@ void Dropdown::paint_list(Ui& ui, Surface* owner, Painter& p, Rect r) {
   for (std::size_t i = 0; i < options.size(); ++i, y += item_h + gap) {
     const int id = id_base + 1 + static_cast<int>(i);
     const Rect item{list_.x + pad, y, list_.w - 2 * pad, item_h};
+    if (heading(i)) {
+      ui.skin().list_heading(p, t, item, options[i]);
+      continue;
+    }
     ui.skin().list_item(p, t, item, options[i], static_cast<int>(i) == selected, ui.hot(owner, id));
     ui.add_hit(owner, item, id);
   }
@@ -139,7 +144,7 @@ bool Dropdown::click(int id) {
     return false;
   }
   const int index = id - id_base - 1;
-  if (index < 0 || index >= static_cast<int>(options.size())) return false;
+  if (index < 0 || index >= static_cast<int>(options.size()) || heading(static_cast<std::size_t>(index))) return false;
   open = false;
   if (index == selected) return false;
   selected = index;

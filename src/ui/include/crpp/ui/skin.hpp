@@ -53,6 +53,9 @@ class Skin {
   virtual void dropdown_button(Painter& p, const Theme& t, Rect r, std::string_view text, bool open, bool hot, bool disabled) const = 0;
   [[nodiscard]] virtual ListMetrics list_metrics() const = 0;
   virtual void list_item(Painter& p, const Theme& t, Rect r, std::string_view text, bool selected, bool hot) const = 0;
+  // A name between lines that heads the items after it in a list, as tall as an item. It
+  // cannot be chosen.
+  virtual void list_heading(Painter& p, const Theme& t, Rect r, std::string_view text) const = 0;
   // `hover` runs from 0 to 1, and `shown` is how far it has faded in.
   virtual void scrollbar(Painter& p, const Theme& t, Rect thumb, float hover, float shown) const = 0;
   // A small label's box. Returns the colour to write in it.

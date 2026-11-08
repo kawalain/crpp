@@ -183,7 +183,6 @@ const Strings english{
     .display_light = "Light theme",
     .display_dark = "Dark theme",
     .display_skin = "Skin",
-    .display_skin_theme = "Theme",
     .display_dark_mode = "Dark mode",
     .display_dark_off = "Off",
     .display_dark_on = "On",

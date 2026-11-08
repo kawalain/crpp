@@ -1,7 +1,7 @@
 {
   "$schema": "http://json-schema.org/draft-07/schema#",
   "title": "The screen settings_display of a Skin Pack",
-  "description": "A screen of a Skin Pack, as {\"draw\": [nodes]}. With no file for a screen, the program draws it itself.\nNumbers: @percent, @has_cursors, @theme_cursor, @scale, @dragging, @use_24h.\nTexts: @sample_says, @percent_text, @sample_nick, @sample_time.\nHits: scale_slider, theme_cursor, use_24h.\nPictures: sample_emoji.\nFields: none.\nSlots: skin_list, theme_list, dark_mode_list, idle_list, language_list.\nReports: height.\nNotes: slider.",
+  "description": "A screen of a Skin Pack, as {\"draw\": [nodes]}. With no file for a screen, the program draws it itself.\nNumbers: @percent, @has_cursors, @theme_cursor, @scale, @dragging, @use_24h.\nTexts: @sample_says, @percent_text, @sample_nick, @sample_time.\nHits: scale_slider, theme_cursor, use_24h.\nPictures: sample_emoji.\nFields: none.\nSlots: theme_list, dark_mode_list, idle_list, language_list.\nReports: height.\nNotes: slider.",
   "allowComments": true,
   "allowTrailingCommas": true,
   "type": "object",
@@ -66,7 +66,6 @@
         "field": false,
         "slot": {
           "enum": [
-            "skin_list",
             "theme_list",
             "dark_mode_list",
             "idle_list",

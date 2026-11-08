@@ -25,7 +25,7 @@ The interface is in Korean and English. In these screenshots, the names and mess
 - **Chat and profiles:** Room chat, nicknames, emoji and public Room search.
 - **Accounts are optional:** join as a Guest, or sign in to get a unique `@handle`.
 - **Skins:** Cloud, the look of the official client, and Retro, in the look of the desktops of the
-  1990s and early 2000s, with its own window and notification sounds. Pick a Skin, a Theme and a dark mode.
+  1990s and early 2000s, with its own window and notification sounds. Pick a Theme of either Skin and a dark mode.
 - **Windows integration:** tray icon, chat notifications, taskbar flash and start with Windows.
 - **Light on resources:** native Win32 and Direct2D with no browser engine. While idle, the
   app draws nothing and doesn't poll.

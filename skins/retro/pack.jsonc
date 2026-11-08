@@ -343,6 +343,14 @@
         {"text": "@label", "style": "body", "color": "selected || hot ? $select_ink : $ink", "x": 3, "w": "W-6"}
       ]
     },
+    // The name of what follows, then a line.
+    "list_heading": {
+      "draw": [
+        {"let": "tw", "value": "min(textw('body', '@label'), W-6-16)"},
+        {"text": "@label", "style": "body", "color": "$ink_soft", "x": 3, "w": "tw"},
+        {"fill": "alpha($ink_soft, 0.5)", "x": "3+tw+4", "y": "floor(Y+H/2+0.5)-Y", "w": "W-3-(3+tw+4)", "h": 1}
+      ]
+    },
     "menu_item": {
       "args": {"active": 0, "off": 0},
       "draw": [

@@ -15,7 +15,8 @@
           {"use": "panel_list"},
           {"clip": true, "soft_clip": true, "fade_top": "@fade_top", "fade_bottom": "@fade_bottom", "group": [
             {"repeat": "@items", "draw": [
-              {"use": "list_item", "text": "@item", "hit": "item", "hit_index": "i", "x": "list_pad", "y": "list_pad-@scroll+i*(list_item_h+list_gap)", "w": "W-2*list_pad", "h": "list_item_h", "args": {"selected": "@selected"}}
+              {"if": "@heading", "use": "list_heading", "text": "@item", "x": "list_pad", "y": "list_pad-@scroll+i*(list_item_h+list_gap)", "w": "W-2*list_pad", "h": "list_item_h"},
+              {"if": "!@heading", "use": "list_item", "text": "@item", "hit": "item", "hit_index": "i", "x": "list_pad", "y": "list_pad-@scroll+i*(list_item_h+list_gap)", "w": "W-2*list_pad", "h": "list_item_h", "args": {"selected": "@selected"}}
             ]}
           ]}
         ]}

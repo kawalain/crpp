@@ -50,7 +50,6 @@ DisplayTab::DisplayTab(Ui& ui) : SettingsTab(ui) {
   theme_.id_base = ThemeList;
   light_.id_base = LightList;
   dark_.id_base = DarkList;
-  skin_list_.id_base = SkinList;
   skin_theme_.id_base = SkinThemeList;
   dark_mode_.id_base = DarkModeList;
   idle_.id_base = IdleList;
@@ -200,7 +199,6 @@ void DisplayTab::paint_popups(Painter& p, Rect) {
   idle_.paint_list(ui_, this, p, idle_rect_);
   language_.paint_list(ui_, this, p, language_rect_);
   if (ui_.pack_screen("settings_display")) {
-    skin_list_.paint_list(ui_, this, p, list_rect_[3]);
     skin_theme_.paint_list(ui_, this, p, list_rect_[4]);
     dark_mode_.paint_list(ui_, this, p, list_rect_[5]);
     return;
@@ -214,14 +212,14 @@ void DisplayTab::paint_popups(Painter& p, Rect) {
 }
 
 void DisplayTab::before_click(const Surface* owner, int id) {
-  for (Dropdown* d : {&theme_, &light_, &dark_, &skin_list_, &skin_theme_, &dark_mode_, &idle_, &language_}) {
+  for (Dropdown* d : {&theme_, &light_, &dark_, &skin_theme_, &dark_mode_, &idle_, &language_}) {
     if (owner != this || !d->owns(id)) d->open = false;
   }
 }
 
 bool DisplayTab::acts_on_press(int id) const {
   if (id == ScaleSlider) return true;
-  for (const Dropdown* d : {&theme_, &light_, &dark_, &skin_list_, &skin_theme_, &dark_mode_, &idle_, &language_}) {
+  for (const Dropdown* d : {&theme_, &light_, &dark_, &skin_theme_, &dark_mode_, &idle_, &language_}) {
     if (id == d->id_base) return true;
   }
   return false;
@@ -256,9 +254,6 @@ void DisplayTab::click(int id, float x, float, bool) {
   } else if (dark_.owns(id)) {
     if (dark_.click(id)) prefs.set(pref::dark_theme, theme_to_upstream(themes_of(true)[static_cast<std::size_t>(dark_.selected)]->id));
     if (dark_.open) place_dropdown(ui_, dark_, list_rect_[2]);
-  } else if (skin_list_.owns(id)) {
-    if (skin_list_.click(id)) choose_skin(skin_list_.selected);
-    if (skin_list_.open) place_dropdown(ui_, skin_list_, list_rect_[3]);
   } else if (skin_theme_.owns(id)) {
     if (skin_theme_.click(id)) choose_theme(skin_theme_.selected);
     if (skin_theme_.open) place_dropdown(ui_, skin_theme_, list_rect_[4]);
@@ -277,21 +272,15 @@ std::string_view dark_key(DarkMode mode) { return dark_keys[static_cast<std::siz
 }  // namespace
 
 // All three go in together, so that this client's own keys say everything from here on. The
-// Theme comes last, as that is what makes the program apply them.
-void DisplayTab::choose_skin(int index) {
-  const SkinInfo& skin = ui_.skins[static_cast<std::size_t>(index)];
+// Theme comes last, as that is what makes the program apply them. The dark mode stays.
+void DisplayTab::choose_theme(int index) {
+  const auto [skin_index, theme_index] = theme_at_[static_cast<std::size_t>(index)];
+  if (skin_index < 0) return;  // a heading, which cannot be chosen
+  const SkinInfo& skin = ui_.skins[static_cast<std::size_t>(skin_index)];
   Prefs& prefs = *ui_.prefs;
   prefs.set(pref::dark_mode, dark_key(choice_of(prefs, ui_.skins).dark));
   prefs.set(pref::skin, skin.id);
-  prefs.set(pref::skin_theme, skin.default_theme.empty() && !skin.themes.empty() ? std::string_view(skin.themes.front().id) : std::string_view(skin.default_theme));
-}
-
-void DisplayTab::choose_theme(int index) {
-  Prefs& prefs = *ui_.prefs;
-  const SkinChoice choice = choice_of(prefs, ui_.skins);
-  prefs.set(pref::dark_mode, dark_key(choice.dark));
-  prefs.set(pref::skin, choice.skin->id);
-  prefs.set(pref::skin_theme, choice.skin->themes[static_cast<std::size_t>(index)].id);
+  prefs.set(pref::skin_theme, skin.themes[static_cast<std::size_t>(theme_index)].id);
 }
 
 void DisplayTab::choose_dark(int index) {
@@ -308,13 +297,13 @@ void DisplayTab::drag(float x, float) {
 }
 
 bool DisplayTab::wheel(float x, float y, float delta) {
-  return theme_.wheel(ui_, x, y, delta) || light_.wheel(ui_, x, y, delta) || dark_.wheel(ui_, x, y, delta) || skin_list_.wheel(ui_, x, y, delta) ||
+  return theme_.wheel(ui_, x, y, delta) || light_.wheel(ui_, x, y, delta) || dark_.wheel(ui_, x, y, delta) ||
          skin_theme_.wheel(ui_, x, y, delta) || dark_mode_.wheel(ui_, x, y, delta) || idle_.wheel(ui_, x, y, delta) || language_.wheel(ui_, x, y, delta);
 }
 
 bool DisplayTab::escape() {
   bool closed = false;
-  for (Dropdown* d : {&theme_, &light_, &dark_, &skin_list_, &skin_theme_, &dark_mode_, &idle_, &language_}) {
+  for (Dropdown* d : {&theme_, &light_, &dark_, &skin_theme_, &dark_mode_, &idle_, &language_}) {
     closed = closed || d->open;
     d->open = false;
   }

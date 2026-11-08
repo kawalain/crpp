@@ -159,11 +159,12 @@ against a real `server/` yet; do that once a local build of it is available.
   loaded, and a first run ever does not open it. A new version's notes open when the app
   first notices it, not after the update, and not again once it is installed. They are
   the release's most important changes, then its commits by kind.
-- A user picks a Skin, a Theme and a dark mode (off, on, following the system) in the display tab, where
-  upstream has a toggle and lists of light and dark Themes. They are read from the packs in `skins/` beside
-  the exe and kept under `skin`, `skinTheme` and `darkMode`; until those are set upstream's `theme`,
-  `systemTheme` and `lightTheme` are read, and the choice never writes them. The dark mode is locked while
-  a Theme has no dark variant, keeping its value. Another Skin goes to its default Theme.
+- A user picks a Theme and a dark mode (off, on, following the system) in the display tab, where
+  upstream has a toggle and lists of light and dark Themes. One list holds every Skin's Themes, each Skin's
+  under a heading with its name between lines, so a Theme brings its Skin. They are read from the packs in
+  `skins/` beside the exe and kept under `skin`, `skinTheme` and `darkMode`; until those are set upstream's
+  `theme`, `systemTheme` and `lightTheme` are read, and the choice never writes them. The dark mode is
+  locked while a Theme has no dark variant, keeping its value.
 - Upstream's Theme 구름 is 뭉게구름 ("Cumulus"), as the Skin it belongs to is 구름 too. Its id is `cumulus`;
   upstream's keys keep upstream's `cloudroom`, which is read as `cumulus` wherever it is found.
 - The create cloud on Home really grows under the pointer, as upstream's does. The C++ layout asked for it

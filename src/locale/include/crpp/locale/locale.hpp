@@ -204,7 +204,6 @@ struct Strings {
   const char* display_light;
   const char* display_dark;
   const char* display_skin;
-  const char* display_skin_theme;
   const char* display_dark_mode;
   const char* display_dark_off;
   const char* display_dark_on;

@@ -525,9 +525,10 @@ void test_a_list_from_the_pack_picks_and_the_notes_scroll() {
   h.on_pane(Pane::Options);
   DisplayTab& display = h.app.settings().display();
   CHECK(h.click(display, DisplayTab::SkinThemeList));
-  CHECK(h.drawn(display, DisplayTab::SkinThemeList + 1));
+  CHECK(!h.drawn(display, DisplayTab::SkinThemeList + 1));  // 레트로, a heading
+  CHECK(h.drawn(display, DisplayTab::SkinThemeList + 2));
   CHECK(h.click(display, DisplayTab::SkinThemeList + 2));
-  CHECK(!h.drawn(display, DisplayTab::SkinThemeList + 1));
+  CHECK(!h.drawn(display, DisplayTab::SkinThemeList + 2));
   h.app.settings().close();
   h.on_pane(Pane::Main);
 

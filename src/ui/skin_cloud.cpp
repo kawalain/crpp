@@ -2,7 +2,9 @@
 #include "crpp/ui/skin.hpp"
 
 #include <algorithm>
+#include <cmath>
 
+#include "crpp/ui/settings_rows.hpp"
 #include "crpp/ui/surface.hpp"
 
 namespace crpp::ui {
@@ -105,6 +107,16 @@ class CloudSkin final : public Skin {
     else if (hot) p.fill_round(r, 9, t.hl_soft);
     p.text(text, {r.x + 12, r.y + 9, r.w - 24, 20}, {.size = 16, .weight = selected ? 700 : 400, .line_height = 20, .ellipsis = true},
            selected || hot ? t.on_accent : t.hl_text);
+  }
+
+  void list_heading(Painter& p, const Theme& t, Rect r, std::string_view text) const override {
+    const TextStyle style{.size = 14, .weight = 700, .line_height = 20, .align = Align::Center, .ellipsis = true};
+    const float w = std::min(text_width(p, text, style), r.w - 24 - 2 * 28);
+    const float mid = r.x + r.w / 2, y = std::round(r.y + r.h / 2);
+    const Color line = with_alpha(t.hl_text, 0.3f);
+    p.fill_rect({r.x + 12, y, mid - w / 2 - 10 - (r.x + 12), 1}, line);
+    p.fill_rect({mid + w / 2 + 10, y, r.right() - 12 - (mid + w / 2 + 10), 1}, line);
+    p.text(text, {mid - w / 2, r.y + (r.h - 20) / 2, w, 20}, style, with_alpha(t.hl_text, 0.75f));
   }
 
   void scrollbar(Painter& p, const Theme& t, Rect thumb, float hover, float shown) const override {

@@ -3,8 +3,7 @@
   "draw": [
     {"id": "form", "y": 10, "column": [
       {"use": "form_group", "text": "#display_theme", "draw": [
-        {"use": "form_combo", "text": "#display_skin", "after": 4, "draw": [{"slot": "skin_list"}]},
-        {"use": "form_combo", "text": "#display_skin_theme", "after": 4, "draw": [{"slot": "theme_list"}]},
+        {"use": "form_combo", "text": "#display_skin", "after": 4, "draw": [{"slot": "theme_list"}]},
         {"use": "form_combo", "text": "#display_dark_mode", "after": 4, "draw": [{"slot": "dark_mode_list"}]},
         {"if": "@has_cursors", "use": "form_check", "text": "#display_theme_cursor", "hit": "theme_cursor", "args": {"on": "@theme_cursor"}}
       ]},

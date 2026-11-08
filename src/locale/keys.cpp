@@ -186,7 +186,6 @@ constexpr Key keys[] = {
     KEY(display_light),
     KEY(display_dark),
     KEY(display_skin),
-    KEY(display_skin_theme),
     KEY(display_dark_mode),
     KEY(display_dark_off),
     KEY(display_dark_on),

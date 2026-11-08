@@ -184,7 +184,6 @@ const Strings korean{
     .display_light = "라이트 테마",
     .display_dark = "다크 테마",
     .display_skin = "스킨",
-    .display_skin_theme = "테마",
     .display_dark_mode = "다크 모드",
     .display_dark_off = "끄기",
     .display_dark_on = "켜기",

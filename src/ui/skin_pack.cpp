@@ -56,6 +56,8 @@ class PackSkin final : public Skin {
     part(p, "list_item", r, text, hot, false, {{"selected", selected ? 1.0f : 0.0f}});
   }
 
+  void list_heading(Painter& p, const Theme&, Rect r, std::string_view text) const override { part(p, "list_heading", r, text); }
+
   void scrollbar(Painter& p, const Theme&, Rect thumb, float, float) const override { part(p, "plain_thumb", thumb); }
 
   [[nodiscard]] Color bubble(Painter& p, const Theme&, Rect r, float, Color, Color, float shown) const override {

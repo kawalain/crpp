@@ -150,8 +150,7 @@ class DisplayTab final : public SettingsTab {
     ThemeList = 100,
     LightList = 110,
     DarkList = 120,
-    SkinList = 130,
-    SkinThemeList = 160,
+    SkinThemeList = 130,  // every Skin's Themes, each Skin's under its name
     DarkModeList = 190,
     IdleList = 300,
     LanguageList = 330
@@ -183,11 +182,12 @@ class DisplayTab final : public SettingsTab {
   void sync_idle();
   void sync_language();
 
-  void choose_skin(int index);
   void choose_theme(int index);
   void choose_dark(int index);
   Dropdown theme_, light_, dark_;
-  Dropdown skin_list_, skin_theme_, dark_mode_;
+  Dropdown skin_theme_, dark_mode_;
+  // Parallel to skin_theme_'s options: the Skin and its Theme, or -1 for a Skin's heading.
+  std::vector<std::pair<int, int>> theme_at_;
   Dropdown idle_, language_;
   Rect list_rect_[6];
   Rect idle_rect_, language_rect_;

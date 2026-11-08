@@ -4,6 +4,7 @@
 #include <cmath>
 
 #include "crpp/ui/luna.hpp"
+#include "crpp/ui/settings_rows.hpp"
 #include "crpp/ui/skin.hpp"
 
 namespace crpp::ui {
@@ -336,6 +337,14 @@ class LunaSkin final : public Skin {
     const bool lit = selected || hot;
     if (lit) p.fill_rect(r, t.luna.select);
     p.text(text, {r.x + 3, r.y, r.w - 6, r.h}, luna::body(p, r.h), lit ? t.luna.select_ink : t.luna.ink);
+  }
+
+  void list_heading(Painter& p, const Theme& t, Rect r, std::string_view text) const override {
+    const TextStyle style = luna::body(p, r.h);
+    const float w = std::min(text_width(p, text, style), r.w - 6 - 16);
+    p.text(text, {r.x + 3, r.y, w, r.h}, style, t.luna.ink_soft);
+    const float x = r.x + 3 + w + 4;
+    p.fill_rect({x, std::round(r.y + r.h / 2), r.right() - 3 - x, 1}, with_alpha(t.luna.ink_soft, 0.5f));
   }
 
   void scrollbar(Painter& p, const Theme& t, Rect thumb, float, float) const override {

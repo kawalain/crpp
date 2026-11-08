@@ -64,6 +64,9 @@ struct Scroll {
 class Dropdown {
  public:
   std::vector<std::string> options;
+  // Parallel to options, or empty: which of them head the ones after them. A heading is drawn
+  // between lines, takes no clicks and is never selected.
+  std::vector<bool> headings;
   int selected = 0;
   bool open = false;
   bool up = false;  // the list opens above the button
@@ -79,6 +82,7 @@ class Dropdown {
   // True if the wheel was over the open list.
   bool wheel(const Ui& ui, float x, float y, float delta);
   [[nodiscard]] bool owns(int id) const { return id >= id_base && id <= id_base + static_cast<int>(options.size()); }
+  [[nodiscard]] bool heading(std::size_t index) const { return index < headings.size() && headings[index]; }
 
  private:
   Rect list_;  // stage coordinates

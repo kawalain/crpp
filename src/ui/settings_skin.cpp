@@ -51,11 +51,11 @@ constexpr skin::Name sound_hits[] = {{"speaker_volume", SoundTab::SpeakerVolume}
 // --- display ---
 enum DisplayText : int { SampleSays, PercentText, SampleNick, SampleTime };
 enum DisplayNumber : int { Percent, HasCursors, ThemeCursorOn, DisplayScale, Dragging, DisplayUse24h };
-enum DisplaySlot : int { SkinSlot = 3, ThemeSlot, DarkModeSlot, IdleSlot, LanguageSlot };
+enum DisplaySlot : int { ThemeSlot = 4, DarkModeSlot, IdleSlot, LanguageSlot };
 constexpr skin::Name display_texts[] = {{"sample_says", SampleSays}, {"percent_text", PercentText}, {"sample_nick", SampleNick}, {"sample_time", SampleTime}};
 constexpr skin::Name display_numbers[] = {{"percent", Percent}, {"has_cursors", HasCursors}, {"theme_cursor", ThemeCursorOn}, {"scale", DisplayScale}, {"dragging", Dragging}, {"use_24h", DisplayUse24h}};
 constexpr skin::Name display_pictures[] = {{"sample_emoji", 0}};
-constexpr skin::Name display_slots[] = {{"skin_list", SkinSlot}, {"theme_list", ThemeSlot}, {"dark_mode_list", DarkModeSlot}, {"idle_list", IdleSlot}, {"language_list", LanguageSlot}};
+constexpr skin::Name display_slots[] = {{"theme_list", ThemeSlot}, {"dark_mode_list", DarkModeSlot}, {"idle_list", IdleSlot}, {"language_list", LanguageSlot}};
 constexpr skin::Name display_notes[] = {{"slider", 0}};
 constexpr skin::Name display_hits[] = {{"scale_slider", DisplayTab::ScaleSlider}, {"theme_cursor", DisplayTab::ThemeCursor}, {"use_24h", DisplayTab::Use24h}};
 
@@ -312,20 +312,22 @@ void SoundTab::paint_pack(Painter& p, const skin::Screen& screen, Rect area) {
 void DisplayTab::paint_pack(Painter& p, const skin::Screen& screen, Rect area) {
   const std::string_view locale = locale::current().id;
   const SkinChoice choice = choice_of(*ui_.prefs, ui_.skins);
-  skin_list_.options.clear();
-  skin_list_.selected = 0;
-  for (std::size_t i = 0; i < ui_.skins.size(); ++i) {
-    const SkinInfo& one = ui_.skins[i];
-    skin_list_.options.emplace_back(name_in(one.names, locale));
-    if (&one == choice.skin) skin_list_.selected = static_cast<int>(i);
-  }
+  // One list: each Skin's name between lines, then its Themes.
   skin_theme_.options.clear();
+  skin_theme_.headings.clear();
+  theme_at_.clear();
   skin_theme_.selected = 0;
-  if (choice.skin) {
-    for (std::size_t i = 0; i < choice.skin->themes.size(); ++i) {
-      const skin::PackTheme& one = choice.skin->themes[i];
+  for (std::size_t s = 0; s < ui_.skins.size(); ++s) {
+    const SkinInfo& skin = ui_.skins[s];
+    skin_theme_.options.emplace_back(name_in(skin.names, locale));
+    skin_theme_.headings.push_back(true);
+    theme_at_.emplace_back(-1, -1);
+    for (std::size_t i = 0; i < skin.themes.size(); ++i) {
+      const skin::PackTheme& one = skin.themes[i];
+      if (&one == choice.theme) skin_theme_.selected = static_cast<int>(skin_theme_.options.size());
       skin_theme_.options.emplace_back(name_in(one.names, locale));
-      if (&one == choice.theme) skin_theme_.selected = static_cast<int>(i);
+      skin_theme_.headings.push_back(false);
+      theme_at_.emplace_back(static_cast<int>(s), static_cast<int>(i));
     }
   }
   sync_idle();
@@ -372,7 +374,7 @@ void DisplayTab::paint_pack(Painter& p, const skin::Screen& screen, Rect area) {
         return;
       }
       s_.list_rect_[id] = r;
-      Dropdown& list = id == SkinSlot ? s_.skin_list_ : id == ThemeSlot ? s_.skin_theme_ : s_.dark_mode_;
+      Dropdown& list = id == ThemeSlot ? s_.skin_theme_ : s_.dark_mode_;
       list.paint_button(s_.ui_, &s_, p_, r);
     }
 

@@ -120,6 +120,11 @@ class App {
   // Every folder with a pack.cskin in these can be chosen, those of the first first; set_parent_finder
   // says where their parents are. False when there is none.
   bool find_skins(std::span<const SkinFolder> folders);
+  // What the last find_skins could not read: the id settings would name it by, and why.
+  struct SkippedPack {
+    std::string id, why;
+  };
+  [[nodiscard]] const std::vector<SkippedPack>& skipped_packs() const { return skipped_; }
   bool find_skins(const std::filesystem::path& dir) {
     const SkinFolder one[] = {{dir, {}}};
     return find_skins(one);
@@ -225,6 +230,7 @@ class App {
   void point_at_palette();
   std::filesystem::path pack_dir_;
   ParentFinder parent_finder_;
+  std::vector<SkippedPack> skipped_;
   [[nodiscard]] skin::LoadOptions load_options(std::string overlay, const std::filesystem::path& folder) const;
   std::optional<skin::Pack> pack_;
   std::unique_ptr<Skin> pack_skin_;

@@ -136,6 +136,7 @@ void App::point_at_palette() {
 
 bool App::find_skins(std::span<const SkinFolder> where) {
   ui_.skins.clear();
+  skipped_.clear();
   for (const SkinFolder& place : where) {
     std::error_code error;
     std::vector<std::filesystem::path> folders;
@@ -145,11 +146,16 @@ bool App::find_skins(std::span<const SkinFolder> where) {
     std::ranges::sort(folders);
     for (const std::filesystem::path& folder : folders) {
       // One that cannot be read is not offered, and the others still are.
-      if (const auto pack = skin::load_pack(files_of(folder), screen_schemas(), load_options({}, folder)); pack && !skin::missing_constant(*pack)) {
-        SkinInfo info = skin_info(*pack, narrow(folder.wstring()));
-        if (!place.prefix.empty()) info.id = place.prefix + "/" + info.id;
-        ui_.skins.push_back(std::move(info));
+      const auto pack = skin::load_pack(files_of(folder), screen_schemas(), load_options({}, folder));
+      const auto lacking = pack ? skin::missing_constant(*pack) : std::nullopt;
+      if (!pack || lacking) {
+        const std::string name = narrow(folder.filename().wstring());
+        skipped_.push_back({place.prefix.empty() ? name : place.prefix + "/" + name, pack ? "no constant " + std::string(*lacking) : pack.error()});
+        continue;
       }
+      SkinInfo info = skin_info(*pack, narrow(folder.wstring()));
+      if (!place.prefix.empty()) info.id = place.prefix + "/" + info.id;
+      ui_.skins.push_back(std::move(info));
     }
   }
   return !ui_.skins.empty();

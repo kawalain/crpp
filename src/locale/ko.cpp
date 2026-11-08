@@ -201,6 +201,8 @@ const Strings korean{
     .fetch_reason_unavailable = "저장소에 파일이 없어요.",
     .fetch_reason_bad = "받은 파일이 저장소의 목록과 달라요.",
     .fetch_reason_disk = "파일을 저장하지 못했어요.",
+    .fetch_reason_unreadable = "받은 스킨을 읽지 못했어요.",
+    .skin_not_loaded = "{0} 스킨을 읽지 못해서 다른 스킨으로 열었어요.",
     .system_repositories = "저장소",
     .system_repositories_hint = "스킨을 받아 오는 곳이에요. 다른 사람이 만든 저장소를 더할 수 있어요.",
     .system_repository_fingerprint = "지문 {0}",

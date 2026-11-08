@@ -73,6 +73,9 @@ namespace preferences {  // display, notification and system tabs
 void apply_language(Shell& s);
 // Packs arrived in the Skin folder: offers them and draws what the settings choose.
 void skins_installed(Shell& s);
+// Logs the packs the last search could not read. With `say`, one the settings choose is also told
+// of, as the app opens with another.
+void note_skipped(Shell& s, bool say);
 // What the latest catalog offers that is not installed, for the display tab to list.
 void offer_packs(Shell& s);
 // A pack picked in the display tab, on its way and when it has come, failed or was cancelled.

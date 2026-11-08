@@ -37,6 +37,7 @@ enum class DiagEvent : std::uint8_t {
   AssetsBadSignature,
   ParentAccepted,
   UpdateHeld,
+  SkinNotLoaded,
   Count,
 };
 
@@ -46,7 +47,7 @@ enum class DiagEvent : std::uint8_t {
       "in room",          "leaving",            "waiting to reconnect", "failed: unauthorized",
       "failed: connect",  "failed: room gone",  "failed: server error", "failed: invalid argument",
       "assets: no answer", "assets: not found", "assets: bad content", "assets: disk",
-      "assets: bad signature", "skin: parent accepted", "skin: update held",
+      "assets: bad signature", "skin: parent accepted", "skin: update held", "skin: not loaded",
   };
   return names[static_cast<std::size_t>(event)];
 }

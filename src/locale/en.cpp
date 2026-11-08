@@ -201,6 +201,8 @@ const Strings english{
     .fetch_reason_unavailable = "The Repository does not have its files.",
     .fetch_reason_bad = "What arrived does not match the Repository's list.",
     .fetch_reason_disk = "We could not save the files.",
+    .fetch_reason_unreadable = "We could not read the Skin we downloaded.",
+    .skin_not_loaded = "We could not read the {0} Skin, so we opened another.",
     .system_repositories = "Repositories",
     .system_repositories_hint = "Where Skins come from. You can add one someone else made.",
     .system_repository_fingerprint = "Fingerprint {0}",

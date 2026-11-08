@@ -222,6 +222,8 @@ struct Strings {
   const char* fetch_reason_unavailable;
   const char* fetch_reason_bad;
   const char* fetch_reason_disk;
+  const char* fetch_reason_unreadable;
+  const char* skin_not_loaded;
   const char* system_repositories;
   const char* system_repositories_hint;
   const char* system_repository_fingerprint;

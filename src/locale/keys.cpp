@@ -204,6 +204,8 @@ constexpr Key keys[] = {
     KEY(fetch_reason_unavailable),
     KEY(fetch_reason_bad),
     KEY(fetch_reason_disk),
+    KEY(fetch_reason_unreadable),
+    KEY(skin_not_loaded),
     KEY(system_repositories),
     KEY(system_repositories_hint),
     KEY(system_repository_fingerprint),

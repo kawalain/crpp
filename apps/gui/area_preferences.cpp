@@ -144,8 +144,17 @@ void apply_language(Shell& s) {
   s.app.ui().gfx.set_language(ui::widen(chosen.tag));
 }
 
+void note_skipped(Shell& s, bool say) {
+  const std::string chosen = s.app.ui().prefs ? s.app.ui().prefs->get(pref::skin) : std::string();
+  for (const App::SkippedPack& skipped : s.app.skipped_packs()) {
+    s.log.note(DiagEvent::SkinNotLoaded, skipped.id + ": " + skipped.why);
+    if (say && skipped.id == chosen) s.app.toasts().toast(locale::fill(tr().skin_not_loaded, {skipped.id}));
+  }
+}
+
 void skins_installed(Shell& s) {
   (void)s.app.find_skins(repositories::skin_folders(s));
+  note_skipped(s, false);
   apply_theme(s);
   offer_packs(s);
   repositories::show_packs(s);
@@ -257,6 +266,14 @@ void pack_fetched(Shell& s, const std::string& skin, bool cancelled, const std::
   const std::string theme = f.theme;
   if (current) f = {};
   skins_installed(s);
+  // Arrived but not readable, as when a parent changed: the current Skin stays, and the row says so.
+  if (std::ranges::none_of(s.app.ui().skins, [&](const SkinInfo& info) { return info.id == skin; })) {
+    if (current) {
+      f = {.state = ThemeFetch::State::Failed, .skin = skin, .theme = theme, .apply = apply, .reason = tr().fetch_reason_unreadable};
+      if (!s.app.settings().is_open()) s.app.toasts().toast(locale::fill(tr().display_fetch_failed, {theme, f.reason}));
+    }
+    return;
+  }
   if (apply) s.app.settings().display().use_theme(skin, theme);
 }
 
@@ -275,6 +292,7 @@ void wire(Shell& s) {
   apply_theme(s);
   apply_chat(s);
   s.log.set_enabled(s.app.ui().prefs->get(pref::log_enabled));
+  note_skipped(s, true);
 }
 
 bool scene(Shell& s, std::string_view name) {

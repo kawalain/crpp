@@ -77,8 +77,11 @@ inline constexpr std::size_t short_fingerprint = 16;
 [[nodiscard]] bool save_catalog(const std::filesystem::path& dir, std::string_view text);
 
 // The groups kept current: shared files, every Sound pack, the default Skin with the
-// packs it extends, and every Skin that has a file installed.
+// packs it extends, and kept_groups.
 [[nodiscard]] std::vector<std::string> wanted_groups(const Catalog& catalog, const std::filesystem::path& dir);
+// Every Skin and Sound pack that has a file installed, with the packs a Skin extends: what a
+// Repository the user added keeps current.
+[[nodiscard]] std::vector<std::string> kept_groups(const Catalog& catalog, const std::filesystem::path& dir);
 
 // The files of those groups that need work. This only compares the list of what was
 // installed and file sizes, so it is cheap enough for every start.
@@ -100,9 +103,16 @@ using OnProgress = std::function<void(const Progress&)>;
 // does, as the rest would only fail the same way. What arrived is kept and listed either
 // way, and the first error is returned; calling again fetches the rest. progress is called
 // in turn, from the working threads, and only moves forward. Once `cancel` is set no file is
-// begun, and what arrived is kept as after a failure.
+// begun, and what arrived is kept as after a failure. A path in `held` is open and cannot be
+// replaced now: it is left as it is, listed with the hash it had, so it is missing at the next start.
 std::expected<void, Error> install(const Catalog& catalog, std::string_view base, std::span<const std::string> groups,
                                    const std::filesystem::path& dir, Platform& platform, const OnProgress& progress,
-                                   const std::atomic<bool>* cancel = nullptr);
+                                   const std::atomic<bool>* cancel = nullptr, std::span<const std::string> held = {});
+
+// Removes what is installed of these groups: the files the catalog lists for them, and for a
+// Skin's group whatever is listed under its folder, skins/<id>/, which an older catalog may have
+// put there. Folders left empty go too. A file that cannot be removed only takes up space, and is
+// no longer listed.
+std::expected<void, Error> uninstall(const Catalog& catalog, std::span<const std::string> groups, const std::filesystem::path& dir);
 
 }  // namespace crpp::assets

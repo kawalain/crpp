@@ -139,6 +139,64 @@ void wants_what_is_needed_and_what_is_in_use() {
   CHECK((wanted_groups(catalog, dir.path) == std::vector<std::string>{"shared", "skin:plain", "skin:retro", "skin:cloud", "sound:soft"}));
 }
 
+// A Repository the user added keeps current only what was picked from it.
+void keeps_only_what_is_installed() {
+  TempDir dir;
+  Catalog catalog = two_skins();
+  catalog.files.push_back(file("sound:soft", "sounds/keyboard/soft/a.wav", "s"));
+  CHECK(kept_groups(catalog, dir.path).empty());
+  Fake fake;
+  serve(fake, catalog);
+  const std::vector<std::string> retro{"skin:retro"};
+  CHECK(install(catalog, base, retro, dir.path, fake, nullptr));
+  CHECK((kept_groups(catalog, dir.path) == std::vector<std::string>{"skin:retro", "skin:cloud"}));
+}
+
+// A font in use cannot be replaced: it waits for a start that has not opened it.
+void a_held_file_waits_for_the_next_start() {
+  TempDir dir;
+  Catalog catalog = two_skins();
+  Fake fake;
+  serve(fake, catalog);
+  CHECK(install(catalog, base, shared_and_cloud, dir.path, fake, nullptr));
+  catalog.files[0] = file("shared", "emoji/a.svg", "AAA", "gh");
+  catalog.files[1] = file("skin:cloud", "fonts/f.ttf", "FFFFF", "gh");
+  serve(fake, catalog);
+  fake.asked.clear();
+  const std::vector<std::string> held{"fonts/f.ttf"};
+  CHECK(install(catalog, base, shared_and_cloud, dir.path, fake, nullptr, nullptr, held));
+  CHECK(fake.asked == std::vector<std::string>{"https://repo/emoji/a.svg"});
+  CHECK(read(dir.path / "fonts/f.ttf") == "ffff");
+  const auto left = missing(catalog, shared_and_cloud, dir.path);
+  CHECK(left.size() == 1 && left[0]->path == "fonts/f.ttf");
+  CHECK(install(catalog, base, shared_and_cloud, dir.path, fake, nullptr));
+  CHECK(read(dir.path / "fonts/f.ttf") == "FFFFF");
+}
+
+// A pack removed goes with its folder, and is no longer kept current; the rest stays.
+void a_removed_pack_is_no_longer_installed() {
+  TempDir dir;
+  Catalog catalog = two_skins();
+  catalog.files.push_back(file("skin:retro", "skins/retro/screens/home.cskin", "hh", "gh"));
+  Fake fake;
+  serve(fake, catalog);
+  const std::vector<std::string> all{"shared", "skin:cloud", "skin:retro", "skin:plain"};
+  CHECK(install(catalog, base, all, dir.path, fake, nullptr));
+  // A file an older catalog put in its folder, and one of no group the catalog knows now.
+  std::ofstream(dir.path / "skins/retro/old.cskin", std::ios::binary) << "o";
+  std::ofstream(dir.path / ".installed", std::ios::binary | std::ios::app) << "o skins/retro/old.cskin\nx other/x.txt\n";
+  const std::vector<std::string> retro{"skin:retro"};
+  CHECK(uninstall(catalog, retro, dir.path));
+  CHECK(!fs::exists(dir.path / "skins/retro"));
+  CHECK(fs::exists(dir.path / "skins/plain/pack.cskin") && fs::exists(dir.path / "fonts/f.ttf"));
+  CHECK(missing(catalog, retro, dir.path).size() == 2);
+  CHECK(missing(catalog, all, dir.path).size() == 2);
+  const std::string list = read(dir.path / ".installed");
+  CHECK(list.find("skins/retro") == std::string::npos && list.find("other/x.txt") != std::string::npos);
+  const auto wanted = wanted_groups(catalog, dir.path);
+  CHECK(std::ranges::find(wanted, "skin:retro") == wanted.end());
+}
+
 void a_new_catalog_fetches_only_what_changed() {
   TempDir dir;
   Catalog catalog = two_skins();
@@ -432,6 +490,9 @@ int main() {
   installs_only_the_groups_asked_for();
   wants_what_is_needed_and_what_is_in_use();
   a_new_catalog_fetches_only_what_changed();
+  keeps_only_what_is_installed();
+  a_held_file_waits_for_the_next_start();
+  a_removed_pack_is_no_longer_installed();
   a_group_not_asked_for_stays_listed_while_it_matches();
   a_group_not_asked_for_stays_wanted_when_it_changes();
   what_an_older_version_installed_is_kept();

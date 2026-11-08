@@ -148,21 +148,34 @@ bool save_catalog(const fs::path& dir, std::string_view text) {
   return replace_file(dir / catalog_name, text);
 }
 
-std::vector<std::string> wanted_groups(const Catalog& catalog, const fs::path& dir) {
+namespace {
+
+void add_group(std::vector<std::string>& groups, const std::string& group) {
+  if (std::ranges::find(groups, group) == groups.end()) groups.push_back(group);
+}
+
+// Every Sound pack, or only those with a file installed, and every Skin with a file installed.
+std::vector<std::string> groups_in_use(const Catalog& catalog, const fs::path& dir, std::vector<std::string> groups, bool every_sound) {
   const auto installed = read_installed(dir);
-  std::vector<std::string> groups{"shared"};
-  const auto add = [&](const std::string& group) {
-    if (std::ranges::find(groups, group) == groups.end()) groups.push_back(group);
-  };
-  for (const std::string& id : skin_chain(catalog, catalog.default_skin)) add(skin_group(id));
   for (const File& file : catalog.files) {
-    if (file.group.starts_with("sound:")) add(file.group);
-    else if (file.group.starts_with("skin:") && installed.contains(file.path)) {
-      for (const std::string& id : skin_chain(catalog, std::string_view(file.group).substr(5))) add(skin_group(id));
+    if (file.group.starts_with("sound:")) {
+      if (every_sound || installed.contains(file.path)) add_group(groups, file.group);
+    } else if (file.group.starts_with("skin:") && installed.contains(file.path)) {
+      for (const std::string& id : skin_chain(catalog, std::string_view(file.group).substr(5))) add_group(groups, skin_group(id));
     }
   }
   return groups;
 }
+
+}  // namespace
+
+std::vector<std::string> wanted_groups(const Catalog& catalog, const fs::path& dir) {
+  std::vector<std::string> groups{"shared"};
+  for (const std::string& id : skin_chain(catalog, catalog.default_skin)) add_group(groups, skin_group(id));
+  return groups_in_use(catalog, dir, std::move(groups), true);
+}
+
+std::vector<std::string> kept_groups(const Catalog& catalog, const fs::path& dir) { return groups_in_use(catalog, dir, {}, false); }
 
 std::vector<const File*> missing(const Catalog& catalog, std::span<const std::string> groups, const fs::path& dir) {
   const auto installed = read_installed(dir);
@@ -177,8 +190,9 @@ std::vector<const File*> missing(const Catalog& catalog, std::span<const std::st
 
 std::expected<void, Error> install(const Catalog& catalog, std::string_view base, std::span<const std::string> groups,
                                    const fs::path& dir, Platform& platform, const OnProgress& progress,
-                                   const std::atomic<bool>* cancel) {
-  const auto needed = missing(catalog, groups, dir);
+                                   const std::atomic<bool>* cancel, std::span<const std::string> held) {
+  auto needed = missing(catalog, groups, dir);
+  std::erase_if(needed, [&](const File* file) { return std::ranges::find(held, file->path) != held.end(); });
   Progress state{.files = needed.size()};
   for (const File* file : needed) state.bytes += file->size;
 
@@ -278,6 +292,44 @@ std::expected<void, Error> install(const Catalog& catalog, std::string_view base
     fs::remove(dir / old_path, ec);  // what could not be removed only takes up space
   }
   if (failure) return std::unexpected(*failure);
+  return {};
+}
+
+std::expected<void, Error> uninstall(const Catalog& catalog, std::span<const std::string> groups, const fs::path& dir) {
+  std::unordered_set<std::string> going;
+  for (const File& file : catalog.files) {
+    if (std::ranges::find(groups, file.group) != groups.end()) going.insert(file.path);
+  }
+  std::vector<std::string> folders;
+  for (const std::string& group : groups) {
+    if (group.starts_with("skin:")) folders.push_back("skins/" + group.substr(5) + "/");
+  }
+  const auto installed = read_installed(dir);
+  std::ostringstream list;
+  std::vector<std::string> removed;
+  // In the catalog's order, as install writes it, then the rest.
+  for (const File& file : catalog.files) {
+    if (const auto it = installed.find(file.path); it != installed.end() && !going.contains(file.path) &&
+                                                   !std::ranges::any_of(folders, [&](const std::string& f) { return file.path.starts_with(f); })) {
+      list << it->second << ' ' << file.path << '\n';
+    }
+  }
+  for (const auto& [path, hash] : installed) {
+    const bool gone = going.contains(path) || std::ranges::any_of(folders, [&](const std::string& f) { return path.starts_with(f); });
+    if (gone) removed.push_back(path);
+    else if (!std::ranges::any_of(catalog.files, [&](const File& file) { return file.path == path; })) list << hash << ' ' << path << '\n';
+  }
+  // Listed last, as a file that goes is no longer installed even if removing it fails.
+  if (!replace_file(dir / installed_name, list.str())) return std::unexpected(Error::Disk);
+  for (const std::string& path : removed) {
+    if (path.find("..") != std::string::npos || path.find_first_of(":\\") != std::string::npos || path.starts_with('/')) continue;
+    std::error_code ec;
+    fs::remove(dir / path, ec);
+    // And the folders it leaves empty, up to the assets folder.
+    for (fs::path folder = (dir / path).parent_path(); folder != dir && folder.native().size() > dir.native().size(); folder = folder.parent_path()) {
+      if (!fs::is_empty(folder, ec) || ec || !fs::remove(folder, ec)) break;
+    }
+  }
   return {};
 }
 

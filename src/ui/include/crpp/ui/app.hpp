@@ -155,8 +155,7 @@ class App {
   // The view under the prompt, or the view itself when there is none.
   [[nodiscard]] View base_view() const { return view_ == View::Prompt ? prompt_return_ : view_; }
 
-  // For --shot luna-controls: nothing but the page of controls.
-  void show_controls_sheet() { controls_sheet_ = true; }
+  // For --shot cursors: nothing but the page of the pack's cursors.
   void show_cursor_sheet() { cursor_sheet_ = true; }
 
   // --- windows ---
@@ -221,7 +220,6 @@ class App {
   void finish_leaving_room();
   void paint_screen(Painter& p, View view);
   void paint_screens(Painter& p);
-  void paint_controls_sheet(Painter& p);
   void paint_cursor_sheet(Painter& p);
   void paint_layers(Painter& p);
 
@@ -265,7 +263,7 @@ class App {
   bool room_leaving_ = false;
   bool full_frame_ = false;
   bool animations_wanted_ = true;
-  bool controls_sheet_ = false, cursor_sheet_ = false;
+  bool cursor_sheet_ = false;
 };
 
 // While this lives, the app is on this window. A window's messages run in one, as what they

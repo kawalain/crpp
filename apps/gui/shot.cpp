@@ -15,10 +15,6 @@ namespace crpp::gui {
 namespace {
 
 bool apply_scene(Shell& s, std::string_view name) {
-  if (name == "luna-controls") {
-    s.app.show_controls_sheet();
-    return true;
-  }
   if (name == "cursors") {
     s.app.show_cursor_sheet();
     return true;

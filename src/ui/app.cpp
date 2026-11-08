@@ -529,10 +529,6 @@ void App::paint(ID2D1RenderTarget* rt, float width, float height) {
   full_frame_ = false;
   p.set_base(D2D1::Matrix3x2F::Scale(ui_.scale, ui_.scale) * D2D1::Matrix3x2F::Translation(ui_.ox, ui_.oy));
   p.clear(ui_.theme.sky);
-  if (controls_sheet_) {
-    paint_controls_sheet(p);
-    return;
-  }
   if (cursor_sheet_) {
     paint_cursor_sheet(p);
     return;

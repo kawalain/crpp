@@ -37,8 +37,9 @@ let advanced_top = (@packs>0 ? packs_top+40+@packs*58-12 : repositories_end)+36
 text @tr.system_advanced (9, advanced_top, @W-9, 32) style heading color hl_text
 text @tr.system_release (16, advanced_top+56, 300, 26) style row_label color hl_text
 slot release_list (285, advanced_top+50, 246, 38)
-use toggle(on = @logging, hit = hit(logging)) (16, advanced_top+95, 505, 36) text @tr.system_logging
-use text_button (381, advanced_top+139, 140, 38) text @tr.system_open_logs hit open_logs if @logging
-let reset_top = (@logging ? advanced_top+139+38 : advanced_top+95+36)+32
+text @tr.system_release_hint (16, advanced_top+92, 505, 20) style row_hint color hl_text_soft
+use toggle(on = @logging, hit = hit(logging)) (16, advanced_top+119, 505, 36) text @tr.system_logging
+use text_button (381, advanced_top+163, 140, 38) text @tr.system_open_logs hit open_logs if @logging
+let reset_top = (@logging ? advanced_top+163+38 : advanced_top+119+36)+32
 use text_button (381, reset_top, 140, 38) text @tr.system_reset hit reset
 report height = reset_top+38+25

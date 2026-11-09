@@ -277,6 +277,7 @@ struct Strings {
   const char* display_theme;
   const char* display_theme_cursor;
   const char* display_sky_effects;
+  const char* display_sky_hint;
   const char* display_skin;
   const char* display_dark_mode;
   const char* display_dark_off;
@@ -371,6 +372,9 @@ struct Strings {
   const char* sound_hotkey;
   const char* sound_hotkey_off;
   const char* sound_hotkey_taken;
+  const char* sound_shortcuts;
+  // Under the mute shortcut: what it does, as it does not stop sharing input.
+  const char* sound_hotkey_hint;
   const char* sound_default_output;
   const char* sound_current_output;
   const char* sound_me;
@@ -395,6 +399,7 @@ struct Strings {
   const char* system_language_auto;
   const char* system_advanced;
   const char* system_release;
+  const char* system_release_hint;
   const char* system_release_now;
   const char* system_release_10s;
   const char* system_release_1m;

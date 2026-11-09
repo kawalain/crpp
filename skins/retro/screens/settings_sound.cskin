@@ -36,9 +36,12 @@ column id form y 10 {
     use form_combo text @tr.sound_reverb after 4 {
       slot reverb_list
     }
-    use form_combo text @tr.sound_hotkey after 4 {
+  }
+  use form_group text @tr.sound_shortcuts {
+    use form_combo text @tr.sound_hotkey {
       slot hotkey_list
     }
+    use form_text text @tr.sound_hotkey_hint after 4 if !@hotkey_taken
     use form_text text @tr.sound_hotkey_taken after 4 if @hotkey_taken
   }
 }

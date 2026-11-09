@@ -33,6 +33,7 @@ column id form y 10 {
     use form_combo text @tr.system_release after 4 {
       slot release_list
     }
+    use form_text text @tr.system_release_hint after 2
     use form_check(on = @logging) text @tr.system_logging hit logging
     use button text @tr.system_open_logs hit open_logs right @W after 6 if @logging
     use button text @tr.system_reset hit reset right @W after 6

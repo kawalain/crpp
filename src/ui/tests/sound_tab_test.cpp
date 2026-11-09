@@ -52,9 +52,9 @@ void the_controls_are_there_and_pen_is_hidden() {
   CHECK(f.h.drawn(f.tab, SoundTab::MouseList));
   CHECK(show_pen == f.h.drawn(f.tab, SoundTab::PenVolume));
   CHECK(show_pen == f.h.drawn(f.tab, SoundTab::PenList));
-  // Upstream's height, the balance control's bottom and the panel's padding, a line more,
-  // and the rows of the reverb and the mute shortcut.
-  CHECK(f.tab.content_height() == 973);
+  // Upstream's height, the balance control's bottom and the panel's padding, a line more, the reverb's
+  // row, and the mute shortcut under a heading of its own with its hint.
+  CHECK(f.tab.content_height() == 1052);
 }
 
 void sliders_change_their_settings_and_only_when_different() {
@@ -98,9 +98,11 @@ void every_toggle_flips_its_setting() {
   };
   flips(SoundTab::ListenSelf, pref::listen_self);
   flips(SoundTab::OthersUseMine, pref::others_use_my_sounds);
-  f.show_end();
+  f.h.app.settings().scroll_to(300);  // the middle of the tab
+  f.h.render();
   flips(SoundTab::MuteNotifications, pref::mute_notifications_on_mute);
   flips(SoundTab::MuteOnIdle, pref::mute_on_idle);
+  f.show_end();
   flips(SoundTab::Spatial, pref::spatial_audio);
   flips(SoundTab::BalanceEnabled, pref::channel_balance_enabled);
 }
@@ -173,11 +175,12 @@ void the_mute_shortcut_is_picked_from_its_list_and_says_when_it_is_taken() {
   CHECK(f.prefs.get(pref::mute_hotkey) == "ctrl_shift_m");
   const MuteHotkey* key = mute_hotkey_named(f.prefs.get(pref::mute_hotkey));
   CHECK(key && key->vk == 'M' && key->modifiers == (2u | 4u));
-  // The shell found another program holding it: the row says so, and the panel grows by a line.
+  // The shell found another program holding it: the row says so where its hint was, and nothing moves.
   const float before = f.tab.content_height();
   f.tab.set_hotkey_taken(true);
   f.h.render();
-  CHECK(f.tab.content_height() > before);
+  CHECK(f.tab.content_height() == before);
+  CHECK(f.tab.hotkey_taken());
   // Another choice is unknown until tried, and none is never taken.
   CHECK(f.h.click(f.tab, SoundTab::HotkeyList));
   CHECK(f.h.click(f.tab, SoundTab::HotkeyList + 4));

@@ -16,7 +16,8 @@ slot dark_mode_list (285, 127+fetch_h, 246, 38)
 // Not upstream's: the season on Home and the Room's weather.
 text @tr.display_sky_effects (16, 180+fetch_h, 445, 36) style row color hl_text
 use switch(on = @sky_effects) (471, 180+fetch_h+5, 50, 26) hit sky_effects
-let chat_top = 76+52+62+76-25+52+fetch_h
+text @tr.display_sky_hint (16, 180+fetch_h+36, 505, 20) style row_hint color hl_text_soft
+let chat_top = 76+52+62+76-25+52+22+fetch_h
 text @tr.room_word_chat (9, chat_top-51, @W-9, 32) style heading color hl_text
 // The sample cancels the stage's scale: it shows what the chat, which is not scaled with the window, will really look like.
 let zoom = @percent/100

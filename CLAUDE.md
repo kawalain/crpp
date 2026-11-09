@@ -122,8 +122,8 @@ against a real `server/` yet; do that once a local build of it is available.
   Alt was pressed or when the menu opened from the keyboard, as in Windows; in Korean the letter is in the words too,
   as 복사(C).
 - A message that names this member, by Nickname or `@handle` anywhere in it and Latin letters in either case,
-  stands out in the list and notifies even with tray notifications and the taskbar flash off, unless "누가 내 별명을
-  부르면 항상 알려 주기" is turned off (`chatMentionNotify`, a key of this client's own).
+  stands out in the list and notifies even with tray notifications and the taskbar flash off, unless "누가 내 별명이나
+  사용자명을 부르면 항상 알려 주기" is turned off (`chatMentionNotify`, a key of this client's own).
 - What others write while every window of the app is behind another program, minimized or hidden sits under a line
   "여기부터 새 메시지". It goes when the app is left again after coming back, or when a message is sent.
 - Up and Down at the chat field's first or last line go through the last 20 messages sent, as in a shell, and

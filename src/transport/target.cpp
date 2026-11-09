@@ -1,5 +1,7 @@
 #include "crpp/transport/target.hpp"
 
+#include <algorithm>
+
 namespace crpp::transport {
 
 namespace {
@@ -106,6 +108,83 @@ std::expected<Target, TargetError> make_health_target(std::string_view url) {
   target->path_and_query.resize(target->path_and_query.size() - std::string_view("ws?nick=").size());
   target->path_and_query += "health";
   return target;
+}
+
+namespace {
+
+bool loopback(std::string_view host) {
+  if (host == "localhost" || host == "[::1]") return true;
+  if (!host.starts_with("127.")) return false;
+  // Four numbers of at most three digits.
+  int dots = 0, digits = 0;
+  for (const char c : host) {
+    if (c == '.') {
+      if (digits == 0) return false;
+      ++dots;
+      digits = 0;
+    } else if (!is_digit(c) || ++digits > 3) {
+      return false;
+    }
+  }
+  return dots == 3 && digits > 0;
+}
+
+char lower(char c) { return (c >= 'A' && c <= 'Z') ? static_cast<char>(c - 'A' + 'a') : c; }
+
+}  // namespace
+
+std::expected<std::string, AddressProblem> server_address(std::string_view typed) {
+  while (!typed.empty() && (typed.front() == ' ' || typed.front() == '\t')) typed.remove_prefix(1);
+  while (!typed.empty() && (typed.back() == ' ' || typed.back() == '\t')) typed.remove_suffix(1);
+  if (typed.empty() || typed.size() > 300) return std::unexpected(AddressProblem::Invalid);
+  // Printable ASCII only: no spaces and no letters that look like others.
+  for (const char c : typed) {
+    if (c <= ' ' || c > '~' || c == '?' || c == '#' || c == '\\') return std::unexpected(AddressProblem::Invalid);
+  }
+  std::string scheme;
+  if (const auto sep = typed.find("://"); sep != std::string_view::npos) {
+    for (const char c : typed.substr(0, sep)) scheme += lower(c);
+    typed.remove_prefix(sep + 3);
+  }
+  const std::size_t slash = typed.find('/');
+  std::string host(typed.substr(0, slash));
+  for (char& c : host) c = lower(c);
+  if (host.empty() || host.find('@') != std::string::npos) return std::unexpected(AddressProblem::Invalid);
+  // The host without its port.
+  std::string_view name = host;
+  name = name.front() == '[' ? name.substr(0, name.find(']') + 1) : name.substr(0, name.find(':'));
+  if (scheme.empty()) scheme = loopback(name) ? "http" : "https";
+  if (scheme != "https" && scheme != "http") return std::unexpected(AddressProblem::Invalid);
+  if (scheme == "http" && !loopback(name)) return std::unexpected(AddressProblem::NotSecure);
+  std::string out = scheme + "://" + host;
+  if (slash != std::string_view::npos) out += typed.substr(slash);
+  if (!out.ends_with('/')) out += '/';
+  if (!make_target(out, "")) return std::unexpected(AddressProblem::Invalid);
+  return out;
+}
+
+bool is_cloudroom_health(std::string_view body) {
+  bool ok = false, rooms = false, public_rooms = false, first = true;
+  while (!body.empty()) {
+    const std::size_t end = body.find('\n');
+    std::string_view line = body.substr(0, end);
+    body = end == std::string_view::npos ? std::string_view{} : body.substr(end + 1);
+    if (!line.empty() && line.back() == '\r') line.remove_suffix(1);
+    const auto count = [&](std::string_view key) {
+      if (!line.starts_with(key)) return false;
+      const std::string_view n = line.substr(key.size());
+      return !n.empty() && n.size() <= 9 && std::ranges::all_of(n, is_digit);
+    };
+    if (first) {
+      ok = line == "ok";
+      first = false;
+    } else if (count("rooms=")) {
+      rooms = true;
+    } else if (count("public_rooms=")) {
+      public_rooms = true;
+    }
+  }
+  return ok && rooms && public_rooms;
 }
 
 }  // namespace crpp::transport

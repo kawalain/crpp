@@ -48,6 +48,7 @@ class Listener {
   }
   [[nodiscard]] Target target() const { return *make_health_target("http://127.0.0.1:" + std::to_string(port_)); }
   [[nodiscard]] const std::string& request() const { return request_; }
+  [[nodiscard]] unsigned short port() const { return port_; }
 
  private:
   std::string reply_;
@@ -106,6 +107,17 @@ void cancel_stops_a_blocked_question() {
   CHECK(!health.reachable(server.target()));  // refused at once from now on
 }
 
+// A server is asked about itself: one that sends the question elsewhere is no answer, even when
+// the other one would answer.
+void a_redirect_is_not_followed() {
+  Listener elsewhere(ok);
+  Listener server("HTTP/1.1 302 Found\r\nLocation: http://127.0.0.1:" + std::to_string(elsewhere.port()) +
+                  "/health\r\nContent-Length: 0\r\nConnection: close\r\n\r\n");
+  WinHttpHealth health;
+  CHECK(!health.reachable(server.target()));
+  CHECK(elsewhere.request().empty());
+}
+
 }  // namespace
 
 int main() {
@@ -113,6 +125,7 @@ int main() {
   WSAStartup(MAKEWORD(2, 2), &wsa);
   a_success_answer_means_reachable();
   an_error_answer_means_unreachable();
+  a_redirect_is_not_followed();
   nobody_listening_means_unreachable();
   silence_times_out();
   cancel_stops_a_blocked_question();

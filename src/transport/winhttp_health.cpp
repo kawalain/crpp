@@ -49,18 +49,11 @@ void WinHttpHealth::cancel() {
 
 std::optional<std::string> WinHttpHealth::ask(const Target& target) {
   const auto ask = [&]() -> std::optional<std::string> {
-    if (!publish(session_, WinHttpOpen(L"crpp", WINHTTP_ACCESS_TYPE_AUTOMATIC_PROXY, WINHTTP_NO_PROXY_NAME,
-                                       WINHTTP_NO_PROXY_BYPASS, 0))) {
-      return std::nullopt;
-    }
     const int ms = static_cast<int>(timeout_.count());
+    // A server that sends this elsewhere is not the one that was asked about.
+    if (!publish(session_, winhttp::open_session(L"crpp", ms, winhttp::Redirects::Never).release())) return std::nullopt;
     const std::wstring host = widen(target.host), path = widen(target.path_and_query);
     Handle request = nullptr;
-    {
-      std::lock_guard lock(mutex_);
-      if (session_ == nullptr) return std::nullopt;
-      WinHttpSetTimeouts(session_, ms, ms, ms, ms);
-    }
     Handle connection = nullptr;
     {
       std::lock_guard lock(mutex_);

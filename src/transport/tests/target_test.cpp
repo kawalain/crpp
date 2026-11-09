@@ -82,6 +82,39 @@ void invalid_targets() {
   expect_error("https://a b/", TargetError::Invalid, __LINE__);
 }
 
+void typed_server_addresses() {
+  CHECK(server_address("cr.example.com") == "https://cr.example.com/");
+  CHECK(server_address("  HTTPS://CR.Example.com/Base ") == "https://cr.example.com/Base/");
+  CHECK(server_address("https://cr.example.com:8443/") == "https://cr.example.com:8443/");
+  CHECK(server_address("localhost:8080") == "http://localhost:8080/");
+  CHECK(server_address("http://127.0.0.1:8080") == "http://127.0.0.1:8080/");
+  CHECK(server_address("http://[::1]:8080/") == "http://[::1]:8080/");
+  CHECK(server_address("https://localhost:8443") == "https://localhost:8443/");
+  CHECK(server_address("http://cr.example.com/") == std::unexpected(AddressProblem::NotSecure));
+  // These look like this machine, but are names anyone can register.
+  CHECK(server_address("http://127.0.0.1.example.com/") == std::unexpected(AddressProblem::NotSecure));
+  CHECK(server_address("http://localhost.example.com/") == std::unexpected(AddressProblem::NotSecure));
+  CHECK(server_address("") == std::unexpected(AddressProblem::Invalid));
+  CHECK(server_address("ftp://cr.example.com/") == std::unexpected(AddressProblem::Invalid));
+  CHECK(server_address("wss://cr.example.com/") == std::unexpected(AddressProblem::Invalid));
+  CHECK(server_address("https://me@cr.example.com/") == std::unexpected(AddressProblem::Invalid));
+  CHECK(server_address("https://cr.example.com/?x=1") == std::unexpected(AddressProblem::Invalid));
+  CHECK(server_address("https://cr.example.com/#x") == std::unexpected(AddressProblem::Invalid));
+  CHECK(server_address("https://cr example.com/") == std::unexpected(AddressProblem::Invalid));
+  CHECK(server_address("https://cr.\xEC\x98\x88.com/") == std::unexpected(AddressProblem::Invalid));
+  CHECK(server_address("https://cr.example.com:99999/") == std::unexpected(AddressProblem::Invalid));
+}
+
+void a_cloudroom_server_answers_health() {
+  CHECK(is_cloudroom_health("ok\nrooms=3\npublic_rooms=1"));
+  CHECK(is_cloudroom_health("ok\r\nrooms=0\r\npublic_rooms=0\r\n"));
+  CHECK(!is_cloudroom_health("ok"));
+  CHECK(!is_cloudroom_health("OK\nrooms=3\npublic_rooms=1"));
+  CHECK(!is_cloudroom_health("<html>ok</html>\nrooms=3\npublic_rooms=1"));
+  CHECK(!is_cloudroom_health("ok\nrooms=x\npublic_rooms=1"));
+  CHECK(!is_cloudroom_health(""));
+}
+
 }  // namespace
 
 int main() {
@@ -89,5 +122,7 @@ int main() {
   nickname_is_percent_encoded();
   invalid_targets();
   health_targets();
+  typed_server_addresses();
+  a_cloudroom_server_answers_health();
   return crpp_test_result();
 }

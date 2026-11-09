@@ -1,7 +1,8 @@
 #pragma once
-// Which recording plays for an Input kind: the Sound packs on disk and the rules
-// for choosing among their files. A pack is a folder like keyboard/plastic holding
-// pack.json and any of the <sound>[_(hold|release)][_N].wav it has a recording for.
+// Which recording plays for an Input kind: the Sound packs and the rules for choosing
+// among their files. A pack is a folder like keyboard/plastic holding pack.json and any of
+// the <sound>[_(hold|release)][_N].wav it has a recording for. Folders are those of a
+// files::Tree, whose files may be anywhere on disk (ADR 0010).
 #include <cstdint>
 #include <filesystem>
 #include <optional>
@@ -10,6 +11,7 @@
 #include <string_view>
 #include <vector>
 
+#include "crpp/files/tree.hpp"
 #include "crpp/wire/input_frame.hpp"
 
 namespace crpp::sound {
@@ -37,27 +39,26 @@ class Random {
 
 // A notification sound, by its file's name, or by that name with the number upstream
 // puts in front: "cloud_chat" and "01_cloud_chat" both find notifications/cloud_chat.wav.
-[[nodiscard]] std::optional<std::filesystem::path> notification_file(const std::filesystem::path& root, std::string_view name);
+[[nodiscard]] std::optional<std::filesystem::path> notification_file(const files::Tree& sounds, std::string_view name);
 
 struct PackInfo {
   std::string id, name;
 };
 
-// A folder of Sound packs ("sounds"): the official one, or a Repository's, whose pack ids get its
-// prefix and a slash. `expected`: see Catalog::scan.
+// The Sound packs of the official Repository, or of another, whose pack ids get its prefix and a
+// slash: a tree of the "sounds" folder, as "keyboard/plastic/left.wav". It may list files that
+// are not there yet: a pack still downloading can be chosen, and a sound it deliberately lacks
+// stays silent.
 struct PackRoot {
-  std::filesystem::path dir;
+  files::Tree tree;
   std::string prefix;
-  std::vector<std::string> expected;
 };
 
 class Catalog {
  public:
-  // Reads the folder structure under `root` (the "sounds" folder). `expected` lists files
-  // relative to it that belong there, on disk or not, like "keyboard/plastic/left.wav":
-  // a pack still downloading can be chosen, and a sound it deliberately lacks stays silent.
-  [[nodiscard]] static Catalog scan(const std::filesystem::path& root, std::span<const std::string> expected = {},
-                                     std::string_view language = "ko");
+  // The packs of a tree of the "sounds" folder: each folder under keyboard, mouse or pen with a
+  // pack.json.
+  [[nodiscard]] static Catalog scan(const files::Tree& sounds, std::string_view language = "ko");
   // Several folders, each device's packs in their order: the first folder's first pack is the
   // device's default, which another member's pack this client lacks plays as.
   [[nodiscard]] static Catalog scan(std::span<const PackRoot> roots, std::string_view language = "ko");
@@ -77,8 +78,8 @@ class Catalog {
     Device device;
     std::string id;
     std::string name;
-    std::filesystem::path dir;
-    std::vector<std::string> files;  // as on disk; compared without case
+    files::Tree tree;                // its own folder's
+    std::vector<std::string> files;  // its file names
   };
   [[nodiscard]] const Pack* find(Device device, std::string_view id) const noexcept;
   std::vector<Pack> packs_;

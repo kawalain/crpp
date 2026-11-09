@@ -293,8 +293,7 @@ bool valid_emoji_id(std::string_view id) noexcept {
 
 bool EmojiCache::available(const Gfx& gfx, const std::string& id) const {
   if (!valid_emoji_id(id)) return false;
-  std::error_code ec;
-  return std::filesystem::is_regular_file(dir_ / "emoji" / (id + ".svg"), ec) || !gfx.emoji_glyph(id).empty();
+  return files_.find("emoji/" + id + ".svg") || !gfx.emoji_glyph(id).empty();
 }
 
 const SvgImage& EmojiCache::get(const Gfx& gfx, const std::string& id) {
@@ -307,10 +306,8 @@ const SvgImage& EmojiCache::get(const Gfx& gfx, const std::string& id) {
   SvgImage image;
   if (valid_emoji_id(id)) {
     // A member's emoji comes from the server, and "com1.svg" would open a serial port.
-    const std::filesystem::path file = dir_ / "emoji" / (id + ".svg");
-    std::error_code ec;
     std::ifstream in;
-    if (std::filesystem::is_regular_file(file, ec)) in.open(file, std::ios::binary);
+    if (const std::filesystem::path* file = files_.find("emoji/" + id + ".svg")) in.open(*file, std::ios::binary);
     if (in.is_open()) {
       std::stringstream buffer;
       buffer << in.rdbuf();

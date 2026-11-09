@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Builds, signs and publishes a release from this machine, with the official Repository (ADR 0008).
+# Builds, signs and publishes a release from this machine, with the official Repository (ADR 0010).
 # See docs/releases/README.md.
 #   .github/scripts/release.sh <version> [--dry-run] [--notes <file>] [--key <key.pem>]
 # --dry-run does everything up to the tag, and leaves the result in dist/. The private key is
@@ -35,7 +35,7 @@ echo '== Checking the tree'
 [[ -z $(git status --porcelain) ]] || fail 'the tree is not clean, so the build would not match a commit'
 git fetch --quiet origin main --tags || fail 'could not reach origin'
 head=$(git rev-parse HEAD)
-[[ $head == "$(git rev-parse origin/main)" ]] || fail 'HEAD is not origin/main: push first, as the second source serves pushed commits'
+[[ $head == "$(git rev-parse origin/main)" ]] || fail 'HEAD is not origin/main: push first, so that the tag names a pushed commit'
 tagged=$(git tag --list "$tag")
 if [[ -n $tagged && $(git rev-parse "$tag^{commit}") != "$head" ]]; then fail "$tag already points at another commit"; fi
 if gh release view "$tag" --json tagName >/dev/null 2>&1; then fail "$tag is already published"; fi
@@ -66,8 +66,11 @@ cp "$built" "$dist/crpp.exe"
 build-release/src/update/crpp_update_verify.exe "$dist/crpp-update.manifest" "$dist/crpp.exe" || fail 'the release does not verify'
 
 echo '== Filling the Repository'
-# wrangler.jsonc serves dist/repository. Its second source is this tag on GitHub.
-"$here/build-repository.sh" "$version" --out "$dist/repository" --tool build-release/src/assets/crpp_catalog.exe --key "$key"
+# The exe reads it from GitHub, and wrangler.jsonc serves dist/repository as its mirror.
+repository_git=https://github.com/kawalain/crpp-repository
+git clone --quiet --depth 1 "$repository_git" "$dist/github" ||
+  fail "could not clone $repository_git; it must exist and be public"
+"$here/build-repository.sh" "$version" --out "$dist/repository" --github "$dist/github"   --tool build-release/src/assets/crpp_catalog.exe --key "$key"
 
 if [[ $dry_run == 1 ]]; then
   echo "== Dry run: nothing was tagged or published. The result is in $dist/."
@@ -75,10 +78,13 @@ if [[ $dry_run == 1 ]]; then
 fi
 
 echo '== Publishing'
-# The tag first, so the catalog's second source exists once it is served; then the Repository,
-# so the new exe never starts against the files of the one before.
+# The tag, then the Repository and its mirror, then the Release, so the new exe never starts against
+# the files of the one before.
 [[ -n $tagged ]] || git tag "$tag"
 git push origin "$tag" || fail 'pushing the tag failed'
-npx --yes "$wrangler" deploy || fail 'deploying the Repository failed; run this again to retry'
+git -C "$dist/github" add -A
+git -C "$dist/github" diff --cached --quiet || git -C "$dist/github" commit --quiet -m "chore: the Repository of $tag"
+git -C "$dist/github" push --quiet origin HEAD:refs/heads/main || fail 'pushing the Repository failed; run this again to retry'
+npx --yes "$wrangler" deploy || fail 'deploying the mirror failed; run this again to retry'
 "$here/publish-release.sh" "$tag"
 gh release view "$tag" --json url --jq .url

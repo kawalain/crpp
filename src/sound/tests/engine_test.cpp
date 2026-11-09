@@ -10,8 +10,18 @@
 using namespace crpp::sound;
 using crpp::wire::Kind;
 using namespace std::chrono_literals;
+using crpp::files::Tree;
 
 namespace {
+
+Tree sounds() { return Tree::of_folder(CRPP_SOUNDS_DIR); }
+
+// Files a catalog lists that have not arrived: where they will be, in a folder that has none.
+Tree expected(std::initializer_list<const char*> paths) {
+  Tree tree;
+  for (const char* path : paths) tree.add(path, std::filesystem::path(CRPP_SOUNDS_DIR) / "none" / path);
+  return tree;
+}
 
 // Pulled by the test thread instead of a realtime one.
 class FakeDevice final : public AudioDevice {
@@ -111,7 +121,7 @@ Settings full_volume() {
 
 void nothing_happens_until_a_sound() {
   FakeDevice device;
-  Engine engine(device, CRPP_SOUNDS_DIR);
+  Engine engine(device, sounds());
   engine.start();
   std::this_thread::sleep_for(50ms);
   CHECK(device.opens == 0);
@@ -121,7 +131,7 @@ void nothing_happens_until_a_sound() {
 
 void a_peer_sounds_and_the_stream_stops_afterwards() {
   FakeDevice device;
-  Engine engine(device, CRPP_SOUNDS_DIR);
+  Engine engine(device, sounds());
   engine.set_settings(full_volume());
   engine.set_members({{3, "walnut", "walnut", "", ""}});
   engine.start();
@@ -140,7 +150,7 @@ void a_peer_sounds_and_the_stream_stops_afterwards() {
 
 void own_sounds_need_listen_self() {
   FakeDevice device;
-  Engine engine(device, CRPP_SOUNDS_DIR);
+  Engine engine(device, sounds());
   engine.set_settings(full_volume());
   engine.start();
   engine.play_own(Kind::KeySpace);
@@ -156,7 +166,7 @@ void own_sounds_need_listen_self() {
 
 void muting_silences_only_others() {
   FakeDevice device;
-  Engine engine(device, CRPP_SOUNDS_DIR);
+  Engine engine(device, sounds());
   Settings settings = full_volume();
   settings.muted = true;
   settings.listen_self = true;
@@ -172,7 +182,7 @@ void muting_silences_only_others() {
 
 void zero_volume_keeps_the_device_closed() {
   FakeDevice device;
-  Engine engine(device, CRPP_SOUNDS_DIR);
+  Engine engine(device, sounds());
   Settings settings;
   settings.volume = 0;
   engine.set_settings(settings);
@@ -191,7 +201,7 @@ void zero_volume_keeps_the_device_closed() {
 
 void kinds_without_a_sound_are_silent() {
   FakeDevice device;
-  Engine engine(device, CRPP_SOUNDS_DIR);
+  Engine engine(device, sounds());
   engine.set_settings(full_volume());
   engine.start();
   engine.play_peer(1, Kind::KeyNormal);
@@ -204,7 +214,7 @@ void kinds_without_a_sound_are_silent() {
 void a_failed_open_is_retried_later_not_for_every_key() {
   FakeDevice device;
   device.fail_open = true;
-  Engine engine(device, CRPP_SOUNDS_DIR);
+  Engine engine(device, sounds());
   engine.set_settings(full_volume());
   engine.start();
   for (int i = 0; i < 20; ++i) {
@@ -220,7 +230,7 @@ void a_failed_open_is_retried_later_not_for_every_key() {
 void a_failed_start_closes_the_device() {
   FakeDevice device;
   device.fail_start = true;
-  Engine engine(device, CRPP_SOUNDS_DIR);
+  Engine engine(device, sounds());
   engine.set_settings(full_volume());
   engine.start();
   engine.play_peer(1, Kind::KeySpace);
@@ -231,7 +241,7 @@ void a_failed_start_closes_the_device() {
 
 void a_changed_device_is_reopened_at_its_rate() {
   FakeDevice device;
-  Engine engine(device, CRPP_SOUNDS_DIR);
+  Engine engine(device, sounds());
   engine.set_settings(full_volume());
   engine.start();
   engine.play_peer(1, Kind::KeySpace);
@@ -248,7 +258,7 @@ void a_changed_device_is_reopened_at_its_rate() {
 
 void a_bad_folder_is_silent() {
   FakeDevice device;
-  Engine engine(device, std::filesystem::path(CRPP_SOUNDS_DIR) / "none");
+  Engine engine(device, Tree{});
   engine.set_settings(full_volume());
   engine.start();
   engine.play_peer(1, Kind::KeySpace);
@@ -259,7 +269,7 @@ void a_bad_folder_is_silent() {
 
 void a_burst_never_blocks_or_fails() {
   FakeDevice device;
-  Engine engine(device, CRPP_SOUNDS_DIR);
+  Engine engine(device, sounds());
   engine.set_settings(full_volume());
   engine.set_members({{1, "", "", "", ""}, {2, "thocky", "", "", ""}});
   engine.start();
@@ -271,7 +281,7 @@ void a_burst_never_blocks_or_fails() {
 
 void restarts_cleanly() {
   FakeDevice device;
-  Engine engine(device, CRPP_SOUNDS_DIR);
+  Engine engine(device, sounds());
   engine.start();
   engine.start();
   engine.stop();
@@ -285,7 +295,7 @@ void restarts_cleanly() {
 
 void a_member_at_zero_is_silent_and_stays_so_across_reconnects() {
   FakeDevice device;
-  Engine engine(device, CRPP_SOUNDS_DIR);
+  Engine engine(device, sounds());
   engine.set_settings(full_volume());
   engine.set_members({{1, "", "", "", "cid-a"}, {2, "", "", "", "cid-b"}});
   engine.set_member_volume("cid-a", 0);
@@ -307,7 +317,7 @@ void a_member_at_zero_is_silent_and_stays_so_across_reconnects() {
 void a_member_volume_scales_only_that_member() {
   const auto peak_at = [](int percent) {
     FakeDevice device;
-    Engine engine(device, CRPP_SOUNDS_DIR);
+    Engine engine(device, sounds());
     Settings settings = full_volume();
     settings.spatial = false;
     engine.set_settings(settings);
@@ -329,7 +339,7 @@ void a_member_volume_scales_only_that_member() {
 
 void clearing_member_volumes_forgets_them() {
   FakeDevice device;
-  Engine engine(device, CRPP_SOUNDS_DIR);
+  Engine engine(device, sounds());
   engine.set_settings(full_volume());
   engine.set_members({{1, "", "", "", "cid-a"}});
   engine.set_member_volume("cid-a", 0);
@@ -342,8 +352,7 @@ void clearing_member_volumes_forgets_them() {
 
 void an_expected_file_that_is_absent_plays_a_generated_sound() {
   FakeDevice device;
-  const std::vector<std::string> expected{"keyboard/plastic/mod_space.wav"};
-  Engine engine(device, std::filesystem::path(CRPP_SOUNDS_DIR) / "none", expected);
+  Engine engine(device, expected({"keyboard/plastic/pack.json", "keyboard/plastic/mod_space.wav"}));
   Settings settings = full_volume();
   settings.listen_self = true;
   engine.set_settings(settings);
@@ -356,8 +365,7 @@ void an_expected_file_that_is_absent_plays_a_generated_sound() {
 
 void a_sound_the_pack_does_not_have_stays_silent() {
   FakeDevice device;
-  const std::vector<std::string> expected{"keyboard/plastic/mod_space.wav"};
-  Engine engine(device, std::filesystem::path(CRPP_SOUNDS_DIR) / "none", expected);
+  Engine engine(device, expected({"keyboard/plastic/pack.json", "keyboard/plastic/mod_space.wav"}));
   Settings settings = full_volume();
   settings.listen_self = true;
   engine.set_settings(settings);
@@ -370,7 +378,7 @@ void a_sound_the_pack_does_not_have_stays_silent() {
 
 void an_absent_notification_plays_a_generated_cue() {
   FakeDevice device;
-  Engine engine(device, std::filesystem::path(CRPP_SOUNDS_DIR) / "none");
+  Engine engine(device, Tree{});
   engine.set_settings(full_volume());
   engine.start();
   engine.play_notification("cloud_chat");
@@ -381,7 +389,7 @@ void an_absent_notification_plays_a_generated_cue() {
 
 void chimes_take_the_place_of_a_skins_notifications() {
   FakeDevice device;
-  Engine engine(device, std::filesystem::path(CRPP_SOUNDS_DIR) / "none");
+  Engine engine(device, Tree{});
   Settings settings = full_volume();
   settings.chimes = ChimeStyle::Bells;
   engine.set_settings(settings);
@@ -397,7 +405,7 @@ void chimes_take_the_place_of_a_skins_notifications() {
 
 void notifications_follow_the_mute_settings() {
   FakeDevice device;
-  Engine engine(device, CRPP_SOUNDS_DIR);
+  Engine engine(device, sounds());
   Settings settings = full_volume();
   settings.muted = true;
   settings.mute_notifications = true;
@@ -424,7 +432,7 @@ void notifications_follow_the_mute_settings() {
 
 void previews_and_system_sounds_need_only_the_volume() {
   FakeDevice device;
-  Engine engine(device, CRPP_SOUNDS_DIR);
+  Engine engine(device, sounds());
   Settings settings = full_volume();
   settings.muted = true;
   settings.mute_notifications = true;
@@ -448,7 +456,7 @@ void previews_and_system_sounds_need_only_the_volume() {
 
 void an_unknown_cue_is_silent() {
   FakeDevice device;
-  Engine engine(device, CRPP_SOUNDS_DIR);
+  Engine engine(device, sounds());
   engine.set_settings(full_volume());
   engine.start();
   engine.play_notification("none");
@@ -459,7 +467,7 @@ void an_unknown_cue_is_silent() {
 
 void idle_mute_silences_everyone_until_lifted() {
   FakeDevice device;
-  Engine engine(device, CRPP_SOUNDS_DIR);
+  Engine engine(device, sounds());
   Settings settings = full_volume();
   settings.listen_self = true;
   settings.idle_muted = true;
@@ -478,7 +486,7 @@ void idle_mute_silences_everyone_until_lifted() {
 
 void picking_a_device_reopens_on_it() {
   FakeDevice device;
-  Engine engine(device, CRPP_SOUNDS_DIR);
+  Engine engine(device, sounds());
   Settings settings = full_volume();
   engine.set_settings(settings);
   engine.start();
@@ -501,7 +509,7 @@ void picking_a_device_reopens_on_it() {
 void a_checked_device_reports_failure() {
   FakeDevice device;
   device.fail_open = true;
-  Engine engine(device, CRPP_SOUNDS_DIR);
+  Engine engine(device, sounds());
   std::atomic<int> failures{0};
   engine.set_on_open_failed([&] { ++failures; });
   engine.set_settings(full_volume());
@@ -526,7 +534,7 @@ void a_checked_device_reports_failure() {
 // set_settings from another thread while sounds play and the device renders.
 void settings_may_change_at_any_time() {
   FakeDevice device;
-  Engine engine(device, CRPP_SOUNDS_DIR);
+  Engine engine(device, sounds());
   engine.set_settings(full_volume());
   engine.set_members({{1, "", "", "", "cid-a"}});
   engine.start();
@@ -570,7 +578,7 @@ void a_folder_outside_the_code_page_still_sounds() {
   CHECK(!ec);
   {
     FakeDevice device;
-    Engine engine(device, root);
+    Engine engine(device, Tree::of_folder(root));
     engine.set_settings(full_volume());
     engine.set_members({{3, "walnut", "", "", ""}});
     engine.start();

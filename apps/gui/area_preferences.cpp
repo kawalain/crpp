@@ -66,7 +66,7 @@ std::vector<NotifySound> load_sounds(const Shell& s) {
     if (path.starts_with(folder) && path.ends_with(wav)) stems.push_back(path.substr(folder.size(), path.size() - folder.size() - wav.size()));
   }
   std::vector<NotifySound> sounds;
-  for (auto& found : find_notification_sounds(s.assets_dir / "sounds" / "notifications", pref::notification_id, stems)) {
+  for (auto& found : find_notification_sounds(official_sounds(s).under("notifications/"), pref::notification_id, stems)) {
     // Those this program has words for; a pack.json names only what it brings.
     if (found.id == "cloud_chat") found.name = tr().notify_sound_chat;
     if (found.id == "cloud_enter") found.name = tr().notify_sound_enter;
@@ -187,7 +187,7 @@ void offer_from(const Shell& s, std::span<const assets::Shelf> shelves, std::siz
       }
       if (!repositories::installs_into(s, link.shelf)) continue;
       const std::string group[] = {assets::skin_group(link.pack)};
-      for (const assets::File* file : assets::missing(catalog, group, repositories::install_dir(s, link.shelf))) info.to_fetch += file->size;
+      for (const assets::File* file : assets::missing(catalog, group, repositories::install_dir(s, link.shelf), s.files_dir)) info.to_fetch += file->size;
     }
     if (chain.gap == assets::Chain::Gap::Repository) {
       const assets::ParentPin& wanted = *chain.wanted;
@@ -220,6 +220,7 @@ const char* reason_of(assets::Error error) {
     case assets::Error::Unavailable: return tr().fetch_reason_unavailable;
     case assets::Error::BadContent:
     case assets::Error::BadSignature: return tr().fetch_reason_bad;
+    case assets::Error::Outdated: return tr().repository_reason_outdated;
     case assets::Error::Disk: return tr().fetch_reason_disk;
   }
   return tr().fetch_reason_network;

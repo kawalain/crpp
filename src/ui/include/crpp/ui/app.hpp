@@ -17,6 +17,9 @@
 #include <string>
 #include <string_view>
 
+#include <map>
+
+#include "crpp/files/tree.hpp"
 #include "crpp/ui/context_menu.hpp"
 #include "crpp/ui/changelog_view.hpp"
 #include "crpp/ui/dialogs.hpp"
@@ -80,10 +83,12 @@ struct PaneState {
 class App {
  public:
   App();
-  // An empty assets_dir, or load_font false for a font file about to be replaced, draws
-  // with a system font until reload_assets.
-  bool init(const std::filesystem::path& assets_dir, bool load_font = true);
-  void reload_assets(const std::filesystem::path& assets_dir);
+  // The downloaded files, as the catalog names them (files::Tree). Without a font among them, or
+  // with load_font false for a font file about to be replaced, it draws with a system font until
+  // reload_assets.
+  bool init(const files::Tree& assets, bool load_font = true);
+  void reload_assets(const files::Tree& assets);
+  void reload_assets(const std::filesystem::path& dir) { reload_assets(files::Tree::of_folder(dir)); }
   [[nodiscard]] ID2D1Factory* factory() const { return ui_.gfx.d2d(); }
   // For a window nobody sees: lets go of everything made from the factory and of the
   // factory, and with it of the GPU device. The render target must be gone first. The
@@ -130,11 +135,13 @@ class App {
   void set_theme(std::string_view id);
   // The Skin's own notification sounds: 0 none, 1 small bells, 2 plain tones.
   [[nodiscard]] int notification_style() const;
-  // A folder of Skin Packs, and what comes before their ids: the first digits of the fingerprint of
-  // the Repository they came from, or nothing for the official one (ADR 0008).
+  // The Skin Packs of a Repository, a folder each ("cloud/pack.cskin"), and what comes before their
+  // ids: the first digits of the fingerprint of the Repository they came from, or nothing for the
+  // official one (ADR 0008). `where` names their folder, and with a pack's id the pack.
   struct SkinFolder {
-    std::filesystem::path dir;
+    files::Tree tree;
     std::string prefix;
+    std::filesystem::path where;
   };
   // Every folder with a pack.cskin in these can be chosen, those of the first first; set_parent_finder
   // says where their parents are. False when there is none.
@@ -145,18 +152,25 @@ class App {
   };
   [[nodiscard]] const std::vector<SkippedPack>& skipped_packs() const { return skipped_; }
   bool find_skins(const std::filesystem::path& dir) {
-    const SkinFolder one[] = {{dir, {}}};
+    const SkinFolder one[] = {{files::Tree::of_folder(dir), {}, dir}};
     return find_skins(one);
   }
+  // A pack's files, at their paths inside it, and where it is.
+  struct PackFiles {
+    files::Tree files;
+    std::filesystem::path where;
+  };
   // Where the pack a pack extends is: its id, its Repository's fingerprint when it names one, and
-  // the folder of the pack that extends it. Without one set, a folder beside it, for no fingerprint.
-  using ParentFinder = std::function<std::optional<std::filesystem::path>(std::string_view id, std::string_view fingerprint,
-                                                                          const std::filesystem::path& from)>;
+  // where the pack that extends it is. Without one set, a folder beside it, for no fingerprint.
+  using ParentFinder = std::function<std::optional<PackFiles>(std::string_view id, std::string_view fingerprint,
+                                                              const std::filesystem::path& from)>;
   void set_parent_finder(ParentFinder finder) { parent_finder_ = std::move(finder); }
   // Draws what the settings choose, among the packs found.
   void apply_skin_choice(bool system_dark);
   // Draws from the Skin Pack in this folder what it has. The error says what is wrong with it.
   [[nodiscard]] std::expected<void, std::string> load_skin_dir(const std::filesystem::path& dir);
+  // The same for a pack the last find_skins found, by its SkinInfo::dir.
+  [[nodiscard]] std::expected<void, std::string> load_found_skin(std::string_view dir);
   void skin_changed();
   // A window's size from the pack in use, or else this.
   [[nodiscard]] float window_size(std::string_view name, std::string_view side, float code) const;
@@ -263,10 +277,12 @@ class App {
   Ui ui_;
   [[nodiscard]] std::expected<void, std::string> read_pack(const std::string& overlay);
   void point_at_palette();
-  std::filesystem::path pack_dir_;
+  [[nodiscard]] std::expected<void, std::string> load_pack_files(PackFiles files);
+  PackFiles pack_files_;                     // of the pack in use
+  std::map<std::string, PackFiles> found_;  // by SkinInfo::dir, from the last find_skins
   ParentFinder parent_finder_;
   std::vector<SkippedPack> skipped_;
-  [[nodiscard]] skin::LoadOptions load_options(std::string overlay, const std::filesystem::path& folder) const;
+  [[nodiscard]] skin::LoadOptions load_options(std::string overlay, const std::filesystem::path& where) const;
   std::optional<skin::Pack> pack_;
   std::string theme_id_ = "cumulus";  // the Theme a Ui starts with, until a choice is read
   MemoryPrefs memory_prefs_;

@@ -1,12 +1,14 @@
 #pragma once
 // A Repository's list of files (ADR 0008): every file the program downloads, with its size
 // and hash, the Skin Packs it offers, and other addresses that serve the same files. It is
-// signed, and nothing it names is used before the signature checks out.
+// signed, and nothing it names is used before the signature checks out. A Repository serves
+// each file at <folder>/<sha256> (ADR 0010); the path is only what the program calls it.
 //
 // Text, LF only, one item per line, fields split by single spaces:
-//   crpp-catalog 1
+//   crpp-catalog 2                             1 is the grammar before ADR 0010, read only from disk
 //   key <128 lowercase hex>                    the P-256 key that signs it
-//   source <name> <url>                        another address for files; ends with '/'
+//   mirror <url>                               another folder with the same files; ends with '/'
+//   source <name> <url>                        where a third-party file comes from; ends with '/'
 //   skin <id> <format> [<parent>]              a parent here is one of this catalog
 //   skin-version <skin> <0.y.z>
 //   parent <skin> <id> [fingerprint <hex>] [repository <address>] [version <0.y[.z]>] [sha256 <hex>]
@@ -98,8 +100,12 @@ struct SkinPack {
 // A pack's or Theme's id, and a locale's: a-z, 0-9, - and _, at most 32 characters.
 [[nodiscard]] bool is_id(std::string_view s);
 
+inline constexpr int catalog_grammar = 2;
+
 struct Catalog {
+  int grammar = catalog_grammar;  // 1 for one kept by an exe before ADR 0010
   update::PublicKey key{};
+  std::string mirror;  // empty: none
   std::vector<SourceUrl> sources;
   std::vector<SkinPack> skins;
   std::string default_skin;

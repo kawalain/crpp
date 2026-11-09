@@ -114,8 +114,7 @@ void EmojiPicker::show(std::string current, std::function<void(std::string id)> 
   scroll_ = {};
   thumb_on_ = false;
   thumb_hide_at_ = 0;
-  const std::filesystem::path dir = ui_.emoji ? ui_.emoji->dir() : std::filesystem::path{};
-  cache_.emplace(dir, cache_capacity);
+  cache_.emplace(ui_.emoji ? ui_.emoji->files() : files::Tree{}, cache_capacity);
   ids_ = {};
   for (const std::string& id : ui_.emoji_ids) {
     if (cache_->available(ui_.gfx, id)) ids_.push_back(id);
@@ -170,8 +169,8 @@ void EmojiPicker::close() {
 
 void EmojiPicker::forget_graphics() {
   if (!cache_) return;
-  auto dir = cache_->dir();  // what emplace is about to destroy
-  cache_.emplace(std::move(dir), cache_capacity);
+  auto files = cache_->files();  // what emplace is about to destroy
+  cache_.emplace(std::move(files), cache_capacity);
 }
 
 void EmojiPicker::release_shown() {

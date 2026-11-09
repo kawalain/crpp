@@ -54,6 +54,7 @@ const char* reason_of(assets::Error error) {
     case assets::Error::BadContent:
     case assets::Error::BadSignature: return tr().repository_reason_bad;
     case assets::Error::Disk: return tr().fetch_reason_disk;
+    case assets::Error::Outdated: return tr().repository_reason_outdated;
   }
   return tr().fetch_reason_network;
 }
@@ -364,17 +365,23 @@ void accept(Shell& s, std::string_view child, const std::string& digest) {
   (void)s.store->save();
 }
 
-std::optional<fs::path> parent_dir(const Shell& s, std::string_view id, std::string_view fingerprint, const fs::path& from) {
+std::optional<App::PackFiles> parent_dir(const Shell& s, std::string_view id, std::string_view fingerprint, const fs::path& from) {
   const fs::path name(widen(id));
+  const std::string folder = "skins/" + std::string(id) + "/";
+  const auto official = [&]() -> App::PackFiles { return {official_files(s).under(folder), s.skins_dir / name}; };
+  const auto of_added = [&](const AddedRepository& added) -> App::PackFiles { return {added_files(s, added).under(folder), added.dir / "skins" / name}; };
   if (fingerprint.empty()) {
-    std::error_code ec;
-    if (const fs::path beside = from.parent_path() / name; fs::is_regular_file(beside / "pack.cskin", ec)) return beside;
-    return s.skins_dir / name;
+    // Beside it, in the same Repository, or else in the official one.
+    for (const AddedRepository& added : s.added) {
+      if (from.parent_path() != added.dir / "skins") continue;
+      if (App::PackFiles beside = of_added(added); beside.files.find("pack.cskin")) return beside;
+    }
+    return official();
   }
-  if (fingerprint == s.official_fingerprint) return s.skins_dir / name;
+  if (fingerprint == s.official_fingerprint) return official();
   const auto it = std::ranges::find(s.added, fingerprint, &AddedRepository::fingerprint);
   if (it == s.added.end()) return std::nullopt;
-  return it->dir / "skins" / name;
+  return of_added(*it);
 }
 
 void show_packs(Shell& s) {
@@ -461,8 +468,8 @@ void load(Shell& s) {
 }
 
 std::vector<App::SkinFolder> skin_folders(const Shell& s) {
-  std::vector<App::SkinFolder> folders{{s.skins_dir, {}}};
-  for (const AddedRepository& added : s.added) folders.push_back({added.dir / "skins", added.id});
+  std::vector<App::SkinFolder> folders{{official_files(s).under("skins/"), {}, s.skins_dir}};
+  for (const AddedRepository& added : s.added) folders.push_back({added_files(s, added).under("skins/"), added.id, added.dir / "skins"});
   return folders;
 }
 

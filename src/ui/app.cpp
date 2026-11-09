@@ -38,26 +38,26 @@ App::App() {
   pane_frame_.on_close = [this] { close_pane(pane_); };
 }
 
-bool App::init(const std::filesystem::path& assets_dir, bool load_font) {
+bool App::init(const files::Tree& assets, bool load_font) {
   if (!ui_.gfx.init()) return false;
-  if (!assets_dir.empty() && load_font) reload_assets(assets_dir);
-  else ui_.emoji.emplace(assets_dir);
+  if (load_font) reload_assets(assets);
+  else ui_.emoji.emplace(assets);
   return true;
 }
 
 void App::release_graphics() {
   ui_.forget_render_target();
   if (ui_.emoji) {
-    auto dir = ui_.emoji->dir();  // what emplace is about to destroy
-    ui_.emoji.emplace(std::move(dir));
+    auto files = ui_.emoji->files();  // what emplace is about to destroy
+    ui_.emoji.emplace(std::move(files));
   }
   emoji_picker_.forget_graphics();
   ui_.gfx.release_factory();
 }
 
-void App::reload_assets(const std::filesystem::path& assets_dir) {
-  ui_.gfx.load_font(assets_dir / "fonts" / "PretendardGOVVariable.ttf");
-  ui_.emoji.emplace(assets_dir);
+void App::reload_assets(const files::Tree& assets) {
+  if (const std::filesystem::path* font = assets.find("fonts/PretendardGOVVariable.ttf")) ui_.gfx.load_font(*font);
+  ui_.emoji.emplace(assets);
 }
 
 std::span<const skin::ScreenSchema> screen_schemas() {
@@ -70,16 +70,12 @@ std::span<const skin::ScreenSchema> screen_schemas() {
 
 namespace {
 
-// A folder holds a pack when it has its pack.cskin.
-bool holds_pack(const std::filesystem::path& dir) {
-  std::error_code error;
-  return std::filesystem::is_regular_file(dir / "pack.cskin", error);
-}
-
-skin::ReadFile files_of(std::filesystem::path dir) {
-  return [dir = std::move(dir)](std::string_view path) -> std::optional<std::string> {
+skin::ReadFile files_of(files::Tree tree) {
+  return [tree = std::move(tree)](std::string_view path) -> std::optional<std::string> {
     std::error_code error;
-    const std::filesystem::path file = dir / std::filesystem::path(path);
+    const std::filesystem::path* found = tree.find(path);
+    if (!found) return std::nullopt;
+    const std::filesystem::path& file = *found;
     const auto size = std::filesystem::file_size(file, error);
     if (error) return std::nullopt;
     if (size > skin::max_file_bytes) return std::string(skin::max_file_bytes + 1, ' ');  // the loader says it is too large
@@ -93,23 +89,27 @@ skin::ReadFile files_of(std::filesystem::path dir) {
 
 }  // namespace
 
-skin::LoadOptions App::load_options(std::string overlay, const std::filesystem::path& folder) const {
+skin::LoadOptions App::load_options(std::string overlay, const std::filesystem::path& where) const {
   skin::LoadOptions options;
   options.overlay = std::move(overlay);
-  options.where = narrow(folder.wstring());
+  options.where = narrow(where.wstring());
   options.parent = [finder = parent_finder_](const skin::ParentQuery& query) -> std::optional<skin::FoundPack> {
     const std::filesystem::path from = widen(query.from);
-    std::optional<std::filesystem::path> dir;
-    if (finder) dir = finder(query.id, query.fingerprint, from);
-    else if (query.fingerprint.empty()) dir = from.parent_path() / std::filesystem::path(widen(query.id));  // a folder beside it
-    if (!dir || !holds_pack(*dir)) return std::nullopt;
-    return skin::FoundPack{files_of(*dir), narrow(dir->wstring())};
+    std::optional<PackFiles> found;
+    if (finder) {
+      found = finder(query.id, query.fingerprint, from);
+    } else if (query.fingerprint.empty()) {
+      const std::filesystem::path beside = from.parent_path() / std::filesystem::path(widen(query.id));  // a folder beside it
+      found = PackFiles{files::Tree::of_folder(beside), beside};
+    }
+    if (!found || !found->files.find("pack.cskin")) return std::nullopt;
+    return skin::FoundPack{files_of(std::move(found->files)), narrow(found->where.wstring())};
   };
   return options;
 }
 
 std::expected<void, std::string> App::read_pack(const std::string& overlay) {
-  auto pack = skin::load_pack(files_of(pack_dir_), screen_schemas(), load_options(overlay, pack_dir_));
+  auto pack = skin::load_pack(files_of(pack_files_.files), screen_schemas(), load_options(overlay, pack_files_.where));
   if (!pack) return std::unexpected(std::move(pack.error()));
   if (const auto missing = skin::missing_constant(*pack)) return std::unexpected("pack: no constant \"" + std::string(*missing) + "\"");
   ui_.forget_render_target();  // brushes are kept by the address of their stops
@@ -141,24 +141,21 @@ void App::point_at_palette() {
 bool App::find_skins(std::span<const SkinFolder> where) {
   ui_.skins.clear();
   skipped_.clear();
+  found_.clear();
   for (const SkinFolder& place : where) {
-    std::error_code error;
-    std::vector<std::filesystem::path> folders;
-    for (const auto& entry : std::filesystem::directory_iterator(place.dir, error)) {
-      if (entry.is_directory(error) && holds_pack(entry.path())) folders.push_back(entry.path());
-    }
-    std::ranges::sort(folders);
-    for (const std::filesystem::path& folder : folders) {
+    for (const std::string& name : place.tree.names_in("")) {
+      if (!place.tree.find(name + "/pack.cskin")) continue;
+      PackFiles files{place.tree.under(name + "/"), place.where / std::filesystem::path(widen(name))};
       // One that cannot be read is not offered, and the others still are.
-      const auto pack = skin::load_pack(files_of(folder), screen_schemas(), load_options({}, folder));
+      const auto pack = skin::load_pack(files_of(files.files), screen_schemas(), load_options({}, files.where));
       const auto lacking = pack ? skin::missing_constant(*pack) : std::nullopt;
       if (!pack || lacking) {
-        const std::string name = narrow(folder.filename().wstring());
         skipped_.push_back({place.prefix.empty() ? name : place.prefix + "/" + name, pack ? "no constant " + std::string(*lacking) : pack.error()});
         continue;
       }
-      SkinInfo info = skin_info(*pack, narrow(folder.wstring()));
+      SkinInfo info = skin_info(*pack, narrow(files.where.wstring()));
       if (!place.prefix.empty()) info.id = place.prefix + "/" + info.id;
+      found_.insert_or_assign(info.dir, std::move(files));
       ui_.skins.push_back(std::move(info));
     }
   }
@@ -169,12 +166,12 @@ void App::apply_skin_choice(bool system_dark) {
   const SkinChoice choice = choice_of(*ui_.prefs, ui_.skins);
   if (!choice.skin || !choice.theme) return;
   const std::string palette(choice.palette(system_dark));
-  const std::filesystem::path dir = widen(choice.skin->dir);
-  if (!pack_ || pack_dir_ != dir || pack_->overlay != choice.theme->overlay) {
-    const std::filesystem::path before = pack_dir_;
-    pack_dir_ = dir;
+  const auto found = found_.find(choice.skin->dir);
+  if (found == found_.end()) return;
+  if (!pack_ || pack_files_.where != found->second.where || pack_->overlay != choice.theme->overlay) {
+    PackFiles before = std::exchange(pack_files_, found->second);
     if (!read_pack(choice.theme->overlay)) {  // changed under the app since it was found: it stays as it is
-      pack_dir_ = before;
+      pack_files_ = std::move(before);
       return;
     }
   }
@@ -186,8 +183,17 @@ std::expected<void, std::string> App::load_skin_dir(const std::filesystem::path&
   std::filesystem::path whole = std::filesystem::absolute(dir, error).lexically_normal();
   if (error) return std::unexpected("pack: no folder " + narrow(dir.wstring()));
   if (!whole.has_filename()) whole = whole.parent_path();
-  const std::filesystem::path before = pack_dir_;
-  pack_dir_ = whole;
+  return load_pack_files({files::Tree::of_folder(whole), whole});
+}
+
+std::expected<void, std::string> App::load_found_skin(std::string_view dir) {
+  const auto found = found_.find(std::string(dir));
+  if (found == found_.end()) return std::unexpected("no Skin Pack at " + std::string(dir));
+  return load_pack_files(found->second);
+}
+
+std::expected<void, std::string> App::load_pack_files(PackFiles files) {
+  PackFiles before = std::exchange(pack_files_, std::move(files));
   auto read = read_pack({});
   // Which overlay a Theme needs is known once the pack has been read.
   if (read) {
@@ -195,11 +201,12 @@ std::expected<void, std::string> App::load_skin_dir(const std::filesystem::path&
     if (theme && !theme->overlay.empty()) read = read_pack(theme->overlay);
   }
   if (!read) {
-    pack_dir_ = before;
+    pack_files_ = std::move(before);
     return read;
   }
   point_at_palette();
-  ui_.skins = {skin_info(*pack_, narrow(whole.wstring()))};
+  ui_.skins = {skin_info(*pack_, narrow(pack_files_.where.wstring()))};
+  found_ = {{ui_.skins.front().dir, pack_files_}};
   skin_changed();
   return {};
 }

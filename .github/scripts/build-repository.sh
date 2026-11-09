@@ -1,19 +1,24 @@
 #!/usr/bin/env bash
-# Fills a folder with the official Repository (ADR 0008): every file its catalog lists, at its
-# installed path, the catalog signed with the update key, and the _redirects file. wrangler.jsonc
-# serves that folder as it is.
+# Fills the official Repository (ADR 0010) in two folders:
 #
-# Each pack format has a catalog of its own (ADR 0009). The one the exe is built for goes in
-# <out>/<format>/, or <out> itself for format 1. Every older format is rebuilt from the last tag
-# that wrote it, as exes of that format still read it, and must give the catalog it gave then.
+# - <github>, a checkout of kawalain/crpp-repository, which the exe reads: this release's signed
+#   catalog-<format>.txt and every file any served catalog lists, once, named by its SHA-256.
+#   Files no catalog lists any more are removed; git keeps them in its history.
+# - <out>, which wrangler.jsonc serves on the Worker: the same files under s/, its mirror, and
+#   the frozen catalogs of the exes before ADR 0010 at the addresses they know, with a
+#   _redirects rule per file that serves its path from s/ with status 200. Those exes refuse
+#   redirects, so a rule must answer with the file itself.
 #
-#   .github/scripts/build-repository.sh <version> [--out dist/repository]
+#   .github/scripts/build-repository.sh <version> [--out dist/repository] [--github dist/github]
 #       [--tool build-msvc/src/assets/crpp_catalog.exe] [--cache .cache/remote-assets]
-#       [--ref v<version>] [--key ~/.crpp-signing/crpp-update-signing.pem]
+#       [--key ~/.crpp-signing/crpp-update-signing.pem] [--public <hex>]
 #
-# --ref is where raw.githubusercontent.com serves this repository's files as the second
-# source; it defaults to the release's tag. The third-party files come from the cache a
-# development build fills, and each is checked against its pinned hash.
+# --public names another key than the release key, with --key its private one, to try the result
+# with a build of -DCRPP_UPDATE_TEST_KEY; the frozen catalogs stay signed by the release key.
+#
+# The third-party files come from the cache a development build fills. A file of a frozen catalog
+# the checkout no longer has comes from the tag its catalog names, or from its own source. Each is
+# checked against its hash.
 set -euo pipefail
 here=$(cd "$(dirname "$0")" && pwd)
 cd "$here/../.."
@@ -21,67 +26,113 @@ cd "$here/../.."
 [[ $# -ge 1 ]] || { echo "usage: $0 <version> [options]" >&2; exit 2; }
 version=$1
 shift
-out=dist/repository tool=build-msvc/src/assets/crpp_catalog.exe cache=.cache/remote-assets
-ref="v$version" key="$HOME/.crpp-signing/crpp-update-signing.pem"
+out=dist/repository github=dist/github tool=build-msvc/src/assets/crpp_catalog.exe cache=.cache/remote-assets
+key="$HOME/.crpp-signing/crpp-update-signing.pem" public=''
 while [[ $# -gt 0 ]]; do
   case $1 in
-    --out) out=$2 ;; --tool) tool=$2 ;; --cache) cache=$2 ;; --ref) ref=$2 ;; --key) key=$2 ;;
+    --out) out=$2 ;; --github) github=$2 ;; --tool) tool=$2 ;; --cache) cache=$2 ;; --key) key=$2 ;; --public) public=$2 ;;
     *) echo "unknown option: $1" >&2; exit 2 ;;
   esac
   shift 2
 done
+fail() { echo "$*" >&2; exit 1; }
 
-[[ $version =~ ^0\.(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)$ ]] || { echo "not a 0.y.z version: $version" >&2; exit 1; }
-public=$(tr -d '\r\n' < src/update/release_public_key.txt)
-[[ $public =~ ^[0-9a-f]{128}$ ]] || { echo 'the public key is not 128 lowercase hex digits' >&2; exit 1; }
-# What raw.githubusercontent.com serves at the tag is what is committed, so the files here must be too.
-dirty=$(git status --porcelain -- assets skins cmake/remote_assets.txt)
-[[ -z $dirty ]] || { printf 'assets/, skins/ or cmake/remote_assets.txt differ from the commit:\n%s\n' "$dirty" >&2; exit 1; }
+[[ $version =~ ^0\.(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)$ ]] || fail "not a 0.y.z version: $version"
+[[ -n $public ]] || public=$(tr -d '\r\n' < src/update/release_public_key.txt)
+[[ $public =~ ^[0-9a-f]{128}$ ]] || fail 'the public key is not 128 lowercase hex digits'
+[[ -d $github/.git ]] || fail "$github is not a checkout of the Repository's GitHub repository"
+# The Worker's copy of the GitHub folder, which every catalog names as its mirror. Also in
+# src/assets/CMakeLists.txt.
+mirror=https://crpp.kawala.in/s/
 
-# The format this exe reads its packs in, and where its catalog is served.
+# The format this exe reads its packs in, and the name of its catalog.
 format=$(sed -n 's/^inline constexpr int pack_format = \([0-9]*\);$/\1/p' src/skin/include/crpp/skin/pack.hpp)
-[[ $format =~ ^[1-9][0-9]*$ ]] || { echo 'pack_format was not found in src/skin/include/crpp/skin/pack.hpp' >&2; exit 1; }
-folder_of() { if [[ $1 == 1 ]]; then echo "$out"; else echo "$out/$1"; fi; }
+[[ $format =~ ^[1-9][0-9]*$ ]] || fail 'pack_format was not found in src/skin/include/crpp/skin/pack.hpp'
+catalog_name="catalog-$format.txt"
 
-# The older formats: <format> <last tag of it> <sha256 of its catalog before the signature>.
-# A rebuild that gives another catalog would hand those exes files they never had.
+# The catalogs of the exes before ADR 0010, as they were signed: <folder on the Worker> <file>
+# <sha256 of the file>. Their exes read them at those folders and nothing else.
 frozen=(
-  '1 v0.2.0 992c51d3372b0ca5361144f54a4ed6d526dfa0609b33f822993c3a3b46fa01e6'
+  '. .github/frozen-catalogs/1.txt faeb2d6e6adca780416eb9687b41b80b53b4943271de00ab76452c23b62d1939'
+  '2 .github/frozen-catalogs/2.txt 39c4cb6ab85454cd860a29de8c22a0ff6a8d3562070658045291237b141e0588'
 )
+for entry in "${frozen[@]}"; do
+  read -r _ file hash <<< "$entry"
+  got=$(sha256sum < "$file")
+  [[ ${got%% *} == "$hash" ]] || fail "$file is not the catalog that was signed"
+done
 
-rm -rf "$out"
 scratch=$(mktemp -d)
 trap 'rm -rf "$scratch"' EXIT
-folders=()
-# The older formats first, so nothing of this one's is rebuilt over.
-for entry in "${frozen[@]}"; do
-  read -r old_format old_tag old_hash <<< "$entry"
-  [[ $old_format != "$format" ]] || { echo "format $format is frozen at $old_tag, but this exe writes it" >&2; exit 1; }
-  echo "Format $old_format, frozen at $old_tag"
-  rm -rf "$scratch/tree" && mkdir -p "$scratch/tree"
-  git archive "$old_tag" assets skins cmake/remote_assets.txt | tar -x -C "$scratch/tree"
-  [[ $(git show "$old_tag:src/update/release_public_key.txt" | tr -d '\r\n') == "$public" ]] ||
-    { echo "$old_tag was signed with another key" >&2; exit 1; }
-  dest=$(folder_of "$old_format")
-  "$tool" "$dest" --remote "$scratch/tree/cmake/remote_assets.txt" --assets "$scratch/tree/assets" \
-    --skins "$scratch/tree/skins" --ref "$old_tag" --default-skin cloud --key "$public" --copy "$cache"
-  got=$(sha256sum < "$dest/catalog.txt")
-  [[ ${got%% *} == "$old_hash" ]] || { echo "format $old_format rebuilt from $old_tag gives another catalog" >&2; exit 1; }
-  folders+=("$dest")
-done
-echo "Format $format, at $ref"
-"$tool" "$(folder_of "$format")" --remote cmake/remote_assets.txt --assets assets --skins skins --ref "$ref" \
+store="$scratch/store"
+
+echo "Format $format, version $version"
+"$tool" "$store" --remote cmake/remote_assets.txt --assets assets --skins skins --mirror "$mirror" \
   --default-skin cloud --key "$public" --copy "$cache"
-folders+=("$(folder_of "$format")")
+mv "$store/catalog.txt" "$scratch/$catalog_name"
+"$here/sign-catalog.sh" "$scratch/$catalog_name" "$key"
+# As the program will check it.
+"$tool" --verify "$scratch/$catalog_name" --key "$public"
 
-# Signed only once every catalog is as it should be.
-for folder in "${folders[@]}"; do
-  "$here/sign-catalog.sh" "$folder/catalog.txt" "$key"
-  # As the program will check it.
-  "$tool" --verify "$folder/catalog.txt" --key "$public"
+# Every file of the frozen catalogs too: from the checkout, which has them after the first time,
+# or else from the tag or the source each names.
+check() { local got; got=$(sha256sum < "$1"); [[ ${got%% *} == "$2" ]]; }
+for entry in "${frozen[@]}"; do
+  read -r _ file _ <<< "$entry"
+  declare -A sources=()
+  while read -r kind name url; do sources[$name]=$url; done < <(grep '^source ' "$file" | tr -d '\r')
+  while read -r _ _ path _ sha from source remote _; do
+    target="$store/$sha"
+    [[ -e $target ]] && continue
+    if [[ -f $github/$sha ]] && check "$github/$sha" "$sha"; then
+      cp "$github/$sha" "$target"
+      continue
+    fi
+    [[ $from == from && -n ${sources[$source]:-} ]] || fail "$path of $file has nowhere to come from"
+    url=${sources[$source]}
+    if [[ $url =~ ^https://raw\.githubusercontent\.com/kawalain/crpp/(v[0-9.]+)/$ ]]; then
+      git show "${BASH_REMATCH[1]}:$remote" > "$target"
+    elif [[ -f $cache/$path ]] && check "$cache/$path" "$sha"; then
+      cp "$cache/$path" "$target"
+    else
+      curl -fsS --max-time 120 "$url$remote" -o "$target" || fail "could not fetch $url$remote"
+    fi
+    check "$target" "$sha" || { rm -f "$target"; fail "$path of $file is not the file it lists"; }
+  done < <(grep '^file ' "$file" | tr -d '\r')
+  unset sources
 done
 
-# The bare address, which someone may open in a browser, shows the source. Only that path: a rule
-# here wins over a file at the same path, so a wider one would take the files with it.
+# The GitHub folder: its catalog, the files and a word on what it is; what is no longer listed goes.
+find "$github" -mindepth 1 -maxdepth 1 ! -name .git -exec rm -rf {} +
+cp "$store"/* "$github/"
+cp "$scratch/$catalog_name" "$github/"
+cat > "$github/README.md" << EOF
+# Cloudroom++ Repository
+
+The official Repository of [Cloudroom++](https://github.com/kawalain/crpp), written by its release
+script. \`$catalog_name\` is the signed catalog of Skin Pack format $format; every file it or an older
+catalog lists is here once, named by its SHA-256. Do not edit by hand: the next release replaces it.
+EOF
+
+# The Worker: the same folder as the mirror, and the frozen catalogs with their files' paths.
+rm -rf "$out"
+mkdir -p "$out/s"
+find "$github" -mindepth 1 -maxdepth 1 ! -name .git -exec cp -r {} "$out/s/" \;
+# The bare address, which someone may open in a browser, shows the source.
 printf '/ https://github.com/kawalain/crpp 302\n' > "$out/_redirects"
-echo "$(find "$out" -type f | wc -l) files, $(du -sm "$out" | cut -f1) MB in $out"
+rules=0
+for entry in "${frozen[@]}"; do
+  read -r folder file _ <<< "$entry"
+  mkdir -p "$out/$folder"
+  cp "$file" "$out/$folder/catalog.txt"
+  prefix=/
+  [[ $folder == . ]] || prefix="/$folder/"
+  while read -r _ _ path _ sha _; do
+    printf '%s%s /s/%s 200\n' "$prefix" "$path" "$sha" >> "$out/_redirects"
+    rules=$((rules + 1))
+  done < <(grep '^file ' "$file" | tr -d '\r')
+done
+# Cloudflare takes at most 2,000 static rules (developers.cloudflare.com/workers/static-assets/redirects/).
+[[ $rules -lt 2000 ]] || fail "$rules rules in _redirects, more than Cloudflare takes"
+echo "$(find "$github" -path "$github/.git" -prune -o -type f -print | wc -l) files in $github," \
+  "$(du -sm --exclude=.git "$github" | cut -f1) MB; $rules rules in $out/_redirects"

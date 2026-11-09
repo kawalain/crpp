@@ -317,7 +317,10 @@ void sync_hidden(Shell& s) {
     s.target.reset();
     drop_pane_targets(s);
     s.app.ui().forget_render_target();
-    if (s.app.ui().emoji) s.app.ui().emoji.emplace(s.assets_dir);
+    if (s.app.ui().emoji) {
+      auto files = s.app.ui().emoji->files();  // what emplace is about to destroy
+      s.app.ui().emoji.emplace(std::move(files));
+    }
     give_back_pages();
     SetTimer(s.hwnd, graphics_timer, graphics_release_ms, release_graphics);
   } else {

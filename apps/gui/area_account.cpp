@@ -65,7 +65,7 @@ class Host final : public AccountHost {
     leaving_ = true;
   }
 
-  [[nodiscard]] std::string random_nickname() override { return gui::random_nickname(s_.assets_dir / locale::current().words_folder); }
+  [[nodiscard]] std::string random_nickname() override { return gui::random_nickname(official_files(s_), locale::current().words_folder); }
 
   [[nodiscard]] std::string emoji() const override { return s_.store->string_or("emoji", ""); }
 

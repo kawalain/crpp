@@ -2,6 +2,8 @@
 # second source, so checkouts must keep them exact.
 assets/** -text
 skins/** -text
+# The catalogs the exes before ADR 0010 read, kept as they were signed.
+.github/frozen-catalogs/** -text
 *.sh text eol=lf
 .github/workflows/*.yml text eol=lf
 *.ico binary

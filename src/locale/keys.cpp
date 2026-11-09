@@ -289,6 +289,7 @@ constexpr Key keys[] = {
     KEY(repository_reason_none),
     KEY(repository_reason_bad),
     KEY(repository_reason_known),
+    KEY(repository_reason_outdated),
     KEY(repository_add_question),
     KEY(repository_add_pack),
     KEY(repository_add_sound),

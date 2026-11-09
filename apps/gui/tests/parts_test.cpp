@@ -76,7 +76,7 @@ std::string lower_id(std::string_view stem) {
 }
 
 void test_finds_the_shipped_sounds_in_order(const char* folder) {
-  const auto sounds = find_notification_sounds(folder, lower_id);
+  const auto sounds = find_notification_sounds(crpp::files::Tree::of_folder(folder), lower_id);
   CHECK(sounds.size() == 2);
   if (sounds.size() != 2) return;
   CHECK(sounds[0].stem == "cloud_chat");
@@ -91,7 +91,7 @@ void test_a_sound_without_a_label_uses_its_id() {
   std::ofstream(dir / "03_b.wav") << "x";
   std::ofstream(dir / "01_a.wav") << "x";
   std::ofstream(dir / "notes.txt") << "x";
-  const auto sounds = find_notification_sounds(dir, lower_id);  // no pack.json either
+  const auto sounds = find_notification_sounds(crpp::files::Tree::of_folder(dir), lower_id);  // no pack.json either
   CHECK(sounds.size() == 2);
   if (sounds.size() == 2) {
     CHECK(sounds[0].name == "a");

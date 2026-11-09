@@ -35,8 +35,8 @@ and developer communities, not from memory.
   Golden vectors are derived from upstream `server/src/main.rs`.
 - Layout: `src/<module>/` (CMake static library) with `src/<module>/tests/`.
   Dependency direction, as CMake links them: `session`, `input`, `sound -> wire`; `client -> session,
-  transport`; `api -> store, locale`; `update -> store`; `skin -> store, locale`; `assets -> update, skin`;
-  `ui -> session, update, locale, skin`. `store` is also the JSON reader of `api`, `update` and `skin`.
+  transport`; `api -> store, locale`; `update -> store`; `skin -> store, locale`; `assets -> files, update, skin`;
+  `ui -> session, update, locale, skin, files`; `sound -> files` too. `store` is also the JSON reader of `api`, `update` and `skin`.
   `transport` and `input` are reached from `session` only through interfaces, and only `apps/gui` links
   every adapter. Nothing lower may come to depend on `ui` or `assets`.
 - Audio is raw WASAPI with a hand-written WAV parser (no third party).
@@ -156,10 +156,11 @@ server; seed `serverUrl` in its `crpp/settings.json` to test the offline popup. 
 `/health`: a click on creating or joining a Room still goes to the default server, which is production,
 so a run that clicks needs a `serverUrl` on localhost. A development build with an
 `assets/` folder holding a `catalog.txt` beside it, as every build has, runs from that folder and
-`skins/` and installs nothing; an official build never reads them, as nobody signed them. To test installing, build with `-DCRPP_UPDATE_TEST_KEY=<hex>`, write a
-Repository with `crpp_catalog`, sign it with `.github/scripts/sign-catalog.sh` and the test key's file, serve it
-on localhost and copy the exe elsewhere: `--asset-url <folder>` uses it, signed with the build's key.
-Rebuild without the test key afterwards.
+`skins/` and installs nothing; an official build never reads them, as nobody signed them. To test installing, build with `-DCRPP_UPDATE_TEST_KEY=<hex>`, fill
+a folder that `git init` made with `.github/scripts/build-repository.sh <version> --github <folder> --out <worker>
+--public <hex> --key <test key file>`, serve that folder on localhost and copy the exe elsewhere: `--asset-url
+<folder>` reads its `catalog-<format>.txt`, signed with the build's key. `<worker>` is the Worker's half, which
+`wrangler dev` serves. Rebuild with `-DCRPP_UPDATE_TEST_KEY=` afterwards.
 
 Scripted runs of the app go on a hidden Win32 desktop (`CreateDesktop`,
 `STARTUPINFO.lpDesktop`, `EnumDesktopWindows`), so no window reaches the user's
@@ -213,19 +214,27 @@ exist (real + test).
   lists what each screen offers.
   A panel with a window of its own reports its size, and `measure_screen` walks the screen without drawing to learn it. What the
   program itself must know of a look, as a frame's sizes and each window's, is in constants that `required_constants` lists; fonts and cursors have sections of their own.
+- `files`: `Tree`, a path a catalog gives a file and where the file really is. Whatever reads a downloaded file asks
+  one, as installed files are named by their hashes and a development build reads its source folders. Pure.
 - `assets`: a Repository's signed catalog (`catalog.hpp`, ADR 0008) and the files it lists in groups:
   `shared`, which holds the official Sound packs, emoji and word lists, one `skin:<id>` per Skin Pack, and
   `sound:<id>`, which the official catalog does not use. `install` fetches the groups asked for from the
   Repository, or a file's second source when the Repository fails, verifies each and keeps what
-  already matches. The exe holds only the official Repository's address and the update key
-  (`built_in.hpp`); `crpp_catalog` writes a catalog from `assets/`, `skins/`, another Repository's `--sounds` and
-  `cmake/remote_assets.txt`, and `.github/scripts/build-repository.sh` fills and signs the official
-  one, and `sign-catalog.sh` prints its key's fingerprint. A Repository the user adds (`folder_of` reads
+  already matches. A Repository serves each file as `<folder><sha256>`, then its catalog's `mirror` does (ADR 0010);
+  what is installed is kept once in the store `files/<sha256>` of the Protected store, which every Repository shares,
+  and each Repository's folder lists its paths with their hashes (`installed_tree`). At start what an older exe
+  installed at its paths moves into the store (`move_into_store`) and what no list names leaves it
+  (`collect_garbage`). The exe holds only the official Repository's address, its mirror and the update key
+  (`built_in.hpp`): `kawalain/crpp-repository` on GitHub, mirrored by the Worker at `crpp.kawala.in/s/`, with a
+  `catalog-<format>.txt` per pack format. `crpp_catalog` writes a catalog, and with `--copy` the folder to serve,
+  from `assets/`, `skins/`, another Repository's `--sounds` and `cmake/remote_assets.txt`;
+  `.github/scripts/build-repository.sh` fills and signs the official one and the Worker's half, which keeps the
+  frozen catalogs of v0.2.x and v0.3.0 (`.github/frozen-catalogs/`) answering from `s/`, and `sign-catalog.sh`
+  prints its key's fingerprint. A Repository the user adds (`folder_of` reads
   its address) offers only packs, in folders of their own, and is trusted by the key its catalog states
   (`fetch_new_catalog`) once the user has seen the fingerprint; `apps/gui/area_repositories.cpp` keeps each
   in `repositories/<first 16 digits>/` of the Protected store. Behind the app at every start what is
-  installed follows each Repository's latest catalog, used from the next start (`held` keeps an open font for
-  then, or a pack held back); `kept_groups` is what an added one keeps, and `uninstall` removes a pack. `pack_chain`
+  installed follows each Repository's latest catalog, used from the next start (`held` keeps a pack held back); `kept_groups` is what an added one keeps, and `uninstall` removes a pack. `pack_chain`
   follows a pack to its parents across Repositories, and `check_pin` tells whether a parent still holds to a pin
   (`own_digest`, which `crpp_catalog --digest` prints). `Platform` is the seam for
   WinHTTP and BCrypt.

@@ -1,0 +1,412 @@
+crpp-catalog 1
+key 4926067343e7f878cdf123a8be4110a0c6fccb7985a9f2765660a5e73f1f078b1ff344a8e24a4a3de0180849cee20ed391c477c0dc4c180425c64d46fd7c5264
+source crpp https://raw.githubusercontent.com/kawalain/crpp/v0.3.0/
+source twemoji https://raw.githubusercontent.com/jdecked/twemoji/b6b55fef1e8636b540a6d016a4729ca8cdf2e60b/assets/svg/
+source twemoji-root https://raw.githubusercontent.com/jdecked/twemoji/b6b55fef1e8636b540a6d016a4729ca8cdf2e60b/
+source pretendard https://raw.githubusercontent.com/orioncactus/pretendard/v1.3.9/packages/pretendard-gov/dist/public/variable/
+source pretendard-root https://raw.githubusercontent.com/orioncactus/pretendard/v1.3.9/
+skin cloud 2
+skin-version cloud 0.1.0
+skin-name cloud ko 구름
+skin-name cloud en Cloud
+theme cloud cumulus dark
+theme-name cloud cumulus ko 뭉게구름
+theme-name cloud cumulus en Cumulus
+theme cloud pastel
+theme-name cloud pastel ko 파스텔
+theme-name cloud pastel en Pastel
+skin retro 2
+skin-version retro 0.1.0
+skin-name retro ko 레트로
+skin-name retro en Retro
+theme retro classic dark
+theme-name retro classic ko 고전
+theme-name retro classic en Classic
+theme retro luna_blue dark
+theme-name retro luna_blue ko 루나 블루
+theme-name retro luna_blue en Luna Blue
+theme retro luna_homestead dark
+theme-name retro luna_homestead ko 루나 홈스테드
+theme-name retro luna_homestead en Luna Homestead
+theme retro luna_metallic dark
+theme-name retro luna_metallic ko 루나 메탈릭
+theme-name retro luna_metallic en Luna Metallic
+default-skin cloud
+sound plastic
+sound-name plastic ko 플라스틱
+sound-name plastic en Plastic
+sound thocky
+sound-name thocky ko 쏘키
+sound-name thocky en Thocky
+sound walnut
+sound-name walnut ko 호두
+sound-name walnut en Walnut
+sound rubber
+sound-name rubber ko 고무
+sound-name rubber en Rubber
+sound paper
+sound-name paper ko 종이
+sound-name paper en Paper
+file shared emoji/01.svg 2401 50f8a06f2ce720f0d02ab8623a3e92cbd1ebc98506ba370386f89eb2b6df1061 from crpp assets/emoji/01.svg
+file shared emoji/02.svg 3335 62b9c728602a3792ced95e793335d1e0c6675f9178a4f9dbe23840d97a5772ba from crpp assets/emoji/02.svg
+file shared emoji/03.svg 3488 6235d2b6e5688bec9a4bdc70be477935647333f3ef4b57bfd7e6e9cf139ea8c5 from crpp assets/emoji/03.svg
+file shared emoji/04.svg 3256 c18b5220afc2ddff59bd614ea62602a332a40a26295023aaa2edf5a20350fc3b from crpp assets/emoji/04.svg
+file shared emoji/05.svg 3204 2e89280e8bdebac0ec6c1bd4eb3bdc4f30b50b4e4b9dbc25562ca87aa873fd1b from crpp assets/emoji/05.svg
+file shared emoji/06.svg 3240 e108f655511d499bb35dc753df44395d07bdf6575e58187b2c7857fdb3a62249 from crpp assets/emoji/06.svg
+file shared emoji/07.svg 3259 c941e4eecf5c812d6df758ab99cc72a692aff16fe17dee415263f7c110b22d19 from crpp assets/emoji/07.svg
+file shared emoji/1f400.svg 1470 8bfbece3bc1d503247a8f7ba2ea9539534998fdc196b1aab974eef66a1f97a61 from twemoji 1f400.svg
+file shared emoji/1f401.svg 980 e92c81d0ebb0224b43a552386602d8a41dc3e6220514b4d365495025bdedfbf0 from twemoji 1f401.svg
+file shared emoji/1f402.svg 622 9947bfcc98da440c447886ef433af3064ac224a9a06429b5b678b33e92bc6670 from twemoji 1f402.svg
+file shared emoji/1f403.svg 815 1155cfbf744907bbd4d1c648ad710b9a603f2e549ee9921ca64447dffe7969d3 from twemoji 1f403.svg
+file shared emoji/1f404.svg 1059 91749a903f15edb113b92edafda8dd70f9e9bd1bee49cfb9b8bbe500a8881020 from twemoji 1f404.svg
+file shared emoji/1f405.svg 1388 99e45ff69c027c505be5bd26a3ec6159505a880686f040ccabe9ede004a748ee from twemoji 1f405.svg
+file shared emoji/1f406.svg 1134 f7bed20ca8eb7c35fb2f4677b9af3820bd9d5c0341a0dcca339bd9448d0eefa4 from twemoji 1f406.svg
+file shared emoji/1f407.svg 1222 3d1e7029bea8b6cf2d550d4810e5ce11c1f50d8df1c22a45c9e0dff8e9694db3 from twemoji 1f407.svg
+file shared emoji/1f408-200d-2b1b.svg 2505 b780894e8afd1f5cb6435be8686d07be7810db8071f2d547cdb3530c420e39a4 from twemoji 1f408-200d-2b1b.svg
+file shared emoji/1f408.svg 2749 d292efbd5e00fcf7c8aee855a5ec5846553236dd8e6c28777832a82fb04d578c from twemoji 1f408.svg
+file shared emoji/1f409.svg 3370 5ed37e8ecb5244d0866dd20e2ea3dd3b5cc0e87c5dd19ef817548ac4b7bf4e4a from twemoji 1f409.svg
+file shared emoji/1f410.svg 1108 818b0c0ae7322fec7e3db3499dbd7b78dc5a3fec41813b2147ad67251bd74212 from twemoji 1f410.svg
+file shared emoji/1f411.svg 1101 23d57bfbd45dd5c58a6762db275b4eade1a98b613b34f04877128ad2dfecf36b from twemoji 1f411.svg
+file shared emoji/1f412.svg 1709 b4544110be26cf10e8b486633f7cf5e5c7483373deb740de5ce131dfc014c6a6 from twemoji 1f412.svg
+file shared emoji/1f413.svg 1075 b2701807925b8f58988d75c5a1a619cc58e3b47e9fb62bdd91d2f6ff24f5f344 from twemoji 1f413.svg
+file shared emoji/1f414.svg 1076 38184b07b552b5f7bf76cad78bf4dab2a9fcc16800c51596a1a93f9b2abc03a3 from twemoji 1f414.svg
+file shared emoji/1f415.svg 2506 632fc09dba15d0701ede125193205b9f0968ba54927166e851a20c6f431965e2 from twemoji 1f415.svg
+file shared emoji/1f416.svg 926 0ff3bbb78d83d494ac21abbc63e95f1db5ea594c82f8efe4e3b08cf85d104642 from twemoji 1f416.svg
+file shared emoji/1f417.svg 1494 c24a202756aaee2433a33ec19220bb60384f4abafe0298f56e7387a0a77870aa from twemoji 1f417.svg
+file shared emoji/1f418.svg 997 b23f4d2146dcf07d2dc7fc72d206788581f0ec8c5979a2704ad93d772bc83682 from twemoji 1f418.svg
+file shared emoji/1f419.svg 843 92d125d9c4c2d7e7d8ff450d0fb1cd80c089804fa06663cf1e12ac29ed173c54 from twemoji 1f419.svg
+file shared emoji/1f420.svg 1143 353483a66fe92a11ebbe734da83f47f6d0526a75175a05e5fc6ec7b2d4890c3a from twemoji 1f420.svg
+file shared emoji/1f421.svg 1137 564eea40ad270a3a4466b61c385fdb4944cff6ece00551159d4308ac38aca958 from twemoji 1f421.svg
+file shared emoji/1f422.svg 3421 92fa4a62fbaa8c43ee36109234ab6bda6bc4e62170d18d4db516cdb9c51dd02d from crpp assets/emoji/1f422.svg
+file shared emoji/1f423.svg 880 0ee227692ff5d69eaf20274b792d4c55bb7b763837f1808e596cac92df63c6c5 from twemoji 1f423.svg
+file shared emoji/1f424.svg 1301 fe6ab1766371c0d585eb4c17e4638f3dcb69e761bfd91767ef31be9a60f36df0 from twemoji 1f424.svg
+file shared emoji/1f425.svg 1248 eb142780323f9846917143611381012150523a573d467c44fa5c5015979f73b2 from twemoji 1f425.svg
+file shared emoji/1f426-200d-2b1b.svg 1935 485afbc0c95273a0c0b27d2d7b466f606a237f1465959806b95c29c06cd587ee from twemoji 1f426-200d-2b1b.svg
+file shared emoji/1f426.svg 2132 ea01099badc833d30fdf08ea3a117b2e5e3cc270a31c6be89abdce42c2a69322 from twemoji 1f426.svg
+file shared emoji/1f427.svg 1254 68dc119e054a8660c1d0e7ee999b649be22309e050a7f68ba9458f36eb2db489 from twemoji 1f427.svg
+file shared emoji/1f428.svg 1063 3248d764a53f410897bd0742e4e87603e122d9130b1d54a2fdba36f001970be5 from twemoji 1f428.svg
+file shared emoji/1f430.svg 1247 19f213da129217b424595228e6f25eadf8c737a6128827a1e36058fba237f1d2 from twemoji 1f430.svg
+file shared emoji/1f431.svg 3340 a7f61fb700b3a7d3cd6b6839e8574c330fe7baff59f0a964614a2cb324f95abf from twemoji 1f431.svg
+file shared emoji/1f432.svg 2061 690e9be7f5918999cf9df1ec69e4fd7ae879de28a628c386b32713267e0f8a79 from twemoji 1f432.svg
+file shared emoji/1f433.svg 789 28d63fec48ab0c89355c23de6727b6fe04de522a4760f9cfa8361f7de40a745d from twemoji 1f433.svg
+file shared emoji/1f434.svg 1615 34f4c592c77acedc68f523aedd30c7d1cf04937e722db1956b46e731b6190189 from twemoji 1f434.svg
+file shared emoji/1f435.svg 1395 55809bf65ad9a14eabacbe3a52952f2257c9e16ab81a7cd059996222e4fab7d3 from twemoji 1f435.svg
+file shared emoji/1f436.svg 1817 52acbb8b0f2d817937b6de1581e298217887e62fb1265055fdcbacae10c669c3 from twemoji 1f436.svg
+file shared emoji/1f437.svg 1121 ea4dc77fdf5e91c1cac823dc7dc7108bf7cf08c4fa44ccf9492ebd332be0af01 from twemoji 1f437.svg
+file shared emoji/1f438.svg 800 82f93e8eec264c4c0f1c932e61b80735904d8f853cbfabd80965576deb827d41 from twemoji 1f438.svg
+file shared emoji/1f439.svg 2683 de2c5a5ca1be8fa8f768efee6b1ced41e7c6152671a207d58f077a24ecfa0cb3 from twemoji 1f439.svg
+file shared emoji/1f440.svg 1060 d3256511e2a292691206b9899f7dffb667362f9eb15153bbf1ca275f1fd5c31b from twemoji 1f440.svg
+file shared emoji/1f4a7.svg 239 9ec35e46c27db799e43a08bd2a3c4353d51a0c037f8bdbbc63684f7fefbb0cc0 from twemoji 1f4a7.svg
+file shared emoji/1f507.svg 472 d983439e70422fafb65db9d6e4138ca21e25453d36f5423085a5d43d693ff4ef from twemoji 1f507.svg nopick
+file shared emoji/1f600.svg 450 41478e547c5b6ad66bfcf91ead5350fa0bc247956c3ff912020327e3e9ad0d2b from twemoji 1f600.svg
+file shared emoji/1f601.svg 1129 590acfc514de2929a27b078ddb0fbd161f5a172c3d6bf0a9fb527c17de627ffc from twemoji 1f601.svg
+file shared emoji/1f602.svg 1668 1752c287f6fbbb65e1c982399584bbc9b1e0c46f0dc181cda9b8028dc60c4c01 from twemoji 1f602.svg
+file shared emoji/1f603.svg 526 064de246adc3045a5f072834a0a9c108c890a08eaca2804afd5652fca6c58eea from twemoji 1f603.svg
+file shared emoji/1f604.svg 920 aa02ba3edc78a206b1d9851b16f2d97eb5943c6405fbec0893d52f3d5144aa2b from twemoji 1f604.svg
+file shared emoji/1f605.svg 1010 40395bdb81af23f2e14100230843c31cd3169b24ed0ad1a7ee5b726bdb97f41a from twemoji 1f605.svg
+file shared emoji/1f606.svg 1058 03369a3f14fa25bdc157d4c47b61d644a38f0188dd11ca5aefdbebdcfbd8a0df from twemoji 1f606.svg
+file shared emoji/1f607.svg 2126 25ddfbc097fee531aa50961ad8df7e9237b585a41ef158007fc338fdf775d563 from twemoji 1f607.svg
+file shared emoji/1f608.svg 1417 47e8dcd1b8d55a6fb6a29061b4254030ebd346d76cc725aea29831b68c5d5f8e from twemoji 1f608.svg
+file shared emoji/1f609.svg 1183 2468609517599c10415c9c9b65024cf697b747dbb837d07d0ea12130f224c65f from twemoji 1f609.svg
+file shared emoji/1f60a.svg 1055 bda4e6d76f6b82b87f43755d551b36dd7cfb0d0117fb798435270e7c1127a87e from twemoji 1f60a.svg
+file shared emoji/1f60b.svg 1384 3b03d641e48bf8cead60cac644c92c6184cd83e663420f0f90527306fce8bf2b from twemoji 1f60b.svg
+file shared emoji/1f60c.svg 1339 957a957def203e442cfc1db84436fb025626da93b24a53bfac0139cba5379526 from twemoji 1f60c.svg
+file shared emoji/1f60d.svg 941 e17d4d0339ce34ba1ee3274fdc98a1bd5ca4a8f309861b63b746970a609d7d63 from twemoji 1f60d.svg
+file shared emoji/1f60e.svg 997 d32bd9f51b2a54f620f9693e833935c5e2cb2304cbf89aab75fd10f054711ce5 from twemoji 1f60e.svg
+file shared emoji/1f60f.svg 1389 9b365ccd80dfed36f75598c5c06251b56764fde6914bed50a8ec3b43285c35e0 from twemoji 1f60f.svg
+file shared emoji/1f610.svg 411 0814064e227c96db27c5428d3a4922425b4ba68661d6a590c34fb0b79b8f59b3 from twemoji 1f610.svg
+file shared emoji/1f611.svg 427 445fb63109b1ab7398574826369e0eec08603028f860294ad30d5c25e6d258aa from twemoji 1f611.svg
+file shared emoji/1f612.svg 1222 d23a75bbd01678b950bb8f2673b417a3fdde803ea6a12428685192d5d6f5630c from twemoji 1f612.svg
+file shared emoji/1f614.svg 1085 fa01d001fa44498bc5809fa7431b6142207c5c2fd8737c24a5b27c2c628da270 from twemoji 1f614.svg
+file shared emoji/1f615.svg 372 5194c12a05e2318686b334801c12287607b5ce7184a4b23d8cd97dc52a0603a1 from twemoji 1f615.svg
+file shared emoji/1f616.svg 1657 3ea499a6a5c6890cd2d45cb5cccde7d02ca65820a00760e0ac8dcb3f7d58a926 from twemoji 1f616.svg
+file shared emoji/1f617.svg 1115 04fbf5986100e8bcf302530970534be854c2da7bff4cd2e55c3732ed5eca833c from twemoji 1f617.svg
+file shared emoji/1f618.svg 2224 52741c0837915c2af0469345fda5a6e62b31f56c22efda6005cbcd52deb24285 from twemoji 1f618.svg
+file shared emoji/1f619.svg 1523 957f39f49ce14d84fcc199f875f4e7fee6f7d0212d4f8c3d62dbd0da174291d7 from twemoji 1f619.svg
+file shared emoji/1f61a.svg 1902 a5ae9792151b20421fca32324fe97001f02acfb071008ab21a0eac1c7db93977 from twemoji 1f61a.svg
+file shared emoji/1f61b.svg 665 b5df5c8ea5019f4f1c8d162fa037b9be2fa6b1347d9553bfed77558e6b37c878 from twemoji 1f61b.svg
+file shared emoji/1f61c.svg 990 8b1388387cb1fab940562e017f9281baf4d1cb59977fd6bef3d76d444f32e227 from twemoji 1f61c.svg
+file shared emoji/1f61d.svg 1170 c5f4ca4764cc99f7630886806dbcc54a10d30337597bc0bf09f1ed548da676fd from twemoji 1f61d.svg
+file shared emoji/1f61e.svg 1078 d2dabb0602abf9d73c780572f5f475da8f1ed7e7fdcc42ef70b278b54b3fffe3 from twemoji 1f61e.svg
+file shared emoji/1f61f.svg 876 a11eeae26f41f7608002bfa82f7c33e678ecf44c7cf0da098ccb7bbb09ba1afe from twemoji 1f61f.svg
+file shared emoji/1f620.svg 1070 ab384dce4b5cb724343b2f9dfdd1355fd15a4ace721e9c787812745980a7c9b7 from twemoji 1f620.svg
+file shared emoji/1f621.svg 1070 26ff86c1655b7c86feda5a7ce77d55cbebfd346fcc341e8184f702e49eb36314 from twemoji 1f621.svg
+file shared emoji/1f62a.svg 1389 dcab0e444b46804b5ef8317dc39d2a0130618fd52ca58d95fdd834c320abf0ec from twemoji 1f62a.svg
+file shared emoji/1f62b.svg 1477 b568c7f790139cbccf0fcf211045ef1bd50577c3eaa1394038033f0fbfa79a7c from twemoji 1f62b.svg
+file shared emoji/1f62c.svg 817 fd3ab312532ffd52536ff820ef39c172ee25831d2921c4196e3bd77363668350 from twemoji 1f62c.svg
+file shared emoji/1f62d.svg 1318 d0333b5cb416ad6545055766fc8128566874ab5ead272e5a691a24704048f077 from twemoji 1f62d.svg
+file shared emoji/1f62e.svg 341 4050b8f2a75f5e63a120d6337befbf184490bb39498d3fb66f70f15d4a921691 from twemoji 1f62e.svg
+file shared emoji/1f62f.svg 749 1921a1160fc4241aa7442382a01d684048e031ab2f7632554105a921aa68bbad from twemoji 1f62f.svg
+file shared emoji/1f631.svg 1577 c050671286ff22d29215d2ecf081a85337b164bdc007e6d342b47f39ef11a339 from twemoji 1f631.svg
+file shared emoji/1f632.svg 840 ea995ff7ebdb828a5faf3a8c52e64c61bb4c47bbac7f31d38865a2347add2c03 from twemoji 1f632.svg
+file shared emoji/1f633.svg 959 0c5aae3ba86d0fb371d8017bb174b6359e6dfb55daf42b74f3ff5f80f34ac6fa from twemoji 1f633.svg
+file shared emoji/1f634.svg 2636 f3f17ba0097e1445616e4540132d3f7ef3c203936cb250de9228aec8234630a3 from twemoji 1f634.svg nopick
+file shared emoji/1f635-200d-1f4ab.svg 1850 7350ee97748c8ddead7965b60d059f6456ea1104c5647cf8beec84ad8c0e2660 from twemoji 1f635-200d-1f4ab.svg
+file shared emoji/1f635.svg 1340 2855e7fe4a56e8cb37719c984ca30399fc2f8321e5e1f408c9192db4ebda9f9d from twemoji 1f635.svg
+file shared emoji/1f636.svg 311 e6836051761a43fa3f7f8969ecad0ffcb1b9e8556c36614a22dfee6da0b53ce7 from twemoji 1f636.svg
+file shared emoji/1f637.svg 920 b6b82ff7c5a0f36570f4da2b5fd36619d25b63a17652b8825ba2ed09fce480f4 from twemoji 1f637.svg
+file shared emoji/1f638.svg 2875 c23a21b136b5d7ae2a82cd985e2e5298cf5bda0c62b076c9618871402c81250d from twemoji 1f638.svg
+file shared emoji/1f639.svg 2992 136b10b43f0f2ca57786a86ea52520d9a54e2183a190d58c9e116f8ef60577b3 from twemoji 1f639.svg
+file shared emoji/1f63a.svg 2063 daaf1d1ab727e2cf75742454e5e79cffa83e01b9b64f6a69b75d07c416235722 from twemoji 1f63a.svg
+file shared emoji/1f63b.svg 2519 2a3dac02c3cd22028c9aeaab8ae1ffc066ffaf9fb1eac721865e44f51727faf6 from twemoji 1f63b.svg
+file shared emoji/1f640.svg 2278 64182a2260e43d37c485688c1d0e19be93c783ff47d9fb79bca0535aadbd673a from twemoji 1f640.svg
+file shared emoji/1f641.svg 512 87bcc22d43cfa00bd1cf5e3a35aad79150b4ce804899db3ea93efe57eeb6dbf7 from twemoji 1f641.svg
+file shared emoji/1f642-200d-2194-fe0f.svg 1215 ba023db8bd4cbce64312f203035e4c987b77077c494ba14eafdad89e8822325c from twemoji 1f642-200d-2194-fe0f.svg
+file shared emoji/1f642-200d-2195-fe0f.svg 1125 0f05a8b3d13ba6e5771a0d60b453f83a9d8fe85a3561b6cc33171aeebe774132 from twemoji 1f642-200d-2195-fe0f.svg
+file shared emoji/1f642.svg 525 943c44a0f3dc1aba84f5fbe8465baadbb90af66cd7be9f37ca07a39260357ad2 from twemoji 1f642.svg
+file shared emoji/1f643.svg 538 61043862bfca6af330c3434cbf67360d72e2b11192f86b69321fe68f216c70f2 from twemoji 1f643.svg
+file shared emoji/1f644.svg 744 4b8b6a46e16fcee41fa308ae59d18df5c0d74ed7dcc65661fabe17770a743155 from twemoji 1f644.svg
+file shared emoji/1f648.svg 5419 1397f316a2c4fb5739978e67b08a57ff8527c39228f68219f51a998b891f48ed from twemoji 1f648.svg
+file shared emoji/1f649.svg 3351 d7d58e05ef1c60cbce21d76fd8163abc6209a38d430e1a99ca7883123176a5d1 from twemoji 1f649.svg
+file shared emoji/1f910.svg 819 b3708639679db0867bf0fa5393cd49f34fe8796380f98cfb8b30aebd5fdf8d4e from twemoji 1f910.svg
+file shared emoji/1f911.svg 2186 cf3cee22c8db46b0bb32815b28fa6b4582bc7d92150d49cf62ae4260979bc718 from twemoji 1f911.svg
+file shared emoji/1f912.svg 1801 3e4dd97115116cf8dcf5f1b792d550d499e5879a7c902fd26106786d6bc17f10 from twemoji 1f912.svg
+file shared emoji/1f913.svg 2608 03e8f504da3811ab61db6e40c38fb467da15ea0413ef5ebc6ce746b77eaf0c9c from twemoji 1f913.svg
+file shared emoji/1f914.svg 1573 3a19c77ff33f8ea325055b8563e7415ffd2ae37f0bb50a12898801613037721e from twemoji 1f914.svg
+file shared emoji/1f915.svg 2182 a3fce3c870c7d045d145625760f200fb266331c89701a1302e58359fc7c9874f from twemoji 1f915.svg
+file shared emoji/1f916.svg 1558 20e5f9466f9c909d9cdf67a83af252df198ba686c57cfc0271afab9d48cee699 from twemoji 1f916.svg
+file shared emoji/1f917.svg 2570 b54b9c6db7ef1328acb939f4d5fe03040f6d28fd6a706180278d2a51e9a0435d from twemoji 1f917.svg
+file shared emoji/1f923.svg 1658 cbd192d59e571778d577df96be003f18e5520c355a0d8d48576aa83a040d3e10 from twemoji 1f923.svg
+file shared emoji/1f924.svg 1259 181b19ccdbdd81e932997da79e6fb850e8cb2075b9e466d4b1d476cdf4c5193f from twemoji 1f924.svg
+file shared emoji/1f928.svg 883 f1fedf26fb3889324e41f1b76ed68e1e15e29e5beadbe65f5d2b85a6520d214b from twemoji 1f928.svg
+file shared emoji/1f929.svg 1270 2ab3b3a3394fa7f9e81996884447f0c4bcfecb002514328cbbc85e913ac8eb72 from twemoji 1f929.svg
+file shared emoji/1f92a.svg 1326 fae89768b8f292558aa096c58cd9995c2601df28a88de775586f26859a155b54 from twemoji 1f92a.svg
+file shared emoji/1f92b.svg 2124 20f6d2ef69472403c3083ad86346e2583a9fc197eb92cabd3750be478587e0df from twemoji 1f92b.svg
+file shared emoji/1f92c.svg 3567 c5031363fdf4aa386c3ea6dffe265708033e6d3af74a8bb0a6c3dd03cb2045a1 from twemoji 1f92c.svg
+file shared emoji/1f92d.svg 1388 f73a409b6e52aca14b578d2c7926e5b3acdcef93979c32a155e424d0e92eef4a from twemoji 1f92d.svg
+file shared emoji/1f92e.svg 1590 a137037b7d374e2572ff214bd863675c2e1dcb35e03f1122b9a74fdda7ba7755 from twemoji 1f92e.svg
+file shared emoji/1f92f.svg 3078 a78d1df06565c8669b4b38e7e2e6e137e3efe80196d48f6f2d4e29e903967a8f from twemoji 1f92f.svg
+file shared emoji/1f970.svg 2384 303d516f1985e3bc62aa92d1a55c2140a14435b255a32b4c3bc776a2395f056d from twemoji 1f970.svg
+file shared emoji/1f971.svg 1379 0d774236dc104b2c0c7c585bdaa3456876471ae7f635a7d48da14f7c2ac79314 from twemoji 1f971.svg
+file shared emoji/1f972.svg 595 ffedd0651cc43a29d34063620281826aa245b1beb1d2a02672d589f404f3c526 from twemoji 1f972.svg
+file shared emoji/1f973.svg 2487 5198b19dace96c24b864a00d646ebaf1b666f0e6cc1a7a4f97b84c0eeb159d6d from twemoji 1f973.svg
+file shared emoji/1f974.svg 1308 8659ec286016c189adc732bd98721bda771299dd21255629676d94757ce23e9e from twemoji 1f974.svg
+file shared emoji/1f975.svg 1454 2b91a8995577f8db77fd3cf3b9570839b62ca8969ab15b7fea1a4dcff58137d3 from twemoji 1f975.svg
+file shared emoji/1f976.svg 2960 48acd5f29354232fb5a1d21686f612d435cde0b366cd130b8092f6900bcdefba from twemoji 1f976.svg
+file shared emoji/1f977.svg 2729 eb162aa358e787a1c2fe38c1cf52147c3291f0c48e965f4be58a23fab18f1f1a from twemoji 1f977.svg
+file shared emoji/1f978.svg 3583 03d9125d6960afa068a34d4296001f035f07f7b40723a7ad9337fed926483714 from twemoji 1f978.svg
+file shared emoji/1f979.svg 1685 57096d46b28e38993ed3da063ac8d25d13749b723fac737c1db3901656ee6fa6 from twemoji 1f979.svg
+file shared emoji/1f97a.svg 1428 49e7c94a207a015e7b8092c75846aec1987161a6a2b7cd72cbce661a7f13f7d9 from twemoji 1f97a.svg
+file shared emoji/1f980.svg 4870 7c95cad49ca19cee604037d049a7f154fb02b785a95b9d32f99d7efe33cb2218 from twemoji 1f980.svg
+file shared emoji/1f981.svg 2913 bd269f15a1e303fda5c87a4ff92f3e981a4ed5c4eab175393a73897d714c5f84 from twemoji 1f981.svg
+file shared emoji/1f982.svg 2824 ebb96701e6d85dff94bd19cec2c9d360b17e73e9bd6a966bd2ad06f934d26d61 from twemoji 1f982.svg
+file shared emoji/1f983.svg 1825 ea158b235aadb6f8feac7f6d55455ea355de54d697910be1b317c1a566f1afec from twemoji 1f983.svg
+file shared emoji/1f984.svg 2417 6063b1ca7021881784eb5a8110997357026fb7376785e639850335a9c422a639 from twemoji 1f984.svg
+file shared emoji/1f985.svg 916 70d3f8b904079499625475ec4758f178378983f9b569481e08c3fc8e243f7a75 from twemoji 1f985.svg
+file shared emoji/1f986.svg 1472 74114f0e02acbd2a91b55f72e597c27d5c8da1fe2d03910ccd17a5180102c89b from twemoji 1f986.svg
+file shared emoji/1f987.svg 1850 15e1e1bac9988be3960759f24289e3a5bfb04ad0a42a88f1ab10680df1bfa61c from twemoji 1f987.svg
+file shared emoji/1f988.svg 1350 accb7bae5d222c1610528269fbfb44a75d7a96e955a8526334fc7c2153a0edca from twemoji 1f988.svg
+file shared emoji/1f989.svg 2729 9305c70ce193140e274162fd3237143ffa5fcaeedf15ce573291f076ddecc508 from twemoji 1f989.svg
+file shared emoji/1f98a.svg 2153 5b5b42dd21db3a10ad01b079ccd22da94aa5a00a216fcef3052020354f6a5580 from twemoji 1f98a.svg
+file shared emoji/1f98b.svg 5042 6ce1f664bbdfbcf69732b00f55cc257469a26c115b8891526193e0ea837f836a from twemoji 1f98b.svg
+file shared emoji/1f990.svg 3114 154400268f8a187f34a8b9fef7a43016e585a6f0a115e96e589049d842f29be9 from twemoji 1f990.svg
+file shared emoji/1f991.svg 1449 bd44e1d4db19744c519d1d6490873ca76f8894680b6bfd529d89585196cb9cf7 from twemoji 1f991.svg
+file shared emoji/1f992.svg 3460 07a63c7cec7bf62f111d9967e3fd519a90c5148204e1cd99fc1811bba48ce9a9 from twemoji 1f992.svg
+file shared emoji/1f993.svg 3297 303de99b0b43eeaf599b59598588e5805f0c59ced55462bb128f93030172185a from twemoji 1f993.svg
+file shared emoji/1f994.svg 4917 f0e84b08ea2056f50c9f63d4296e8c824e100fad65ceec9c62b388f7a0e9b86d from twemoji 1f994.svg
+file shared emoji/1f995.svg 2110 45c396d083562bf9b3ae01227efc6c7351e2c225ff614e4438c14385e80ba414 from twemoji 1f995.svg
+file shared emoji/1f996.svg 8001 74e069f8bbd334f6c463b54abf33a491052096e83c68cfe29b891694478d047b from twemoji 1f996.svg
+file shared emoji/1f997.svg 2235 9008e159aa853b632f4456ed84c5c1c2664eb4c75706e63c16fcd26cecb8d61e from twemoji 1f997.svg
+file shared emoji/1f998.svg 1967 b8d61f1e5d5aa393302e4f3845bb912e6a1168878e24341476ad0dc0c8a626f4 from twemoji 1f998.svg
+file shared emoji/1f999.svg 1583 4a1765f4c6b434bb74cc8fcf1aff0b2cf71a533d2ff84ec80aaaec4da7a1c438 from twemoji 1f999.svg
+file shared emoji/1f99e.svg 6071 c6ef048c73f3038412ca909ec412ebf53fe7dc9dbab6b13dec485cac8c11851a from twemoji 1f99e.svg
+file shared emoji/1fa77.svg 368 90bb4c852f0e6c7a269299d41ac1d527b5e268d810e1e4645ea5dabf69af185e from twemoji 1fa77.svg
+file shared emoji/1fae0.svg 1052 b96b03a9b5ac70d0c9b530fa11a318927abfab37db6214a7439ef6f48c07ff7a from twemoji 1fae0.svg
+file shared emoji/1fae1.svg 1960 bdb964f80d5d66ac8f483a7e4a1e407b6eaa376a99bc951960faffa0394eea88 from twemoji 1fae1.svg
+file shared emoji/1fae2.svg 971 8458ac9859143f1f7aa4a3de734875133e92954980ea295c835ca60bb583c1bb from twemoji 1fae2.svg
+file shared emoji/1fae3.svg 2769 b27d33e0bd72eb0b33a507470f9e6c85b393cccf752454ac7fab9c9a395493de from twemoji 1fae3.svg
+file shared emoji/1fae4.svg 422 3707aa77fe86ab2878992955f2cd9a59063981c06d941be16dee5e02ac5522a2 from twemoji 1fae4.svg
+file shared emoji/1fae5.svg 1563 cc20f7d0e68ea0ff8adca6444bca8740c63184ccd75f60f2e5d32eeebbcca5fd from twemoji 1fae5.svg
+file shared emoji/1fae9.svg 1230 95de5baf68c2c0ee631c199a2e794551b3029b24343152e89b1c47f69258a038 from twemoji 1fae9.svg
+file shared emoji/1faea.svg 945 d0d6cf52cc4a61551b6ce80122ca1a882afa54dbaff18497c1f4a57f1939fa55 from twemoji 1faea.svg
+file shared emoji/1faef.svg 4334 f64ccc93b51cfa9efbe03160040ad4a04a1f0b8cd19ad94fee1666efe0b60a05 from twemoji 1faef.svg
+file shared emoji/263a.svg 1609 a3c577eb22a273037f56aa97eeb2687eeccad8eaf8317ce0f0a689da63d04c83 from twemoji 263a.svg
+file skin:cloud fonts/PretendardGOVVariable.ttf 13386352 4fd4391c698344496a13dadb3792e3b4cba592425f387e41ce59d68f904ae854 from pretendard PretendardGOVVariable.ttf
+file skin:cloud licenses/pretendard.txt 4418 d31ddd9f2bed32fd7e302a205cf2380ba0de6529152d239ef99cfb6f261bfc04 from pretendard-root LICENSE
+file shared licenses/twemoji.txt 18524 8ae9438818c26e4873b91d8c6ad620526c011e27e125677f13031eda903f007c from twemoji-root LICENSE-GRAPHICS
+file skin:cloud skins/cloud/pack.cskin 18390 904b6df15ce68ae2ecd021e184a2d7ea8c9cc6cbaabba48181108a3e17eba131 from crpp skins/cloud/pack.cskin
+file skin:cloud skins/cloud/screens/bubble.cskin 475 fc688c90f458321582126ac975763608e3e53ac9e6e2b3d02d2ff21718b73d61 from crpp skins/cloud/screens/bubble.cskin
+file skin:cloud skins/cloud/screens/changelog.cskin 2058 57f280b46033190d84647a4be020d2b7728edbdd051e09b8704b0655deb0b673 from crpp skins/cloud/screens/changelog.cskin
+file skin:cloud skins/cloud/screens/chat.cskin 2922 087e3613932fb6978cec675137a09866eb02306f88bfaa5df29e1335c4587443 from crpp skins/cloud/screens/chat.cskin
+file skin:cloud skins/cloud/screens/context_menu.cskin 981 54d887eb87e962d8175b23a7d91c8675f5be05778f6cdbccc26cbb8f83e60048 from crpp skins/cloud/screens/context_menu.cskin
+file skin:cloud skins/cloud/screens/dialog.cskin 650 724448aa5eccf6430a6b649e70564703631b6ecf692b58a98a6f223b2e5008c0 from crpp skins/cloud/screens/dialog.cskin
+file skin:cloud skins/cloud/screens/dropdown.cskin 945 2d7564ad9fd7d6c856f1ec77dd82b8053a7b357e96c8365ab6c3dfa496f9e40d from crpp skins/cloud/screens/dropdown.cskin
+file skin:cloud skins/cloud/screens/droplet.cskin 1726 bfd9064cfbca7b1063a7d1006dd2b527d4cdb75994a62957c047c45a31f35003 from crpp skins/cloud/screens/droplet.cskin
+file skin:cloud skins/cloud/screens/emoji.cskin 1787 55214a9dd8ea58b0f5bf7efb165f06ab04262a14598bd02bb66012e0ca4c5a8c from crpp skins/cloud/screens/emoji.cskin
+file skin:cloud skins/cloud/screens/home.cskin 3972 56dddb9d9c179cfb8f9086a1dd15bba4f3f26df3b2249c1c6e513a37950e16d8 from crpp skins/cloud/screens/home.cskin
+file skin:cloud skins/cloud/screens/home_return.cskin 892 46e522acafa18202fe07853f024618de80a75d6df56173e01dcefbd8e0d5862e from crpp skins/cloud/screens/home_return.cskin
+file skin:cloud skins/cloud/screens/member_menu.cskin 667 496ffc325391b4c2d37c63f9edfcb05193811fdf56548914c607cf90fa600543 from crpp skins/cloud/screens/member_menu.cskin
+file skin:cloud skins/cloud/screens/mini.cskin 1523 6cab712171fdb7e40d66ea8547f2d8cff2ca3c56cc59287693c6e060d5fdad77 from crpp skins/cloud/screens/mini.cskin
+file skin:cloud skins/cloud/screens/notice.cskin 686 8bb145bdd13854501b869b5e494faf1ed23214c7a44eead792c116355ae48640 from crpp skins/cloud/screens/notice.cskin
+file skin:cloud skins/cloud/screens/offline.cskin 515 2a975a60a5d59a8f346e6d7841a30609c8c576cdd1ea7dd5e5a8ec03e3064350 from crpp skins/cloud/screens/offline.cskin
+file skin:cloud skins/cloud/screens/profile.cskin 1409 1d72fb95436799669e4a6395f5128053312e1e815be9e49c8d844d36e90d0a77 from crpp skins/cloud/screens/profile.cskin
+file skin:cloud skins/cloud/screens/prompt.cskin 2834 a90e83f246ed4f96a2e85beb84ecdb7553b88116951e26f0ddd7b5cf3ec920f1 from crpp skins/cloud/screens/prompt.cskin
+file skin:cloud skins/cloud/screens/room.cskin 8756 02252b447e49936aa1f0f6c0c163d6d5cfbaa6e788884fc4781f665b844c2250 from crpp skins/cloud/screens/room.cskin
+file skin:cloud skins/cloud/screens/settings.cskin 3190 f1dcbbc549bf9e4ed0312594a1043c0b07ac250338ead292925c0e0ec8466619 from crpp skins/cloud/screens/settings.cskin
+file skin:cloud skins/cloud/screens/settings_account.cskin 938 a51028e895382a76652de56c8c0114bdcaf0aee0e57918af07b12c814f36070e from crpp skins/cloud/screens/settings_account.cskin
+file skin:cloud skins/cloud/screens/settings_achievements.cskin 1349 497ba784a2984ce8f60a52e663a821569c7d6a533b06e94aae08c19e0975a2d5 from crpp skins/cloud/screens/settings_achievements.cskin
+file skin:cloud skins/cloud/screens/settings_display.cskin 3517 b0d91ea702780e9a8b808159276c6ed318374eaf5a9eabb8889ae34f29a431f0 from crpp skins/cloud/screens/settings_display.cskin
+file skin:cloud skins/cloud/screens/settings_notify.cskin 1304 106ddba5f258fbf0a2e09df3514880df9fb9257783b7e6a6e78165827e4a958a from crpp skins/cloud/screens/settings_notify.cskin
+file skin:cloud skins/cloud/screens/settings_sound.cskin 5040 294e899d812902b6048cb66082d93cafdcdec404faf3f2e36d8964c62af61d7a from crpp skins/cloud/screens/settings_sound.cskin
+file skin:cloud skins/cloud/screens/settings_system.cskin 3032 2d2dd187f608b900cd910ad82e3b57b9f2b05c5e42c6d92ba54cef2dc72f58e2 from crpp skins/cloud/screens/settings_system.cskin
+file skin:cloud skins/cloud/screens/setup.cskin 855 c5c47b8555fdfe3d1765be1b74ffcc8ed0d0b6d71e66cdf767505fc00161c7de from crpp skins/cloud/screens/setup.cskin
+file skin:cloud skins/cloud/screens/slider_tip.cskin 430 19e243289a18963ea740dd7cb29904b5ba80d4f740d9f661dab26581c2cd4ff6 from crpp skins/cloud/screens/slider_tip.cskin
+file skin:cloud skins/cloud/screens/tip.cskin 1821 cda704f919b4c57cc295659ac8dff084fc9c25b532d9697d1b79cfff80902ffb from crpp skins/cloud/screens/tip.cskin
+file skin:cloud skins/cloud/screens/toast.cskin 811 5f057faa17d8a061e57cb1b2f7cbb92343ec235c03089d7ffb3b3d3f98eea107 from crpp skins/cloud/screens/toast.cskin
+file skin:cloud skins/cloud/screens/update_popup.cskin 583 691ee5bb2f750866ee2b4f3dc5e27ff13df8effe8b99d0b43c5af5cbfadbbfee from crpp skins/cloud/screens/update_popup.cskin
+file skin:retro skins/retro/overlays/luna/pack.cskin 14705 228bb6fbe7147743b6c65661863348ee78d0208a6302cbe954dcae1ef1349142 from crpp skins/retro/overlays/luna/pack.cskin
+file skin:retro skins/retro/overlays/luna/screens/frame.cskin 2146 9002d7b2d2db291d14f09e8f4cf8248947a4fa8c088ad479c5a1e53a9d94cb2d from crpp skins/retro/overlays/luna/screens/frame.cskin
+file skin:retro skins/retro/pack.cskin 21998 5952c014a08284b67ea72b161442ad73d3c7a7ede0d6bf3f242c0fcf0fe6d123 from crpp skins/retro/pack.cskin
+file skin:retro skins/retro/screens/bubble.cskin 262 8d330bc407862d085d1cb5c004da0169f65f448648d9f4aa0ba697d30cf5ca43 from crpp skins/retro/screens/bubble.cskin
+file skin:retro skins/retro/screens/changelog.cskin 1660 93942f12bfcacf9df49a176abee7d8fa2805846f810103486ce839a4201a1c13 from crpp skins/retro/screens/changelog.cskin
+file skin:retro skins/retro/screens/chat.cskin 1504 0cf5e1e18658da6044c6e7b341ec93212549c96c5d4c970278106e568e464b11 from crpp skins/retro/screens/chat.cskin
+file skin:retro skins/retro/screens/context_menu.cskin 1063 fcf93443a4ba96fa5d390291fe9a1e6e55153abd14928a001e39d2bced5ad38a from crpp skins/retro/screens/context_menu.cskin
+file skin:retro skins/retro/screens/dialog.cskin 726 df38d4916bd9040fbafaa2dc5fc70870fbfab9b4f7de8a9d482d2f8765d8c775 from crpp skins/retro/screens/dialog.cskin
+file skin:retro skins/retro/screens/dropdown.cskin 608 68edea7eb491ab080b6db28537fcdd586801b82b828ccc939b7ddeb787f6e4d6 from crpp skins/retro/screens/dropdown.cskin
+file skin:retro skins/retro/screens/emoji.cskin 1285 d683dfdc25e38bf126ed3793cd2ac910564ceb888c726b51192ea8ec1c463eca from crpp skins/retro/screens/emoji.cskin
+file skin:retro skins/retro/screens/frame.cskin 1574 31231a8054421b0b062d67fe0390fb5c0ce52d9a0916b624eaedb793c5344577 from crpp skins/retro/screens/frame.cskin
+file skin:retro skins/retro/screens/frame_menu.cskin 298 2dead7d14c6d2d020f58c9ff13445b002ff89b72c5712b075a98903a82a9e715 from crpp skins/retro/screens/frame_menu.cskin
+file skin:retro skins/retro/screens/home.cskin 2153 6d14bda85c67098fdcd9eea22794f4b843f235860bef5fd4fe0efc23c5ec17ea from crpp skins/retro/screens/home.cskin
+file skin:retro skins/retro/screens/member_menu.cskin 595 005450aa1149d40d84804109aaa37546f841ec98914adce61ef5fec6a5841373 from crpp skins/retro/screens/member_menu.cskin
+file skin:retro skins/retro/screens/mini.cskin 1045 b1d65db28ff9caa1b2d0ae3a741dd61e7da3463c748aa9b32234105a40e84bba from crpp skins/retro/screens/mini.cskin
+file skin:retro skins/retro/screens/notice.cskin 660 8760e3e29338d978d2713b8ffc6d365763a57d6b94f8e4eb87b8f64247374cae from crpp skins/retro/screens/notice.cskin
+file skin:retro skins/retro/screens/offline.cskin 269 fb1e2233cefec46fbc86622dedc7033646d50aad136b4ad8626cb486d919c06b from crpp skins/retro/screens/offline.cskin
+file skin:retro skins/retro/screens/profile.cskin 1154 8f610337702ce947ffffe28ec7ecc0648aa6f770d928228898b2e871eb335bf6 from crpp skins/retro/screens/profile.cskin
+file skin:retro skins/retro/screens/prompt.cskin 1879 c102f1acd09dfa9972f6376da933033fd1235e7e8fe04283ebc6bf7554a730f6 from crpp skins/retro/screens/prompt.cskin
+file skin:retro skins/retro/screens/room.cskin 5457 9f07142982051092c85bef329b1e4d5e724c87ff628b1f05965f7ef9609f35e6 from crpp skins/retro/screens/room.cskin
+file skin:retro skins/retro/screens/settings.cskin 1169 fad69e3b85a964b506267f9f9c0c1bd1ffadf511524554dcca8c2e2854cc5f79 from crpp skins/retro/screens/settings.cskin
+file skin:retro skins/retro/screens/settings_account.cskin 727 e81f2c19902167ebe910f3489955baaafe2baa8f69ce7164583b873ac8ce72e7 from crpp skins/retro/screens/settings_account.cskin
+file skin:retro skins/retro/screens/settings_achievements.cskin 894 5c39cb281d0ecd550e7ed1dba7240098a9115e06cffa7a833e4fd1d84308fcfc from crpp skins/retro/screens/settings_achievements.cskin
+file skin:retro skins/retro/screens/settings_display.cskin 1911 e96a7ff9f105efd086192b4d566d5b0d299092d33eb73867bf9f2782da66149c from crpp skins/retro/screens/settings_display.cskin
+file skin:retro skins/retro/screens/settings_notify.cskin 540 f70a9977af4f883cc386dca83418f4a09c0149a52249bde4565f92a8f90b47d0 from crpp skins/retro/screens/settings_notify.cskin
+file skin:retro skins/retro/screens/settings_sound.cskin 2131 670d8194b3cd859f9000cb2bd358df72d4777d5a7f87e3c1e48bbc6e9afd6f86 from crpp skins/retro/screens/settings_sound.cskin
+file skin:retro skins/retro/screens/settings_system.cskin 2178 472e4d55d06ad6ae2a8becf4860ada8122c4a365508503ebc37aa90bd5ecf344 from crpp skins/retro/screens/settings_system.cskin
+file skin:retro skins/retro/screens/setup.cskin 1194 e1971d916b13941ced5c51e46e6ce256eb53b5dd44f8e01d6b893d04ffa2011d from crpp skins/retro/screens/setup.cskin
+file skin:retro skins/retro/screens/slider_tip.cskin 242 54ae47fc512394bacae79a1d00839ccb78e42c8966add67de553a0f659e36c26 from crpp skins/retro/screens/slider_tip.cskin
+file skin:retro skins/retro/screens/tip.cskin 437 6ac27832fbd0578476452828e09a6bcab49ef4d7422ac6da11c2c75a3229c504 from crpp skins/retro/screens/tip.cskin
+file skin:retro skins/retro/screens/toast.cskin 592 bef856cf6f547a76044700303ddd1aa8fff8cc47e2e03eff8139422f999cb44f from crpp skins/retro/screens/toast.cskin
+file skin:retro skins/retro/screens/update_popup.cskin 520 c1dabdbc0099ad6dffbd11d10da371850567a27cde82f53876e1b57a503fbf4c from crpp skins/retro/screens/update_popup.cskin
+file shared sounds/keyboard/plastic/alpha_r1.wav 13380 79a6dda4c1b5f7b963a4fa2d9f8405af31b7d36ded5ebe70400020789bae2214 from crpp assets/sounds/keyboard/plastic/alpha_r1.wav
+file shared sounds/keyboard/plastic/alpha_r2.wav 13380 77ce02e81e1c393f8cb4f6ef222f0b88511250d596b045c15c8876a22163a4fa from crpp assets/sounds/keyboard/plastic/alpha_r2.wav
+file shared sounds/keyboard/plastic/alpha_r3.wav 13380 04af9f81952efea2da9a8b07abf9084e160671b5a0f41331fc7df2244c318277 from crpp assets/sounds/keyboard/plastic/alpha_r3.wav
+file shared sounds/keyboard/plastic/alpha_r4.wav 13380 dba3af713f5322d9d28876c75faeb361ce0946611a3fce2303ebdc6bd215b473 from crpp assets/sounds/keyboard/plastic/alpha_r4.wav
+file shared sounds/keyboard/plastic/mod_alt.wav 13376 fbe4fa8552854b735b6824b26c304da6df0d65fbfea70ca0aa619a5d48e6bf28 from crpp assets/sounds/keyboard/plastic/mod_alt.wav
+file shared sounds/keyboard/plastic/mod_alt_hold.wav 5906 835cf7d522fa5025e7cd07ca92c78d14cc401184fb1b6e35b1971ad942d15c74 from crpp assets/sounds/keyboard/plastic/mod_alt_hold.wav
+file shared sounds/keyboard/plastic/mod_alt_release.wav 6340 2a6ba5663ccf7d07b0dfe8edc5da15456e96857ab0b43ce5e35341d49582a6e1 from crpp assets/sounds/keyboard/plastic/mod_alt_release.wav
+file shared sounds/keyboard/plastic/mod_backspace.wav 13394 6efe3d7475c6e2a2be8be06d5e0e336e2238b8c27d1d2831593a94789509cf8a from crpp assets/sounds/keyboard/plastic/mod_backspace.wav
+file shared sounds/keyboard/plastic/mod_caps.wav 13380 f3cdcc65befcd0a2cdb158fe90b250e0b56ad1019cd6dac7dcc01783ec65f590 from crpp assets/sounds/keyboard/plastic/mod_caps.wav
+file shared sounds/keyboard/plastic/mod_ctrl.wav 13380 bdd6be99b3730015edc7ae01810749a367a65115721f3325ceab813329370f04 from crpp assets/sounds/keyboard/plastic/mod_ctrl.wav
+file shared sounds/keyboard/plastic/mod_ctrl_hold.wav 5908 b16e8e2b33b507734d589c5f0b9b1a6fc21d3734d3b452f79cb22811cee10208 from crpp assets/sounds/keyboard/plastic/mod_ctrl_hold.wav
+file shared sounds/keyboard/plastic/mod_ctrl_release.wav 6344 d51014dbe388349a18dee7436ff5630659c807adf1cc9504462771246cc606d7 from crpp assets/sounds/keyboard/plastic/mod_ctrl_release.wav
+file shared sounds/keyboard/plastic/mod_enter.wav 13382 2dbc31ee6b3ac13fce12c50c0742d4bf53cef7915807d09a9cf1a4284b95312d from crpp assets/sounds/keyboard/plastic/mod_enter.wav
+file shared sounds/keyboard/plastic/mod_esc.wav 13376 10d0abfddd16f5ff071558cd77a666a55f74a558a264f0de97ff4cd109d3b8fb from crpp assets/sounds/keyboard/plastic/mod_esc.wav
+file shared sounds/keyboard/plastic/mod_shift.wav 13382 2d393fbfeedd1dc4d7e805ee3c015c28b69c20ed9cbc64c0508419eda39d3a0a from crpp assets/sounds/keyboard/plastic/mod_shift.wav
+file shared sounds/keyboard/plastic/mod_shift_hold.wav 5912 8daa212ff67fd298b06044d66ffda9e4530e65e69e29d26463354903ef512bbc from crpp assets/sounds/keyboard/plastic/mod_shift_hold.wav
+file shared sounds/keyboard/plastic/mod_shift_release.wav 6346 73af5339dac701351b58d65eb28264c53a3401670ec9dec5cb3744a0821d2633 from crpp assets/sounds/keyboard/plastic/mod_shift_release.wav
+file shared sounds/keyboard/plastic/mod_space.wav 13382 324b18f3872d91aefaa2a1ce945c8fc48ae4e7cb3f10f3ec0868c1fe1c71c721 from crpp assets/sounds/keyboard/plastic/mod_space.wav
+file shared sounds/keyboard/plastic/mod_tab.wav 13376 7546fb9542aa84eebd21e73318f5749504e4373c3ef5547db6ddf909cbef1ce5 from crpp assets/sounds/keyboard/plastic/mod_tab.wav
+file shared sounds/keyboard/plastic/pack.json 55 796ebb07d7542372b516c54e30b068d84a4dab34f315d88dcb76f30e6f1d2fae from crpp assets/sounds/keyboard/plastic/pack.json
+file shared sounds/keyboard/thocky/alpha_r1.wav 12774 c6448a4b87ed96f72cc9cd39ef49e801b84d50f7834a37a38f86c5b6b857c51d from crpp assets/sounds/keyboard/thocky/alpha_r1.wav
+file shared sounds/keyboard/thocky/alpha_r2.wav 11228 40fda13f90503c64abec08e4c3307c77657cd71dc792efc92251768f1b705f18 from crpp assets/sounds/keyboard/thocky/alpha_r2.wav
+file shared sounds/keyboard/thocky/alpha_r3.wav 11160 9034172bf1d7ea5d6eb0a24825bd558c577b0861b723e8c762d8e62236f513a6 from crpp assets/sounds/keyboard/thocky/alpha_r3.wav
+file shared sounds/keyboard/thocky/alpha_r4.wav 11268 fd577ad29967de0f376120113eae7e2c9fd9eb8c7402b344051b4ed85fe53767 from crpp assets/sounds/keyboard/thocky/alpha_r4.wav
+file shared sounds/keyboard/thocky/mod_alt.wav 11474 526268a42a29aeb409285d418325cebcdda363e477b7c8f085e98478851f645a from crpp assets/sounds/keyboard/thocky/mod_alt.wav
+file shared sounds/keyboard/thocky/mod_alt_hold.wav 6220 cce8e624b5da8120a26a34d9e6372e8d2f270958679d8cd3d95bb6db932b2618 from crpp assets/sounds/keyboard/thocky/mod_alt_hold.wav
+file shared sounds/keyboard/thocky/mod_alt_release.wav 3134 dc22a5ebd9e388d21f652ad54dab11172fd5d636855509d3d012f7648533b1b7 from crpp assets/sounds/keyboard/thocky/mod_alt_release.wav
+file shared sounds/keyboard/thocky/mod_backspace.wav 11238 16251620f0f2f34a2c4ec29be02a54432ef6bbe644045cb4a8bc23bd7c814491 from crpp assets/sounds/keyboard/thocky/mod_backspace.wav
+file shared sounds/keyboard/thocky/mod_caps.wav 11416 f3b4b3299e3d07e9f840f9bd144d8e8b1b8c5981821a9a99e6a30c26460d21e6 from crpp assets/sounds/keyboard/thocky/mod_caps.wav
+file shared sounds/keyboard/thocky/mod_ctrl.wav 11494 fef746ad5c18f91e6d1cc15434abd4d5e9ecb0e74189d1f78bfb6c7aeaadd9c1 from crpp assets/sounds/keyboard/thocky/mod_ctrl.wav
+file shared sounds/keyboard/thocky/mod_ctrl_hold.wav 6220 08a804e7fda259b58d7380ffafde44a0147fe85389fc0bfdce250eeff8f32710 from crpp assets/sounds/keyboard/thocky/mod_ctrl_hold.wav
+file shared sounds/keyboard/thocky/mod_ctrl_release.wav 3134 1ff13f6c3d7e18491c687f17653224827a40e2f0aba863aae9744c19ac97d795 from crpp assets/sounds/keyboard/thocky/mod_ctrl_release.wav
+file shared sounds/keyboard/thocky/mod_enter.wav 11534 abdc291a9359ae56da762a17c54adfde0d60eff85252c5b3f66e632e86089370 from crpp assets/sounds/keyboard/thocky/mod_enter.wav
+file shared sounds/keyboard/thocky/mod_esc.wav 11268 fd577ad29967de0f376120113eae7e2c9fd9eb8c7402b344051b4ed85fe53767 from crpp assets/sounds/keyboard/thocky/mod_esc.wav
+file shared sounds/keyboard/thocky/mod_shift.wav 11416 f3b4b3299e3d07e9f840f9bd144d8e8b1b8c5981821a9a99e6a30c26460d21e6 from crpp assets/sounds/keyboard/thocky/mod_shift.wav
+file shared sounds/keyboard/thocky/mod_shift_hold.wav 6220 62ef27fccebb3c55b8265828fe749f869ae5955f1844b861b10f6d43e4f27c2d from crpp assets/sounds/keyboard/thocky/mod_shift_hold.wav
+file shared sounds/keyboard/thocky/mod_shift_release.wav 3134 d3bc1f7dc10836c135978807cff738fd4e2c3920ec4780468244348a1afd5e31 from crpp assets/sounds/keyboard/thocky/mod_shift_release.wav
+file shared sounds/keyboard/thocky/mod_space.wav 11544 48ac7862819751a21e0588e0a3344a24719ba8ce9e238a4163214c66a7c5b4ca from crpp assets/sounds/keyboard/thocky/mod_space.wav
+file shared sounds/keyboard/thocky/mod_tab.wav 11622 17a5d1dd6a429ee8aaab2a9f536dc42ad42fa5f8e41b53b2efb0908aa05e4b11 from crpp assets/sounds/keyboard/thocky/mod_tab.wav
+file shared sounds/keyboard/thocky/pack.json 48 8f08cf97c4c8e062ae9958eca4205dc7ed714e2e1bcbd253eb35dd277a47612a from crpp assets/sounds/keyboard/thocky/pack.json
+file shared sounds/keyboard/walnut/alpha_r1.wav 31226 ef7c86da2a7eff25cb1308ac8e2838212d98ef19efc17fe73d6b946f08e52851 from crpp assets/sounds/keyboard/walnut/alpha_r1.wav
+file shared sounds/keyboard/walnut/alpha_r1_2.wav 31232 90c776a4834b67f68c5e6623ed27e307d2eec75561e4b861e4f2dccfe644ad4d from crpp assets/sounds/keyboard/walnut/alpha_r1_2.wav
+file shared sounds/keyboard/walnut/alpha_r1_3.wav 31232 d3e9ffc478ad2f404a930f61099e491a29660586afac236fc7f56c2ac1b351d4 from crpp assets/sounds/keyboard/walnut/alpha_r1_3.wav
+file shared sounds/keyboard/walnut/alpha_r2.wav 31226 e6aa5dc6d6a90575d31e9b01f106137f3eb289078a189104a4deaa104483dd86 from crpp assets/sounds/keyboard/walnut/alpha_r2.wav
+file shared sounds/keyboard/walnut/alpha_r2_2.wav 31232 2bca34043735a02ea62a63ed23eb332abe6a4e9c59995d6bb0a7bb7d66108aea from crpp assets/sounds/keyboard/walnut/alpha_r2_2.wav
+file shared sounds/keyboard/walnut/alpha_r2_3.wav 31232 72b50a0fb1bc4a123de3f69d993dd5e895501e57ac07e88a834303ec821f117f from crpp assets/sounds/keyboard/walnut/alpha_r2_3.wav
+file shared sounds/keyboard/walnut/alpha_r3.wav 31226 79b811d5b6075198dd2d17572b5875a4c2a958c418db81f39daa0e06867d972e from crpp assets/sounds/keyboard/walnut/alpha_r3.wav
+file shared sounds/keyboard/walnut/alpha_r3_2.wav 31232 a578f29622218f457b9557549860d58c28a67107455b1fab80ba68044eeccde1 from crpp assets/sounds/keyboard/walnut/alpha_r3_2.wav
+file shared sounds/keyboard/walnut/alpha_r3_3.wav 31232 88d34eba147408dd0053352e8613af6d6c896d4618b1369ba2b7192bfd5f9e43 from crpp assets/sounds/keyboard/walnut/alpha_r3_3.wav
+file shared sounds/keyboard/walnut/alpha_r4.wav 31226 cbf266ec6fe301dad8ffb6c3f91f04af487f44edb0651516b3747bcbe1affb23 from crpp assets/sounds/keyboard/walnut/alpha_r4.wav
+file shared sounds/keyboard/walnut/alpha_r4_2.wav 31232 48d2e53a30415398b11a845f1a2aac73939ad910bdf3c42150069b5fe99f3f92 from crpp assets/sounds/keyboard/walnut/alpha_r4_2.wav
+file shared sounds/keyboard/walnut/alpha_r4_3.wav 31232 80f1819e5e8113ea69ca76fb97b4744563a8a1f3bbab96494e7537d8815091a4 from crpp assets/sounds/keyboard/walnut/alpha_r4_3.wav
+file shared sounds/keyboard/walnut/mod_alt.wav 31224 5b6fce2be9ae13c4c71332ff870c5d3530ae6e19e1b55cd096100ee80a6b35a1 from crpp assets/sounds/keyboard/walnut/mod_alt.wav
+file shared sounds/keyboard/walnut/mod_alt_hold.wav 12432 c57cea2399250d10afa04b1ec823a82b2802c31fbd73c6433d305b8af9b20e30 from crpp assets/sounds/keyboard/walnut/mod_alt_hold.wav
+file shared sounds/keyboard/walnut/mod_alt_release.wav 15050 5ed9fc6084ea2ee115ea648a80fe5b31d96aaf72c234028e75ffb5eab78d5440 from crpp assets/sounds/keyboard/walnut/mod_alt_release.wav
+file shared sounds/keyboard/walnut/mod_backspace.wav 31242 ef3ba752d8ed299a40cc6f006c2dc6897c037d3c58368eea35daf7804e713fa2 from crpp assets/sounds/keyboard/walnut/mod_backspace.wav
+file shared sounds/keyboard/walnut/mod_caps.wav 31226 7cc1388733c872ff137e4c5694e6b7900eaf09b28a6d58e57ad083a70de64f3f from crpp assets/sounds/keyboard/walnut/mod_caps.wav
+file shared sounds/keyboard/walnut/mod_ctrl.wav 31226 51588377a0d83374453c753e08e44b9ebe289b2475e54b811a9803bec2af9b83 from crpp assets/sounds/keyboard/walnut/mod_ctrl.wav
+file shared sounds/keyboard/walnut/mod_ctrl_hold.wav 12348 20b10f6cf2321f693e5f0ad52c76e79f932a6b73e5e574c05d61f065ff202e03 from crpp assets/sounds/keyboard/walnut/mod_ctrl_hold.wav
+file shared sounds/keyboard/walnut/mod_ctrl_release.wav 14376 8a40b97ee8508df19624f3d98721b03bdb511544ee8db3e48aec2e4c6e979946 from crpp assets/sounds/keyboard/walnut/mod_ctrl_release.wav
+file shared sounds/keyboard/walnut/mod_enter.wav 31230 97ef5db0a85893d23f9cfbd2c4bc297a4f510a9837e474de6dbd5ae0523e525d from crpp assets/sounds/keyboard/walnut/mod_enter.wav
+file shared sounds/keyboard/walnut/mod_esc.wav 31224 5dbdb551304339217910b0d2bf7eda2f7be18688f0f952b37a00617117a94b69 from crpp assets/sounds/keyboard/walnut/mod_esc.wav
+file shared sounds/keyboard/walnut/mod_shift.wav 31230 8474851298862c574aee826658c31bedc4a3635581948a2b5907e1484e6862c5 from crpp assets/sounds/keyboard/walnut/mod_shift.wav
+file shared sounds/keyboard/walnut/mod_shift_hold.wav 11732 12aa8d4cf85b0fb0316b6d42d9f6c6e1552320a9b64d937642290ace2a9098dd from crpp assets/sounds/keyboard/walnut/mod_shift_hold.wav
+file shared sounds/keyboard/walnut/mod_shift_release.wav 15934 4b26673a7d29d5c94b7e4f73f34f1859d8b6db62a1d2565d81309eb32584da63 from crpp assets/sounds/keyboard/walnut/mod_shift_release.wav
+file shared sounds/keyboard/walnut/mod_space.wav 31230 a070d8648302a075bfb040880554f3f958e2db89a909768d2d97711cd9b866bf from crpp assets/sounds/keyboard/walnut/mod_space.wav
+file shared sounds/keyboard/walnut/mod_tab.wav 31224 f6cfffcca2395b5c836e2d072adee91ff7efa32025e59f234d400159414ba3fb from crpp assets/sounds/keyboard/walnut/mod_tab.wav
+file shared sounds/keyboard/walnut/pack.json 49 110450e1b606abe5d35f3231bbbd7091f021de5744574d92d1e4a4f388c09729 from crpp assets/sounds/keyboard/walnut/pack.json
+file shared sounds/mouse/plastic/left.wav 22460 5792423c9f65812504ea967b9c2a267a3a163959ecfbc144eb6b4f4dc3fb0ecd from crpp assets/sounds/mouse/plastic/left.wav
+file shared sounds/mouse/plastic/left_hold.wav 17896 db0aef54062bdccac199165f975b9b3e8a55b3e67f107cecc291d960480d152b from crpp assets/sounds/mouse/plastic/left_hold.wav
+file shared sounds/mouse/plastic/left_release.wav 17906 97f22704ae04620b67f404be5c2d876ad3d96a748003b0e8cb39b13cc8a9df03 from crpp assets/sounds/mouse/plastic/left_release.wav
+file shared sounds/mouse/plastic/middle.wav 22466 b34ca328fb84265513c183c3b032fb66dd067e3f29aa85535127b4be86ac1471 from crpp assets/sounds/mouse/plastic/middle.wav
+file shared sounds/mouse/plastic/middle_hold.wav 17902 a2e0da9b77a15999d02063409558b8b345bb47c2b2520759771b113a6f3c13a0 from crpp assets/sounds/mouse/plastic/middle_hold.wav
+file shared sounds/mouse/plastic/middle_release.wav 17912 d1163317c63f9d90d1bcd4f46f0f0e5b0ed19792ce7dc01e0605de6dfea66970 from crpp assets/sounds/mouse/plastic/middle_release.wav
+file shared sounds/mouse/plastic/pack.json 56 cfb055061560da4909e53f73d5e7a78e4a10bc70ff623b67980d63b3afaba4e7 from crpp assets/sounds/mouse/plastic/pack.json
+file shared sounds/mouse/plastic/right.wav 22462 91a5418126dc1b55e23ddc39279538badf3e595d9e16a7d5eca39c1868e6014c from crpp assets/sounds/mouse/plastic/right.wav
+file shared sounds/mouse/plastic/right_hold.wav 17900 76bafe06e7ae54a0528eb5dcf21eca149cb2f23cf1bca846b109f3e8cbdbbb59 from crpp assets/sounds/mouse/plastic/right_hold.wav
+file shared sounds/mouse/plastic/right_release.wav 17908 8b96458901434e70b2a51719f2d2d5eb2c01f71bc5b97c8327c2755b86ec4935 from crpp assets/sounds/mouse/plastic/right_release.wav
+file shared sounds/mouse/plastic/side_back.wav 22474 85ec30ee3cb1622038dd478c08816ce360f0c163af9729849af390ddfdfbbdd1 from crpp assets/sounds/mouse/plastic/side_back.wav
+file shared sounds/mouse/plastic/side_forward.wav 22484 77f2b5299350b7972c5420c131c627ebfac0b1b0aba269bd145016d5c3be98f7 from crpp assets/sounds/mouse/plastic/side_forward.wav
+file shared sounds/mouse/plastic/wheel_1.wav 17890 c41443a6f702b081e956a689e740d909c0a6f5d80d29226cfc6f58fb8580da0c from crpp assets/sounds/mouse/plastic/wheel_1.wav
+file shared sounds/mouse/plastic/wheel_2.wav 17890 82cf3e6a7af614b31be397d0ca278a47d00e2ad63c2de05fe77d29f328876923 from crpp assets/sounds/mouse/plastic/wheel_2.wav
+file shared sounds/mouse/plastic/wheel_3.wav 17890 9153e1af1a22fc651eb0c86a5cc600a0db4e5b360d40e3fa4816b6930aa42abf from crpp assets/sounds/mouse/plastic/wheel_3.wav
+file shared sounds/mouse/rubber/left.wav 22352 6d50eca2faeccc67ed117ba4c98ec6516f83d842c706ee954afcd1c1c62a83a5 from crpp assets/sounds/mouse/rubber/left.wav
+file shared sounds/mouse/rubber/left_hold.wav 18444 9e32cc03800439d1fcfba9e7ae3883ec0f60ce5c0f5ed565af0ac16972a65af9 from crpp assets/sounds/mouse/rubber/left_hold.wav
+file shared sounds/mouse/rubber/left_release.wav 18452 43ff98fe0ac5f885ff11ea4c6ba551e07b5a508d5c468a4d08861996490b97b2 from crpp assets/sounds/mouse/rubber/left_release.wav
+file shared sounds/mouse/rubber/middle.wav 26600 d7ea07c50a713ac3360b6c7d2ef46459ea93a444d62893f6eebafcf0d24bd575 from crpp assets/sounds/mouse/rubber/middle.wav
+file shared sounds/mouse/rubber/middle_hold.wav 22374 5ca46421485e587454568a7065b242abbb0d7861056a8ab62e0275e83e3803f0 from crpp assets/sounds/mouse/rubber/middle_hold.wav
+file shared sounds/mouse/rubber/middle_release.wav 22382 1620f1c581fe182dfe32950d0c4ad4744ea17c22822591860e4528cbe974f23a from crpp assets/sounds/mouse/rubber/middle_release.wav
+file shared sounds/mouse/rubber/pack.json 49 1273820fcf94efb4a1eb81fc4e0f5120cefb28040e75703c6e5cc8df67ce56fe from crpp assets/sounds/mouse/rubber/pack.json
+file shared sounds/mouse/rubber/right.wav 26598 c9a241187bf8a47fc7a2fed15f002c059d0d8337bf849a75fb5fd29b6b855ab2 from crpp assets/sounds/mouse/rubber/right.wav
+file shared sounds/mouse/rubber/right_hold.wav 18446 9025e97be099c224f8b83e93f00ed5a937fa156b9d72670eb4883e88f68bac99 from crpp assets/sounds/mouse/rubber/right_hold.wav
+file shared sounds/mouse/rubber/right_release.wav 18456 7ac9c6c9866e19ffe7fa23ab84321923722fa7745dd6cdcc6df08cd8b1147908 from crpp assets/sounds/mouse/rubber/right_release.wav
+file shared sounds/mouse/rubber/side_back.wav 26610 7e06921a9b6fc5bfc42447845cfecbce042ead44677d2abda3b6cce963e40ec2 from crpp assets/sounds/mouse/rubber/side_back.wav
+file shared sounds/mouse/rubber/side_forward.wav 26616 8e618e76e923a2e298526adfe521db6e2a3fca6920bcd7d7af226c2fa41e948e from crpp assets/sounds/mouse/rubber/side_forward.wav
+file shared sounds/mouse/walnut/left.wav 22292 13b82d99d5eeae25e19e03eaafb49546b9e7f4ca5b2c861911d6818b5a655123 from crpp assets/sounds/mouse/walnut/left.wav
+file shared sounds/mouse/walnut/left_hold.wav 13876 0258b83c53d408b33a2545339d4864220eb7bc3a25749593ec40f93c501675a0 from crpp assets/sounds/mouse/walnut/left_hold.wav
+file shared sounds/mouse/walnut/left_release.wav 13884 6c31517c956253dc7efb4209666875429d6e6113b136b7edf3f62be573fc54d3 from crpp assets/sounds/mouse/walnut/left_release.wav
+file shared sounds/mouse/walnut/middle.wav 22298 8325fd522f7c233811d83e6e7e905c0a04e30d24e7e38d7b8cc75ac4e747e349 from crpp assets/sounds/mouse/walnut/middle.wav
+file shared sounds/mouse/walnut/middle_hold.wav 22314 fdefbe99827deb9df3d291f52994287751c1f1f0c1404d0cad9add4381f461a3 from crpp assets/sounds/mouse/walnut/middle_hold.wav
+file shared sounds/mouse/walnut/middle_release.wav 13890 5cf2ee4d5d7c053494fc9a9852d96f27177667fdb1d92a6b41e243978452c08b from crpp assets/sounds/mouse/walnut/middle_release.wav
+file shared sounds/mouse/walnut/pack.json 49 110450e1b606abe5d35f3231bbbd7091f021de5744574d92d1e4a4f388c09729 from crpp assets/sounds/mouse/walnut/pack.json
+file shared sounds/mouse/walnut/right.wav 22206 75c91d509e5c6e8c54265416230c574459ec2b800e633c2dea1527fd233209b3 from crpp assets/sounds/mouse/walnut/right.wav
+file shared sounds/mouse/walnut/right_hold.wav 13774 72bf0e160b06cb5514c7a6ed8a8fae15bc0150636faa044752d7b09c8f0c8d22 from crpp assets/sounds/mouse/walnut/right_hold.wav
+file shared sounds/mouse/walnut/right_release.wav 13888 69b918c80f82d8a77ec192cf4ad8b7afcf1795382ecd59e35a913eac0491edd8 from crpp assets/sounds/mouse/walnut/right_release.wav
+file shared sounds/mouse/walnut/side_back.wav 22308 27c2f4185f4a73b7c139be1d4e6bbfbd131fd320302dc54a8ce1ad24bb8db5f2 from crpp assets/sounds/mouse/walnut/side_back.wav
+file shared sounds/mouse/walnut/side_forward.wav 22316 b1b4feea09da2ed904faa66b7fd62dce6be628c72ed4e867aecf513dda702837 from crpp assets/sounds/mouse/walnut/side_forward.wav
+file shared sounds/notifications/cloud_chat.wav 7100 6573ee51d9b18565ff73a51461af8e4ea98a1b4fa0b9eb224c45bcec0be687ff from crpp assets/sounds/notifications/cloud_chat.wav
+file shared sounds/notifications/cloud_enter.wav 18566 7827ecba2c008889e2954435df39de43c0d98ffcd7585de9dd2c8d0f2626c13e from crpp assets/sounds/notifications/cloud_enter.wav
+file shared sounds/notifications/pack.json 90 b62919c0be422f27323f80d1aa075c4e56a2b49f554878172a697a753bdd5efb from crpp assets/sounds/notifications/pack.json
+file shared sounds/pen/paper/pack.json 47 80dc3d3a09cbd3dcca820f056a5351aad18cf9656227f9b955ab7e0198f6d274 from crpp assets/sounds/pen/paper/pack.json
+file shared sounds/pen/paper/pen_stroke_1.wav 83328 c9b9543660f0ed652d75749a5593ace7dfb2fafa3a49bbe9c61d9214538f283b from crpp assets/sounds/pen/paper/pen_stroke_1.wav
+file shared sounds/pen/paper/pen_stroke_2.wav 60480 9db79cc8d4e40f3424de326b1016ab8076623eb984a27b1642e1100050adeca4 from crpp assets/sounds/pen/paper/pen_stroke_2.wav
+file shared sounds/pen/paper/pen_stroke_3.wav 71288 ace26273694910619765eb723e8d9ac560637e4ff4195d2d179532544e2cbeb2 from crpp assets/sounds/pen/paper/pen_stroke_3.wav
+file shared sounds/pen/paper/pen_tap_1.wav 8866 7b03c099dc1c03127e4bb002820386cd7e92caaf5bf3853217c12ee2fcc80554 from crpp assets/sounds/pen/paper/pen_tap_1.wav
+file shared sounds/pen/paper/pen_tap_2.wav 8866 4d8172bc36bd23cf4052a2901040fc101a8ffa7d6a524f614557e6da9e819b9c from crpp assets/sounds/pen/paper/pen_tap_2.wav
+file shared sounds/pen/paper/pen_tap_3.wav 8866 498a82708748510a01832f00e59fe465f247144ccca0eb1e39ec48dc523da71e from crpp assets/sounds/pen/paper/pen_tap_3.wav
+file shared sounds/system/mute.wav 8158 9aad7a89d866e9e8a681d57d94db860df47aac10e80508c0f8c564e54a3559c0 from crpp assets/sounds/system/mute.wav
+file shared sounds/system/unmute.wav 5864 181bd903e6f19684570070507062eb4dd9d16d20c0a8797788837ca6b53816d7 from crpp assets/sounds/system/unmute.wav
+file shared words/adjectives.txt 539 a4a2f11a6aac13f1678b561e721a819bfdfc06adf127a0b087cc8ac11e6fd84c from crpp assets/words/adjectives.txt
+file shared words/animals.txt 866 79ff1518b79e49989aaad83173510d019fd8807072bdad8d34c2df48f3331167 from crpp assets/words/animals.txt
+file shared words/en/adjectives.txt 252 61856134297d0cfcfb2e99ac931e3f830bac8e11f4fe62bcc01572402d41360a from crpp assets/words/en/adjectives.txt
+file shared words/en/animals.txt 388 959c5e6e9936a24f33e2967549a7933bd7d287faa4d49ad162746a80e1bf30a1 from crpp assets/words/en/animals.txt
+signature 11b8d813f36ed3a2f9927fa078396a25dc14c12e488b045392e8a9225f5a16a5791bc22862e829928eb8afb67867abe2a33f2425179e789e57b6988ea1beb3f3

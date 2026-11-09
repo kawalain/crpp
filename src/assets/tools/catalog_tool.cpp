@@ -1,15 +1,15 @@
 // Writes a Repository's catalog, unsigned, from this repository's folders:
 //
 //   crpp_catalog <out-dir> --remote <remote_assets.txt> [--assets <dir>] [--skins <dir>] [--sounds <dir>]
-//                [--ref <git ref>] [--default-skin <id>] [--key <hex>] [--copy <cache dir>]
+//                [--mirror <url>] [--default-skin <id>] [--key <hex>] [--copy <cache dir>]
 //
 // --assets lists its files in the shared group, --skins each folder with a pack.cskin as a
 // Skin Pack, --sounds each <kind>/<id>/ with a pack.json as a Sound pack of its own group, and
 // --remote the third-party files with the sources they come from. Every Sound pack, of --assets
-// or --sounds, gets a sound line with the names of its pack.json. --ref names
-// the commit or tag at which raw.githubusercontent.com serves this repository's files, the
-// second source of each. --copy also puts every file in <out-dir>, the third-party ones from
-// that cache, so that the folder can be served as it is. Signing is a separate step
+// or --sounds, gets a sound line with the names of its pack.json. --mirror names another
+// folder that serves the same files. --copy also puts every file in <out-dir> as <sha256>
+// (ADR 0010), once however many paths have it, the third-party ones from that cache, so that
+// the folder can be served as it is. Signing is a separate step
 // (.github/scripts/sign-catalog.sh), so the key never reaches this program.
 //
 //   crpp_catalog --verify <catalog.txt> [--key <hex>]
@@ -39,8 +39,6 @@ using namespace crpp;
 
 namespace {
 
-constexpr std::string_view this_repository = "https://raw.githubusercontent.com/kawalain/crpp/";
-
 std::optional<std::string> read_text(const fs::path& path) {
   std::ifstream in(path, std::ios::binary);
   if (!in) return std::nullopt;
@@ -64,7 +62,7 @@ assets::Names names_of(const Json* names) {
 
 struct Options {
   fs::path out, remote, assets, skins, sounds, copy;
-  std::string ref, default_skin, key;
+  std::string mirror, default_skin, key;
 };
 
 std::optional<Options> parse_options(int argc, char** argv) {
@@ -78,7 +76,7 @@ std::optional<Options> parse_options(int argc, char** argv) {
     else if (name == "--skins") options.skins = value;
     else if (name == "--sounds") options.sounds = value;
     else if (name == "--copy") options.copy = value;
-    else if (name == "--ref") options.ref = value;
+    else if (name == "--mirror") options.mirror = value;
     else if (name == "--default-skin") options.default_skin = value;
     else if (name == "--key") options.key = value;
     else return std::nullopt;
@@ -91,7 +89,7 @@ class Writer {
  public:
   explicit Writer(const Options& options) : options_(options) {}
 
-  bool add_local(const fs::path& root, std::string_view prefix, std::string_view group, std::string_view remote_prefix) {
+  bool add_local(const fs::path& root, std::string_view prefix, std::string_view group) {
     std::vector<fs::path> files;
     for (const auto& item : fs::recursive_directory_iterator(root)) {
       if (item.is_regular_file()) files.push_back(item.path());
@@ -104,11 +102,7 @@ class Writer {
       if (!text) return fail("cannot read " + generic(file));
       assets::File entry{.group = std::string(group), .path = std::string(prefix) + relative, .size = text->size()};
       entry.sha256 = platform_.sha256({reinterpret_cast<const std::uint8_t*>(text->data()), text->size()});
-      if (!options_.ref.empty()) {
-        entry.source = "crpp";
-        entry.remote = std::string(remote_prefix) + relative;
-      }
-      if (!copy(entry.path, *text)) return false;
+      if (!copy(entry.sha256, *text)) return false;
       catalog_.files.push_back(std::move(entry));
     }
     return true;
@@ -161,7 +155,7 @@ class Writer {
       }
       const std::string prefix = "skins/" + skin.id + "/";
       catalog_.skins.push_back(skin);
-      if (!add_local(folder, prefix, assets::skin_group(skin.id), prefix)) return false;
+      if (!add_local(folder, prefix, assets::skin_group(skin.id))) return false;
     }
     return true;
   }
@@ -184,7 +178,7 @@ class Writer {
         if (!json) return fail("cannot read " + generic(folder / "pack.json"));
         if (!catalog_.sound(id)) catalog_.sounds.push_back({id, names_of(json->find("name"))});
         const std::string prefix = "sounds/" + std::string(kind) + "/" + id + "/";
-        if (own_groups && !add_local(folder, prefix, assets::sound_group(id), prefix)) return false;
+        if (own_groups && !add_local(folder, prefix, assets::sound_group(id))) return false;
       }
     }
     return true;
@@ -219,7 +213,7 @@ class Writer {
         if (!bytes || platform_.sha256({reinterpret_cast<const std::uint8_t*>(bytes->data()), bytes->size()}) != hash) {
           return fail(generic(options_.copy / path) + " is missing or not the pinned file");
         }
-        if (!copy(entry.path, *bytes)) return false;
+        if (!copy(entry.sha256, *bytes)) return false;
       }
       catalog_.files.push_back(std::move(entry));
     }
@@ -235,7 +229,7 @@ class Writer {
       catalog_.key = *key;
     }
     catalog_.default_skin = options_.default_skin;
-    if (!options_.ref.empty()) catalog_.sources.insert(catalog_.sources.begin(), {"crpp", std::string(this_repository) + options_.ref + "/"});
+    catalog_.mirror = options_.mirror;
     std::ranges::stable_sort(catalog_.files, {}, &assets::File::path);
     const std::string text = assets::write_catalog(catalog_);
     // What the program will refuse is refused here first.
@@ -255,10 +249,12 @@ class Writer {
   bool failed() const { return failed_; }
 
  private:
-  bool copy(const std::string& path, const std::string& bytes) {
+  // Under its hash, which a second path with the same bytes finds already there.
+  bool copy(const std::string& sha256, const std::string& bytes) {
     if (options_.copy.empty()) return true;
-    const fs::path target = options_.out / path;
+    const fs::path target = options_.out / sha256;
     std::error_code ec;
+    if (fs::file_size(target, ec) == bytes.size() && !ec) return true;
     fs::create_directories(target.parent_path(), ec);
     std::ofstream out(target, std::ios::binary | std::ios::trunc);
     out << bytes;
@@ -324,7 +320,7 @@ int main(int argc, char** argv) {
   if (argc == 4 && std::string_view(argv[1]) == "--digest") return digest(argv);
   const auto options = parse_options(argc, argv);
   if (!options) {
-    std::fprintf(stderr, "usage: crpp_catalog <out-dir> --remote <file> [--assets <dir>] [--skins <dir>] [--sounds <dir>] [--ref <ref>] "
+    std::fprintf(stderr, "usage: crpp_catalog <out-dir> --remote <file> [--assets <dir>] [--skins <dir>] [--sounds <dir>] [--mirror <url>] "
                          "[--default-skin <id>] [--key <hex>] [--copy <cache dir>]\n"
                          "       crpp_catalog --verify <catalog.txt> [--key <hex>]\n"
                          "       crpp_catalog --digest <catalog.txt> <skin id>\n");
@@ -333,7 +329,7 @@ int main(int argc, char** argv) {
   Writer writer(*options);
   // Remote first: it holds the source lines the others' entries do not need.
   if (!writer.add_remote()) return 1;
-  if (!options->assets.empty() && !writer.add_local(options->assets, "", "shared", "assets/")) return 1;
+  if (!options->assets.empty() && !writer.add_local(options->assets, "", "shared")) return 1;
   if (!options->skins.empty() && !writer.add_skins()) return 1;
   if (!options->assets.empty() && !writer.add_sounds(options->assets / "sounds", false)) return 1;
   if (!options->sounds.empty() && !writer.add_sounds(options->sounds, true)) return 1;

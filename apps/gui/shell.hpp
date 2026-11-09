@@ -225,8 +225,10 @@ struct Shell {
   std::array<PaneWindow, ui::pane_count> panes;  // by Pane; the first is not used
   ui::PaneState panes_made;
   bool panes_posted = false;
-  std::filesystem::path assets_dir;
+  std::filesystem::path assets_dir;             // the official Repository's catalog and list of what it installed
   std::filesystem::path skins_dir;              // the Skin Packs: beside the exe, or installed
+  std::filesystem::path files_dir;              // every Repository's files, under their hashes (ADR 0010)
+  bool assets_beside_exe = false;               // a development build's folders, read as they are
   std::optional<assets::Repository> repository;  // where files come from; empty: nowhere
   std::string official_fingerprint;              // of its key, which a pack may name its parent's Repository by
   std::optional<assets::Catalog> catalog;        // the kept one, verified, which the installed files follow
@@ -241,7 +243,6 @@ struct Shell {
   std::vector<std::filesystem::path> remove_after_install;  // of a Repository removed while its pack was coming
   std::vector<std::string> listed_packs;  // the system tab's rows of packs, by id
   std::vector<Hold> holds;                 // found behind the app at this start
-  bool fonts_loaded = false;              // the font files are open until the app ends
   std::vector<std::string> expected_sounds;  // what the catalog promises, on disk or not
   std::filesystem::path data_dir;  // the Protected store's folder
   std::wstring data_override;      // --data, so a restart keeps it
@@ -294,8 +295,16 @@ bool fetch_sound(Shell& s, const std::string& id);
 void remove_sound(Shell& s, const std::string& id);
 // Whether a Sound pack of an added Repository is queued or on its way.
 [[nodiscard]] bool sound_coming(const Shell& s, std::string_view id);
-// A nickname like the upstream one: "<adjective> <animal>".
-std::string random_nickname(const std::filesystem::path& words);
+// A nickname like the upstream one: "<adjective> <animal>", from the word lists in that folder.
+std::string random_nickname(const files::Tree& assets, std::string_view words);
+
+// --- installed.cpp ---
+// What the official Repository installed, or the folders beside a development exe.
+[[nodiscard]] files::Tree official_files(const Shell& s);
+// What a Repository the user added installed.
+[[nodiscard]] files::Tree added_files(const Shell& s, const AddedRepository& added);
+// The official "sounds" folder, with what the catalog promises that has not arrived yet.
+[[nodiscard]] files::Tree official_sounds(const Shell& s);
 
 // --- window.cpp ---
 HWND create_window(Shell& s);

@@ -1,5 +1,7 @@
 # A catalog address per pack format, and the old one frozen
 
+A tree of files per address is replaced by ADR 0010: the catalogs share one folder of files named by their hashes.
+
 Skin Pack format 2 adds names that format 1 does not have, such as the `focused` state and the `context_menu` screen.
 An exe of format 1 refuses a whole pack that uses a name it does not know, and v0.2.0 also fetches whatever the
 official catalog lists for an installed pack without checking its format, overwriting the pack it can read. Every

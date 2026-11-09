@@ -8,6 +8,7 @@
 #include <optional>
 #include <sstream>
 #include <thread>
+#include <set>
 #include <unordered_map>
 #include <unordered_set>
 
@@ -59,12 +60,15 @@ bool write_plainly(const fs::path& path, std::string_view bytes) {
 
 // The temporary name means a stop halfway leaves the old file or none. With a platform the bytes
 // are on the disk first; the lists written without one are made again when they do not read.
-bool replace_file(const fs::path& path, std::string_view bytes, Platform* platform = nullptr) {
+constexpr std::string_view part_suffix = ".part";
+
+// Two at once need two names.
+bool replace_file(const fs::path& path, std::string_view bytes, std::string_view temp_suffix = part_suffix, Platform* platform = nullptr) {
   std::error_code ec;
   fs::create_directories(path.parent_path(), ec);
   if (ec) return false;
   fs::path temp = path;
-  temp += ".part";
+  temp += std::string(temp_suffix);
   const bool wrote = platform ? platform->write_file(temp, {reinterpret_cast<const std::uint8_t*>(bytes.data()), bytes.size()}) : write_plainly(temp, bytes);
   if (!wrote) {
     fs::remove(temp, ec);
@@ -94,13 +98,16 @@ auto with_retries(Platform& platform, const Get& get) {
   return result;
 }
 
-std::expected<Catalog, Error> checked(std::string_view text, const update::PublicKey& key, Platform& platform) {
+// A catalog fetched from a Repository must be of the current grammar; one kept on disk by an
+// older exe is read too, to find what it installed.
+std::expected<Catalog, Error> checked(std::string_view text, const update::PublicKey& key, Platform& platform, bool fetched = true) {
   auto catalog = parse_catalog(text);
   if (!catalog) return std::unexpected(Error::BadContent);
   if (catalog->key != key || !catalog->signature ||
       !platform.verify(key, as_bytes(text.substr(0, catalog->signed_bytes)), *catalog->signature)) {
     return std::unexpected(Error::BadSignature);
   }
+  if (fetched && catalog->grammar != catalog_grammar) return std::unexpected(Error::Outdated);
   return std::move(*catalog);
 }
 
@@ -112,7 +119,7 @@ std::expected<Fetched, Error> fetch_catalog(const Repository& repository, Platfo
   std::optional<Error> first;
   for (const std::string* folder : {&repository.url, &repository.mirror}) {
     if (folder->empty()) continue;
-    const std::string url = *folder + std::string(catalog_name);
+    const std::string url = *folder + repository.catalog;
     const auto bytes = with_retries(platform, [&] { return platform.fetch(url, max_catalog_size, nullptr); });
     std::expected<Catalog, Error> catalog = std::unexpected(bytes ? Error::BadContent : bytes.error());
     if (bytes) catalog = checked(as_text(*bytes), repository.key, platform);
@@ -193,7 +200,7 @@ std::expected<Fetched, Error> fetch_new_catalog(const std::string& folder, Platf
 
 std::optional<Catalog> load_catalog(const fs::path& dir, const update::PublicKey& key, Platform& platform) {
   const auto bytes = read_file(dir / catalog_name, max_catalog_size);
-  auto catalog = checked(as_text(bytes), key, platform);
+  auto catalog = checked(as_text(bytes), key, platform, false);
   if (!catalog) return std::nullopt;
   return std::move(*catalog);
 }
@@ -241,33 +248,97 @@ std::vector<std::string> wanted_groups(const Catalog& catalog, const fs::path& d
 
 std::vector<std::string> kept_groups(const Catalog& catalog, const fs::path& dir) { return groups_in_use(catalog, dir, {}, false); }
 
-std::vector<const File*> missing(const Catalog& catalog, std::span<const std::string> groups, const fs::path& dir) {
+namespace {
+
+// The list is ours, but a path that leaves the folder is never followed, nor a name in the store
+// other than a hash.
+bool safe_path(std::string_view path) {
+  return path.find("..") == std::string_view::npos && path.find_first_of(":\\") == std::string_view::npos && !path.starts_with('/');
+}
+bool is_hash(std::string_view s) {
+  return s.size() == 64 && std::ranges::all_of(s, [](char c) { return (c >= '0' && c <= '9') || (c >= 'a' && c <= 'f'); });
+}
+
+}  // namespace
+
+std::vector<const File*> missing(const Catalog& catalog, std::span<const std::string> groups, const fs::path& dir, const fs::path& store) {
   const auto installed = read_installed(dir);
   std::vector<const File*> result;
   for (const File& file : catalog.files) {
     if (std::ranges::find(groups, file.group) == groups.end()) continue;
     const auto it = installed.find(file.path);
-    if (it == installed.end() || it->second != file.sha256 || !has_size(dir / file.path, file.size)) result.push_back(&file);
+    if (it == installed.end() || it->second != file.sha256 || !has_size(store / file.sha256, file.size)) result.push_back(&file);
   }
   return result;
 }
 
+files::Tree installed_tree(const fs::path& dir, const fs::path& store) {
+  files::Tree tree;
+  for (const auto& [path, hash] : read_installed(dir)) {
+    if (safe_path(path) && is_hash(hash)) tree.add(path, store / hash);
+  }
+  return tree;
+}
+
+void collect_garbage(const fs::path& store, std::span<const fs::path> dirs) {
+  std::unordered_set<std::string> used;
+  for (const fs::path& dir : dirs) {
+    for (auto& [path, hash] : read_installed(dir)) used.insert(std::move(hash));
+  }
+  std::error_code ec;
+  std::vector<fs::path> unused;
+  for (fs::directory_iterator it(store, ec), end; !ec && it != end; it.increment(ec)) {
+    const auto name = files::ascii(it->path().filename());
+    if (!name || !used.contains(*name)) unused.push_back(it->path());
+  }
+  for (const fs::path& path : unused) fs::remove(path, ec);  // what could not be removed only takes up space
+}
+
+void move_into_store(const fs::path& dir, const fs::path& store, Platform& platform) {
+  std::set<fs::path> folders;
+  for (const auto& [path, hash] : read_installed(dir)) {
+    const fs::path old = dir / fs::path(path);
+    std::error_code ec;
+    if (!safe_path(path) || !is_hash(hash) || !fs::is_regular_file(old, ec)) continue;
+    const fs::path kept = store / hash;
+    if (!fs::exists(kept, ec) && platform.sha256(read_file(old, max_file_size)) == hash) {
+      fs::create_directories(store, ec);
+      fs::rename(old, kept, ec);
+    }
+    fs::remove(old, ec);  // already there, or not what the list says: fetched again if needed
+    for (fs::path folder = old.parent_path(); folder != dir && folder.native().size() > dir.native().size(); folder = folder.parent_path()) folders.insert(folder);
+  }
+  // Deepest first, so that a parent is empty once its children are gone.
+  for (auto it = folders.rbegin(); it != folders.rend(); ++it) {
+    std::error_code ec;
+    if (fs::is_empty(*it, ec) && !ec) fs::remove(*it, ec);
+  }
+}
+
 std::expected<void, Error> install(const Catalog& catalog, std::string_view base, std::span<const std::string> groups,
-                                   const fs::path& dir, Platform& platform, const OnProgress& progress,
+                                   const fs::path& dir, const fs::path& store, Platform& platform, const OnProgress& progress,
                                    const std::atomic<bool>* cancel, std::span<const std::string> held) {
   const auto is_held = [&](std::string_view path) {
     return std::ranges::any_of(held, [&](const std::string& h) { return h == path || (h.ends_with('/') && path.starts_with(h)); });
   };
-  auto needed = missing(catalog, groups, dir);
+  auto needed = missing(catalog, groups, dir, store);
   std::erase_if(needed, [&](const File* file) { return is_held(file->path); });
-  Progress state{.files = needed.size()};
-  for (const File* file : needed) state.bytes += file->size;
+  // Each content once, however many paths have it.
+  std::vector<const File*> blobs;
+  {
+    std::unordered_set<std::string_view> seen;
+    for (const File* file : needed) {
+      if (seen.insert(file->sha256).second) blobs.push_back(file);
+    }
+  }
+  Progress state{.files = blobs.size()};
+  for (const File* file : blobs) state.bytes += file->size;
 
   std::mutex mutex;  // guards state, failure and stop, and keeps progress calls in turn
   std::optional<Error> failure;
   bool stop = false;
-  std::atomic<bool> base_down{base.empty()};
-  std::vector<char> arrived(needed.size(), 0);
+  std::atomic<bool> base_down{base.empty()}, mirror_down{false};
+  std::vector<char> arrived(blobs.size(), 0);
   const auto add_done = [&](std::uint64_t bytes, bool file_done) {
     const std::lock_guard lock(mutex);
     state.bytes_done += bytes;
@@ -285,10 +356,10 @@ std::expected<void, Error> install(const Catalog& catalog, std::string_view base
     return stop;
   };
   const auto install_one = [&](std::size_t index) {
-    const File& file = *needed[index];
-    const fs::path path = dir / file.path;
-    // It may have arrived in a run that failed later, or by an older version.
-    if (has_size(path, file.size) && platform.sha256(read_file(path, file.size)) == file.sha256) {
+    const File& file = *blobs[index];
+    const fs::path path = store / file.sha256;
+    // Another Repository's, or one of a run that failed later. Only what was checked gets its name.
+    if (has_size(path, file.size)) {
       add_done(file.size, true);
       arrived[index] = 1;
       return;
@@ -306,8 +377,13 @@ std::expected<void, Error> install(const Catalog& catalog, std::string_view base
     };
     std::expected<std::vector<std::uint8_t>, Error> bytes = std::unexpected(Error::Network);
     if (!base_down) {
-      bytes = get(std::string(base) + file.path);
+      bytes = get(std::string(base) + file.sha256);
       if (!bytes && bytes.error() == Error::Network) base_down = true;
+    }
+    if (!bytes && !mirror_down && !catalog.mirror.empty()) {
+      const auto other = get(catalog.mirror + file.sha256);
+      if (!other && other.error() == Error::Network) mirror_down = true;
+      if (other || bytes.error() == Error::Network) bytes = other;
     }
     if (const SourceUrl* source = catalog.source(file.source); !bytes && source != nullptr) {
       const auto other = get(source->url + file.remote);
@@ -315,7 +391,7 @@ std::expected<void, Error> install(const Catalog& catalog, std::string_view base
       if (other || bytes.error() == Error::Network) bytes = other;
     }
     if (!bytes) return fail(bytes.error());
-    if (!replace_file(path, as_text(*bytes), &platform)) return fail(Error::Disk);
+    if (!replace_file(path, as_text(*bytes), std::string(part_suffix) + std::to_string(index), &platform)) return fail(Error::Disk);
     add_done(file.size - reported, true);
     arrived[index] = 1;
   };
@@ -324,17 +400,17 @@ std::expected<void, Error> install(const Catalog& catalog, std::string_view base
   const auto work = [&] {
     while (!stopped()) {
       const std::size_t index = next.fetch_add(1);
-      if (index >= needed.size()) return;
+      if (index >= blobs.size()) return;
       install_one(index);
     }
   };
   {
     std::vector<std::jthread> workers;
-    for (std::size_t i = 0; i < std::min(max_workers, needed.size()); ++i) workers.emplace_back(work);
+    for (std::size_t i = 0; i < std::min(max_workers, blobs.size()); ++i) workers.emplace_back(work);
   }
   std::unordered_set<std::string_view> absent;
-  for (std::size_t i = 0; i < needed.size(); ++i) {
-    if (!arrived[i]) absent.insert(needed[i]->path);
+  for (std::size_t i = 0; i < blobs.size(); ++i) {
+    if (!arrived[i]) absent.insert(blobs[i]->sha256);
   }
   auto stale = read_installed(dir);
   std::unordered_set<std::string_view> needed_paths;
@@ -345,7 +421,7 @@ std::expected<void, Error> install(const Catalog& catalog, std::string_view base
     // this time, it may be older than the catalog, and is then missing until it is fetched.
     const auto it = stale.find(file.path);
     if (needed_paths.contains(file.path)) {
-      if (!absent.contains(file.path)) list << file.sha256 << ' ' << file.path << '\n';
+      if (!absent.contains(file.sha256)) list << file.sha256 << ' ' << file.path << '\n';
     } else if (it != stale.end()) {
       list << it->second << ' ' << file.path << '\n';
     }
@@ -360,13 +436,8 @@ std::expected<void, Error> install(const Catalog& catalog, std::string_view base
     list << it->second << ' ' << it->first << '\n';
     it = stale.erase(it);
   }
+  // What is no longer listed leaves the store at the next start.
   if (!replace_file(dir / installed_name, list.str())) return std::unexpected(Error::Disk);
-  for (const auto& [old_path, hash] : stale) {
-    // The list is ours, but a path that leaves the folder is never followed.
-    if (old_path.find("..") != std::string::npos || old_path.find_first_of(":\\") != std::string::npos || old_path.starts_with('/')) continue;
-    std::error_code ec;
-    fs::remove(dir / old_path, ec);  // what could not be removed only takes up space
-  }
   if (failure) return std::unexpected(*failure);
   return {};
 }
@@ -404,7 +475,6 @@ std::expected<void, Error> uninstall(const Catalog& catalog, std::span<const std
   }
   const auto installed = read_installed(dir);
   std::ostringstream list;
-  std::vector<std::string> removed;
   // In the catalog's order, as install writes it, then the rest.
   for (const File& file : catalog.files) {
     if (const auto it = installed.find(file.path); it != installed.end() && !going.contains(file.path) &&
@@ -414,20 +484,9 @@ std::expected<void, Error> uninstall(const Catalog& catalog, std::span<const std
   }
   for (const auto& [path, hash] : installed) {
     const bool gone = going.contains(path) || std::ranges::any_of(folders, [&](const std::string& f) { return path.starts_with(f); });
-    if (gone) removed.push_back(path);
-    else if (!std::ranges::any_of(catalog.files, [&](const File& file) { return file.path == path; })) list << hash << ' ' << path << '\n';
+    if (!gone && !std::ranges::any_of(catalog.files, [&](const File& file) { return file.path == path; })) list << hash << ' ' << path << '\n';
   }
-  // Listed last, as a file that goes is no longer installed even if removing it fails.
   if (!replace_file(dir / installed_name, list.str())) return std::unexpected(Error::Disk);
-  for (const std::string& path : removed) {
-    if (path.find("..") != std::string::npos || path.find_first_of(":\\") != std::string::npos || path.starts_with('/')) continue;
-    std::error_code ec;
-    fs::remove(dir / path, ec);
-    // And the folders it leaves empty, up to the assets folder.
-    for (fs::path folder = (dir / path).parent_path(); folder != dir && folder.native().size() > dir.native().size(); folder = folder.parent_path()) {
-      if (!fs::is_empty(folder, ec) || ec || !fs::remove(folder, ec)) break;
-    }
-  }
   return {};
 }
 

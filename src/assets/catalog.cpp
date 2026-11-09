@@ -174,7 +174,8 @@ std::expected<Catalog, CatalogError> parse_catalog(std::string_view text) {
     if (line.find('\r') != std::string_view::npos) return fail("a carriage return");
     const auto f = fields_of(line);
     if (number_of_line == 1) {
-      if (line != "crpp-catalog 1") return fail("not a catalog of format 1");
+      if (line == "crpp-catalog 1") catalog.grammar = 1;
+      else if (line != "crpp-catalog 2") return fail("not a catalog of format 1 or 2");
       continue;
     }
     if (number_of_line == 2) {
@@ -188,6 +189,10 @@ std::expected<Catalog, CatalogError> parse_catalog(std::string_view text) {
       catalog.signature = parse_signature(f[1]);
       if (!catalog.signature) return fail("a signature is 128 lowercase hex digits");
       catalog.signed_bytes = line_start;
+    } else if (f[0] == "mirror" && catalog.grammar >= 2) {
+      if (f.size() != 2 || !is_url(f[1])) return fail("a mirror is an address ending with '/'");
+      if (!catalog.mirror.empty()) return fail("a second mirror");
+      catalog.mirror = f[1];
     } else if (f[0] == "source") {
       if (f.size() != 3 || !is_id(f[1]) || !is_url(f[2])) return fail("a source is a name and an address ending with '/'");
       if (catalog.source(f[1])) return fail("a second source of that name");
@@ -315,7 +320,8 @@ std::expected<Catalog, CatalogError> parse_catalog(std::string_view text) {
 }
 
 std::string write_catalog(const Catalog& catalog) {
-  std::string text = "crpp-catalog 1\nkey " + to_hex(catalog.key) + "\n";
+  std::string text = "crpp-catalog " + std::to_string(catalog_grammar) + "\nkey " + to_hex(catalog.key) + "\n";
+  if (!catalog.mirror.empty()) text += "mirror " + catalog.mirror + "\n";
   for (const SourceUrl& source : catalog.sources) text += "source " + source.name + " " + source.url + "\n";
   for (const SkinPack& skin : catalog.skins) {
     text += "skin " + skin.id + " " + std::to_string(skin.format) + (skin.parent.empty() ? "" : " " + skin.parent) + "\n";

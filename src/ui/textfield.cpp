@@ -151,7 +151,7 @@ std::size_t TextField::position_at(const Gfx& gfx, const TextStyle& style, float
   if (!layout) return caret_;
   BOOL trailing = FALSE, inside = FALSE;
   DWRITE_HIT_TEST_METRICS m{};
-  layout->HitTestPoint(x, wrap_width > 0 ? y : 0, &trailing, &inside, &m);
+  layout->HitTestPoint(x, wrap_width > 0 ? y + scroll_y_ : 0, &trailing, &inside, &m);
   std::size_t pos = m.textPosition + (trailing ? m.length : 0);
   // Clicks map to the committed text; clamp out of the composition string.
   if (pos > caret_ + composition_.size()) pos -= composition_.size();
@@ -235,6 +235,23 @@ Rect TextField::paint(Painter& p, Rect box, const TextStyle& style, Color text, 
   const auto layout = p.gfx().layout(display, style, style.wrap ? box.w : 10000, style.wrap ? 10000 : box.h);
   if (!layout) return caret_rect;
 
+  // Text taller than its box moves up to keep the caret's line in view, and is cut at the box.
+  float caret_x = 0, caret_top = 0;
+  DWRITE_HIT_TEST_METRICS m{};
+  layout->HitTestTextPosition(static_cast<UINT32>(caret_) + static_cast<UINT32>(composition_.size()), FALSE, &caret_x, &caret_top, &m);
+  DWRITE_TEXT_METRICS metrics{};
+  const float content_h = style.wrap && SUCCEEDED(layout->GetMetrics(&metrics)) ? metrics.height : 0;
+  const bool scrolls = content_h > box.h + 0.5f;
+  if (!scrolls) {
+    scroll_y_ = 0;
+  } else {
+    scroll_y_ = std::clamp(scroll_y_, caret_top + m.height - box.h, caret_top);
+    scroll_y_ = std::clamp(scroll_y_, 0.0f, content_h - box.h);
+    p.rt()->PushAxisAlignedClip(D2D1::RectF(box.x, box.y, box.x + box.w, box.y + box.h), D2D1_ANTIALIAS_MODE_ALIASED);
+  }
+  const Rect clip_box = box;
+  box.y -= scroll_y_;
+
   const UINT32 comp_len = static_cast<UINT32>(composition_.size());
   const auto range_runs = [&](std::size_t start, std::size_t length) {
     std::vector<DWRITE_HIT_TEST_METRICS> runs;
@@ -262,12 +279,12 @@ Rect TextField::paint(Painter& p, Rect box, const TextStyle& style, Color text, 
       p.stroke_line(box.x + r.left, y, box.x + r.left + r.width, y, text, 1.5f);
     }
   }
-  float x = 0, y = 0;
-  DWRITE_HIT_TEST_METRICS m{};
-  layout->HitTestTextPosition(static_cast<UINT32>(caret_) + comp_len, FALSE, &x, &y, &m);
-  caret_rect.x = box.x + x;
-  caret_rect.y = box.y + y + (m.height - caret_h) / 2;
+  caret_rect.x = box.x + caret_x;
+  caret_rect.y = box.y + caret_top + (m.height - caret_h) / 2;
   if (focused && caret_on && !has_selection()) p.fill_rect(caret_rect, caret_color);
+  if (scrolls) p.rt()->PopAxisAlignedClip();
+  // The IME's window goes by this, so it stays inside the box.
+  caret_rect.y = std::clamp(caret_rect.y, clip_box.y, std::max(clip_box.y, clip_box.bottom() - caret_h));
   return caret_rect;
 }
 

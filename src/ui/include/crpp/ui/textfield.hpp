@@ -86,6 +86,8 @@ class TextField {
   std::wstring composition_;
   std::size_t caret_ = 0;
   std::size_t anchor_ = 0;
+  // How far wrapped text taller than its box has moved up, to keep the caret in view. Drawing sets it.
+  mutable float scroll_y_ = 0;
   // What the last press took, which a drag keeps whole.
   int clicks_ = 1;
   std::size_t origin_lo_ = 0, origin_hi_ = 0;

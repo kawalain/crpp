@@ -223,11 +223,7 @@ int main(int argc, char** argv) {
     (void)shell.app.find_skins(area::repositories::skin_folders(shell));
   }
   if (shell.catalog) shell.app.ui().emoji_ids = assets::picker_emoji(*shell.catalog);
-  std::time_t now = std::time(nullptr);
-  std::tm local{};
-  localtime_s(&local, &now);
-  shell.app.home().set_hour(local.tm_hour);
-  shell.app.home().set_date(local.tm_mon + 1, local.tm_mday);
+  area::home::read_clock(shell);
 
   if (argc >= 3 && std::string(argv[1]) == "--shot") {
     locale::set_current(*shot_locale);

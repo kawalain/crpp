@@ -36,6 +36,9 @@ void count_public_rooms(Shell& s);
 
 namespace home {  // create, join, find a public Room, return to a Seat
 void wire(Shell& s);
+// The greeting, special days and season follow the local clock: read it again when Home shows or
+// the app is come back to, as a run in the tray can last for days.
+void read_clock(Shell& s);
 [[nodiscard]] bool scene(Shell& s, std::string_view name);
 }  // namespace home
 

@@ -27,11 +27,27 @@ void enter_room(Shell& s, const ui::home::Entry& entry) {
 
 }  // namespace
 
+void read_clock(Shell& s) {
+  static int last = -1;
+  const std::time_t now = std::time(nullptr);
+  std::tm local{};
+  if (localtime_s(&local, &now) != 0) return;
+  const int key = (local.tm_hour * 100 + local.tm_mon + 1) * 100 + local.tm_mday;
+  if (key == last) return;
+  last = key;
+  s.app.home().set_hour(local.tm_hour);
+  s.app.home().set_date(local.tm_mon + 1, local.tm_mday);
+  if (s.hwnd && s.app.base_view() == View::Home) InvalidateRect(s.hwnd, nullptr, FALSE);
+}
+
 void wire(Shell& s) {
   Shell* sp = &s;
   HomeScreen& home = s.app.home();
   home.busy = [sp] { return !sp->bridge->idle(); };
-  home.on_shown = [sp] { area::connection::count_public_rooms(*sp); };
+  home.on_shown = [sp] {
+    read_clock(*sp);
+    area::connection::count_public_rooms(*sp);
+  };
   home.on_create = [sp] {
     const Prefs& prefs = *sp->app.ui().prefs;
     sp->bridge->entering();

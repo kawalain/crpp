@@ -391,6 +391,7 @@ void activation(Shell& s, WPARAM wp, LPARAM lp) {
   // Going from one of the app's windows to another of them is still being here.
   const bool to_ours = inactive && lp != 0 && ours(reinterpret_cast<HWND>(lp));
   s.app.room().chat().set_away(minimized || (inactive && !to_ours));
+  if (!inactive) area::home::read_clock(s);
 }
 
 bool on_message(Shell& s, UINT msg, WPARAM wp, LPARAM lp, LRESULT& result) {

@@ -19,7 +19,8 @@ Kind kind_of(wchar_t c) {
   if (std::iswspace(c) || c == 0x3000) return Kind::Space;
   if (c < 0x80) return std::iswalnum(c) || c == L'_' ? Kind::Word : Kind::Mark;
   // Punctuation outside ASCII: general, CJK and full-width. Letters of any script, Hangul
-  // among them, and emoji are words.
+  // among them, and emoji are words, as are the joiners that make several emoji one.
+  if (c == 0x200C || c == 0x200D) return Kind::Word;
   if ((c >= 0x2000 && c <= 0x206F) || (c >= 0x3001 && c <= 0x303F) || (c >= 0xFF01 && c <= 0xFF0F) ||
       (c >= 0xFF1A && c <= 0xFF20) || (c >= 0xFF3B && c <= 0xFF40) || (c >= 0xFF5B && c <= 0xFF65)) {
     return Kind::Mark;

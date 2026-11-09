@@ -55,6 +55,17 @@ void a_word_never_splits_a_surrogate_pair() {
   CHECK(field.key_down(VK_LEFT, true, false) && field.caret() == 2);
 }
 
+void a_joined_emoji_is_one_word() {
+  // A family: three people joined by U+200D, eight UTF-16 units in all.
+  const std::wstring family = L"\U0001F468‍\U0001F469‍\U0001F467";
+  TextField field = with(L"hi " + family, 0);
+  CHECK(field.key_down(VK_END, false, false) && field.caret() == 11);
+  CHECK(field.key_down(VK_BACK, true, false) && field.text() == L"hi ");
+  field.set_text(L"hi " + family);
+  field.press(5, 2, false);
+  CHECK(field.selected_text() == family);
+}
+
 void a_double_click_selects_a_word_and_a_triple_its_paragraph() {
   TextField field;
   field.multiline = true;
@@ -145,6 +156,7 @@ int main() {
   korean_is_a_word_like_any_other();
   ctrl_backspace_and_delete_take_a_word();
   a_word_never_splits_a_surrogate_pair();
+  a_joined_emoji_is_one_word();
   a_double_click_selects_a_word_and_a_triple_its_paragraph();
   a_drag_after_a_double_click_goes_by_words();
   a_single_line_field_pastes_lines_as_spaces();

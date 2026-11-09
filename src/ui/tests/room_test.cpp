@@ -280,6 +280,25 @@ void mini_window_opens_mutes_and_closes(const char* pack, float radius) {
   CHECK(!mini.is_open());
 }
 
+// A Room can end under a prompt, as when a refused token asks to sign in: it is left all the same.
+void test_a_room_ended_under_a_prompt_is_left() {
+  UiHarness h;
+  CHECK(h.start());
+  enter(h, 3);
+  int left = 0;
+  h.app.on_left_room = [&left] { ++left; };
+  h.app.toggle_mini();
+  CHECK(h.app.mini().is_open());
+  h.app.show_prompt({});
+  h.app.show_home();
+  CHECK(!h.app.mini().is_open());
+  CHECK(left == 1);
+  h.app.close_prompt();
+  CHECK(h.app.base_view() == View::Home);
+  h.app.show_home();  // already left: not again
+  CHECK(left == 1);
+}
+
 void test_mini_window_opens_mutes_and_closes() {
   mini_window_opens_mutes_and_closes(CRPP_TEST_SKINS "/cloud", 16);
   mini_window_opens_mutes_and_closes(CRPP_TEST_SKINS "/retro", 0);
@@ -1565,6 +1584,7 @@ int main() {
   test_picker_thumb_scrolls_and_fades_on_a_wake_up();
   test_leave_asks_first();
   test_mini_window_opens_mutes_and_closes();
+  test_a_room_ended_under_a_prompt_is_left();
   test_a_disc_is_lit_while_its_member_sounds_unless_muted();
   test_leaving_host_is_told_about_delegation();
   test_chat_notice_shows_once_then_the_pin_tip_once();

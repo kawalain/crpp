@@ -279,6 +279,8 @@ void App::show_setup(const SetupScreen::Status& status) {
 
 void App::show_home() {
   const View from = view_;
+  // A Room can end under a prompt, as when a refused token asks to sign in; it is left all the same.
+  const bool left_room = from == View::Session || (from == View::Prompt && prompt_return_ == View::Session);
   if (view_ == View::Prompt) {
     prompt_return_ = View::Home;
   } else {
@@ -287,7 +289,7 @@ void App::show_home() {
     if (from != View::Home && home_.on_shown) home_.on_shown();
     if (home_.special_today()) ui_.achieve(AchievementId::SpecialDay);
   }
-  if (from == View::Session) {
+  if (left_room) {
     mini_.close();  // it belongs to the Room
     achievements_.leave_room(clock_ms(), local_day());
     if (on_left_room) on_left_room();

@@ -371,7 +371,16 @@ void sync_panes(Shell& s) {
       const SIZE size = wanted_size(s, info, w.dpi);
       w.fitted_w = info.w;
       w.fitted_h = info.h;
-      SetWindowPos(w.hwnd, nullptr, 0, 0, size.cx, size.cy, SWP_NOMOVE | SWP_NOZORDER | SWP_NOACTIVATE);
+      RECT was{};
+      MONITORINFO screen{sizeof screen};
+      if (info.floating && GetWindowRect(w.hwnd, &was) &&
+          GetMonitorInfoW(MonitorFromWindow(w.hwnd, MONITOR_DEFAULTTONEAREST), &screen)) {
+        // It sits by the screen's right edge from the start, so it grows to the left, and stays on screen.
+        const LONG x = std::max(screen.rcWork.left, std::min(was.right, screen.rcWork.right) - size.cx);
+        SetWindowPos(w.hwnd, nullptr, x, was.top, size.cx, size.cy, SWP_NOZORDER | SWP_NOACTIVATE);
+      } else {
+        SetWindowPos(w.hwnd, nullptr, 0, 0, size.cx, size.cy, SWP_NOMOVE | SWP_NOZORDER | SWP_NOACTIVATE);
+      }
     }
     if (w.hwnd) InvalidateRect(w.hwnd, nullptr, FALSE);
   }

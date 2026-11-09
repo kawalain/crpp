@@ -17,8 +17,11 @@ constexpr std::size_t max_file_bytes = 64 * 1024 * 1024;
 
 // In upstream's cache file rather than settings.json. Secret in both stores.
 constexpr std::array<std::string_view, 5> session_keys = {"resumeCode", "resumeKey", "roomTicket", "leftAt", "seatReturns"};
-// In settings.json upstream, but encrypted in the Protected store.
-constexpr std::array<std::string_view, 2> account_secret_keys = {"token", "gid"};
+// In settings.json upstream, but encrypted in the Protected store. serverAccounts is this client's
+// own: the accounts of the servers not in use, tokens and Guest IDs among them.
+constexpr std::array<std::string_view, 3> account_secret_keys = {"token", "gid", "serverAccounts"};
+// Who the user is on one server. Each server knows its own accounts, so these change with it.
+constexpr std::array<std::string_view, 6> account_keys = {"username", "token", "nickname", "handle", "isGuest", "gid"};
 
 bool is_session_key(std::string_view key) { return std::ranges::find(session_keys, key) != session_keys.end(); }
 bool is_account_secret(std::string_view key) { return std::ranges::find(account_secret_keys, key) != account_secret_keys.end(); }
@@ -259,6 +262,32 @@ void Store::clear_resume() {
   for (const auto key : {"resumeCode", "resumeKey", "roomTicket", "leftAt"}) {
     if (const Json* v = values_.find(key); v && !v->is_null()) set(key, Json{});
   }
+}
+
+std::string Store::server() const { return normalize_server(string_or("serverUrl", default_server_url)); }
+
+void Store::switch_server(std::string_view url) {
+  const std::string from = server();
+  const std::string to = normalize_server(url.empty() ? default_server_url : url);
+  // The default is not written down, so that it follows this client's.
+  set("serverUrl", url.empty() || to == normalize_server(default_server_url) ? Json{} : Json(std::string(url)));
+  if (from == to) return;
+  Json kept = Json::object();
+  if (const Json* saved = values_.find("serverAccounts"); saved && saved->is_object()) kept = *saved;
+  Json mine = Json::object();
+  for (const std::string_view key : account_keys) {
+    if (const Json* value = values_.find(key); value && !value->is_null()) mine.set(key, *value);
+  }
+  if (mine.as_object()->empty()) kept.erase(from);
+  else kept.set(from, std::move(mine));
+  const std::optional<Json> theirs = kept.take(to);
+  for (const std::string_view key : account_keys) {
+    const Json* value = theirs ? theirs->find(key) : nullptr;
+    set(key, value ? *value : Json{});
+  }
+  set("serverAccounts", kept.as_object()->empty() ? Json{} : std::move(kept));
+  // A Room code names a Room of the server it came from.
+  clear_resume();
 }
 
 std::string Store::seat_owner() const {

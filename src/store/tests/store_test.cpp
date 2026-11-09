@@ -424,6 +424,47 @@ void seats_belong_to_a_server_and_owner() {
   CHECK(!store.find_seat("ABC234", t0));
 }
 
+// Each server has its own accounts: switching keeps the one in use aside, secret, and brings back
+// the one kept for the other server.
+void each_server_keeps_its_own_account() {
+  TempDirs dirs;
+  FakePlatform platform;
+  auto store = Store::open(dirs.locations(), platform, t0);
+  store.set("token", Json("SECRET-main"));
+  store.set("gid", Json("SECRET-gid"));
+  store.set("nickname", Json("me"));
+  store.set("isGuest", Json(false));
+  store.set("volume", Json(30));
+  store.set_resume({"ABC234", "SECRET-key", "", std::nullopt});
+  store.switch_server("https://other.example/");
+  CHECK(store.server() == "https://other.example");
+  CHECK(store.string_or("token", "").empty());
+  CHECK(store.string_or("nickname", "").empty());
+  CHECK(store.string_or("gid", "").empty());
+  CHECK(store.i64_or("volume", 0) == 30);  // settings are not the account's
+  CHECK(!store.resume());
+  store.set("nickname", Json("there"));
+  CHECK(store.save().has_value());
+  for (const auto& entry : fs::recursive_directory_iterator(dirs.mine())) {
+    CHECK(read(entry.path()).find("SECRET") == std::string::npos);
+  }
+
+  auto again = Store::open(dirs.locations(), platform, t0);
+  CHECK(again.server() == "https://other.example");
+  again.switch_server("");
+  CHECK(again.find("serverUrl") == nullptr || again.find("serverUrl")->is_null());
+  CHECK(again.string_or("token", "") == "SECRET-main");
+  CHECK(again.string_or("gid", "") == "SECRET-gid");
+  CHECK(again.string_or("nickname", "") == "me");
+  CHECK(!again.bool_or("isGuest", true));
+  again.switch_server("https://OTHER.example");
+  CHECK(again.string_or("nickname", "") == "there");
+  CHECK(again.string_or("token", "").empty());
+  // The same server again changes nothing.
+  again.switch_server("https://other.example/");
+  CHECK(again.string_or("nickname", "") == "there");
+}
+
 void bad_seat_entries_are_ignored() {
   TempDirs dirs;
   FakePlatform platform;
@@ -548,6 +589,7 @@ int main() {
   seats_expire_by_how_they_were_left();
   a_newer_seat_replaces_the_old_one();
   seats_belong_to_a_server_and_owner();
+  each_server_keeps_its_own_account();
   bad_seat_entries_are_ignored();
   resume_ignores_a_ticket_for_another_room();
   chat_is_bounded();

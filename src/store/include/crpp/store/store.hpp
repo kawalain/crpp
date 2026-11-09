@@ -99,6 +99,13 @@ class Store {
   // keep to the types upstream uses for that key.
   void set(std::string_view key, Json value);
 
+  // --- the server ---
+  // The server in use, normalized.
+  [[nodiscard]] std::string server() const;
+  // Uses another server, empty for the default: the account of the one in use is kept aside, and
+  // the account kept for that one, if any, comes back. The Room to return to is forgotten.
+  void switch_server(std::string_view url);
+
   // --- returning to a Seat ---
   [[nodiscard]] std::optional<Resume> resume() const;
   void set_resume(const Resume& resume);

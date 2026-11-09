@@ -31,6 +31,7 @@ const Strings korean{
     .times_many = "{0}회",
 
     .chat_calm = "진정하세요",
+    .chat_calm_firm = "정말 진정하세요",
     .chat_send_failed = "메시지를 보내지 못했어요.",
     .chat_link_tip = "링크 열기",
     .chat_new_here = "여기부터 새 메시지",

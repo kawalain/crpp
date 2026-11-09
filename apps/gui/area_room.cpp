@@ -157,6 +157,15 @@ bool scene(Shell& s, std::string_view name) {
     chat.input().select_all();
     return true;
   }
+  if (name == "room-calm-firm") {  // the third block in a row
+    demo_session(s.app, true);
+    ChatPanel& chat = s.app.room().chat();
+    for (int i = 0; i < 3; ++i) {
+      chat.blocked(5000);
+      if (i < 2) (void)chat.tick(clock_ms() + 10000);  // as if it had run out, without the wait
+    }
+    return true;
+  }
   if (name == "room-mention") {  // someone names this member
     demo_session(s.app, true);
     ChatPanel& chat = s.app.room().chat();

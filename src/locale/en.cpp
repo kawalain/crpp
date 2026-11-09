@@ -31,6 +31,7 @@ const Strings english{
     .times_many = "{0} times",
 
     .chat_calm = "Calm down",
+    .chat_calm_firm = "Seriously, calm down",
     .chat_send_failed = "Couldn't send the message.",
     .chat_link_tip = "Open link",
     .chat_new_here = "New messages",

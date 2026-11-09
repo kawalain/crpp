@@ -183,7 +183,7 @@ against a real `server/` yet; do that once a local build of it is available.
   Other words for the same things: 구름 is "Room", 사용자명 is "handle".
 - The wording is gentler than upstream's: Korean speaks in ~해요 and ~할게요, with plainer names (외관 for
   디스플레이, 대화 for 채팅, 나가기 for 떠나기), and English says "we" and "please". "진정하세요" stays as it is,
-  as the app's own catchphrase.
+  as the app's own catchphrase. The third block in a row, each within a minute of the last, says "정말 진정하세요".
 - The time section (24시간제, 자리비움으로 바뀌는 시간) and the language section are on the display tab, after the
   chat size, where upstream has time on the system tab. They are about what the screen shows.
 - The changelog comes from GitHub release notes, so an empty one says it could not be

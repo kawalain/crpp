@@ -33,8 +33,13 @@ class ChatLimiter {
 
   [[nodiscard]] bool cooling() const { return cooling_; }
   [[nodiscard]] bool calm() const { return calm_; }
-  // "진정하세요 ! ! !", one more mark for every further attempt, up to 20.
+  // "진정하세요 ! ! !", one more mark for every further attempt, up to 20. From the third block in
+  // a row it says so more firmly.
   [[nodiscard]] std::string calm_text() const;
+  // Blocks that came one after another, each within a minute of the last one's end.
+  [[nodiscard]] int blocks_in_a_row() const { return streak_; }
+  static constexpr int firm_from = 3;
+  static constexpr Ms in_a_row_ms = 60000;
   // When expire is next needed; 0 = never.
   [[nodiscard]] Ms wake_at() const;
 
@@ -46,6 +51,8 @@ class ChatLimiter {
   Ms blocked_until_ = 0, calm_until_ = 0;
   bool cooling_ = false, calm_ = false;
   int local_blocks_ = 0;  // blocked here, and sent anyway; their answers are expected
+  int streak_ = 0;
+  Ms last_calm_end_ = 0;
   int marks_ = 3;
 };
 

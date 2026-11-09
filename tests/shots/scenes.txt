@@ -42,6 +42,7 @@ room-field-menu
 room-chat-left
 room-new-line
 room-mention
+room-calm-firm
 settings-sound
 settings-sound-dark
 settings-sound-effects

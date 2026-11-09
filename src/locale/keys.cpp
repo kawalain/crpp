@@ -41,6 +41,7 @@ constexpr Key keys[] = {
     KEY(times_one),
     KEY(times_many),
     KEY(chat_calm),
+    KEY(chat_calm_firm),
     KEY(chat_send_failed),
     KEY(chat_link_tip),
     KEY(chat_new_here),

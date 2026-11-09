@@ -48,6 +48,7 @@ bool ChatLimiter::server_blocked(Ms now, Ms ms) {
 }
 
 void ChatLimiter::note_blocked(Ms now, Ms ms, bool count_attempt) {
+  if (!calm_) streak_ = last_calm_end_ != 0 && now <= last_calm_end_ + in_a_row_ms ? streak_ + 1 : 1;
   if (now >= blocked_until_) marks_ = min_marks;
   else if (count_attempt) marks_ = std::min(max_marks, marks_ + 1);
   blocked_until_ = now + ms - std::min(ms, block_margin_ms);
@@ -63,6 +64,7 @@ bool ChatLimiter::expire(Ms now) {
     changed = true;
   }
   if (calm_ && now >= calm_until_) {
+    last_calm_end_ = calm_until_;
     calm_ = false;
     local_blocks_ = 0;
     marks_ = min_marks;
@@ -72,7 +74,7 @@ bool ChatLimiter::expire(Ms now) {
 }
 
 std::string ChatLimiter::calm_text() const {
-  std::string text = locale::tr().chat_calm;
+  std::string text = streak_ >= firm_from ? locale::tr().chat_calm_firm : locale::tr().chat_calm;
   for (int i = 0; i < marks_; ++i) text += " !";
   return text;
 }

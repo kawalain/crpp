@@ -46,6 +46,7 @@ struct Strings {
 
   // Chat.
   const char* chat_calm;
+  const char* chat_calm_firm;  // the third time in a row
   const char* chat_send_failed;
   const char* chat_link_tip;
   const char* chat_new_here;  // the line above what came while the window was away

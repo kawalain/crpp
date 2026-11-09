@@ -1122,6 +1122,28 @@ void test_limiter_tells_foreseen_from_unforeseen_blocks() {
   CHECK(l.calm_text() == "진정하세요 ! ! ! !");  // counted once, not twice
 }
 
+// The third block in a row, each within a minute of the last one's end, says it more firmly.
+void test_limiter_is_firmer_the_third_time_in_a_row() {
+  ChatLimiter l;
+  const auto block_at = [&](ChatLimiter::Ms at) {
+    (void)l.server_blocked(at, 5000);
+    while (l.wake_at() != 0) (void)l.expire(l.wake_at());
+  };
+  CHECK(l.server_blocked(1000, 5000));
+  CHECK(l.calm_text() == "진정하세요 ! ! !");
+  while (l.wake_at() != 0) (void)l.expire(l.wake_at());
+  block_at(20000);
+  CHECK(l.blocks_in_a_row() == 2);
+  CHECK(l.server_blocked(40000, 5000));
+  CHECK(l.blocks_in_a_row() == 3);
+  CHECK(l.calm_text() == "정말 진정하세요 ! ! !");
+  while (l.wake_at() != 0) (void)l.expire(l.wake_at());
+  // Over a minute later it starts again.
+  CHECK(l.server_blocked(200000, 5000));
+  CHECK(l.blocks_in_a_row() == 1);
+  CHECK(l.calm_text() == "진정하세요 ! ! !");
+}
+
 void send_text(UiHarness& h, ChatPanel& chat, const wchar_t* text) {
   chat.input().set_text(text);
   CHECK(h.click(chat, ChatPanel::Send));
@@ -1388,6 +1410,7 @@ void test_clearing_the_chat_starts_over() {
 }  // namespace
 
 int main() {
+  test_limiter_is_firmer_the_third_time_in_a_row();
   test_a_message_names_someone_anywhere_in_it();
   test_arrows_bring_back_what_was_sent();
   test_a_line_marks_what_came_while_away();

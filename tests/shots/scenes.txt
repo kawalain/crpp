@@ -16,6 +16,9 @@ home-public
 home-public-none
 home-christmas
 home-birthday
+home-winter
+home-spring
+home-autumn
 home-hover-droplet
 home-returning
 home-return

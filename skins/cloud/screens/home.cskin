@@ -1,3 +1,28 @@
+// The season's fall, behind the clouds: it comes down for 3 s when Home appears, then holds still. Snow in winter,
+// petals in spring, leaves in autumn.
+if @season>0 {
+  let fall = ease(1, 3000ms) curve linear
+  repeat 32 {
+    let f = @i*0.618034+0.137
+    let g = @i*0.377+0.21
+    let r = @i*0.719+0.05
+    let fx = f-floor(f)
+    let fy = g-floor(g)
+    let fr = r-floor(r)
+    let delay = fr*0.45
+    let p = max(0, min(1, (fall-delay)/(1-delay)))
+    let landed = 1-(1-p)*(1-p)
+    let side = (@i-floor(@i/2)*2)*2-1
+    let size = 0.85+fr*0.75
+    (10+fx*930+side*18*(1-landed), 14+fy*640-(140+fr*160)*(1-landed)) opacity min(1, p*5) {
+      fill alpha(white, 0.9) (0, 0, 7*size, 7*size) ellipse if @season==1
+      path "M5 0C8.5 3 8.5 7.5 5 11C1.5 7.5 1.5 3 5 0Z" color petal scale size if @season==2 && side>0
+      path "M0 6C3 2.5 7.5 2.5 11 6C7.5 9.5 3 9.5 0 6Z" color petal scale size if @season==2 && side<0
+      path "M1 11C1 5 5 1 11 1C11 7 7 11 1 11Z" color @i-floor(@i/3)*3==0 ? leaf_dark : leaf scale size*1.1
+          if @season==3
+    }
+  }
+}
 // Sky: the large cloud at lower right, then the create cloud at upper left, whose shape takes the click.
 use cloud(scale = 1.3906, shadow = 0.09, sigma = 6) (306.33, 295.56)
 hit create hit_path_at (-66.0667, 100.9)

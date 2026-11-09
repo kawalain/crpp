@@ -58,6 +58,7 @@ const Motion* motion_named(std::string_view name) {
         [](Shell& s) {
           s.app.room().set_room({{0, "크롬이", "", false}, {1, "구름이", "", false}, {2, "비구름", "", false}}, 0, 0, false, true);
         }}},
+      {"motion-snow", {[](Shell&) {}, [](Shell& s) { s.app.home().set_date(1, 15); }}},
       {"motion-splash", {[](Shell&) {}, [](Shell& s) { s.app.settings().splash(); }}},
       {"motion-scroll", {[](Shell& s) { s.app.settings().open(SettingsPage::Sound); }, [](Shell& s) { s.app.wheel(600, 400, -1); }}},
       {"motion-stretch", {[](Shell& s) { s.app.settings().open(SettingsPage::Sound); }, [](Shell& s) { s.app.wheel(600, 400, 5); }}},

@@ -174,6 +174,9 @@ against a real `server/` yet; do that once a local build of it is available.
 - A Room whose code holds a word shows it: ZZZ puts a doze over every avatar, CAKE a cake (in Cloud at the bottom of
   the window, in Retro at the toolbar's end) and STAR stars (in Cloud's sky, in Retro by the cake). Codes are random,
   so these are rare.
+- Cloud's Home has the season's fall behind its clouds, by the local month: snow from December to February, petals
+  from March to May, leaves from September to November, nothing in summer. It comes down for 3 s each time Home
+  appears and then holds still, and is still at once without animations. Retro has none.
 - The tray menu has mute and leaving the Room while in one, and the options, besides quitting.
 - The system tab's advanced section has "뒤에 있을 때 메모리 비우기" (at once, 10 s, 1 min, never), kept
   under a key of this client's own. Behind another program, outside a Room, the window lets go of its

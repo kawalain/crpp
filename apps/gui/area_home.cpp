@@ -94,6 +94,10 @@ bool scene(Shell& s, std::string_view name) {
     s.app.ui().hover_id = SettingsPanel::Droplet;
     return true;
   }
+  if (name == "home-winter" || name == "home-spring" || name == "home-autumn") {  // what falls in each season
+    s.app.home().set_date(name == "home-winter" ? 1 : name == "home-spring" ? 4 : 10, 15);
+    return true;
+  }
   if (name == "home-christmas" || name == "home-birthday") {  // a day with a greeting of its own
     if (name == "home-christmas") s.app.home().set_date(12, 25);
     else s.app.home().set_date(ui::home::birthday_month, ui::home::birthday_day);

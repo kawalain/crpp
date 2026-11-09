@@ -85,6 +85,16 @@ inline constexpr int birthday_month = 11, birthday_day = 7;
   return SpecialDay::None;
 }
 
+// The season by the local month, for what falls on Home: snow, petals or leaves, and nothing in summer.
+enum class Season : unsigned char { None, Winter, Spring, Autumn };
+
+[[nodiscard]] constexpr Season season(int month) {
+  if (month == 12 || month == 1 || month == 2) return Season::Winter;
+  if (month >= 3 && month <= 5) return Season::Spring;
+  if (month >= 9 && month <= 11) return Season::Autumn;
+  return Season::None;
+}
+
 // How many public Rooms are open, from GET /health's plain text: "ok", "rooms=<n>" (the private
 // ones) and "public_rooms=<n>", a line each. Nothing for an answer without that line.
 [[nodiscard]] inline std::optional<int> public_rooms_in_health(std::string_view body) {

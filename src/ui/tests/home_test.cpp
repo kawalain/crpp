@@ -89,6 +89,17 @@ void test_some_days_have_a_greeting_of_their_own() {
   CHECK(home::special_day(0, 0) == home::SpecialDay::None);
 }
 
+void test_seasons_follow_the_month() {
+  CHECK(home::season(12) == home::Season::Winter);
+  CHECK(home::season(2) == home::Season::Winter);
+  CHECK(home::season(3) == home::Season::Spring);
+  CHECK(home::season(5) == home::Season::Spring);
+  CHECK(home::season(7) == home::Season::None);
+  CHECK(home::season(9) == home::Season::Autumn);
+  CHECK(home::season(11) == home::Season::Autumn);
+  CHECK(home::season(0) == home::Season::None);  // no date, as in a shot
+}
+
 void test_a_code_can_hold_words() {
   CHECK(home::words_in_code("ABC234") == 0);
   CHECK(home::words_in_code("ZZZ7KQ") == home::WordZzz);
@@ -349,6 +360,7 @@ int main() {
   test_search_finds_a_public_room();
   test_coming_home_asks_once();
   test_a_code_can_hold_words();
+  test_seasons_follow_the_month();
   test_some_days_have_a_greeting_of_their_own();
   test_busy_buttons_do_nothing();
   return crpp_test_result();

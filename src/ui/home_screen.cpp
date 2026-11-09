@@ -8,6 +8,8 @@
 
 namespace crpp::ui {
 
+bool HomeScreen::special_today() const { return home::special_day(month_, day_) != home::SpecialDay::None; }
+
 HomeScreen::HomeScreen(Ui& ui) : Surface(ui) {
   code_.max_length = 6;
   code_.uppercase = true;

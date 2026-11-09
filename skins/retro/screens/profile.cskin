@@ -5,7 +5,7 @@ let stat_y = pad_top+icon_size+20
 let stat = 17*1.9
 let names_x = pad_x+icon_size+18
 report width = 380
-report height = stat_y+(@has_joined ? 3 : 2)*stat+20
+report height = stat_y+((@has_joined ? 3 : 2)+(@mine ? 1 : 0))*stat+20
 hit card
 hit icon note icon (pad_x, pad_top, icon_size, icon_size) hit_if @mine {
   use picture_frame(glow = @hot)
@@ -18,3 +18,5 @@ text @nick (names_x, pad_top+19, @W-pad_x-names_x, 34) style title color ink if 
 text @joined (pad_x, stat_y, @W-2*pad_x, stat) style body color ink if @has_joined
 text @stayed (pad_x, stat_y+(@has_joined ? stat : 0), @W-2*pad_x, stat) style body color ink
 text @inputs (pad_x, stat_y+(@has_joined ? 2 : 1)*stat, @W-2*pad_x, stat) style body color ink
+// Kept on this computer only, so only on my own card.
+text @achievements (pad_x, stat_y+(@has_joined ? 3 : 2)*stat, @W-2*pad_x, stat) style body color ink if @mine

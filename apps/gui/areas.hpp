@@ -162,7 +162,17 @@ void first_show(Shell& s, bool minimized);
 void painted(Shell& s);
 // WM_ACTIVATE of any of the app's windows: the chat learns whether the app is in front.
 void activation(Shell& s, WPARAM wp, LPARAM lp);
+// An Achievement was reached: the notification sound, as for a message.
+void achievement_sound(Shell& s);
 }  // namespace os
+
+namespace achievements {  // the record of Achievements, its tab and its toggle
+void wire(Shell& s);
+[[nodiscard]] bool scene(Shell& s, std::string_view name);
+void pref_changed(Shell& s, std::string_view key);
+// Puts what was counted since into the store, which writes it with the settings.
+void flush(Shell& s);
+}  // namespace achievements
 
 namespace account {  // HTTP API, first-run flow, the account tab
 void wire(Shell& s);

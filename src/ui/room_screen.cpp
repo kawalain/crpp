@@ -21,6 +21,9 @@ RoomScreen::RoomScreen(Ui& ui) : Surface(ui), chat_panel_(ui), profile_(ui), men
 void RoomScreen::enter_room(std::string room_code) {
   room_code_ = std::move(room_code);
   code_words_ = home::words_in_code(room_code_);
+  if (code_words_ & home::WordZzz) ui_.achieve(AchievementId::WordZzz);
+  if (code_words_ & home::WordCake) ui_.achieve(AchievementId::WordCake);
+  if (code_words_ & home::WordStar) ui_.achieve(AchievementId::WordStar);
   options_open_ = mute_popup_open_ = false;
   weather_.reset();
 }
@@ -71,6 +74,7 @@ void RoomScreen::set_room(std::vector<MemberView> members, std::uint32_t me, std
   chat_ = chat;
   chat_lock_at_ = clock_ms() + chat_lock_ms;
   lock_pending_ = chat && chat_lock_ms > 0;
+  if (ui_.achievements) ui_.achievements->room_size(online(), local_day());
 }
 
 float RoomScreen::Pulse::level(unsigned long long now, bool animations) const {
@@ -121,6 +125,7 @@ void RoomScreen::note_input(std::size_t events) {
     // The sky is the whole window: the next frame draws all of it.
     needs_full_ = true;
     new_pulse_ = true;
+    if (weather_.step() == RoomWeather::Storm) ui_.achieve(AchievementId::Storm);
   }
 }
 
@@ -228,7 +233,10 @@ bool RoomScreen::tick(unsigned long long now_ms) {
     hint_muted_until_ = 0;
     changed = true;
   }
-  if (const auto at = weather_.wake_at(); at != 0 && now_ms >= at) changed = weather_.update(now_ms, online()) || changed;
+  if (const auto at = weather_.wake_at(); at != 0 && now_ms >= at && weather_.update(now_ms, online())) {
+    changed = true;
+    if (weather_.step() == RoomWeather::Storm) ui_.achieve(AchievementId::Storm);
+  }
   needs_full_ = needs_full_ || changed;
   return changed || pulse_moved;
 }

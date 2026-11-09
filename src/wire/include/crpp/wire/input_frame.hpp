@@ -51,6 +51,29 @@ enum class Kind : std::uint8_t {
 
 inline constexpr std::size_t max_frame_events = 32;
 
+// A key going down, counted once: not a release and not a modifier still held.
+[[nodiscard]] constexpr bool is_key_press(Kind kind) noexcept {
+  switch (kind) {
+    case Kind::KeyNormal: case Kind::KeyTab: case Kind::KeyCaps: case Kind::KeyEnter: case Kind::KeyEscape:
+    case Kind::KeyShift: case Kind::KeyCtrl: case Kind::KeyAlt: case Kind::KeyR1: case Kind::KeyR2: case Kind::KeyR3:
+    case Kind::KeyR4: case Kind::KeySpace: case Kind::KeyBackspace: case Kind::KeyAny:
+      return true;
+    default:
+      return false;
+  }
+}
+
+// A mouse button or the Pen's tip going down; not the wheel, a release or a hold.
+[[nodiscard]] constexpr bool is_click(Kind kind) noexcept {
+  switch (kind) {
+    case Kind::MouseLeft: case Kind::MouseMiddle: case Kind::MouseRight: case Kind::MouseSideBack:
+    case Kind::MouseSideForward: case Kind::PenTap:
+      return true;
+    default:
+      return false;
+  }
+}
+
 // True for every kind the server accepts.
 [[nodiscard]] constexpr bool is_known(Kind kind) noexcept {
   switch (static_cast<std::uint8_t>(kind)) {

@@ -238,6 +238,27 @@ class NotifyTab final : public SettingsTab {
   std::vector<NotifySound> sounds_;
 };
 
+// Every Achievement by group, with how far each has come, the toggle that keeps track and clearing the record.
+class AchievementsTab final : public SettingsTab {
+ public:
+  using SettingsTab::SettingsTab;
+  [[nodiscard]] static skin::ScreenSchema schema();
+  enum Id : int { Toggle = 1, Clear };
+  [[nodiscard]] std::optional<Role> role(int id) const override {
+    if (id == Toggle) return Role::Toggle;
+    if (id == Clear) return Role::Button;
+    return std::nullopt;
+  }
+  // The record was cleared, once the user agreed.
+  std::function<void()> on_clear;
+
+  void paint(Painter& p, Rect area) override;
+  void click(int id, float x, float y, bool shift) override;
+
+ private:
+  void paint_pack(Painter& p, const skin::Screen& screen, Rect area);
+};
+
 class SystemTab final : public SettingsTab {
  public:
   explicit SystemTab(Ui& ui);

@@ -74,6 +74,8 @@ settings-notify
 settings-notify-dark
 settings-notify-tip
 settings-system
+settings-achievements
+settings-achievements-end
 settings-system-dark
 settings-system-on
 settings-system-end

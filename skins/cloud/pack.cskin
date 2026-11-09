@@ -239,6 +239,7 @@ style subheading size 21 weight 700 line_height 28
 style row_label size 18 line_height 26
 style row size 18 line_height 36
 style row_hint size 14 line_height 20 wrap
+style row_note size 14 line_height 20 align right
 style text_button size 16 line_height 0 align center
 style account_button size 17 line_height 0 align center
 style slider_value size 15 line_height 26 align center

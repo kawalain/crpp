@@ -61,6 +61,8 @@ inline constexpr Bool chat_tray_notify{"chatTrayNotify", true};
 inline constexpr Bool chat_taskbar_flash{"chatTaskbarFlash", true};
 // A key of this client's own: a message that names this member notifies even with the two above off.
 inline constexpr Bool chat_mention_notify{"chatMentionNotify", true};
+// Counting towards Achievements; off keeps what was reached. A key of this client's own.
+inline constexpr Bool achievements_on{"achievementsOn", true};
 
 // --- system tab ---
 inline constexpr Bool start_with_system{"startWithSystem", false};
@@ -86,7 +88,7 @@ inline constexpr Bool pin_tip_seen{"pinTipSeen", false};
 // What "설정 초기화" puts back. Account and Room values are not settings.
 inline constexpr std::array all_bool{mute_others,       listen_self,       others_use_my_sounds, mute_on_idle,    mute_notifications_on_mute,
                                      spatial_audio,     channel_balance_enabled, system_theme, theme_cursor, chat_tray_notify,
-                                     chat_taskbar_flash, chat_mention_notify, start_with_system,   minimize_to_tray, use_24h,
+                                     chat_taskbar_flash, chat_mention_notify, achievements_on, start_with_system,   minimize_to_tray, use_24h,
                                      log_enabled,       input_detail};
 inline constexpr std::array all_int{volume, keyboard_volume, mouse_volume, pen_volume, channel_balance, chat_scale, idle_minutes, release_graphics_after};
 inline constexpr std::array all_text{speaker_device, speaker_device_name, keyboard_sound, mouse_sound, pen_sound,

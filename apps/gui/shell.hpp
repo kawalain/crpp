@@ -104,6 +104,8 @@ class InputSink final : public input::Sink {
     client_->input(kind);
     engine_->play_own(kind);
     events_.fetch_add(1, std::memory_order_relaxed);
+    if (wire::is_key_press(kind)) presses_.fetch_add(1, std::memory_order_relaxed);
+    else if (wire::is_click(kind)) clicks_.fetch_add(1, std::memory_order_relaxed);
     // The server never sends a member's input back, so their ring is lit from
     // here. One message at a time, and no heap on this path.
     if (!pulse_posted_.exchange(true, std::memory_order_relaxed)) PostMessageW(hwnd_, wm_own_input, 0, 0);
@@ -112,13 +114,15 @@ class InputSink final : public input::Sink {
   void pulse_taken() noexcept { pulse_posted_.store(false, std::memory_order_relaxed); }
   // UI thread: how many events came since the last call. Only a count, never what they were.
   [[nodiscard]] std::uint32_t take_events() noexcept { return events_.exchange(0, std::memory_order_relaxed); }
+  [[nodiscard]] std::uint32_t take_presses() noexcept { return presses_.exchange(0, std::memory_order_relaxed); }
+  [[nodiscard]] std::uint32_t take_clicks() noexcept { return clicks_.exchange(0, std::memory_order_relaxed); }
 
  private:
   std::unique_ptr<client::Client>& client_;
   std::unique_ptr<sound::Engine>& engine_;
   HWND hwnd_ = nullptr;
   std::atomic<bool> pulse_posted_{false};
-  std::atomic<std::uint32_t> events_{0};
+  std::atomic<std::uint32_t> events_{0}, presses_{0}, clicks_{0};
 };
 
 struct ConnectionArea;  // area_connection.cpp

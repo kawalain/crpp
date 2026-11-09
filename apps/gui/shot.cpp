@@ -22,7 +22,7 @@ bool apply_scene(Shell& s, std::string_view name) {
   }
   return area::connection::scene(s, name) || area::home::scene(s, name) || area::room::scene(s, name) ||
          area::sound::scene(s, name) || area::preferences::scene(s, name) || area::repositories::scene(s, name) || area::os::scene(s, name) ||
-         area::account::scene(s, name) || area::update::scene(s, name);
+         area::account::scene(s, name) || area::update::scene(s, name) || area::achievements::scene(s, name);
 }
 
 // A moment of a motion, to compare by eye: a scene is set up and painted, something
@@ -97,6 +97,7 @@ int run_shot(Shell& s, int argc, char** argv, float dpi) {
   s.app.ui().clipboard = &clipboard;
   s.app.set_animations(false);
   hold_wall_clock(1700000000);
+  s.app.achievements().set_enabled(false);  // a scene reaches nothing, so no toast covers it
   unsigned w = 951, h = 692;
   if (argc >= 4) std::sscanf(argv[3], "%ux%u", &w, &h);
   if (argc >= 8 && std::string_view(argv[6]) == "--at") {

@@ -28,6 +28,8 @@ class Toasts final : public Surface {
   // button's, `gap` above it.
   void bubble(Rect anchor, std::string text, float gap = 8, unsigned long long duration_ms = default_ms);
 
+  // The message showing, or empty.
+  [[nodiscard]] std::string_view text() const { return toast_.text; }
   // The window it was last asked from; the message shows there while that is open.
   [[nodiscard]] int shown_in() const { return shown_in_; }
   void paint(Painter& p);

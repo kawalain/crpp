@@ -12,7 +12,7 @@
 
 namespace crpp::ui {
 
-enum class SettingsPage : std::uint8_t { Sound, Display, Notify, System, Account };
+enum class SettingsPage : std::uint8_t { Sound, Display, Notify, System, Account, Achievements };
 
 // Clicks that come one after another, each within gap_ms of the one before.
 class ClickStreak {
@@ -35,7 +35,7 @@ class ClickStreak {
 class SettingsPanel final : public Surface {
  public:
   explicit SettingsPanel(Ui& ui)
-      : Surface(ui), sound_(ui), display_(ui), notify_(ui), system_(ui), account_(ui) {}
+      : Surface(ui), sound_(ui), display_(ui), notify_(ui), system_(ui), account_(ui), achievements_(ui) {}
 
   enum Id : int { Droplet, Overlay, Thumb, Version, Track, BarUp, BarDown, TabBase = 100 };
   [[nodiscard]] std::optional<Role> role(int id) const override {
@@ -72,6 +72,7 @@ class SettingsPanel final : public Surface {
   [[nodiscard]] NotifyTab& notify() { return notify_; }
   [[nodiscard]] SystemTab& system() { return system_; }
   [[nodiscard]] AccountTab& account() { return account_; }
+  [[nodiscard]] AchievementsTab& achievements() { return achievements_; }
 
   void open(SettingsPage page);
   void close();
@@ -113,6 +114,7 @@ class SettingsPanel final : public Surface {
   NotifyTab notify_;
   SystemTab system_;
   AccountTab account_;
+  AchievementsTab achievements_;
   bool open_ = false;
   SettingsPage page_ = SettingsPage::Sound;
   Scroll scroll_;

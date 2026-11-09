@@ -1,0 +1,21 @@
+// Achievements: the toggle that keeps track, then every one in a list, each group under its heading.
+column id form y 10 {
+  use form_group text @tr.ach_heading {
+    use form_check(on = @on) text @tr.ach_toggle hit toggle
+    use form_hint text @tr.ach_note x 18 w @W-18 after 4
+  }
+  use form_group text @summary {
+    repeat @rows h @rows*34 {
+      let top = @i*34
+      text @row_title style bold color ink y top+14 w @W h 16 if @row_heading
+      if !@row_heading {
+        use check_box(on = @row_reached) (0, top+3)
+        text @row_title style bold color @row_reached ? ink : ink_soft x 18 y top w @W-18-110 h 16
+        text @row_text style body color ink_soft x 18 y top+16 w @W-18-110 h 16
+        text @row_note style body_right color ink_soft x @W-110 y top w 110 h 16
+      }
+    }
+    use button text @tr.ach_clear hit clear right @W after 6
+  }
+}
+report height = form.bottom

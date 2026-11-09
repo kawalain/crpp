@@ -127,6 +127,22 @@ long long wall_clock_seconds() noexcept {
 
 void hold_wall_clock(long long seconds) noexcept { held_wall_clock = seconds; }
 
+namespace {
+std::tm local_now() noexcept {
+  const auto t = static_cast<std::time_t>(wall_clock_seconds());
+  std::tm tm{};
+  localtime_s(&tm, &t);
+  return tm;
+}
+}  // namespace
+
+Achievements::Day local_day() noexcept {
+  const std::tm tm = local_now();
+  return (tm.tm_year + 1900) * 10000 + (tm.tm_mon + 1) * 100 + tm.tm_mday;
+}
+
+int local_hour() noexcept { return local_now().tm_hour; }
+
 const Ui::Hit* Ui::find_hit(const Surface* owner, int id) const {
   for (auto it = hits_.rbegin(); it != hits_.rend(); ++it) {
     if (it->shown && it->owner == owner && it->id == id) return &*it;

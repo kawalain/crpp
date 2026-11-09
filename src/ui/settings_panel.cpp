@@ -8,8 +8,8 @@ namespace {
 
 constexpr unsigned long long scrollbar_pause_ms = 2000;
 
-constexpr std::array<const char* locale::Strings::*, 5> tab_buttons{&locale::Strings::tab_sound, &locale::Strings::tab_display, &locale::Strings::tab_notify,
-                                                                    &locale::Strings::tab_system, &locale::Strings::tab_account};
+constexpr std::array<const char* locale::Strings::*, 6> tab_buttons{&locale::Strings::tab_sound, &locale::Strings::tab_display, &locale::Strings::tab_notify,
+                                                                    &locale::Strings::tab_system, &locale::Strings::tab_account, &locale::Strings::tab_achievements};
 
 }  // namespace
 
@@ -25,6 +25,8 @@ SettingsTab& SettingsPanel::tab_of(SettingsPage page) {
       return system_;
     case SettingsPage::Account:
       return account_;
+    case SettingsPage::Achievements:
+      return achievements_;
     default:
       return sound_;
   }
@@ -102,6 +104,7 @@ bool SettingsPanel::repeats(int id) const { return id == BarUp || id == BarDown 
 
 void SettingsPanel::splash() {
   ++splashes_;
+  ui_.achieve(AchievementId::Splash);
   if (on_splash) on_splash();
 }
 

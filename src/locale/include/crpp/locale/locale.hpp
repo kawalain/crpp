@@ -94,6 +94,62 @@ struct Strings {
   const char* member_volume;
   const char* profile_joined;  // {0} a date
   const char* profile_anniversary;  // after it, on the day: {0} years since
+  // Achievements.
+  const char* profile_achievements;  // the own card: {0} reached of {1}
+  const char* tab_achievements;
+  const char* ach_heading;
+  const char* ach_toggle;
+  const char* ach_note;
+  const char* ach_summary;  // {0} reached of {1}
+  const char* ach_group_input;
+  const char* ach_group_together;
+  const char* ach_group_discovery;
+  const char* ach_group_hidden;
+  const char* ach_secret;  // a secret one not reached yet
+  const char* ach_secret_hint;
+  const char* ach_reached_on;  // {0} a date
+  const char* ach_progress;  // {0} so far of {1}
+  const char* ach_clear;
+  const char* ach_clear_question;
+  const char* ach_clear_confirm;
+  const char* ach_toast;  // {0} its name
+  const char* ach_keys_10k;
+  const char* ach_keys_100k;
+  const char* ach_keys_1m;
+  const char* ach_clicks_10k;
+  const char* ach_clicks_100k;
+  const char* ach_clicks_1m;
+  const char* ach_hours_10;
+  const char* ach_hours_100;
+  const char* ach_hours_1000;
+  const char* ach_room_4;
+  const char* ach_room_8;
+  const char* ach_room_16;
+  const char* ach_messages_100;
+  const char* ach_messages_1000;
+  const char* ach_splash;
+  const char* ach_special_day;
+  const char* ach_calm_firm;
+  const char* ach_word_zzz;
+  const char* ach_word_cake;
+  const char* ach_word_star;
+  const char* ach_konami;
+  const char* ach_storm;
+  const char* ach_named;
+  const char* ach_night_owl;
+  const char* ach_do_presses;  // {0} a count
+  const char* ach_do_clicks;
+  const char* ach_do_hours;
+  const char* ach_do_room_size;
+  const char* ach_do_messages;
+  const char* ach_do_splash;
+  const char* ach_do_special_day;
+  const char* ach_do_calm_firm;
+  const char* ach_do_word;  // {0} a word of the code
+  const char* ach_do_konami;
+  const char* ach_do_storm;
+  const char* ach_do_named;
+  const char* ach_do_night_owl;
   const char* profile_stayed;  // {0} a length of time
   const char* profile_inputs;  // {0} a count
   const char* profile_change_icon;

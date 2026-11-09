@@ -93,6 +93,13 @@ class App {
   [[nodiscard]] NoticeCard& notice() { return notice_; }
   [[nodiscard]] OfflinePopup& offline() { return offline_; }
   [[nodiscard]] SettingsPanel& settings() { return settings_; }
+  [[nodiscard]] Achievements& achievements() { return achievements_; }
+  // Each Achievement as it is reached, after its toast.
+  std::function<void(AchievementId)> on_achievement;
+  // Back from a Room: the time in it has been counted.
+  std::function<void()> on_left_room;
+  // My own input since the last call, by count only: the weather, totals and time in the Room follow it.
+  void note_own_input(std::uint32_t events, std::uint32_t presses, std::uint32_t clicks);
   [[nodiscard]] Dialogs& dialogs() { return dialogs_; }
   [[nodiscard]] Toasts& toasts() { return toasts_; }
   [[nodiscard]] EmojiPicker& emoji_picker() { return emoji_picker_; }
@@ -251,6 +258,7 @@ class App {
   std::optional<skin::Pack> previous_pack_;
   std::string theme_id_ = "cumulus";  // the Theme a Ui starts with, until a choice is read
   MemoryPrefs memory_prefs_;
+  Achievements achievements_;
   SystemClipboard system_clipboard_;
   // The press before, to count clicks in a row.
   unsigned long long last_press_ms_ = 0;

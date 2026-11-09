@@ -11,6 +11,7 @@
 #include "crpp/skin/draw.hpp"
 #include "crpp/skin/motion.hpp"
 #include "crpp/skin/pack.hpp"
+#include "crpp/ui/achievements.hpp"
 #include "crpp/ui/clipboard.hpp"
 #include "crpp/ui/gfx.hpp"
 #include "crpp/ui/skin_choice.hpp"
@@ -48,6 +49,9 @@ void hold_clock_at(unsigned long long ms) noexcept;
 // same scene always renders the same image.
 [[nodiscard]] long long wall_clock_seconds() noexcept;
 void hold_wall_clock(long long seconds) noexcept;
+// Today by the local calendar, as yyyymmdd, and the hour now, both from wall_clock_seconds.
+[[nodiscard]] Achievements::Day local_day() noexcept;
+[[nodiscard]] int local_hour() noexcept;
 
 inline D2D1_MATRIX_3X2_F scale_about(float cx, float cy, float s) {
   return D2D1::Matrix3x2F::Translation(-cx, -cy) * D2D1::Matrix3x2F::Scale(s, s) * D2D1::Matrix3x2F::Translation(cx, cy);
@@ -188,6 +192,14 @@ class Ui : public WindowState {
   Dialogs* dialogs = nullptr;
   Toasts* toasts = nullptr;
   EmojiPicker* emoji_picker = nullptr;
+  Achievements* achievements = nullptr;
+  // Reaches an Achievement or adds to a total, today; nothing without Achievements.
+  void achieve(AchievementId id) {
+    if (achievements) achievements->reach(id, local_day());
+  }
+  void tally(Tally tally, std::uint64_t n) {
+    if (achievements) achievements->add(tally, n, local_day());
+  }
 
   // The system's "Underline access keys": the keyboard's place always shows.
   bool always_cues = false;

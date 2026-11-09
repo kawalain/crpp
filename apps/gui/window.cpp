@@ -342,7 +342,7 @@ LRESULT CALLBACK wnd_proc(HWND hwnd, UINT msg, WPARAM wp, LPARAM lp) {
       s->input_sink.pulse_taken();
       area::sound::own_input(*s);
       s->app.room().pulse_me();
-      s->app.room().note_input(s->input_sink.take_events());
+      s->app.note_own_input(s->input_sink.take_events(), s->input_sink.take_presses(), s->input_sink.take_clicks());
       InvalidateRect(hwnd, nullptr, FALSE);
       sync_frames(*s);
       return 0;
@@ -450,6 +450,7 @@ LRESULT CALLBACK wnd_proc(HWND hwnd, UINT msg, WPARAM wp, LPARAM lp) {
       } else if (wp == save_timer) {
         KillTimer(hwnd, save_timer);
         s->save_timer_on = false;
+        area::achievements::flush(*s);
         (void)s->store->save();
       } else if (wp == blink_timer) {
         repaint(s->app.blink(), true);

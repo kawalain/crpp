@@ -443,4 +443,6 @@ bool on_message(Shell& s, UINT msg, WPARAM wp, LPARAM lp, LRESULT& result) {
   }
 }
 
+void achievement_sound(Shell& s) { play(s, chat_sound_key, chat_sound_file); }
+
 }  // namespace crpp::gui::area::os

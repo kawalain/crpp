@@ -51,6 +51,7 @@ ChatPanel::ChatPanel(Ui& ui) : Surface(ui) {
 
 void ChatPanel::add(ChatEntry entry) {
   const bool new_line = away_ && !new_from_ && entry.slot != my_slot_;
+  if (entry.slot != my_slot_ && mentions(entry.text, names_)) ui_.achieve(AchievementId::Named);
   log_.push_back(std::move(entry));
   if (new_line) {
     new_from_ = dropped_ + log_.size() - 1;
@@ -124,6 +125,7 @@ void ChatPanel::send() {
     if (ui_.toasts) ui_.toasts->toast(tr().chat_send_failed);
     return;
   }
+  ui_.tally(Tally::Messages, 1);
   forget_new_line();
   if (history_.empty() || history_.back() != text) history_.push_back(text);
   if (history_.size() > history_size) history_.erase(history_.begin());
@@ -144,6 +146,7 @@ bool ChatPanel::recall(int dir) {
 
 void ChatPanel::blocked(std::uint64_t ms) {
   if (!limiter_.server_blocked(clock_ms(), ms)) return;
+  if (limiter_.blocks_in_a_row() >= ChatLimiter::firm_from) ui_.achieve(AchievementId::CalmFirm);
   shake();
   if (input_.text().empty() && !last_sent_.empty()) input_.set_text(widen(last_sent_));
 }

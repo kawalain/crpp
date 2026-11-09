@@ -97,11 +97,13 @@ void wire_areas(Shell& s) {
   area::os::wire(s);
   area::account::wire(s);
   area::update::wire(s);
+  area::achievements::wire(s);
   Shell* sp = &s;
   s.prefs->on_changed = [sp](std::string_view key) {
     area::sound::pref_changed(*sp, key);
     area::preferences::pref_changed(*sp, key);
     area::os::pref_changed(*sp, key);
+    area::achievements::pref_changed(*sp, key);
   };
 }
 
@@ -279,6 +281,7 @@ int main(int argc, char** argv) {
   if (shell.client) shell.client->stop();
   shell.tasks.run_all();  // what the client reported last must still reach the store
   shell.engine->stop();
+  area::achievements::flush(shell);
   (void)data.save();
   area::update::shutdown(shell);
   // A blocked download may take long to give up, and files are only ever replaced whole,

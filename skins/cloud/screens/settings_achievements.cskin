@@ -1,0 +1,26 @@
+// Achievements: the toggle that keeps track, how many are reached, then each group under its heading.
+text @tr.ach_heading (9, 25, @W-9, 32) style heading color hl_text
+use toggle(on = @on, hit = hit(toggle)) (16, 76, 505, 36) text @tr.ach_toggle
+text @tr.ach_note (16, 116, 505, 40) style row_hint color hl_text_soft
+text @summary (16, 160, 505, 26) style row_label color hl_text
+let list_top = 192
+let row_h = 58
+repeat @rows {
+  let top = list_top+@i*row_h
+  text @row_title (12, top+22, @W-12, 28) style subheading color @dark ? hl_text_dark : hl if @row_heading
+  if !@row_heading {
+    // A medal: filled with a tick once reached.
+    fill @row_reached ? hl : hl_pale2 (16, top+12, 32, 32) ellipse
+    path "M9 16.5 14 21.5 23 11" (16, top+12) color on_accent width 3 caps round if @row_reached
+    text @row_title (60, top+6, 320, 26) style row_label color @row_reached ? hl_text : hl_text_soft
+    text @row_text (60, top+32, 320, 20) style row_hint color hl_text_soft
+    text @row_note (381, top+8, 140, 20) style row_note color hl_text_soft
+    if @row_has_progress {
+      fill hl_pale2 (381, top+34, 140, 4) radius 2
+      fill hl (381, top+34, 140*@row_fraction, 4) radius 2 if @row_fraction>0
+    }
+  }
+}
+let end = list_top+@rows*row_h
+use text_button (381, end+16, 140, 38) text @tr.ach_clear hit clear
+report height = end+16+38+25

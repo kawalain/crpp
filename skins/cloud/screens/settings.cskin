@@ -13,6 +13,7 @@ let shown = ease(@open, 160ms) first jump
     use settings_tab(active = @page==2) (103, 401.5, 172, 37) text @tr.tab_notify hit tab hit_index 2 hit_if @open
     use settings_tab(active = @page==3) (103, 447.5, 172, 37) text @tr.tab_system hit tab hit_index 3 hit_if @open
     use settings_tab(active = @page==4) (103, 493.5, 172, 37) text @tr.tab_account hit tab hit_index 4 hit_if @open
+    use settings_tab(active = @page==5) (103, 539.5, 172, 37) text @tr.tab_achievements hit tab hit_index 5 hit_if @open
     // The tab that shows, and the one it took over from, each with the edge fades of where it stands.
     report view = 504
     report content = @tab_height

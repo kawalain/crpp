@@ -7,3 +7,10 @@ The timing of input stays visible in both modes, because sharing it is the point
 ## Considered options
 
 - Kind 16 (`KeyNormal`): no Sound pack has a recording for it, so listeners would hear nothing.
+
+## Consequences
+
+- Achievements keep totals of key presses and clicks, beside minutes in Rooms and messages sent, and the day each
+  Achievement was reached. The input sink adds to two counters as each kind passes, so nothing about a key, no text and
+  no time of day is kept, and the totals stay on this machine. The Room's weather counts every input event of the last
+  minute the same way and keeps nothing.

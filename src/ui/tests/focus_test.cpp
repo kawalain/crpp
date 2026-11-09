@@ -248,7 +248,7 @@ void ctrl_tab_and_the_arrows_go_through_the_tabs(const char* pack) {
   CHECK(panel.page() == SettingsPage::Display);
   press(h, VK_TAB, true, true);
   press(h, VK_TAB, true, true);
-  CHECK(panel.page() == SettingsPage::Account);
+  CHECK(panel.page() == SettingsPage::Achievements);
   press(h, VK_NEXT, true);
   CHECK(panel.page() == SettingsPage::Sound);
   // On the row of tabs, the arrows choose and the keyboard goes along.

@@ -182,6 +182,12 @@ against a real `server/` yet; do that once a local build of it is available.
   the sky follows. Cloud darkens its sky and cloud, with rain and lightning that do not move; Retro shows a cloud
   at the status line's end. Only counts go in, and nothing is kept or sent. A quiet Room looks again every 5 s
   only until the sky has cleared.
+- Achievements, 24 of them in four groups (input, together, discovery, hidden), in a settings tab of their own after
+  the account tab. Reaching one shows a toast with the message sound. They are counted only while "도전과제 기록하기"
+  (`achievementsOn`, on by default) is on, and "기록 지우기" asks before clearing them. The record is four totals
+  (presses, clicks, minutes in Rooms, messages sent) and the day each was reached, under `achievementRecord`, a key of
+  this client's own beside the settings, so a Shared store's upstream may drop it when it saves. The server has
+  nowhere to carry them: only my own profile card shows how many.
 - The tray menu has mute and leaving the Room while in one, and the options, besides quitting.
 - The system tab's advanced section has "뒤에 있을 때 메모리 비우기" (at once, 10 s, 1 min, never), kept
   under a key of this client's own. Behind another program, outside a Room, the window lets go of its
@@ -466,6 +472,8 @@ exist (real + test).
   hardware: only listing and opening every device is. Nor has the idle mute run a
   full idle period in a real Room. It ends on a key or click, not on mouse movement
   alone: Raw Input only reports Input kinds.
+- Achievements have run in tests and scenes only: watch a real Room reach one, its toast and sound, and the record
+  surviving a restart.
 - Room weather has run in tests and scenes only. Its steps (20, 80 and 200 a minute) are starting values: watch a
   real Room and tune them by eye.
 - The sound of spatial audio and reverb needs ears: run

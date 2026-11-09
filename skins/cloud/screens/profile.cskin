@@ -1,7 +1,8 @@
 let shown = ease(1, 160ms)
 let stat = 17*1.9
 let card_w = min(380, @W-40)
-let card_h = 24+72+20+(@has_joined ? 3 : 2)*stat+20
+let stats = (@has_joined ? 3 : 2)+(@mine ? 1 : 0)
+let card_h = 24+72+20+stats*stat+20
 report width = card_w
 report height = card_h
 use modal(card_w = card_w, card_h = card_h, shown = shown, backdrop_hit = hit(backdrop), card_hit = hit(card)) {
@@ -16,4 +17,6 @@ use modal(card_w = card_w, card_h = card_h, shown = shown, backdrop_hit = hit(ba
   text @joined (25, 116, @W-50, stat) style profile_stat color alpha(hl_text, shown) if @has_joined
   text @stayed (25, 116+(@has_joined ? stat : 0), @W-50, stat) style profile_stat color alpha(hl_text, shown)
   text @inputs (25, 116+(@has_joined ? 2 : 1)*stat, @W-50, stat) style profile_stat color alpha(hl_text, shown)
+  // Kept on this computer only, so only on my own card.
+  text @achievements (25, 116+(@has_joined ? 3 : 2)*stat, @W-50, stat) style profile_stat color alpha(hl_text, shown) if @mine
 }

@@ -8,6 +8,7 @@ hit overlay
   use options_tab(active = @page==2) (1, 45, @W-2, 22) text @tr.tab_notify hit tab hit_index 2
   use options_tab(active = @page==3) (1, 67, @W-2, 22) text @tr.tab_system hit tab hit_index 3
   use options_tab(active = @page==4) (1, 89, @W-2, 22) text @tr.tab_account hit tab hit_index 4
+  use options_tab(active = @page==5) (1, 111, @W-2, 22) text @tr.tab_achievements hit tab hit_index 5
 }
 // The tab on the right, which scrolls.
 (128, 8, @W-136, @H-44) {

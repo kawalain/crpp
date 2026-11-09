@@ -1,4 +1,5 @@
 #include <cmath>
+#include <vector>
 
 #include "check.hpp"
 #include "crpp/ui/controls.hpp"
@@ -88,6 +89,82 @@ void test_the_droplet_splashes_after_five_clicks() {
   CHECK(s.splashes() == 1);
   CHECK(splashed == 1);
   CHECK(s.is_open());  // it still opened and closed on every click
+}
+
+void test_achievements_count_and_keep_dates() {
+  Achievements a;
+  std::vector<AchievementId> got;
+  a.on_reached = [&](AchievementId id) { got.push_back(id); };
+  a.add(Tally::Presses, 9999, 20261109);
+  CHECK(got.empty());
+  a.add(Tally::Presses, 1, 20261109);
+  CHECK(got.size() == 1 && got[0] == AchievementId::Keys10k);
+  CHECK(a.reached_on(AchievementId::Keys10k) == 20261109);
+  a.add(Tally::Presses, 5, 20261110);  // once only
+  CHECK(got.size() == 1);
+  // Several goals passed at once are each reached.
+  a.add(Tally::Clicks, 100000, 20261110);
+  CHECK(got.size() == 3);
+  a.room_size(9, 20261110);
+  CHECK(a.reached_on(AchievementId::Room4) != 0 && a.reached_on(AchievementId::Room8) != 0 && a.reached_on(AchievementId::Room16) == 0);
+  // Time in a Room goes in whole minutes.
+  a.enter_room(1000);
+  a.in_room(1000 + 59999, 20261110);
+  CHECK(a.totals().minutes == 0);
+  a.leave_room(1000 + 10 * 3600 * 1000, 20261110);
+  CHECK(a.totals().minutes == 600);
+  CHECK(a.reached_on(AchievementId::Hours10) == 20261110);
+  // Off, nothing counts and what was reached stays.
+  a.set_enabled(false);
+  a.add(Tally::Messages, 1000, 20261111);
+  a.reach(AchievementId::Splash, 20261111);
+  CHECK(a.totals().messages == 0 && a.reached_on(AchievementId::Splash) == 0);
+  CHECK(a.reached_on(AchievementId::Keys10k) == 20261109);
+  a.clear();
+  CHECK(a.reached_count() == 0 && a.totals().presses == 0);
+}
+
+void test_the_splash_is_an_achievement_with_a_toast() {
+  UiHarness h;
+  CHECK(h.start());
+  SettingsPanel& s = h.app.settings();
+  int reached = 0;
+  h.app.on_achievement = [&](AchievementId id) { reached += id == AchievementId::Splash; };
+  s.splash();
+  CHECK(reached == 1);
+  CHECK(h.app.achievements().reached_on(AchievementId::Splash) != 0);
+  CHECK(h.app.toasts().text().find(tr().ach_splash) != std::string_view::npos);
+  s.splash();
+  CHECK(reached == 1);
+}
+
+void test_the_record_can_be_cleared_after_asking(const char* pack) {
+  UiHarness h;
+  CHECK(h.start(951, 692, pack));
+  h.app.achievements().add(Tally::Presses, 12, 20261109);
+  h.app.achievements().reach(AchievementId::Splash, 20261109);
+  SettingsPanel& s = h.app.settings();
+  int cleared = 0;
+  s.achievements().on_clear = [&] { ++cleared; };
+  s.open(SettingsPage::Achievements);
+  h.render();
+  if (h.app.own_frame()) h.on_pane(Pane::Options);
+  s.scroll_to(100000);  // the button is under the list
+  h.render();
+  CHECK(h.click(s.achievements(), AchievementsTab::Clear));
+  CHECK(h.app.dialogs().is_open());
+  CHECK(h.app.achievements().reached_count() == 1);  // nothing yet
+  if (h.app.own_frame()) h.on_pane(Pane::Dialog);
+  CHECK(h.click(h.app.dialogs(), Dialogs::Confirm));
+  CHECK(cleared == 1);
+  CHECK(h.app.achievements().reached_count() == 0 && h.app.achievements().totals().presses == 0);
+  // The toggle is a setting, on by default.
+  if (h.app.own_frame()) h.on_pane(Pane::Options);
+  s.scroll_to(0);
+  h.render();
+  CHECK(h.app.ui().prefs->get(pref::achievements_on));
+  CHECK(h.click(s.achievements(), AchievementsTab::Toggle));
+  CHECK(!h.app.ui().prefs->get(pref::achievements_on));
 }
 
 void test_settings_hide_room_controls() {
@@ -291,6 +368,10 @@ int main() {
   test_settings_open_tab_and_close();
   test_clicks_in_a_row_count_only_close_together();
   test_the_droplet_splashes_after_five_clicks();
+  test_achievements_count_and_keep_dates();
+  test_the_splash_is_an_achievement_with_a_toast();
+  test_the_record_can_be_cleared_after_asking(CRPP_TEST_SKINS "/cloud");
+  test_the_record_can_be_cleared_after_asking(CRPP_TEST_SKINS "/retro");
   test_settings_hide_room_controls();
   test_toast_expires_without_frames();
   test_toast_action_runs_once();

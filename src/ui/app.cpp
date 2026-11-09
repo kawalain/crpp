@@ -6,6 +6,7 @@
 #include <fstream>
 #include <utility>
 
+#include "crpp/ui/achievement_words.hpp"
 #include "crpp/ui/skin_canvas.hpp"
 
 namespace crpp::ui {
@@ -16,6 +17,11 @@ App::App() {
   ui_.dialogs = &dialogs_;
   ui_.toasts = &toasts_;
   ui_.emoji_picker = &emoji_picker_;
+  ui_.achievements = &achievements_;
+  achievements_.on_reached = [this](AchievementId id) {
+    toasts_.toast(locale::fill(tr().ach_toast, {achievement_name(id)}));
+    if (on_achievement) on_achievement(id);
+  };
   frame_.on_leave_room = [this] { room_.click(RoomScreen::Leave, 0, 0, false); };
   frame_.on_options = [this] {
     if (!settings_.is_open()) settings_.open(settings_.page());
@@ -54,7 +60,7 @@ void App::reload_assets(const std::filesystem::path& assets_dir) {
 
 std::span<const skin::ScreenSchema> screen_schemas() {
   static const skin::ScreenSchema schemas[] = {HomeScreen::schema(), HomeScreen::return_schema(), PromptScreen::schema(), WindowFrame::schema(), WindowFrame::menu_schema(), RoomScreen::schema(), ChatPanel::schema(),
-                                               SettingsPanel::schema(), SettingsPanel::droplet_schema(), SoundTab::schema(), DisplayTab::schema(), NotifyTab::schema(), SystemTab::schema(), AccountTab::schema(),
+                                               SettingsPanel::schema(), SettingsPanel::droplet_schema(), SoundTab::schema(), DisplayTab::schema(), NotifyTab::schema(), SystemTab::schema(), AccountTab::schema(), AchievementsTab::schema(),
                                                SetupScreen::schema(), Dialogs::schema(), OfflinePopup::schema(), NoticeCard::schema(), UpdatePopup::schema(), Toasts::schema(),
                                                Toasts::bubble_schema(), HoverTip::schema(), MemberMenu::schema(), ProfileCard::schema(), EmojiPicker::schema(), Dropdown::schema(), SoundTab::tip_schema(), ChangelogView::schema(), ContextMenu::schema()};
   return schemas;
@@ -277,6 +283,11 @@ void App::show_home() {
     view_ = View::Home;
     ui_.set_focus(nullptr, nullptr);
     if (from != View::Home && home_.on_shown) home_.on_shown();
+    if (home_.special_today()) ui_.achieve(AchievementId::SpecialDay);
+  }
+  if (from == View::Session) {
+    achievements_.leave_room(clock_ms(), local_day());
+    if (on_left_room) on_left_room();
   }
   view_left(from);
   // The Room stays as it was while it fades out.
@@ -296,6 +307,18 @@ void App::show_session(std::string room_code) {
   }
   view_left(from);
   room_.enter_room(std::move(room_code));
+  if (from != View::Session) achievements_.enter_room(clock_ms());
+}
+
+void App::note_own_input(std::uint32_t events, std::uint32_t presses, std::uint32_t clicks) {
+  room_.note_input(events);
+  const auto today = local_day();
+  achievements_.add(Tally::Presses, presses, today);
+  achievements_.add(Tally::Clicks, clicks, today);
+  achievements_.in_room(clock_ms(), today);
+  if (presses + clicks > 0 && achievements_.reached_on(AchievementId::NightOwl) == 0 && local_hour() == 3) {
+    ui_.achieve(AchievementId::NightOwl);
+  }
 }
 
 void App::show_prompt(Prompt prompt) {

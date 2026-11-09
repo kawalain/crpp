@@ -60,6 +60,8 @@ class HomeScreen final : public Surface {
   void set_nickname(std::string nickname) { nickname_ = std::move(nickname); }
   void set_hour(int hour) { hour_ = hour; }  // 0-23, for the greeting
   // 1-12 and 1-31: some days have a greeting of their own. 0 for none.
+  // Whether today has a greeting of its own.
+  [[nodiscard]] bool special_today() const;
   void set_date(int month, int day) {
     month_ = month;
     day_ = day;

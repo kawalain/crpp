@@ -14,10 +14,10 @@ namespace crpp::ui {
 
 namespace {
 
-enum TextId : int { Nick, Handle, Joined, Stayed, Inputs };
+enum TextId : int { Nick, Handle, Joined, Stayed, Inputs, AchievementsText };
 enum NumberId : int { Mine, HasHandle, HasJoined };
 enum ReportId : int { Width, Height };
-constexpr skin::Name text_names[] = {{"nick", Nick}, {"handle", Handle}, {"joined", Joined}, {"stayed", Stayed}, {"inputs", Inputs}};
+constexpr skin::Name text_names[] = {{"nick", Nick}, {"handle", Handle}, {"joined", Joined}, {"stayed", Stayed}, {"inputs", Inputs}, {"achievements", AchievementsText}};
 constexpr skin::Name number_names[] = {{"mine", Mine}, {"has_handle", HasHandle}, {"has_joined", HasJoined}};
 constexpr skin::Name picture_names[] = {{"icon", 0}};
 constexpr skin::Name hit_names[] = {{"backdrop", ProfileCard::Backdrop}, {"card", ProfileCard::Card}, {"icon", ProfileCard::Icon}};
@@ -64,6 +64,10 @@ class ShownProfile final : public skin::Source {
     }
     stayed_ = locale::fill(tr().profile_stayed, {locale::format_stay(v_.stayed)});
     inputs_ = locale::fill(tr().profile_inputs, {locale::format_times(v_.events)});
+    // Achievements are kept here only, so only my own card has them.
+    if (mine_ && ui_.achievements) {
+      achievements_ = locale::fill(tr().profile_achievements, {std::to_string(ui_.achievements->reached_count()), std::to_string(achievement_count)});
+    }
   }
 
   std::string_view text(int id, int) override {
@@ -72,6 +76,7 @@ class ShownProfile final : public skin::Source {
       case Handle: return handle_;
       case Joined: return joined_;
       case Stayed: return stayed_;
+      case AchievementsText: return achievements_;
       default: return inputs_;
     }
   }
@@ -98,7 +103,7 @@ class ShownProfile final : public skin::Source {
   Ui& ui_;
   Painter* p_;
   Rect* icon_;
-  std::string nick_, handle_, joined_, stayed_, inputs_;
+  std::string nick_, handle_, joined_, stayed_, inputs_, achievements_;
 };
 
 }  // namespace

@@ -85,6 +85,10 @@ fonts {
 // Windows Standard of 98. See the Themes' colours in docs/research/retro-themes.md.
 
 palette classic {
+  // The Room's weather, in the status line.
+  weather_cloud #ffffff
+  rain #3a7bd5
+  bolt #f2c200
   // A word in a Room's code: the cake and the stars keep their colours in every Theme.
   cake_sponge #f8dfb8
   cake_cream #ff9db5

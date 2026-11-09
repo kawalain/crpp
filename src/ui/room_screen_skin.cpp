@@ -16,7 +16,7 @@ enum TextId : int { Contacts, MuteLabel, Status, Code, VolumeText, MemberName };
 enum NumberId : int {
   Muted, OptionsOpen, MutePopupOpen, ControlsShown, HasChat, Public, PublicOff, ChatOff, PinPublic, PinChat, Volume,
   Members, MemberSlot, MemberLevel, MemberMuted, MemberOffline, MutedAll, MembersScroll, MembersOffset, MembersOverflow,
-  Scale, StageX, StageY, MembersFadeTop, MembersFadeBottom, MemberNew, MemberKey, Sleepy, Cake, Stars
+  Scale, StageX, StageY, MembersFadeTop, MembersFadeBottom, MemberNew, MemberKey, Sleepy, Cake, Stars, Weather
 };
 enum PictureId : int { MemberPicture, MutedPicture };
 enum ReportId : int { MembersView, MembersContent };
@@ -28,7 +28,8 @@ constexpr skin::Name number_names[] = {{"muted", Muted}, {"options_open", Option
                                        {"member_slot", MemberSlot}, {"member_level", MemberLevel}, {"member_muted", MemberMuted}, {"member_offline", MemberOffline}, {"muted_all", MutedAll},
                                        {"members_scroll", MembersScroll}, {"members_offset", MembersOffset}, {"members_overflow", MembersOverflow}, {"scale", Scale}, {"stage_x", StageX}, {"stage_y", StageY},
                                        {"members_fade_top", MembersFadeTop}, {"members_fade_bottom", MembersFadeBottom}, {"member_new", MemberNew}, {"member_key", MemberKey},
-                                       {"sleepy", Sleepy}, {"cake", Cake}, {"stars", Stars}};
+                                       {"sleepy", Sleepy}, {"cake", Cake}, {"stars", Stars},
+                                       {"weather", Weather}};
 constexpr skin::Name picture_names[] = {{"member", MemberPicture}, {"muted", MutedPicture}};
 constexpr skin::Name slot_names[] = {{"chat", 0}};
 constexpr skin::Name report_names[] = {{"members_view", MembersView}, {"members_content", MembersContent}};
@@ -122,6 +123,7 @@ void RoomScreen::paint_pack(Painter& p, const skin::Screen& screen) {
         case Sleepy: return yes((s_.code_words_ & home::WordZzz) != 0);
         case Cake: return yes((s_.code_words_ & home::WordCake) != 0);
         case Stars: return yes((s_.code_words_ & home::WordStar) != 0);
+        case Weather: return static_cast<float>(s_.weather_.step());  // 0 clear, 1 cloudy, 2 rain, 3 storm
         default: return 0;
       }
     }

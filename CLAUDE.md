@@ -177,6 +177,11 @@ against a real `server/` yet; do that once a local build of it is available.
 - Cloud's Home has the season's fall behind its clouds, by the local month: snow from December to February, petals
   from March to May, leaves from September to November, nothing in summer. It comes down for 3 s each time Home
   appears and then holds still, and is still at once without animations. Retro has none.
+- A Room has weather, from how busy it is: every input event over the last minute, mine too, per online member.
+  From 20 a minute it is cloudy, from 80 it rains and from 200 there is a storm, and a step must hold 10 s before
+  the sky follows. Cloud darkens its sky and cloud, with rain and lightning that do not move; Retro shows a cloud
+  at the status line's end. Only counts go in, and nothing is kept or sent. A quiet Room looks again every 5 s
+  only until the sky has cleared.
 - The tray menu has mute and leaving the Room while in one, and the options, besides quitting.
 - The system tab's advanced section has "뒤에 있을 때 메모리 비우기" (at once, 10 s, 1 min, never), kept
   under a key of this client's own. Behind another program, outside a Room, the window lets go of its
@@ -461,6 +466,8 @@ exist (real + test).
   hardware: only listing and opening every device is. Nor has the idle mute run a
   full idle period in a real Room. It ends on a key or click, not on mouse movement
   alone: Raw Input only reports Input kinds.
+- Room weather has run in tests and scenes only. Its steps (20, 80 and 200 a minute) are starting values: watch a
+  real Room and tune them by eye.
 - The sound of spatial audio and reverb needs ears: run
   `crpp_soundtest assets/sounds`, which walks every Desk; `--balance` and `--reverb` compare
   values. The left-right difference and Office's level and decay are starting points until then. `--synth` plays the generated

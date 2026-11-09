@@ -115,6 +115,7 @@ void Bridge::on_peer_input(std::span<const wire::ServerEvent> events) {
   }
   tasks_.post_quiet([this, slots = std::move(slots)] {
     for (const auto s : slots) app_.room().pulse(s);
+    app_.room().note_input(slots.size());
   });
 }
 

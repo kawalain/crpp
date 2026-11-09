@@ -29,6 +29,11 @@ constants {
 }
 
 palette cumulus {
+  // The Room's weather.
+  weather_sky #1d2a3a
+  weather_cloud #5b6b7c
+  rain #eef6ff
+  bolt #ffd84a
   // A word in a Room's code: the cake and the stars keep their colours in every Theme.
   cake_sponge #f8dfb8
   cake_cream #ff9db5
@@ -80,6 +85,11 @@ palette cumulus {
 }
 
 palette darkcloud {
+  // The Room's weather.
+  weather_sky #1d2a3a
+  weather_cloud #0a111b
+  rain #eef6ff
+  bolt #ffd84a
   // A word in a Room's code: the cake and the stars keep their colours in every Theme.
   cake_sponge #f8dfb8
   cake_cream #ff9db5
@@ -131,6 +141,11 @@ palette darkcloud {
 }
 
 palette pastel {
+  // The Room's weather.
+  weather_sky #1d2a3a
+  weather_cloud #5b6b7c
+  rain #eef6ff
+  bolt #ffd84a
   // A word in a Room's code: the cake and the stars keep their colours in every Theme.
   cake_sponge #f8dfb8
   cake_cream #ff9db5

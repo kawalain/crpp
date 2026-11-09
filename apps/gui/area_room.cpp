@@ -173,6 +173,17 @@ bool scene(Shell& s, std::string_view name) {
     s.app.room().enter_room(name == "room-word-zzz" ? "ZZZ7KQ" : name == "room-word-cake" ? "CAKE42" : "X9STAR");
     return true;
   }
+  if (name == "room-weather-cloudy" || name == "room-weather-rain" || name == "room-weather-storm") {
+    demo_session(s.app, name == "room-weather-rain");
+    // A minute of input as busy as each step, held long enough for the sky to follow.
+    const unsigned per_member = name == "room-weather-cloudy" ? 40 : name == "room-weather-rain" ? 120 : 300;
+    RoomWeather& weather = s.app.room().weather();
+    const auto now = clock_ms();
+    weather.note(now, per_member * 4);
+    (void)weather.update(now, 4);
+    (void)weather.update(now + RoomWeather::hold_ms, 4);
+    return true;
+  }
   if (name == "room-mention") {  // someone names this member
     demo_session(s.app, true);
     ChatPanel& chat = s.app.room().chat();

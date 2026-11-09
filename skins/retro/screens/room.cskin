@@ -32,7 +32,15 @@ path "M10 1 12.6 7 19 7.5 14.1 11.7 15.6 18 10 14.6 4.4 18 5.9 11.7 1 7.5 7.4 7Z
 // The status line.
 fill edge_dark y @H-20 h 1
 fill edge_light y snap(@Y+@H-20)-@Y+@u h 1
-text @status (8, @H-18, @W-16, 18) style body color ink_soft
+text @status (8, @H-18, @W-16-(@weather>0 ? 22 : 0), 18) style body color ink_soft
+// The Room's weather, from how busy it is: a cloud, a rain cloud, a storm. Nothing while it is clear.
+(@W-8-18, @H-18, 18, 18) if @weather>0 {
+  path "M2 0 1 4M6 0 5 4M10 0 9 4" (4, 12) color rain width 1.3 if @weather==2
+  path "M5 0 2 5H4L3 8 7 3H5L6 0Z" (6, 10) color bolt if @weather==3
+  path "M4.5 12H13.5A3.5 3.5 0 0 0 13 5.1 4.6 4.6 0 0 0 4.3 6.6 2.7 2.7 0 0 0 4.5 12Z" (0, -2)
+      color @weather==3 ? edge_dark : weather_cloud
+  path "M4.5 12H13.5A3.5 3.5 0 0 0 13 5.1 4.6 4.6 0 0 0 4.3 6.6 2.7 2.7 0 0 0 4.5 12Z" (0, -2) color ink width 1
+}
 let main_w = @W-12
 let main_h = @H-20-52-12
 let cols = @chat ? 1 : max(1, floor((main_w-scrollbar_w)/112))

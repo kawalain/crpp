@@ -1409,6 +1409,38 @@ void test_clearing_the_chat_starts_over() {
 
 }  // namespace
 
+void test_weather_follows_the_last_minute() {
+  using W = RoomWeather;
+  CHECK(W::step_for(0) == W::Clear);
+  CHECK(W::step_for(19) == W::Clear);
+  CHECK(W::step_for(20) == W::Cloudy);
+  CHECK(W::step_for(80) == W::Rain);
+  CHECK(W::step_for(200) == W::Storm);
+  W w;
+  CHECK(w.wake_at() == 0);  // a quiet Room needs no timer
+  // Two members, 100 events a minute each: rain, once it has held.
+  w.note(1000, 200);
+  CHECK(!w.update(1000, 2));
+  CHECK(w.step() == W::Clear);
+  CHECK(w.wake_at() == 1000 + W::hold_ms);
+  CHECK(!w.update(5000, 2));
+  CHECK(w.update(1000 + W::hold_ms, 2));
+  CHECK(w.step() == W::Rain);
+  // Nothing more comes: the minute runs out, and the sky clears after holding again.
+  CHECK(w.wake_at() != 0);
+  CHECK(!w.update(62000, 2));
+  CHECK(w.step() == W::Rain);
+  CHECK(w.update(62000 + W::hold_ms, 2));
+  CHECK(w.step() == W::Clear);
+  CHECK(w.wake_at() == 0);
+  // More members online share the same input.
+  W shared;
+  shared.note(0, 200);
+  (void)shared.update(0, 4);
+  CHECK(shared.update(W::hold_ms, 4));
+  CHECK(shared.step() == W::Cloudy);
+}
+
 void test_an_account_has_an_anniversary_on_its_day() {
   CHECK(anniversary_years(2024, 11, 9, 2025, 11, 9) == 1);
   CHECK(anniversary_years(2020, 11, 9, 2026, 11, 9) == 6);
@@ -1422,6 +1454,7 @@ void test_an_account_has_an_anniversary_on_its_day() {
 
 int main() {
   test_an_account_has_an_anniversary_on_its_day();
+  test_weather_follows_the_last_minute();
   test_limiter_is_firmer_the_third_time_in_a_row();
   test_a_message_names_someone_anywhere_in_it();
   test_arrows_bring_back_what_was_sent();

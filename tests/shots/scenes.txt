@@ -51,6 +51,9 @@ room-mention
 room-word-zzz
 room-word-cake
 room-word-star
+room-weather-cloudy
+room-weather-rain
+room-weather-storm
 room-calm-firm
 settings-sound
 settings-sound-dark

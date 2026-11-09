@@ -22,6 +22,7 @@ void RoomScreen::enter_room(std::string room_code) {
   room_code_ = std::move(room_code);
   code_words_ = home::words_in_code(room_code_);
   options_open_ = mute_popup_open_ = false;
+  weather_.reset();
 }
 
 void RoomScreen::reset() {
@@ -31,6 +32,7 @@ void RoomScreen::reset() {
   chat_panel_.clear();
   options_open_ = mute_popup_open_ = false;
   pulses_.clear();
+  weather_.reset();
   copy_until_ = hint_muted_until_ = 0;
   lock_pending_ = false;
   blocked_id_ = -1;
@@ -106,6 +108,20 @@ void RoomScreen::pulse(std::uint32_t slot) {
   }
   pulses_.push_back({slot, 0, now, until, true, fade_ms});
   new_pulse_ = true;
+}
+
+std::size_t RoomScreen::online() const {
+  return static_cast<std::size_t>(std::ranges::count_if(members_, [](const MemberView& m) { return !m.offline; }));
+}
+
+void RoomScreen::note_input(std::size_t events) {
+  const auto now = clock_ms();
+  weather_.note(now, static_cast<unsigned>(events));
+  if (weather_.update(now, online())) {
+    // The sky is the whole window: the next frame draws all of it.
+    needs_full_ = true;
+    new_pulse_ = true;
+  }
 }
 
 float RoomScreen::speaking_level(std::uint32_t slot) const {
@@ -212,6 +228,7 @@ bool RoomScreen::tick(unsigned long long now_ms) {
     hint_muted_until_ = 0;
     changed = true;
   }
+  if (const auto at = weather_.wake_at(); at != 0 && now_ms >= at) changed = weather_.update(now_ms, online()) || changed;
   needs_full_ = needs_full_ || changed;
   return changed || pulse_moved;
 }
@@ -219,7 +236,7 @@ bool RoomScreen::tick(unsigned long long now_ms) {
 unsigned long long RoomScreen::wake_at() const {
   unsigned long long at = 0;
   for (const auto wake : {copy_until_, hint_muted_until_, lock_pending_ ? chat_lock_at_ : 0ULL, profile_.wake_at(),
-                          chat_panel_.wake_at()}) {
+                          chat_panel_.wake_at(), weather_.wake_at()}) {
     if (wake != 0 && (at == 0 || wake < at)) at = wake;
   }
   // A held disc draws nothing until its fall begins.

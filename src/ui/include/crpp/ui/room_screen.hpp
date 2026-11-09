@@ -15,6 +15,7 @@
 #include "crpp/ui/profile_card.hpp"
 #include "crpp/ui/settings_rows.hpp"
 #include "crpp/skin/pack.hpp"
+#include "crpp/ui/room_weather.hpp"
 #include "crpp/ui/surface.hpp"
 #include "crpp/ui/tip.hpp"
 
@@ -85,6 +86,9 @@ class RoomScreen final : public Surface {
   void show_profile(ProfileView profile);
   // A member made a sound: their emoji ring lights up briefly.
   void pulse(std::uint32_t slot);
+  // So many input events came in, anyone's, mine too: the Room's weather follows them.
+  void note_input(std::size_t events);
+  [[nodiscard]] RoomWeather& weather() { return weather_; }
   // How strongly a member's speaking disc shows, from 0 to 1.
   [[nodiscard]] float speaking_level(std::uint32_t slot) const;
   // When only speaking discs move: all that the next frame has to draw.
@@ -160,6 +164,8 @@ class RoomScreen final : public Surface {
   std::vector<std::pair<std::string, int>> member_volumes_;
   std::string room_code_;
   unsigned code_words_ = 0;
+  RoomWeather weather_;
+  [[nodiscard]] std::size_t online() const;
   std::vector<MemberView> members_;
   std::uint32_t me_ = 0;
   // The member the keyboard is on, by slot; the first in the list until a key or a click says.

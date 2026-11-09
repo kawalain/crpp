@@ -118,6 +118,8 @@ void TextField::erase() {
 }
 
 std::pair<std::size_t, std::size_t> TextField::unit_at(std::size_t pos, int clicks) const {
+  // A password is one word, as in Windows' own fields: its words would show where its spaces are.
+  if (password && clicks >= 2) return {0, text_.size()};
   return ui::unit_at(text_, pos, clicks);
 }
 
@@ -182,25 +184,27 @@ void TextField::select_all() {
 }
 
 bool TextField::key_down(unsigned vk, bool ctrl, bool shift) {
+  const auto word_before = [&](std::size_t pos) { return password ? 0 : previous_word(text_, pos); };
+  const auto word_after = [&](std::size_t pos) { return password ? text_.size() : next_word(text_, pos); };
   switch (vk) {
     case VK_BACK:
       if (has_selection()) erase_selection();
       else if (caret_ > 0) {
-        const auto to = ctrl ? previous_word(text_, caret_) : step(text_, caret_, -1);
+        const auto to = ctrl ? word_before(caret_) : step(text_, caret_, -1);
         text_.erase(to, caret_ - to);
         caret_ = anchor_ = to;
       }
       return true;
     case VK_DELETE:
       if (has_selection()) erase_selection();
-      else if (caret_ < text_.size()) text_.erase(caret_, (ctrl ? next_word(text_, caret_) : step(text_, caret_, 1)) - caret_);
+      else if (caret_ < text_.size()) text_.erase(caret_, (ctrl ? word_after(caret_) : step(text_, caret_, 1)) - caret_);
       return true;
     case VK_LEFT:
-      if (ctrl) move_to(previous_word(text_, caret_), shift);
+      if (ctrl) move_to(word_before(caret_), shift);
       else move_to(has_selection() && !shift ? std::min(caret_, anchor_) : step(text_, caret_, -1), shift);
       return true;
     case VK_RIGHT:
-      if (ctrl) move_to(next_word(text_, caret_), shift);
+      if (ctrl) move_to(word_after(caret_), shift);
       else move_to(has_selection() && !shift ? std::max(caret_, anchor_) : step(text_, caret_, 1), shift);
       return true;
     case VK_HOME:

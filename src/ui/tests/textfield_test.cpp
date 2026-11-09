@@ -66,6 +66,17 @@ void a_joined_emoji_is_one_word() {
   CHECK(field.selected_text() == family);
 }
 
+// Windows' password fields go as one word, so a selection shows nothing of where the spaces are.
+void a_password_is_one_word() {
+  TextField field = with(L"two words", 9);
+  field.password = true;
+  CHECK(field.key_down(VK_LEFT, true, false) && field.caret() == 0);
+  CHECK(field.key_down(VK_RIGHT, true, false) && field.caret() == 9);
+  field.press(1, 2, false);
+  CHECK(field.selects(0) && field.selects(9));
+  CHECK(field.key_down(VK_BACK, true, false) && field.text().empty());
+}
+
 void a_double_click_selects_a_word_and_a_triple_its_paragraph() {
   TextField field;
   field.multiline = true;
@@ -157,6 +168,7 @@ int main() {
   ctrl_backspace_and_delete_take_a_word();
   a_word_never_splits_a_surrogate_pair();
   a_joined_emoji_is_one_word();
+  a_password_is_one_word();
   a_double_click_selects_a_word_and_a_triple_its_paragraph();
   a_drag_after_a_double_click_goes_by_words();
   a_single_line_field_pastes_lines_as_spaces();

@@ -1,6 +1,7 @@
 #pragma once
-// The diagnostic log behind "로그 기록". It takes only events from this list, with no
-// text of any kind, so nothing typed, no key, no chat and no Room code can reach it.
+// The diagnostic log behind "로그 기록". It takes only events from this list, so nothing typed,
+// no key, no chat and no Room code can reach it. An event may carry a detail of no input: which
+// packs, or why a pack could not be read, in the words of whoever wrote the pack.
 // Written only while enabled; turning it off deletes the file, as upstream does. All
 // of it runs on the UI thread, on rare events, so each line opens the file itself.
 #include <array>

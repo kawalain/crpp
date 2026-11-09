@@ -306,7 +306,12 @@ const SvgImage& EmojiCache::get(const Gfx& gfx, const std::string& id) {
   }
   SvgImage image;
   if (valid_emoji_id(id)) {
-    if (std::ifstream in(dir_ / "emoji" / (id + ".svg"), std::ios::binary); in) {
+    // A member's emoji comes from the server, and "com1.svg" would open a serial port.
+    const std::filesystem::path file = dir_ / "emoji" / (id + ".svg");
+    std::error_code ec;
+    std::ifstream in;
+    if (std::filesystem::is_regular_file(file, ec)) in.open(file, std::ios::binary);
+    if (in.is_open()) {
       std::stringstream buffer;
       buffer << in.rdbuf();
       image = parse_svg(gfx, buffer.str());

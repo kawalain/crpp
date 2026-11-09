@@ -11,6 +11,15 @@
 
 namespace crpp::ui {
 
+// A Room with a Seat to go back to, and how long the Seat is still held.
+struct HeldSeatShown {
+  std::string code;
+  std::uint64_t left_ms = 0;
+};
+
+// "14분 남음": the minutes rounded up, so a Seat never shows 0.
+[[nodiscard]] std::string seat_time_left(std::uint64_t left_ms);
+
 class HomeScreen final : public Surface {
  public:
   explicit HomeScreen(Ui& ui);
@@ -40,7 +49,7 @@ class HomeScreen final : public Surface {
   std::function<std::optional<std::uint64_t>()> held_seat_ms;
   // The Rooms with a Seat to go back to, and the user's own picture: read on every paint, by
   // a Skin that shows them.
-  std::function<std::vector<std::string>()> held_seats;
+  std::function<std::vector<HeldSeatShown>()> held_seats;
   std::function<std::string()> my_emoji;
 
   void set_nickname(std::string nickname) { nickname_ = std::move(nickname); }
@@ -51,7 +60,7 @@ class HomeScreen final : public Surface {
   // A Room was entered: the question and the typed code do not outlive Home.
   void left_home();
   [[nodiscard]] bool asking_return() const { return return_open_; }
-  [[nodiscard]] bool returning() const { return seat_wake_ != 0; }
+  [[nodiscard]] bool returning() const { return seat_ends_ != 0; }
 
   void paint(Painter& p);
   // The return question, above the settings droplet like every modal.
@@ -89,7 +98,13 @@ class HomeScreen final : public Surface {
   int hour_ = 12;
   TextField code_;
   Id last_action_ = Create;
-  unsigned long long seat_wake_ = 0;  // when the latest held Seat expires; 0 = none
+  unsigned long long seat_ends_ = 0;  // when the latest held Seat expires; 0 = none
+  // A Seat's time left was drawn: the frame after the next minute it says, if one was.
+  unsigned long long minute_wake_ = 0;
+  // In a frame: how soon a time left that was drawn changes, 0 = none drawn. Home's paint starts a frame.
+  std::uint64_t next_minute_ms_ = 0;
+  void note_time_left(std::uint64_t left_ms);
+  void after_drawing_times(unsigned long long now) { minute_wake_ = next_minute_ms_ == 0 ? 0 : now + next_minute_ms_; }
   bool return_open_ = false;
   unsigned long long tip_muted_until_ = 0;  // a bubble is where the search label would be
 };

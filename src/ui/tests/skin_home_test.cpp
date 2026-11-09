@@ -38,7 +38,7 @@ std::vector<Place> places(UiHarness& h) {
 }
 
 void hold_two_seats(UiHarness& h) {
-  h.app.home().held_seats = [] { return std::vector<std::string>{"ABC234", "XYZ789"}; };
+  h.app.home().held_seats = [] { return std::vector<HeldSeatShown>{{"ABC234", 60000}, {"XYZ789", 120000}}; };
   h.app.home().held_seat_ms = []() -> std::optional<std::uint64_t> { return 60000; };
 }
 
@@ -48,6 +48,23 @@ void start_on_home(UiHarness& h) {
   h.app.show_home();
   h.app.home().set_nickname("Me");
   hold_two_seats(h);
+}
+
+// A time left that is drawn wakes Home when the minute it says changes, and no more often.
+void test_a_seats_time_left_wakes_home_each_minute() {
+  UiHarness h;
+  start_on_home(h);
+  HomeScreen& home = h.app.home();
+  home.held_seats = [] { return std::vector<HeldSeatShown>{{"ABC234", 14 * 60000 - 2000}}; };
+  home.held_seat_ms = []() -> std::optional<std::uint64_t> { return 30 * 60000; };
+  h.render();
+  const unsigned long long now = h.app.ui().now_ms;
+  CHECK(home.wake_at() == now + 58000);
+  CHECK(seat_time_left(14 * 60000 - 2000) == "14분 남음");
+  CHECK(seat_time_left(1) == "1분 남음");
+  // Woken but not drawn, as when hidden: only the Seat's end is left to wake for.
+  CHECK(home.tick(now + 58000));
+  CHECK(home.wake_at() == now + 30 * 60000);
 }
 
 void test_clicks_on_home_do_what_they_say() {
@@ -840,6 +857,7 @@ void test_a_folder_without_a_pack_is_refused_and_changes_nothing() {
 
 int main() {
   test_clicks_on_home_do_what_they_say();
+  test_a_seats_time_left_wakes_home_each_minute();
   for (const Look look : {Look{CRPP_TEST_SKINS "/cloud", "cloud"}, Look{retro_pack, "luna_blue"}, Look{retro_pack, "classic"}}) {
     test_a_button_acts_when_the_button_comes_up_on_it(look);
     test_what_cannot_wait_acts_on_the_press(look);

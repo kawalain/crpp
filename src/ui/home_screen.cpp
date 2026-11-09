@@ -29,7 +29,17 @@ void HomeScreen::paint_return(Painter& p) {
 
 void HomeScreen::refresh_seat(unsigned long long now) {
   const auto left = held_seat_ms ? held_seat_ms() : std::nullopt;
-  seat_wake_ = left ? now + *left : 0;
+  seat_ends_ = left ? now + *left : 0;
+}
+
+void HomeScreen::note_time_left(std::uint64_t left_ms) {
+  // The minutes shown are rounded up, so they change when the rest of a minute has gone.
+  const std::uint64_t to_change = left_ms % 60000 == 0 ? 60000 : left_ms % 60000;
+  if (next_minute_ms_ == 0 || to_change < next_minute_ms_) next_minute_ms_ = to_change;
+}
+
+std::string seat_time_left(std::uint64_t left_ms) {
+  return locale::fill(tr().home_seat_left, {std::to_string(std::max<std::uint64_t>(1, (left_ms + 59999) / 60000))});
 }
 
 void HomeScreen::join() {
@@ -128,11 +138,11 @@ void HomeScreen::click(int id, float x, float, bool shift) {
       break;
     default:
       if (id >= SeatBase && !is_busy() && held_seats && on_join) {
-        const std::vector<std::string> seats = held_seats();
+        const std::vector<HeldSeatShown> seats = held_seats();
         const auto index = static_cast<std::size_t>(id - SeatBase);
         if (index < seats.size()) {
           last_action_ = Create;  // the list is what tried, so a failure goes to the top
-          on_join(seats[index]);
+          on_join(seats[index].code);
         }
       }
       break;
@@ -156,8 +166,13 @@ bool HomeScreen::tick(unsigned long long now_ms) {
   bool changed = false;
   // Here and not only in paint: a hidden window never paints, and must not be woken
   // again at once for the same moment.
-  if (seat_wake_ != 0 && now_ms >= seat_wake_) {
+  if (seat_ends_ != 0 && now_ms >= seat_ends_) {
     refresh_seat(now_ms);
+    changed = true;
+  }
+  // Drawn again, it says the next minute; hidden, it is not woken again for it.
+  if (minute_wake_ != 0 && now_ms >= minute_wake_) {
+    minute_wake_ = 0;
     changed = true;
   }
   if (tip_muted_until_ != 0 && now_ms >= tip_muted_until_) {
@@ -168,8 +183,11 @@ bool HomeScreen::tick(unsigned long long now_ms) {
 }
 
 unsigned long long HomeScreen::wake_at() const {
-  if (seat_wake_ == 0 || tip_muted_until_ == 0) return seat_wake_ + tip_muted_until_;
-  return std::min(seat_wake_, tip_muted_until_);
+  unsigned long long soonest = 0;
+  for (const unsigned long long at : {seat_ends_, minute_wake_, tip_muted_until_}) {
+    if (at != 0 && (soonest == 0 || at < soonest)) soonest = at;
+  }
+  return soonest;
 }
 
 }  // namespace crpp::ui

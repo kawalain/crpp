@@ -45,7 +45,14 @@ void wire(Shell& s) {
     const auto seat = sp->store->latest_seat(unix_ms());
     enter_room(*sp, ui::home::entry_for_return(seat ? std::optional(ui::home::HeldSeat{seat->code, seat->key}) : std::nullopt));
   };
-  home.held_seats = [sp] { return sp->store->seat_codes(unix_ms()); };
+  home.held_seats = [sp] {
+    const auto now = unix_ms();
+    std::vector<ui::HeldSeatShown> shown;
+    for (store::SeatReturn& seat : sp->store->held_seats(now)) {
+      shown.push_back({std::move(seat.code), static_cast<std::uint64_t>(std::max<std::int64_t>(0, seat.expires_at - now))});
+    }
+    return shown;
+  };
   home.my_emoji = [sp] { return sp->store->string_or("emoji", ""); };
   home.held_seat_ms = [sp]() -> std::optional<std::uint64_t> {
     const auto now = unix_ms();
@@ -60,7 +67,7 @@ namespace {
 // A Seat that lasts past any screenshot.
 void hold_a_seat(Shell& s) {
   s.app.home().held_seat_ms = []() -> std::optional<std::uint64_t> { return 60000; };
-  s.app.home().held_seats = [] { return std::vector<std::string>{"ABC234", "XYZ789"}; };
+  s.app.home().held_seats = [] { return std::vector<ui::HeldSeatShown>{{"ABC234", 60000}, {"XYZ789", 14 * 60000 - 2000}}; };
 }
 
 }  // namespace

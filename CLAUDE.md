@@ -154,6 +154,8 @@ against a real `server/` yet; do that once a local build of it is available.
 - A speaking disc costs less than upstream's: held up by someone who keeps typing it draws
   no frame, and otherwise only the avatars are drawn.
 - A Room that cannot be resumed at startup says so; upstream returns to Home silently.
+- A held Seat says how many minutes it is still held, in Retro's list and in Cloud's question. Home wakes for it only
+  when the minute drawn changes.
 - The program calls itself Cloudroom++, so its autostart entry does not collide with upstream's.
 - The system tab's advanced section has "뒤에 있을 때 메모리 비우기" (at once, 10 s, 1 min, never), kept
   under a key of this client's own. Behind another program, outside a Room, the window lets go of its

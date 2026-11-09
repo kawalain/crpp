@@ -158,6 +158,7 @@ style code_placeholder size 26 line_height 60
 style tip size 16 weight 700 line_height 22 align center
 style modal_text size 18 weight 700 line_height 27 align center wrap
 style dialog_text size 18 weight 700 line_height 27 align center wrap keep_words
+style modal_note size 15 line_height 20 align center
 style button size 16 weight 700 line_height 0 align center
 style toast_text size 15 weight 700 line_height 22 wrap
 style toast_action size 15 weight 700 line_height 32 align center

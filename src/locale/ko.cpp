@@ -174,6 +174,7 @@ const Strings korean{
     .home_enter = "들어가기",
     .home_seats = "돌아갈 자리",
     .home_seats_empty = "돌아갈 수 있는 구름이 없어요.",
+    .home_seat_left = "{0}분 남음",
     .home_tasks = "하고 싶은 일",
     .room_contacts = "대화 상대: {0}",
     .room_options = "옵션",

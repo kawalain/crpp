@@ -41,6 +41,7 @@ text @tr.home_seats (10, find.bottom+16, @W-20, 16) id seats_title style bold co
       hit seat y @i*20 h 20 {
         fill select if @hot
         text @seat style body color @hot ? select_ink : ink x 5 w @W-10
+        text @seat_left style body_right color @hot ? select_ink : ink_soft x 5 w @W-10
       }
     }
   }

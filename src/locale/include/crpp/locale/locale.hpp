@@ -196,6 +196,7 @@ struct Strings {
   const char* home_enter;
   const char* home_seats;
   const char* home_seats_empty;
+  const char* home_seat_left;  // {0} minutes until a held Seat is let go
   const char* home_tasks;
   const char* room_contacts;
   const char* room_options;

@@ -74,6 +74,7 @@ const Strings english{
     .member_profile = "Profile",
     .member_volume = "Volume",
     .profile_joined = "Joined: {0}",
+    .profile_anniversary = "(anniversary #{0})",
     .profile_stayed = "Time in this Room: {0}",
     .profile_inputs = "Inputs in this Room: {0}",
     .profile_change_icon = "Change icon",

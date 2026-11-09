@@ -167,6 +167,8 @@ against a real `server/` yet; do that once a local build of it is available.
 - The program calls itself Cloudroom++, so its autostart entry does not collide with upstream's.
 - Home greets by the day instead of the hour on New Year's Day, 1 April, 24 and 25 December and 7 November, the day
   v0.1.0 came out.
+- A profile says "(오늘 2주년)" after the date an account was made, on that day of a later year by the local calendar;
+  one made on 29 February has it on the 28th in other years.
 - The tray menu has mute and leaving the Room while in one, and the options, besides quitting.
 - The system tab's advanced section has "뒤에 있을 때 메모리 비우기" (at once, 10 s, 1 min, never), kept
   under a key of this client's own. Behind another program, outside a Room, the window lets go of its

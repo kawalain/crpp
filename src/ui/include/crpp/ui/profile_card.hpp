@@ -21,6 +21,16 @@ struct ProfileView {
 };
 
 
+// How many years an account turns on this day, by the local calendar: nothing on any other day,
+// and nothing in the year it was made. Months are 1-12.
+[[nodiscard]] constexpr std::optional<int> anniversary_years(int made_year, int made_month, int made_day, int year, int month, int day) {
+  // Made on 29 February, it is kept on 28 February in other years.
+  const bool leap = (year % 4 == 0 && year % 100 != 0) || year % 400 == 0;
+  if (made_month == 2 && made_day == 29 && !leap) made_day = 28;
+  if (month != made_month || day != made_day || year <= made_year) return std::nullopt;
+  return year - made_year;
+}
+
 class ProfileCard final : public Surface {
  public:
   using Surface::Surface;

@@ -81,6 +81,7 @@ constexpr Key keys[] = {
     KEY(member_profile),
     KEY(member_volume),
     KEY(profile_joined),
+    KEY(profile_anniversary),
     KEY(profile_stayed),
     KEY(profile_inputs),
     KEY(profile_change_icon),

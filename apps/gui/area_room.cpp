@@ -118,13 +118,15 @@ bool scene(Shell& s, std::string_view name) {
     s.app.room().click(RoomScreen::Leave, 0, 0, false);
     return true;
   }
-  if (name == "room-profile" || name == "room-profile-handle") {
+  if (name == "room-profile" || name == "room-profile-handle" || name == "room-profile-anniversary") {
     demo_session(s.app, false);
     RoomScreen& room = s.app.room();
     room.profile_card().request(0);
-    const bool handle = name == "room-profile-handle";
+    const bool handle = name != "room-profile";
+    // The shot's clock is 1700000000; 730 days before it is the same day two years earlier.
+    const std::int64_t made = name == "room-profile-anniversary" ? 1700000000 - 730 * 86400 : 1700000000;
     room.show_profile({0, "크롬이", "1f600", handle ? std::optional<std::string>("chrome") : std::nullopt,
-                       handle ? std::optional<std::int64_t>(1700000000) : std::nullopt, 3900, 12345});
+                       handle ? std::optional<std::int64_t>(made) : std::nullopt, 3900, 12345});
     return true;
   }
   if (name == "room-menu") {

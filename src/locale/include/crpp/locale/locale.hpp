@@ -93,6 +93,7 @@ struct Strings {
   const char* member_profile;
   const char* member_volume;
   const char* profile_joined;  // {0} a date
+  const char* profile_anniversary;  // after it, on the day: {0} years since
   const char* profile_stayed;  // {0} a length of time
   const char* profile_inputs;  // {0} a count
   const char* profile_change_icon;

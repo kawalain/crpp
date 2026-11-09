@@ -74,6 +74,7 @@ const Strings korean{
     .member_profile = "프로필",
     .member_volume = "이 사람의 음량",
     .profile_joined = "가입 시기: {0}",
+    .profile_anniversary = "(오늘 {0}주년)",
     .profile_stayed = "이 구름에 머문 시간: {0}",
     .profile_inputs = "이 구름에서 입력한 횟수: {0}",
     .profile_change_icon = "아이콘 바꾸기",

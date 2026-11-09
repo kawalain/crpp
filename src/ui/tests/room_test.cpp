@@ -1409,7 +1409,19 @@ void test_clearing_the_chat_starts_over() {
 
 }  // namespace
 
+void test_an_account_has_an_anniversary_on_its_day() {
+  CHECK(anniversary_years(2024, 11, 9, 2025, 11, 9) == 1);
+  CHECK(anniversary_years(2020, 11, 9, 2026, 11, 9) == 6);
+  CHECK(!anniversary_years(2026, 11, 9, 2026, 11, 9));  // the day it was made
+  CHECK(!anniversary_years(2024, 11, 9, 2025, 11, 10));
+  CHECK(!anniversary_years(2024, 11, 9, 2025, 10, 9));
+  CHECK(anniversary_years(2024, 2, 29, 2025, 2, 28) == 1);  // no 29 February that year
+  CHECK(!anniversary_years(2024, 2, 29, 2028, 2, 28));
+  CHECK(anniversary_years(2024, 2, 29, 2028, 2, 29) == 4);
+}
+
 int main() {
+  test_an_account_has_an_anniversary_on_its_day();
   test_limiter_is_firmer_the_third_time_in_a_row();
   test_a_message_names_someone_anywhere_in_it();
   test_arrows_bring_back_what_was_sent();

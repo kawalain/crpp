@@ -25,10 +25,21 @@ constexpr skin::Name report_names[] = {{"width", Width}, {"height", Height}};
 constexpr skin::Name note_names[] = {{"icon", 0}};
 
 
-std::string format_date(std::int64_t seconds) {
+std::tm local_date(std::int64_t seconds) {
   const auto t = static_cast<std::time_t>(seconds);
   std::tm tm{};
   localtime_s(&tm, &t);
+  return tm;
+}
+
+// On the day an account was made, a year or more on.
+std::optional<int> years_today(std::int64_t created) {
+  const std::tm made = local_date(created), today = local_date(wall_clock_seconds());
+  return anniversary_years(made.tm_year + 1900, made.tm_mon + 1, made.tm_mday, today.tm_year + 1900, today.tm_mon + 1, today.tm_mday);
+}
+
+std::string format_date(std::int64_t seconds) {
+  const std::tm tm = local_date(seconds);
   char date[32];
   std::snprintf(date, sizeof date, "%d.%02d.%02d", tm.tm_year + 1900, tm.tm_mon + 1, tm.tm_mday);
   return date;
@@ -47,7 +58,10 @@ class ShownProfile final : public skin::Source {
   ShownProfile(const ProfileView& profile, bool mine, Ui& ui, Painter* painter, Rect* icon) : v_(profile), mine_(mine), ui_(ui), p_(painter), icon_(icon) {
     nick_ = v_.nick.empty() ? std::string(tr().guest) : v_.nick;
     if (v_.handle) handle_ = "@" + *v_.handle;
-    if (v_.created) joined_ = locale::fill(tr().profile_joined, {format_date(*v_.created)});
+    if (v_.created) {
+      joined_ = locale::fill(tr().profile_joined, {format_date(*v_.created)});
+      if (const auto years = years_today(*v_.created)) joined_ += " " + locale::fill(tr().profile_anniversary, {std::to_string(*years)});
+    }
     stayed_ = locale::fill(tr().profile_stayed, {locale::format_stay(v_.stayed)});
     inputs_ = locale::fill(tr().profile_inputs, {locale::format_times(v_.events)});
   }

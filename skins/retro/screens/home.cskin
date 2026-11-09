@@ -21,8 +21,11 @@ id find (8, header.bottom+16, @W-16, 46) {
   use button (code.right+6, code.y, enter_w, 23) text @tr.home_enter hit join
   use group_box text @tr.home_find
 }
-// What can be started.
-id tasks y @H-66 h 66 {
+// What can be started. How many public Rooms are open goes beside the link, or under it where it would not fit.
+let count_w = @public_rooms>=0 ? textw(body, @public_rooms_text)+12 : 0
+let count_under = 40+textw(body, @tr.home_find_public)+count_w > @W-8
+let tasks_h = 66+(count_under ? 18 : 0)
+id tasks y @H-tasks_h h tasks_h {
   fill header
   fill edge_dark h 1
   text @tr.home_tasks (10, 6, @W-20, 16) style bold color ink
@@ -31,7 +34,8 @@ id tasks y @H-66 h 66 {
   fill link (14, 48, 8, 8)
   use link (28, 43, @W-38, 18) text @tr.home_find_public hit find
   // How many are open, when the server said.
-  text @public_rooms_text (40+textw(body, @tr.home_find_public), 43, @W-50, 18) style body color ink_soft if @public_rooms>=0
+  text @public_rooms_text (count_under ? 28 : 40+textw(body, @tr.home_find_public), count_under ? 61 : 43, @W-38, 18) style body color ink_soft
+      if @public_rooms>=0
 }
 // The Seats to go back to.
 text @tr.home_seats (10, find.bottom+16, @W-20, 16) id seats_title style bold color ink

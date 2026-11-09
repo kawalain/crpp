@@ -957,9 +957,18 @@ bool App::char_input(wchar_t c, bool shift) {
   return true;
 }
 
+void App::found_hidden_themes() {
+  ui_.achieve(AchievementId::Konami);
+  if (ui_.prefs->get(pref::hidden_themes)) return;
+  ui_.prefs->set(pref::hidden_themes, true);
+  toasts_.toast(tr().hidden_themes_found);
+}
+
 bool App::key_down(unsigned vk, bool ctrl, bool shift) {
   taken_char_ = 0;
   alone_ = 0;
+  // Only watched: every key still goes where it would.
+  if (!ctrl && konami_.key(vk)) found_hidden_themes();
   if (context_menu_.is_open()) {
     taken_char_ = any_char;
     return context_menu_.key(vk, ctrl, shift);

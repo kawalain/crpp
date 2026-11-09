@@ -131,8 +131,9 @@ constants in `moving_constants` of `pack.hpp`.
 ## Themes, overlays and extending
 
 `theme` lines list what a user picks in this Skin: its names by locale, and its Palette, which is named as the Theme
-unless it says `palette`. `dark` names the Palette of its dark variant. A Palette can say `extends` to start from
-another, and then lists only what differs.
+unless it says `palette`. `dark` names the Palette of its dark variant. `hidden` leaves it out of the list, and of
+the catalog, until the user finds hidden Themes. A Palette can say `extends` to start from another, and then lists
+only what differs.
 
 A Theme that needs other shapes as well as other colours names an `overlay`, a folder under `overlays/`. What that
 holds replaces whatever the pack has by the same name, whole: a constant, style, part, Palette, screen, or `fonts` or

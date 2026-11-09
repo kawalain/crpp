@@ -144,6 +144,8 @@ class DisplayTab final : public SettingsTab {
  public:
   explicit DisplayTab(Ui& ui);
   [[nodiscard]] static skin::ScreenSchema schema();
+  // Every Skin's name and its Themes, as the list last showed them.
+  [[nodiscard]] const std::vector<std::string>& theme_list() const { return skin_theme_.options; }
   enum Id : int {
     ScaleSlider = 1,
     ThemeCursor,

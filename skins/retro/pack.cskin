@@ -6,6 +6,9 @@ theme classic names ko "고전" en "Classic" dark classic_dark
 theme luna_blue names ko "루나 블루" en "Luna Blue" dark luna_blue_dark overlay luna
 theme luna_homestead names ko "루나 홈스테드" en "Luna Homestead" dark luna_homestead_dark overlay luna
 theme luna_metallic names ko "루나 메탈릭" en "Luna Metallic" dark luna_metallic_dark overlay luna
+// Found with the Konami code: classic's shapes in loud red and yellow, after the old Windows 3.1 scheme of that
+// name, in colours chosen here. It has no dark variant.
+theme hotdog names ko "핫도그 가게" en "Hot Dog Stand" hidden
 
 default_theme classic
 
@@ -135,6 +138,39 @@ palette classic {
   hl_pale2 mix(select, field, 24%)
   cursor_face #ffffff
   cursor_line #000000
+}
+
+// Hot Dog Stand: red faces and captions, yellow fields, black where something is chosen.
+palette hotdog extends classic {
+  caption stops(0: #ff0000, 1: #ff0000)
+  caption_idle stops(0: #a00000, 1: #a00000)
+  face #ff0000
+  sky alpha(face, 1)
+  field #ffff00
+  field_off #ff8080
+  edge_soft #ff8080
+  edge_dark #800000
+  hover_0 #ffff00
+  off_ink #800000
+  off_shadow #ff8080
+  bar_track_from #ff8080
+  progress #000000
+  menu #ff0000
+  select #000000
+  header #ffff00
+  tooltip #ffff00
+  glow_0 #000000
+  glow_1 #ff0000
+  glow_2 #ffff80
+  ink_soft #400000
+  link #000080
+  picture_line #800000
+  selection #00000055
+  error_text #800000
+  toolbar_down mix(face, edge_dark, 30%)
+  hl_soft mix(select, field, 35%)
+  hl_pale mix(select, field, 12%)
+  hl_pale2 mix(select, field, 24%)
 }
 
 // There was no dark classic: the same shapes, in colours chosen here.

@@ -22,6 +22,7 @@
 #include "crpp/ui/dialogs.hpp"
 #include "crpp/ui/emoji_picker.hpp"
 #include "crpp/ui/home_screen.hpp"
+#include "crpp/ui/konami.hpp"
 #include "crpp/ui/notice_card.hpp"
 #include "crpp/ui/offline_popup.hpp"
 #include "crpp/ui/prefs.hpp"
@@ -203,6 +204,8 @@ class App {
   bool wheel(float x, float y, float delta);  // delta in notches (+ = up)
   bool char_input(wchar_t c, bool shift);
   bool key_down(unsigned vk, bool ctrl, bool shift);
+  // The Konami code: hidden Themes are listed from now on.
+  void found_hidden_themes();
   // Keys the system sees first, with Alt or F10. Shift+F10 opens the context menu, and Alt with a
   // title's letter that menu of an own frame.
   bool sys_key(unsigned vk, bool shift);
@@ -259,6 +262,7 @@ class App {
   std::string theme_id_ = "cumulus";  // the Theme a Ui starts with, until a choice is read
   MemoryPrefs memory_prefs_;
   Achievements achievements_;
+  KonamiCode konami_;
   SystemClipboard system_clipboard_;
   // The press before, to count clicks in a row.
   unsigned long long last_press_ms_ = 0;

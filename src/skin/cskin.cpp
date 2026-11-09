@@ -751,8 +751,10 @@ class Parser {
           auto value = ident("a name");
           if (!value) return false;
           theme.set(key.text, Json(std::move(*value)));
+        } else if (key.text == "hidden") {
+          theme.set("hidden", Json(true));
         } else {
-          return fail_at(key, "a Theme has names, palette, dark and overlay");
+          return fail_at(key, "a Theme has names, palette, dark, overlay and hidden");
         }
       }
       section("themes").set(*id, std::move(theme));

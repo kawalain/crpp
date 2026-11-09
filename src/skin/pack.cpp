@@ -385,6 +385,10 @@ class Loader final : public Names {
         return true;
       };
       if (!text("palette", theme.palette) || !text("dark", theme.dark) || !text("overlay", theme.overlay)) return false;
+      if (const Json* hidden = m.value.find("hidden")) {
+        if (!hidden->as_bool()) return fail(quoted + ": hidden is not true or false");
+        theme.hidden = *hidden->as_bool();
+      }
       const Json* names = m.value.find("names");
       const Json::Object* each = names ? names->as_object() : nullptr;
       if (!each || each->empty()) return fail(quoted + " has no names");

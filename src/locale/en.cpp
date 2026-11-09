@@ -92,6 +92,7 @@ const Strings english{
     .ach_clear = "Clear the record",
     .ach_clear_question = "Clear every Achievement and count? This cannot be undone.",
     .ach_clear_confirm = "Clear",
+    .hidden_themes_found = "You found a hidden Theme. Pick it in the Appearance tab.",
     .ach_toast = "Achievement reached: {0}",
     .ach_keys_10k = "Typing Trainee",
     .ach_keys_100k = "Keyboard Artisan",

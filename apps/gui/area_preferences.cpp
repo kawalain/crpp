@@ -348,12 +348,14 @@ bool scene(Shell& s, std::string_view name) {
   const bool failed = suffix("-failed");
   const bool tip = suffix("-tip");
   const bool to_end = suffix("-end");
+  const bool found = suffix("-found");
   const bool on = suffix("-on");
   const bool big = suffix("-big");
   if (rest == "display") {
     open(SettingsPage::Display);
     if (on) prefs.set(pref::system_theme, true);
     if (big) prefs.set(pref::chat_scale, 150);
+    if (found) prefs.set(pref::hidden_themes, true);  // after the Konami code
     if (tip) panel.display().click(DisplayTab::SkinThemeList, 0, 0, false);
     if (fetching || failed) {
       // A pack a Repository offers, picked before it is installed.

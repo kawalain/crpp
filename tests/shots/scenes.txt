@@ -66,6 +66,7 @@ settings-display-dark
 settings-display-pastel
 settings-display-on
 settings-display-tip
+settings-display-found-tip
 settings-display-big
 settings-display-end
 settings-display-fetching

@@ -99,6 +99,7 @@ constexpr Key keys[] = {
     KEY(ach_clear),
     KEY(ach_clear_question),
     KEY(ach_clear_confirm),
+    KEY(hidden_themes_found),
     KEY(ach_toast),
     KEY(ach_keys_10k),
     KEY(ach_keys_100k),

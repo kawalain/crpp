@@ -112,6 +112,7 @@ struct Strings {
   const char* ach_clear;
   const char* ach_clear_question;
   const char* ach_clear_confirm;
+  const char* hidden_themes_found;  // after the Konami code
   const char* ach_toast;  // {0} its name
   const char* ach_keys_10k;
   const char* ach_keys_100k;

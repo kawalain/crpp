@@ -153,6 +153,8 @@ class Writer {
       skin.names = names_of(pack->find("names"));
       if (const Json::Object* themes = pack->find("themes") ? pack->find("themes")->as_object() : nullptr) {
         for (const Json::Member& theme : *themes) {
+          // A hidden one is not offered: it shows only in an installed pack, once found.
+          if (const Json* hidden = theme.value.find("hidden"); hidden && hidden->as_bool().value_or(false)) continue;
           const Json* dark = theme.value.find("dark");
           skin.themes.push_back({theme.key, dark && dark->as_string() && !dark->as_string()->empty(), names_of(theme.value.find("names"))});
         }

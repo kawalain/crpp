@@ -265,6 +265,7 @@ struct PackFonts {
 struct PackTheme {
   std::string id, palette, dark, overlay;  // dark and overlay are empty when it has none
   std::vector<std::pair<std::string, std::string>> names;  // by locale id
+  bool hidden = false;  // listed only once hidden Themes were found
 };
 
 // What a pack says of the pack it extends besides its id: where it is, and what it must be.

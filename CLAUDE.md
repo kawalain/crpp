@@ -188,6 +188,9 @@ against a real `server/` yet; do that once a local build of it is available.
   (presses, clicks, minutes in Rooms, messages sent) and the day each was reached, under `achievementRecord`, a key of
   this client's own beside the settings, so a Shared store's upstream may drop it when it saves. The server has
   nowhere to carry them: only my own profile card shows how many.
+- The Konami code (↑↑↓↓←→←→BA) pressed anywhere in the app finds hidden Themes (`hiddenThemesFound`, a key of this
+  client's own): Retro's "핫도그 가게" ("Hot Dog Stand"), classic's shapes in loud red and yellow after the Windows 3.1
+  scheme of that name, in colours chosen here. A pack marks such a Theme `hidden`, and a catalog does not offer it.
 - The tray menu has mute and leaving the Room while in one, and the options, besides quitting.
 - The system tab's advanced section has "뒤에 있을 때 메모리 비우기" (at once, 10 s, 1 min, never), kept
   under a key of this client's own. Behind another program, outside a Room, the window lets go of its

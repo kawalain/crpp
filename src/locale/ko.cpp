@@ -92,6 +92,7 @@ const Strings korean{
     .ach_clear = "기록 지우기",
     .ach_clear_question = "도전과제와 횟수를 모두 지울까요? 되돌릴 수 없어요.",
     .ach_clear_confirm = "지우기",
+    .hidden_themes_found = "숨은 테마를 찾았어요. 외관 탭에서 골라 보세요.",
     .ach_toast = "도전과제 달성: {0}",
     .ach_keys_10k = "타자 연습생",
     .ach_keys_100k = "타자 장인",

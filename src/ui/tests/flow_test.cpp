@@ -1,3 +1,4 @@
+#include <algorithm>
 #include <cmath>
 #include <vector>
 
@@ -165,6 +166,46 @@ void test_the_record_can_be_cleared_after_asking(const char* pack) {
   CHECK(h.app.ui().prefs->get(pref::achievements_on));
   CHECK(h.click(s.achievements(), AchievementsTab::Toggle));
   CHECK(!h.app.ui().prefs->get(pref::achievements_on));
+}
+
+void test_the_konami_code_is_watched() {
+  using K = KonamiCode;
+  const auto enter = [](K& k, std::initializer_list<unsigned> keys) {
+    bool done = false;
+    for (const unsigned vk : keys) done = k.key(vk);
+    return done;
+  };
+  K k;
+  CHECK(enter(k, {K::up, K::up, K::down, K::down, K::left, K::right, K::left, K::right, 'B', 'A'}));
+  CHECK(!enter(k, {K::up, K::up, K::down, K::down, K::left, K::right, K::left, K::right, 'A', 'B'}));
+  K again;  // one ↑ too many still counts, a wrong key starts over
+  CHECK(enter(again, {K::up, K::up, K::up, K::down, K::down, K::left, K::right, K::left, K::right, 'B', 'A'}));
+  CHECK(!enter(again, {K::up, K::up, K::down, 'X', K::down, K::left, K::right, K::left, K::right, 'B', 'A'}));
+}
+
+void test_the_konami_code_finds_hidden_themes() {
+  UiHarness h;
+  CHECK(h.start());
+  CHECK(!h.app.ui().prefs->get(pref::hidden_themes));
+  for (const unsigned vk : KonamiCode::sequence) h.app.key_down(vk, false, false);
+  CHECK(h.app.ui().prefs->get(pref::hidden_themes));
+  CHECK(h.app.achievements().reached_on(AchievementId::Konami) != 0);
+  CHECK(h.app.toasts().text() == tr().hidden_themes_found);
+}
+
+void test_a_hidden_theme_is_listed_once_found() {
+  UiHarness h;
+  CHECK(h.start(951, 692, CRPP_TEST_SKINS "/retro"));
+  const auto listed = [&] {
+    h.app.settings().open(SettingsPage::Display);
+    h.render();
+    if (h.app.own_frame()) h.on_pane(Pane::Options);
+    const auto& list = h.app.settings().display().theme_list();
+    return std::ranges::any_of(list, [](const std::string& name) { return name.find("핫도그") != std::string::npos; });
+  };
+  CHECK(!listed());
+  h.app.found_hidden_themes();
+  CHECK(listed());
 }
 
 void test_settings_hide_room_controls() {
@@ -370,6 +411,9 @@ int main() {
   test_the_droplet_splashes_after_five_clicks();
   test_achievements_count_and_keep_dates();
   test_the_splash_is_an_achievement_with_a_toast();
+  test_the_konami_code_is_watched();
+  test_the_konami_code_finds_hidden_themes();
+  test_a_hidden_theme_is_listed_once_found();
   test_the_record_can_be_cleared_after_asking(CRPP_TEST_SKINS "/cloud");
   test_the_record_can_be_cleared_after_asking(CRPP_TEST_SKINS "/retro");
   test_settings_hide_room_controls();

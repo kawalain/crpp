@@ -206,6 +206,8 @@ void SystemTab::click(int id, float x, float y, bool shift) {
     address_.press(address_line_.position_at(ui_, address_, ui_.to_stage_x(x)), ui_.clicks, shift);
   } else if (id == AddRepository) {
     add();
+  } else if (id >= OpenRepository && static_cast<std::size_t>(id - OpenRepository) < repositories_.size()) {
+    if (on_open_repository) on_open_repository(repositories_[static_cast<std::size_t>(id - OpenRepository)].address);
   } else if (id >= UpdatePack && static_cast<std::size_t>(id - UpdatePack) < packs_.size()) {
     if (on_update_pack && packs_[static_cast<std::size_t>(id - UpdatePack)].held) on_update_pack(static_cast<std::size_t>(id - UpdatePack));
   } else if (id >= RemovePack && static_cast<std::size_t>(id - RemovePack) < packs_.size()) {

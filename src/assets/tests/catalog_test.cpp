@@ -192,6 +192,16 @@ void lists_the_picker_and_the_sounds() {
   CHECK((catalog && sound_files(*catalog) == std::vector<std::string>{"keyboard/a/down.wav", "keyboard/soft/x.wav"}));
 }
 
+void an_address_names_a_page() {
+  CHECK(page_of("github:someone/my.packs") == "https://github.com/someone/my.packs");
+  CHECK(page_of("github:someone/packs@feature/new") == "https://github.com/someone/packs/tree/feature/new");
+  CHECK(page_of("https://raw.githubusercontent.com/kawalain/crpp-repository/main/") == "https://github.com/kawalain/crpp-repository/tree/main");
+  CHECK(page_of("https://raw.githubusercontent.com/someone/packs/main/sub/catalog.txt") == "https://github.com/someone/packs/tree/main/sub");
+  CHECK(page_of("https://packs.example.org/a/catalog.txt") == "https://packs.example.org/a/");
+  CHECK(page_of("github:someone").empty());
+  CHECK(page_of("javascript:alert(1)").empty());
+}
+
 void an_address_names_a_folder() {
   CHECK(folder_of("https://packs.example.org/cloudroom") == "https://packs.example.org/cloudroom/");
   CHECK(folder_of("  https://packs.example.org/a/catalog.txt ") == "https://packs.example.org/a/");
@@ -314,6 +324,7 @@ int main() {
   follows_a_skin_to_its_parents();
   lists_the_picker_and_the_sounds();
   an_address_names_a_folder();
+  an_address_names_a_page();
   another_repository_offers_only_packs();
   reads_versions_and_parents();
   a_version_holds_to_a_pin();

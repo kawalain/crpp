@@ -1,6 +1,9 @@
 // Where Skins come from (ADR 0008): the official Repository, which stays, and those the user adds
 // in the system tab. Each added one has a folder named by the first digits of its key's
 // fingerprint, holding its catalog, the address it was added by and its packs.
+#include <windows.h>
+#include <shellapi.h>
+
 #include <algorithm>
 #include <array>
 #include <fstream>
@@ -531,6 +534,12 @@ void wire(Shell& s) {
     const std::string name(sp->app.settings().system().packs()[index].name);
     sp->app.dialogs().show({locale::fill(tr().pin_update_question, {name, child_name}), tr().system_pack_update, tr().cancel, false,
                             [sp, parent] { update_held(*sp, parent); }, nullptr});
+  };
+  tab.on_open_repository = [](const std::string& address) {
+    // Only a page folder_of makes, so never another kind of link.
+    if (const std::string page = assets::page_of(address); !page.empty()) {
+      ShellExecuteW(nullptr, L"open", widen(page).c_str(), nullptr, nullptr, SW_SHOWNORMAL);
+    }
   };
   tab.on_remove_repository = [sp](std::size_t index) {
     // The official one is first and has no button.

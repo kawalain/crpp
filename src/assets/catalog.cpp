@@ -400,6 +400,22 @@ std::string folder_of(std::string_view address) {
   return is_url(folder) ? folder : std::string();
 }
 
+std::string page_of(std::string_view address) {
+  const std::string folder = folder_of(address);
+  constexpr std::string_view raw = "https://raw.githubusercontent.com/";
+  if (!folder.starts_with(raw)) return folder;
+  // owner/repo/ref and maybe a path below it, which github.com shows after tree/ the same way.
+  std::string_view rest = std::string_view(folder).substr(raw.size());
+  rest.remove_suffix(1);
+  const std::size_t owner_end = rest.find('/');
+  const std::size_t repo_end = owner_end == std::string_view::npos ? owner_end : rest.find('/', owner_end + 1);
+  if (repo_end == std::string_view::npos) return "https://github.com/" + std::string(rest);
+  const std::string_view repo = rest.substr(0, repo_end), below = rest.substr(repo_end + 1);
+  std::string page = "https://github.com/" + std::string(repo);
+  if (below != "HEAD") page += "/tree/" + std::string(below);
+  return page;
+}
+
 bool offers_only_packs(const Catalog& catalog) {
   return std::ranges::all_of(catalog.files, [](const File& file) {
     const std::string_view group = file.group;

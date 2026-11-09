@@ -9,8 +9,13 @@ text @tr.system_repositories (9, 274, @W-9, 32) style heading color hl_text
 text @tr.system_repositories_hint (16, 314, 505, 24) style row_hint color hl_text_soft
 repeat @repositories {
   let top = 348+@i*58
-  // The official one has no button, so its address may run to the end of the row.
-  text @repo_address (16, top, @repo_official>0 ? 505 : 355, 26) style row_code color hl_text
+  // The official one has no button, so its address may run to the end of the row. It opens the
+  // Repository's page, underlined under the pointer as a link is.
+  let address_w = min(textw(row_code, @repo_address), @repo_official>0 ? 505 : 355)
+  hit open_repository (16, top, address_w, 26) {
+    text @repo_address style row_code color @hot ? hl : hl_text
+    fill hl (0, 20, address_w, 1) if @hot
+  }
   slot fingerprint (16, top+26, 355, 20) styles (row_code_hint) colors (hl_text_soft, alpha(hl, 0.4))
   use text_button (381, top+4, 140, 38) text @tr.system_repository_remove hit remove_repository if @repo_official<1
 }

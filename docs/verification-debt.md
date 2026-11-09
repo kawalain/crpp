@@ -110,6 +110,8 @@ seen it; add one for what a change could not verify.
   Repository's Sound pack; a member playing one in a Room has not run. An update of the font itself, which waits a start, has only run in tests. A `github:` address has not been added from a real
   repository (raw.githubusercontent.com answered `HEAD` and a tag without a redirect), and the field, the
   dialog's long fingerprint and a pack's progress have not been seen on a real desktop.
+- A Repository's address as a link has run in tests and shots only: its underline under the pointer and the
+  browser opening its page (github.com for a raw.githubusercontent.com folder) have not been seen.
 - v0.1.0 updated itself to v0.1.1 from GitHub on one Windows 10 PC with Defender. The cause
   of the detection in `docs/releases/README.md` is unknown, and it may come back with any
   release. The exe has no code signature, so try another machine and SmartScreen.

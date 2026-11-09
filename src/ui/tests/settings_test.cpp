@@ -180,7 +180,8 @@ void test_a_question_is_copied_whole() {
   CHECK(clipboard.held == L"Trust this key?\nab12 cd34");
 }
 
-// What is typed goes to the shell as typed, on the button or Enter, and a row's button names its row.
+// What is typed goes to the shell as typed, on the button or Enter, a row's button names its row,
+// and an address is a link to its Repository.
 void test_a_repository_is_added_and_removed_by_the_shell() {
   UiHarness h;
   CHECK(h.start());
@@ -191,6 +192,8 @@ void test_a_repository_is_added_and_removed_by_the_shell() {
   std::vector<std::size_t> removed;
   tab.on_add_repository = [&](std::string address) { added.push_back(std::move(address)); };
   tab.on_remove_repository = [&](std::size_t index) { removed.push_back(index); };
+  std::vector<std::string> opened;
+  tab.on_open_repository = [&](const std::string& address) { opened.push_back(address); };
   tab.set_packs({{"Retro", "1.2 MB", true}, {"Cloud", "In use", false}});
   std::vector<std::size_t> packs_removed;
   tab.on_remove_pack = [&](std::size_t index) { packs_removed.push_back(index); };
@@ -199,6 +202,9 @@ void test_a_repository_is_added_and_removed_by_the_shell() {
   CHECK(!h.drawn(tab, SystemTab::RemoveRepository));  // the official one stays
   CHECK(h.click(tab, SystemTab::RemoveRepository + 1));
   CHECK(removed == std::vector<std::size_t>{1});
+  CHECK(tab.is_link(SystemTab::OpenRepository + 1));
+  CHECK(h.click(tab, SystemTab::OpenRepository + 1));
+  CHECK(opened == std::vector<std::string>{"github:someone/skins"});
 
   CHECK(h.click(tab, SystemTab::AddRepository));
   CHECK(added.empty());  // nothing typed

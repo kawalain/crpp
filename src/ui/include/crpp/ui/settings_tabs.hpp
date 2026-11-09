@@ -290,11 +290,12 @@ class SystemTab final : public SettingsTab {
  public:
   explicit SystemTab(Ui& ui);
   [[nodiscard]] static skin::ScreenSchema schema();
-  enum Id : int { Autostart = 1, Tray, Detail, Logging, OpenLogs, Reset, Address, AddRepository, ReleaseList = 300, RemoveRepository = 500, RemovePack = 700, UpdatePack = 900, Fingerprint = 1100 };
+  enum Id : int { Autostart = 1, Tray, Detail, Logging, OpenLogs, Reset, Address, AddRepository, ReleaseList = 300, RemoveRepository = 500, RemovePack = 700, UpdatePack = 900, Fingerprint = 1100, OpenRepository = 1300 };
   [[nodiscard]] std::optional<Role> role(int id) const override {
     if (id == Autostart || id == Tray || id == Detail || id == Logging) return Role::Toggle;
     if (id == Address) return Role::Field;
     if (dropdown_of(id)) return Role::Dropdown;
+    if (id >= OpenRepository) return Role::Link;
     if (id >= Fingerprint) return Role::List;
     if (id == OpenLogs || id == Reset || id == AddRepository || id >= RemoveRepository) return Role::Button;
     return std::nullopt;
@@ -340,6 +341,8 @@ class SystemTab final : public SettingsTab {
   // What was typed, as typed: the shell reads it as an address.
   std::function<void(std::string address)> on_add_repository;
   std::function<void(std::size_t index)> on_remove_repository;
+  // Its address was clicked: the shell opens the page it is read on.
+  std::function<void(const std::string& address)> on_open_repository;
   std::function<void(std::size_t index)> on_remove_pack;
   std::function<void(std::size_t index)> on_update_pack;
 
@@ -356,6 +359,7 @@ class SystemTab final : public SettingsTab {
   bool key(unsigned vk, bool ctrl, bool shift) override;
   void enter(bool shift) override;
   [[nodiscard]] Cursor cursor(int id) const override;
+  [[nodiscard]] bool is_link(int id) const override { return id >= OpenRepository; }
   [[nodiscard]] std::vector<MenuItem> context_menu(int id, float x, float y) override;
   void menu_command(MenuCommand command) override;
   // What is selected of the fingerprints, as a copy takes it.

@@ -150,6 +150,11 @@ struct CatalogError {
 // Empty when it is none of these.
 [[nodiscard]] std::string folder_of(std::string_view address);
 
+// The page a person reads a Repository on, for an address folder_of takes: a folder that
+// raw.githubusercontent.com serves is shown on github.com, at its ref unless that is HEAD, and
+// any other folder is its own page. Empty when folder_of is.
+[[nodiscard]] std::string page_of(std::string_view address);
+
 // What a Repository other than the official one may offer: Skin and Sound packs, each in a
 // folder of its own, skins/<id>/ or sounds/<id>/. Emoji, words and fonts stay the official
 // one's, so the members of a Room see the same.

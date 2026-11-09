@@ -9,7 +9,11 @@ column id form y 10 {
   use form_group text @tr.system_repositories {
     use form_hint text @tr.system_repositories_hint after 8
     repeat @repositories h @repositories*38 after 4 {
-      text @repo_address style mono color ink y @i*38 w @repo_official>0 ? @W : @W-87 h 16
+      // The address opens the Repository's page, as a link does.
+      hit open_repository y @i*38 w min(textw(mono, @repo_address), @repo_official>0 ? @W : @W-87) h 16 {
+        text @repo_address style mono color link
+        fill link y floor(@Y+@H/2+@font_size/2)-@Y h 1 if @hot
+      }
       slot fingerprint styles (mono) colors (ink_soft, selection) y @i*38+16 w @W-87 h 16
       use button text @tr.system_repository_remove hit remove_repository right @W y @i*38+4 if @repo_official<1
     }

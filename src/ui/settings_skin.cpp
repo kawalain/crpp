@@ -84,6 +84,7 @@ constexpr skin::Name system_slots[] = {{"release_list", ReleaseSlot}, {"address"
 constexpr skin::Name system_hits[] = {{"autostart", SystemTab::Autostart}, {"tray", SystemTab::Tray}, {"detail", SystemTab::Detail}, {"logging", SystemTab::Logging},
                                       {"open_logs", SystemTab::OpenLogs}, {"reset", SystemTab::Reset}, {"address", SystemTab::Address},
                                       {"add_repository", SystemTab::AddRepository}, {"remove_repository", SystemTab::RemoveRepository},
+                                      {"open_repository", SystemTab::OpenRepository},
                                       {"remove_pack", SystemTab::RemovePack}, {"update_pack", SystemTab::UpdatePack}};
 
 // --- account ---

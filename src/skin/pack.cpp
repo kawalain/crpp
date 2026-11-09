@@ -1278,7 +1278,7 @@ std::optional<int> Pack::palette_of(std::string_view theme_id) const {
 
 const PackTheme* Pack::theme_of_palette(std::string_view palette) const {
   for (const PackTheme& theme : themes) {
-    if (theme.palette == palette || theme.dark == palette) return &theme;
+    if (!palette.empty() && (theme.palette == palette || theme.dark == palette)) return &theme;
   }
   return nullptr;
 }

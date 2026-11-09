@@ -46,6 +46,11 @@ void upstreams_keys_say_it_until_our_own_are_there() {
   prefs.set(pref::theme, "gone");
   c = choice_of(prefs, skins);
   CHECK(c.skin->id == "one" && c.theme->id == "soft" && c.dark == DarkMode::Off);
+  // An empty id names nothing, not a Theme that has no dark variant.
+  prefs.set(pref::theme, "");
+  c = choice_of(prefs, skins);
+  CHECK(c.skin->id == "one" && c.theme->id == "soft" && c.dark == DarkMode::Off);
+  prefs.set(pref::theme, "gone");
   // And our own keys win, whatever upstream's say.
   prefs.set(pref::skin, "two");
   prefs.set(pref::skin_theme, "new");

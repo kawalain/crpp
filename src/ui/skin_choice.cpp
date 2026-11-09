@@ -25,7 +25,7 @@ SkinChoice from_upstream(const Prefs& prefs, std::span<const SkinInfo> skins) {
   const std::string_view id = theme_from_upstream(saved);
   for (const SkinInfo& skin : skins) {
     for (const skin::PackTheme& theme : skin.themes) {
-      if (theme.palette != id && theme.dark != id) continue;
+      if (id.empty() || (theme.palette != id && theme.dark != id)) continue;
       const DarkMode dark = follows ? DarkMode::System : theme.dark == id ? DarkMode::On : DarkMode::Off;
       return {&skin, &theme, dark};
     }

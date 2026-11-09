@@ -211,7 +211,7 @@ int main(int argc, char** argv) {
     if (!before_any_pack) {
       std::string dir = ui::choice_of(*shell.app.ui().prefs, skins).skin->dir;
       for (const ui::SkinInfo& info : skins) {
-        if (std::ranges::any_of(info.themes, [&](const skin::PackTheme& t) { return t.palette == shot_theme || t.dark == shot_theme; })) dir = info.dir;
+        if (!shot_theme.empty() && std::ranges::any_of(info.themes, [&](const skin::PackTheme& t) { return t.palette == shot_theme || t.dark == shot_theme; })) dir = info.dir;
       }
       if (const auto loaded = shell.app.load_skin_dir(ui::widen(dir)); !loaded) return failed_to_start(loaded.error());
     }

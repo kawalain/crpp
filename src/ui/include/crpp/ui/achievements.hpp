@@ -106,10 +106,11 @@ class Achievements {
     reached_ = reached;
   }
   [[nodiscard]] const std::array<Day, achievement_count>& reached() const { return reached_; }
-  // Forgets every total and every Achievement.
-  void clear() {
+  // Forgets every total and every Achievement. In a Room, its time counts again from now.
+  void clear(std::uint64_t now_ms) {
     totals_ = {};
     reached_ = {};
+    if (room_since_ != 0) room_since_ = now_ms;
   }
   // Whether something changed since the last call, to be written.
   [[nodiscard]] bool take_changed() { return std::exchange(changed_, false); }

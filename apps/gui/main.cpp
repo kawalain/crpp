@@ -281,6 +281,8 @@ int main(int argc, char** argv) {
   if (shell.client) shell.client->stop();
   shell.tasks.run_all();  // what the client reported last must still reach the store
   shell.engine->stop();
+  // Quitting in a Room is leaving it: the minutes since the last key or click count too.
+  if (shell.app.base_view() == ui::View::Session) shell.app.achievements().in_room(ui::clock_ms(), ui::local_day());
   area::achievements::flush(shell);
   (void)data.save();
   area::update::shutdown(shell);

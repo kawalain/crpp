@@ -121,8 +121,14 @@ void test_achievements_count_and_keep_dates() {
   a.reach(AchievementId::Splash, 20261111);
   CHECK(a.totals().messages == 0 && a.reached_on(AchievementId::Splash) == 0);
   CHECK(a.reached_on(AchievementId::Keys10k) == 20261109);
-  a.clear();
+  a.clear(0);
   CHECK(a.reached_count() == 0 && a.totals().presses == 0);
+  // Cleared in a Room, the time before it is not counted again.
+  a.set_enabled(true);
+  a.enter_room(1000);
+  a.clear(1000 + 30 * 60000);
+  a.leave_room(1000 + 40 * 60000, 20261112);
+  CHECK(a.totals().minutes == 10);
 }
 
 void test_the_splash_is_an_achievement_with_a_toast() {

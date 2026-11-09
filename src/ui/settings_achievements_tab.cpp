@@ -84,7 +84,7 @@ void AchievementsTab::click(int id, float, float, bool) {
     ui_.prefs->set(pref::achievements_on, !ui_.prefs->get(pref::achievements_on));
   } else if (id == Clear && ui_.dialogs) {
     ui_.dialogs->show({tr().ach_clear_question, tr().ach_clear_confirm, tr().cancel, false, [this] {
-                         if (ui_.achievements) ui_.achievements->clear();
+                         if (ui_.achievements) ui_.achievements->clear(clock_ms());
                          if (on_clear) on_clear();
                        },
                        nullptr, true});

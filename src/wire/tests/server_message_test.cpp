@@ -239,7 +239,19 @@ void truncation_and_mutation() {
 
 }  // namespace
 
+// A slot is a byte in an input frame, so no member's is more: one that is makes the message
+// malformed, and nothing downstream counts or indexes by it.
+void a_slot_is_a_byte() {
+  Bufs b;
+  CHECK(parse(R"({"t":"chat","slot":255,"cid":"c","nick":"n","text":"x","time":1})", b).has_value());
+  CHECK(parse(R"({"t":"chat","slot":256,"cid":"c","nick":"n","text":"x","time":1})", b).error() == ParseError::Number);
+  CHECK(parse(R"({"t":"joined","code":"ABC234","me":4294967295,"members":[]})", b).error() == ParseError::Number);
+  CHECK(parse(R"({"t":"members","host":300,"members":[]})", b).error() == ParseError::Number);
+  CHECK(parse(R"({"t":"members","members":[{"slot":70000,"nick":"a","cid":"c"}]})", b).error() == ParseError::Number);
+}
+
 int main() {
+  a_slot_is_a_byte();
   joined_golden();
   members_update();
   simple_messages();

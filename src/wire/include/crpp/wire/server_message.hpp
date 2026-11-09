@@ -13,6 +13,9 @@
 
 namespace crpp::wire {
 
+// A slot is one byte of an input frame; a message naming a larger one is malformed.
+inline constexpr std::uint32_t max_slot = 255;
+
 struct MemberInfo {
   std::uint32_t slot{};
   std::uint64_t order{};

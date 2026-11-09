@@ -165,6 +165,7 @@ against a real `server/` yet; do that once a local build of it is available.
 - A held Seat says how many minutes it is still held, in Retro's list and in Cloud's question. Home wakes for it only
   when the minute drawn changes.
 - The program calls itself Cloudroom++, so its autostart entry does not collide with upstream's.
+- The tray menu has mute and leaving the Room while in one, and the options, besides quitting.
 - The system tab's advanced section has "뒤에 있을 때 메모리 비우기" (at once, 10 s, 1 min, never), kept
   under a key of this client's own. Behind another program, outside a Room, the window lets go of its
   graphics device after that wait and makes it again when it next draws.
@@ -457,7 +458,8 @@ exist (real + test).
 - The tray needs a real desktop: a hidden one has no taskbar, so the icon fails to
   add and a close exits. A chat notification was seen on one Windows 10 PC, with a window
   of a fake Room behind another. Upstream's developer saw none, on a machine not yet looked
-  at; a notification respects Focus Assist. Menu, flash, the Run key and a second start have
+  at; a notification respects Focus Assist. The menu (mute, leaving and options in a Room), flash, the Run key and a
+  second start have
   only been tested as decisions, not seen.
 - Partial frames (a speaking disc over a retained frame) were measured on a hidden desktop,
   where one person typing went from 16.7% GPU to 0.0% and five at once from 17.5% to 10.7%.

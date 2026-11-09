@@ -223,7 +223,16 @@ void close_to_tray(Shell& s) {
 void show_menu(Shell& s, int x, int y) {
   HMENU menu = CreatePopupMenu();
   if (!menu) return;
-  constexpr UINT_PTR exit_item = 1;
+  constexpr UINT_PTR exit_item = 1, mute_item = 2, leave_item = 3, options_item = 4;
+  // In a Room, what is done most without opening the window; the words are the Room's own.
+  if (in_room(s)) {
+    const UINT muted = s.prefs->get(pref::mute_others) ? MF_CHECKED : MF_UNCHECKED;
+    AppendMenuW(menu, MF_STRING | muted, mute_item, ui::widen(tr().mute).c_str());
+    AppendMenuW(menu, MF_STRING, leave_item, ui::widen(tr().room_tip_leave).c_str());
+    AppendMenuW(menu, MF_SEPARATOR, 0, nullptr);
+  }
+  AppendMenuW(menu, MF_STRING, options_item, ui::widen(tr().room_options).c_str());
+  AppendMenuW(menu, MF_SEPARATOR, 0, nullptr);
   AppendMenuW(menu, MF_STRING, exit_item, ui::widen(tr().tray_exit).c_str());
   // Without both of these the menu does not close on a click elsewhere, or closes
   // at once the second time it opens (TrackPopupMenu's documentation).
@@ -231,7 +240,26 @@ void show_menu(Shell& s, int x, int y) {
   const BOOL chosen = TrackPopupMenu(menu, TPM_RETURNCMD | TPM_RIGHTBUTTON | TPM_BOTTOMALIGN, x, y, 0, s.hwnd, nullptr);
   PostMessageW(s.hwnd, WM_NULL, 0, 0);
   DestroyMenu(menu);
-  if (static_cast<UINT_PTR>(chosen) == exit_item) DestroyWindow(s.hwnd);
+  switch (static_cast<UINT_PTR>(chosen)) {
+    case exit_item:
+      DestroyWindow(s.hwnd);
+      return;
+    case mute_item:  // as the Room's button, which says so and does the rest
+      if (in_room(s)) s.app.room().click(ui::RoomScreen::Mute, 0, 0, false);
+      break;
+    case leave_item:  // the question shows in the window
+      show_window(s);
+      if (in_room(s) && s.app.frame().on_leave_room) s.app.frame().on_leave_room();
+      break;
+    case options_item:
+      show_window(s);
+      if (s.app.frame().on_options) s.app.frame().on_options();
+      request_pane_sync(s);
+      break;
+    default:
+      return;
+  }
+  InvalidateRect(s.hwnd, nullptr, FALSE);
 }
 
 void on_tray_event(Shell& s, WPARAM wp, LPARAM lp) {

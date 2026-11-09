@@ -123,7 +123,7 @@ void RoomScreen::paint_pack(Painter& p, const skin::Screen& screen) {
         case Sleepy: return yes((s_.code_words_ & home::WordZzz) != 0);
         case Cake: return yes((s_.code_words_ & home::WordCake) != 0);
         case Stars: return yes((s_.code_words_ & home::WordStar) != 0);
-        case Weather: return static_cast<float>(s_.weather_.step());  // 0 clear, 1 cloudy, 2 rain, 3 storm
+        case Weather: return static_cast<float>(s_.shown_weather());  // 0 clear, 1 cloudy, 2 rain, 3 storm
         default: return 0;
       }
     }

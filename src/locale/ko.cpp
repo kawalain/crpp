@@ -250,6 +250,7 @@ const Strings korean{
     .chat_send = "보내기",
     .display_theme = "테마",
     .display_theme_cursor = "테마 커서 쓰기",
+    .display_sky_effects = "계절과 날씨 효과",
     .display_skin = "스킨",
     .display_dark_mode = "다크 모드",
     .display_dark_off = "끔",

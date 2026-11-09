@@ -91,6 +91,8 @@ class RoomScreen final : public Surface {
   // So many input events came in, anyone's, mine too: the Room's weather follows them.
   void note_input(std::size_t events);
   [[nodiscard]] RoomWeather& weather() { return weather_; }
+  // The weather as drawn: clear while the sky effects are off.
+  [[nodiscard]] RoomWeather::Step shown_weather() const { return sky_on() ? weather_.step() : RoomWeather::Clear; }
   // How strongly a member's speaking disc shows, from 0 to 1.
   [[nodiscard]] float speaking_level(std::uint32_t slot) const;
   // When only speaking discs move: all that the next frame has to draw.
@@ -169,6 +171,7 @@ class RoomScreen final : public Surface {
   std::vector<std::pair<std::string, int>> member_volumes_;
   std::string room_code_;
   unsigned code_words_ = 0;
+  [[nodiscard]] bool sky_on() const;
   RoomWeather weather_;
   [[nodiscard]] std::size_t online() const;
   std::vector<MemberView> members_;

@@ -19,6 +19,35 @@ void test_public_rooms_are_read_from_health() {
   CHECK(home::public_rooms_in_health("") == std::nullopt);
 }
 
+// "계절과 날씨 효과": off, Home has no season, a Room counts nothing and stays clear, and the display tab turns it back on.
+void test_sky_effects_turn_off_the_season_and_the_weather() {
+  UiHarness h;
+  CHECK(h.start());
+  Prefs& prefs = *h.app.ui().prefs;
+  CHECK(prefs.get(pref::sky_effects));
+  h.app.home().set_date(12, 24);
+  CHECK(h.app.home().season() == home::Season::Winter);
+
+  h.app.settings().open(SettingsPage::Display);
+  h.render();
+  DisplayTab& display = h.app.settings().display();
+  CHECK(h.click(display, DisplayTab::SkyEffects));
+  CHECK(!prefs.get(pref::sky_effects));
+  CHECK(h.app.home().season() == home::Season::None);
+  h.app.settings().close();
+
+  h.app.show_session("ABC234");
+  RoomScreen& room = h.app.room();
+  room.set_room({{0, "a", "", false, "c0"}, {1, "b", "", false, "c1"}}, 0, 0, false, false);
+  room.note_input(10000);
+  CHECK(room.weather().step() == RoomWeather::Clear);
+  CHECK(room.weather().wake_at() == 0);
+  CHECK(room.shown_weather() == RoomWeather::Clear);
+
+  prefs.set(pref::sky_effects, true);
+  CHECK(h.app.home().season() == home::Season::Winter);
+}
+
 void test_code_is_trimmed_and_upper_case() {
   CHECK(home::normalize_code(L"abc234") == L"ABC234");
   CHECK(home::normalize_code(L"ABC234") == L"ABC234");
@@ -340,6 +369,7 @@ void test_bubble_mutes_the_search_label_until_it_is_gone() {
 }  // namespace
 
 int main() {
+  test_sky_effects_turn_off_the_season_and_the_weather();
   test_hover_animates_then_goes_idle();
   test_focus_and_droplet_animate_then_go_idle();
   test_bubble_mutes_the_search_label_until_it_is_gone();

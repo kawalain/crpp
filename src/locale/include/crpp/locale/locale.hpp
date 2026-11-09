@@ -274,6 +274,7 @@ struct Strings {
   const char* chat_send;
   const char* display_theme;
   const char* display_theme_cursor;
+  const char* display_sky_effects;
   const char* display_skin;
   const char* display_dark_mode;
   const char* display_dark_off;

@@ -182,6 +182,9 @@ against a real `server/` yet; do that once a local build of it is available.
   the sky follows. Cloud darkens its sky and cloud, with rain and lightning that do not move; Retro shows a cloud
   at the status line's end. Only counts go in, and nothing is kept or sent. A quiet Room looks again every 5 s
   only until the sky has cleared.
+- "계절과 날씨 효과" in the display tab's Theme section (`skyEffects`, a key of this client's own, on by default)
+  turns off the season and the weather together. Off, nothing is counted and nothing wakes, so the hidden
+  Achievement for a storm cannot be reached until it is on again; a Room's sky starts clear when it comes back.
 - Achievements, 24 of them in four groups (input, together, discovery, hidden), in a settings tab of their own after
   the account tab. Reaching one shows a toast with the message sound. They are counted only while "도전과제 기록하기"
   (`achievementsOn`, on by default) is on, and "기록 지우기" asks before clearing them. The record is four totals

@@ -51,18 +51,18 @@ constexpr skin::Name sound_hits[] = {{"speaker_volume", SoundTab::SpeakerVolume}
 
 // --- display ---
 enum DisplayText : int { SampleSays, PercentText, SampleNick, SampleTime, FetchStatus };
-enum DisplayNumber : int { Percent, HasCursors, ThemeCursorOn, DisplayScale, Dragging, DisplayUse24h, FetchStateN, FetchPercent };
+enum DisplayNumber : int { Percent, HasCursors, ThemeCursorOn, DisplayScale, Dragging, DisplayUse24h, FetchStateN, FetchPercent, SkyEffectsOn };
 enum DisplaySlot : int { ThemeSlot = 4, DarkModeSlot, IdleSlot, LanguageSlot };
 constexpr skin::Name display_texts[] = {{"sample_says", SampleSays}, {"percent_text", PercentText}, {"sample_nick", SampleNick}, {"sample_time", SampleTime},
                                         {"fetch_status", FetchStatus}};
 // fetch_state: 0 nothing, 1 a picked Theme's pack is being fetched, 2 it could not be.
 constexpr skin::Name display_numbers[] = {{"percent", Percent}, {"has_cursors", HasCursors}, {"theme_cursor", ThemeCursorOn}, {"scale", DisplayScale}, {"dragging", Dragging},
-                                          {"use_24h", DisplayUse24h}, {"fetch_state", FetchStateN}, {"fetch_percent", FetchPercent}};
+                                          {"use_24h", DisplayUse24h}, {"fetch_state", FetchStateN}, {"fetch_percent", FetchPercent}, {"sky_effects", SkyEffectsOn}};
 constexpr skin::Name display_pictures[] = {{"sample_emoji", 0}};
 constexpr skin::Name display_slots[] = {{"theme_list", ThemeSlot}, {"dark_mode_list", DarkModeSlot}, {"idle_list", IdleSlot}, {"language_list", LanguageSlot}};
 constexpr skin::Name display_notes[] = {{"slider", 0}};
 constexpr skin::Name display_hits[] = {{"scale_slider", DisplayTab::ScaleSlider}, {"theme_cursor", DisplayTab::ThemeCursor}, {"use_24h", DisplayTab::Use24h},
-                                       {"fetch_cancel", DisplayTab::FetchCancel}, {"fetch_retry", DisplayTab::FetchRetry}};
+                                       {"fetch_cancel", DisplayTab::FetchCancel}, {"fetch_retry", DisplayTab::FetchRetry}, {"sky_effects", DisplayTab::SkyEffects}};
 
 // --- notifications ---
 enum NotifyNumber : int { TrayN, FlashN, Sounds, SoundOn, MentionN };
@@ -399,6 +399,7 @@ void DisplayTab::paint_pack(Painter& p, const skin::Screen& screen, Rect area) {
       switch (id) {
         case HasCursors: return yes(s_.ui_.pack->cursors.has_value());
         case ThemeCursorOn: return yes(s_.ui_.prefs->get(pref::theme_cursor));
+        case SkyEffectsOn: return yes(s_.ui_.prefs->get(pref::sky_effects));
         case DisplayScale: return s_.ui_.scale;
         case Dragging: return yes(s_.ui_.capture == &s_);
         case DisplayUse24h: return yes(s_.ui_.prefs->get(pref::use_24h));

@@ -250,6 +250,7 @@ const Strings english{
     .chat_send = "Send",
     .display_theme = "Theme",
     .display_theme_cursor = "Use the Theme's cursors",
+    .display_sky_effects = "Seasons and weather",
     .display_skin = "Skin",
     .display_dark_mode = "Dark mode",
     .display_dark_off = "Off",

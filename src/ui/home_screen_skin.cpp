@@ -3,6 +3,7 @@
 #include "crpp/skin/draw.hpp"
 #include "crpp/ui/home_logic.hpp"
 #include "crpp/ui/home_screen.hpp"
+#include "crpp/ui/prefs.hpp"
 #include "crpp/ui/skin_canvas.hpp"
 
 namespace crpp::ui {
@@ -103,7 +104,7 @@ void HomeScreen::paint_pack(Painter& p, const skin::Screen& screen) {
         case CodeFocus: return home_.ui_.focus == &home_.code_ ? 1.0f : 0.0f;
         case FindTip: return home_.tip_wanted(home_.ui_.now_ms) ? 1.0f : 0.0f;
         case PublicRooms: return home_.public_rooms_ ? static_cast<float>(*home_.public_rooms_) : -1.0f;
-        case SeasonN: return static_cast<float>(home::season(home_.month_));  // 0 none, 1 winter, 2 spring, 3 autumn
+        case SeasonN: return static_cast<float>(home_.season());  // 0 none, 1 winter, 2 spring, 3 autumn
         default: return 0;
       }
     }

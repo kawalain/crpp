@@ -176,6 +176,7 @@ class DisplayTab final : public SettingsTab {
     Use24h,
     FetchCancel,
     FetchRetry,
+    SkyEffects,
     SkinThemeList = 130,  // every Skin's Themes, each Skin's under its name
     DarkModeList = 190,
     IdleList = 300,
@@ -184,7 +185,7 @@ class DisplayTab final : public SettingsTab {
   [[nodiscard]] std::optional<Role> role(int id) const override {
     if (dropdown_of(id)) return Role::Dropdown;
     if (id == ScaleSlider) return Role::Slider;
-    if (id == ThemeCursor || id == Use24h) return Role::Toggle;
+    if (id == ThemeCursor || id == Use24h || id == SkyEffects) return Role::Toggle;
     if (id == FetchCancel || id == FetchRetry) return Role::Link;
     return std::nullopt;
   }

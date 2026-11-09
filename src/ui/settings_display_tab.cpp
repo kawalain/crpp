@@ -84,6 +84,8 @@ void DisplayTab::click(int id, float x, float, bool) {
     prefs.set(pref::theme_cursor, !prefs.get(pref::theme_cursor));
   } else if (id == Use24h) {
     prefs.set(pref::use_24h, !prefs.get(pref::use_24h));
+  } else if (id == SkyEffects) {
+    prefs.set(pref::sky_effects, !prefs.get(pref::sky_effects));
   } else if (id == FetchCancel) {
     if (on_cancel_fetch) on_cancel_fetch();
   } else if (id == FetchRetry) {

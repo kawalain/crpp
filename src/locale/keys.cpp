@@ -253,6 +253,7 @@ constexpr Key keys[] = {
     KEY(chat_send),
     KEY(display_theme),
     KEY(display_theme_cursor),
+    KEY(display_sky_effects),
     KEY(display_skin),
     KEY(display_dark_mode),
     KEY(display_dark_off),

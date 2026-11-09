@@ -7,6 +7,7 @@
 #include <vector>
 
 #include "crpp/skin/pack.hpp"
+#include "crpp/ui/home_logic.hpp"
 #include "crpp/ui/surface.hpp"
 
 namespace crpp::ui {
@@ -62,6 +63,8 @@ class HomeScreen final : public Surface {
   // 1-12 and 1-31: some days have a greeting of their own. 0 for none.
   // Whether today has a greeting of its own.
   [[nodiscard]] bool special_today() const;
+  // What falls behind the clouds this month: none while the sky effects are off.
+  [[nodiscard]] home::Season season() const;
   void set_date(int month, int day) {
     month_ = month;
     day_ = day;

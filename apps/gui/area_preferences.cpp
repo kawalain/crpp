@@ -399,6 +399,8 @@ void pref_changed(Shell& s, std::string_view key) {
     InvalidateRect(s.hwnd, nullptr, FALSE);
   } else if (key == pref::theme_cursor.name) {
     reapply_cursor(s);
+  } else if (key == pref::sky_effects.name) {
+    InvalidateRect(s.hwnd, nullptr, FALSE);
   } else if (key == "inputDetail") {
     s.input->set_privacy(s.app.ui().prefs->get(pref::input_detail) ? input::Privacy::Detail : input::Privacy::Presence);
   } else if (key == "logEnabled") {

@@ -118,7 +118,13 @@ std::size_t RoomScreen::online() const {
   return static_cast<std::size_t>(std::ranges::count_if(members_, [](const MemberView& m) { return !m.offline; }));
 }
 
+bool RoomScreen::sky_on() const { return !ui_.prefs || ui_.prefs->get(pref::sky_effects); }
+
 void RoomScreen::note_input(std::size_t events) {
+  if (!sky_on()) {
+    weather_.reset();  // turned on again, it starts from a clear sky
+    return;
+  }
   const auto now = clock_ms();
   weather_.note(now, static_cast<unsigned>(events));
   if (weather_.update(now, online())) {
@@ -239,7 +245,7 @@ bool RoomScreen::tick(unsigned long long now_ms) {
     hint_muted_until_ = 0;
     changed = true;
   }
-  if (const auto at = weather_.wake_at(); at != 0 && now_ms >= at && weather_.update(now_ms, online())) {
+  if (const auto at = sky_on() ? weather_.wake_at() : 0; at != 0 && now_ms >= at && weather_.update(now_ms, online())) {
     changed = true;
     if (weather_.step() == RoomWeather::Storm) ui_.achieve(AchievementId::Storm);
   }
@@ -250,7 +256,7 @@ bool RoomScreen::tick(unsigned long long now_ms) {
 unsigned long long RoomScreen::wake_at() const {
   unsigned long long at = 0;
   for (const auto wake : {copy_until_, hint_muted_until_, lock_pending_ ? chat_lock_at_ : 0ULL, profile_.wake_at(),
-                          chat_panel_.wake_at(), weather_.wake_at()}) {
+                          chat_panel_.wake_at(), sky_on() ? weather_.wake_at() : 0ULL}) {
     if (wake != 0 && (at == 0 || wake < at)) at = wake;
   }
   // A held disc draws nothing until its fall begins.

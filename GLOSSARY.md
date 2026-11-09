@@ -44,6 +44,10 @@
 
 **Room weather** (구름 날씨): how busy a Room is, from the input of all its members over the last minute, in four steps from clear to storm. It never shows one member's share.
 
+**Season** (계절): what falls behind Home's clouds in the local month: snow, petals, leaves, or nothing in summer.
+
+**Sky effects** (계절과 날씨 효과): the Season and the Room weather together, as a Skin draws them. One setting turns both off.
+
 **Hidden Theme** (숨은 테마): a Theme left out of the list until an Achievement unlocks it.
 
 **Dark mode** (다크 모드): off, on or following the system, picked after the Theme. It chooses between a Theme and its dark variant, and is locked while the Theme has none.

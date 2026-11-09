@@ -14,6 +14,7 @@ column id form y 10 {
       slot dark_mode_list
     }
     use form_check(on = @theme_cursor) text @tr.display_theme_cursor hit theme_cursor if @has_cursors
+    use form_check(on = @sky_effects) text @tr.display_sky_effects hit sky_effects
   }
   use form_group text @tr.room_word_chat {
     let size = round(@font_size*@percent/100)

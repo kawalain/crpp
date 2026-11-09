@@ -3,12 +3,18 @@
 #include <algorithm>
 
 #include "crpp/ui/controls.hpp"
+#include "crpp/ui/prefs.hpp"
 #include "crpp/ui/home_logic.hpp"
 #include "crpp/ui/toasts.hpp"
 
 namespace crpp::ui {
 
 bool HomeScreen::special_today() const { return home::special_day(month_, day_) != home::SpecialDay::None; }
+
+home::Season HomeScreen::season() const {
+  if (ui_.prefs && !ui_.prefs->get(pref::sky_effects)) return home::Season::None;
+  return home::season(month_);
+}
 
 HomeScreen::HomeScreen(Ui& ui) : Surface(ui) {
   code_.max_length = 6;

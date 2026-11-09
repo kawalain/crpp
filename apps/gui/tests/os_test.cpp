@@ -98,6 +98,17 @@ void chat_settings_are_honored() {
   CHECK(!r.flash);
 }
 
+void being_named_notifies_with_the_settings_off() {
+  auto r = chat_reaction({.focused = false, .tray_notify = false, .taskbar_flash = false, .mention = true});
+  CHECK(r.notify);
+  CHECK(r.flash);
+  r = chat_reaction({.focused = false, .tray_notify = false, .taskbar_flash = false, .mention = true, .mention_notify = false});
+  CHECK(!r.notify);
+  CHECK(!r.flash);
+  CHECK(!chat_reaction({.focused = true, .mention = true}).notify);  // in front, it is seen
+  CHECK(!chat_reaction({.muted = true, .focused = false, .mention = true}).notify);
+}
+
 void my_own_chat_does_nothing() {
   const auto r = chat_reaction({.mine = true, .hidden = true});
   CHECK(!r.sound);
@@ -205,6 +216,7 @@ int main() {
   chat_on_a_focused_window_only_sounds();
   chat_while_away();
   chat_settings_are_honored();
+  being_named_notifies_with_the_settings_off();
   my_own_chat_does_nothing();
   a_muted_sender_still_flashes();
   one_flash_until_seen();

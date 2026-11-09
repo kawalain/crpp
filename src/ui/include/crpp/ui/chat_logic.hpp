@@ -4,6 +4,7 @@
 #include <array>
 #include <cstddef>
 #include <cstdint>
+#include <span>
 #include <string>
 #include <string_view>
 #include <vector>
@@ -56,5 +57,10 @@ struct LinkSpan {
 // The https:// links in a text. Punctuation stuck to the end is left out, and a closing
 // bracket stays only if the link opened it. Plain http is not a link, on purpose.
 [[nodiscard]] std::vector<LinkSpan> find_links(std::wstring_view text);
+
+// Whether a message names someone by one of their names: anywhere in it, as Korean puts a
+// particle right after a name ("크롬이님"), and with Latin letters in either case. A name of a
+// single character would be found everywhere, so it does not count.
+[[nodiscard]] bool mentions(std::string_view text, std::span<const std::string> names);
 
 }  // namespace crpp::ui

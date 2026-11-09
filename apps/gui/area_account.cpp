@@ -37,6 +37,7 @@ class Host final : public AccountHost {
     const std::string name = api::display_name(id);
     s_.app.home().set_nickname(name);
     s_.config.nickname = name;
+    area::room::names_changed(s_);
     if (s_.client) s_.client->set_nick(name);
     if (id.token != s_.config.token) {
       s_.config.token = id.token;

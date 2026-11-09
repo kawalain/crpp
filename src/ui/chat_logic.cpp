@@ -82,6 +82,30 @@ ChatLimiter::Ms ChatLimiter::wake_at() const {
   return cooling_ ? blocked_until_ : calm_ ? calm_until_ : 0;
 }
 
+namespace {
+
+std::string ascii_lower(std::string_view s) {
+  std::string out(s);
+  for (char& c : out) {
+    if (c >= 'A' && c <= 'Z') c = static_cast<char>(c - 'A' + 'a');
+  }
+  return out;
+}
+
+// UTF-8 code points: every byte but a continuation one starts one.
+std::size_t code_points(std::string_view s) {
+  return static_cast<std::size_t>(std::ranges::count_if(s, [](char c) { return (static_cast<unsigned char>(c) & 0xC0) != 0x80; }));
+}
+
+}  // namespace
+
+bool mentions(std::string_view text, std::span<const std::string> names) {
+  const std::string haystack = ascii_lower(text);
+  return std::ranges::any_of(names, [&](const std::string& name) {
+    return code_points(name) >= 2 && haystack.find(ascii_lower(name)) != std::string::npos;
+  });
+}
+
 std::vector<LinkSpan> find_links(std::wstring_view text) {
   constexpr std::wstring_view scheme = L"https://";
   std::vector<LinkSpan> links;

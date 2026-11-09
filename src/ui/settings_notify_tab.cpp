@@ -20,6 +20,8 @@ void NotifyTab::click(int id, float, float, bool) {
     prefs.set(pref::chat_tray_notify, !prefs.get(pref::chat_tray_notify));
   } else if (id == FlashToggle) {
     prefs.set(pref::chat_taskbar_flash, !prefs.get(pref::chat_taskbar_flash));
+  } else if (id == MentionToggle) {
+    prefs.set(pref::chat_mention_notify, !prefs.get(pref::chat_mention_notify));
   } else if (id >= PreviewBase) {
     const auto i = static_cast<std::size_t>(id - PreviewBase);
     if (i < sounds_.size() && on_preview) on_preview(sounds_[i].stem);

@@ -217,9 +217,9 @@ class NotifyTab final : public SettingsTab {
  public:
   using SettingsTab::SettingsTab;
   [[nodiscard]] static skin::ScreenSchema schema();
-  enum Id : int { TrayToggle = 1, FlashToggle, SoundBase = 100, PreviewBase = 300 };
+  enum Id : int { TrayToggle = 1, FlashToggle, MentionToggle, SoundBase = 100, PreviewBase = 300 };
   [[nodiscard]] std::optional<Role> role(int id) const override {
-    if (id == TrayToggle || id == FlashToggle) return Role::Toggle;
+    if (id == TrayToggle || id == FlashToggle || id == MentionToggle) return Role::Toggle;
     if (id >= SoundBase) return Role::Button;
     return std::nullopt;
   }

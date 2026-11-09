@@ -41,6 +41,8 @@ void wire(Shell& s);
 
 namespace room {  // the Room screen, its dialogs, profile card and member menu
 void wire(Shell& s);
+// The Nickname or handle changed: chat that names them stands out by the new ones.
+void names_changed(Shell& s);
 [[nodiscard]] bool scene(Shell& s, std::string_view name);
 // A scene that acts on what the first frame drew, as a right-click does: true if it did.
 [[nodiscard]] bool after_frame(Shell& s, std::string_view name);

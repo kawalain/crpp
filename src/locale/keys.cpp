@@ -252,6 +252,7 @@ constexpr Key keys[] = {
     KEY(notify_on_message),
     KEY(notify_tray),
     KEY(notify_flash),
+    KEY(notify_mention),
     KEY(notify_sounds),
     KEY(notify_preview),
     KEY(notify_sound_chat),

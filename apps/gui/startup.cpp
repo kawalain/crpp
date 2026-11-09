@@ -114,6 +114,7 @@ void enter_app(Shell& s) {
   s.app.home().set_nickname(nickname);
   s.config.server_url = data.string_or("serverUrl", store::default_server_url);
   s.config.nickname = nickname;
+  area::room::names_changed(s);
   s.config.token = data.string_or("token", "");
   show_store_notice(s);
   if (!first_run) s.app.show_home();

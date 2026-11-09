@@ -1040,6 +1040,17 @@ void test_right_click_elsewhere_closes_the_menu() {
   CHECK(!room.member_menu().is_open());
 }
 
+void test_a_message_names_someone_anywhere_in_it() {
+  const std::vector<std::string> names{"크롬이", "@Chrome"};
+  CHECK(mentions("크롬이님 이거 봐요", names));
+  CHECK(mentions("hey @chrome!", names));
+  CHECK(!mentions("크롬 말고", names));
+  CHECK(!mentions("아무도 안 불러요", names));
+  const std::vector<std::string> one_letter{"A"};
+  CHECK(!mentions("A plan", one_letter));
+  CHECK(!mentions("", names));
+}
+
 std::wstring slice(std::wstring_view text, LinkSpan link) { return std::wstring(text.substr(link.start, link.length)); }
 
 void test_links_are_https_with_punctuation_left_out() {
@@ -1377,6 +1388,7 @@ void test_clearing_the_chat_starts_over() {
 }  // namespace
 
 int main() {
+  test_a_message_names_someone_anywhere_in_it();
   test_arrows_bring_back_what_was_sent();
   test_a_line_marks_what_came_while_away();
   messages_can_be_selected_and_copied(CRPP_TEST_SKINS "/cloud");

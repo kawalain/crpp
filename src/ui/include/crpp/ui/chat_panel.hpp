@@ -68,6 +68,9 @@ bool stop_key(int id, unsigned vk, bool ctrl, bool shift, bool alt) override;
   // when a message is sent.
   void set_away(bool away);
   void set_my_slot(std::uint32_t slot) { my_slot_ = slot; }
+  // What this member is called, for messages that name them to stand out.
+  void set_names(std::vector<std::string> names);
+  [[nodiscard]] const std::vector<std::string>& names() const { return names_; }
   // The number of the first message under the line (the dropped ones counted), if there is one.
   [[nodiscard]] std::optional<std::size_t> new_from() const { return new_from_; }
   void clear();
@@ -111,6 +114,7 @@ bool stop_key(int id, unsigned vk, bool ctrl, bool shift, bool alt) override;
     float y_head = 0, y_text = 0, h_text = 0;
     bool head = false;
     bool new_line = false;  // "여기부터 새 메시지" above it, at y_line
+    bool mention = false;   // it names this member
     float y_line = 0;
     std::vector<LinkSpan> links;
     unsigned long long arrived_at = 0;  // rises and fades in from then; 0: it is just there
@@ -204,6 +208,7 @@ bool stop_key(int id, unsigned vk, bool ctrl, bool shift, bool alt) override;
   bool new_seen_ = false;  // the window came back while the line was there
   std::optional<std::size_t> new_from_;
   std::uint32_t my_slot_ = 0xFFFFFFFF;
+  std::vector<std::string> names_;
   void forget_new_line();
   // Draws the line across width at y, with its words in the middle.
   void paint_new_line(Painter& p, float x, float y, float width, float height, const TextStyle& style, Color color);

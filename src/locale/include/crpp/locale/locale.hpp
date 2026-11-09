@@ -272,6 +272,7 @@ struct Strings {
   const char* notify_on_message;
   const char* notify_tray;
   const char* notify_flash;
+  const char* notify_mention;
   const char* notify_sounds;
   const char* notify_preview;
   const char* notify_sound_chat;

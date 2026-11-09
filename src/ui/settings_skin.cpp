@@ -65,10 +65,10 @@ constexpr skin::Name display_hits[] = {{"scale_slider", DisplayTab::ScaleSlider}
                                        {"fetch_cancel", DisplayTab::FetchCancel}, {"fetch_retry", DisplayTab::FetchRetry}};
 
 // --- notifications ---
-enum NotifyNumber : int { TrayN, FlashN, Sounds, SoundOn };
+enum NotifyNumber : int { TrayN, FlashN, Sounds, SoundOn, MentionN };
 constexpr skin::Name notify_texts[] = {{"sound_name", 0}};
-constexpr skin::Name notify_numbers[] = {{"tray", TrayN}, {"flash", FlashN}, {"sounds", Sounds}, {"sound_on", SoundOn}};
-constexpr skin::Name notify_hits[] = {{"tray", NotifyTab::TrayToggle}, {"flash", NotifyTab::FlashToggle}, {"sound", NotifyTab::SoundBase}, {"preview", NotifyTab::PreviewBase}};
+constexpr skin::Name notify_numbers[] = {{"tray", TrayN}, {"flash", FlashN}, {"sounds", Sounds}, {"sound_on", SoundOn}, {"mention", MentionN}};
+constexpr skin::Name notify_hits[] = {{"tray", NotifyTab::TrayToggle}, {"flash", NotifyTab::FlashToggle}, {"mention", NotifyTab::MentionToggle}, {"sound", NotifyTab::SoundBase}, {"preview", NotifyTab::PreviewBase}};
 
 // --- system ---
 enum SystemText : int { RepoAddressT, RepoFingerprintT, RepoStatusT, PackNameT, PackDetailT };
@@ -446,6 +446,7 @@ void NotifyTab::paint_pack(Painter& p, const skin::Screen& screen, Rect area) {
       switch (id) {
         case TrayN: return yes(prefs.get(pref::chat_tray_notify));
         case FlashN: return yes(prefs.get(pref::chat_taskbar_flash));
+        case MentionN: return yes(prefs.get(pref::chat_mention_notify));
         case Sounds: return static_cast<float>(s_.sounds_.size());
         case SoundOn: {
           const auto* const sound = sound_at(index);

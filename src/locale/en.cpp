@@ -250,6 +250,7 @@ const Strings english{
     .notify_on_message = "When a message arrives",
     .notify_tray = "Show a tray notification",
     .notify_flash = "Flash the taskbar icon",
+    .notify_mention = "Always tell me when my nickname comes up",
     .notify_sounds = "Alert sounds",
     .notify_preview = "Preview",
     .notify_sound_chat = "Message",

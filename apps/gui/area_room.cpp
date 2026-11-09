@@ -59,6 +59,12 @@ void demo_session(App& app, bool chat) {
 
 }  // namespace
 
+void names_changed(Shell& s) {
+  std::vector<std::string> names{s.config.nickname};
+  if (const std::string handle = s.store->string_or("handle", ""); !handle.empty()) names.push_back("@" + handle);
+  s.app.room().chat().set_names(std::move(names));
+}
+
 void wire(Shell& s) {
   Shell* sp = &s;
   s.app.room().on_leave = [sp] {
@@ -149,6 +155,13 @@ bool scene(Shell& s, std::string_view name) {
     s.app.ui().set_focus(&chat, &chat.input());
     chat.input().set_text(L"보낼까 말까");
     chat.input().select_all();
+    return true;
+  }
+  if (name == "room-mention") {  // someone names this member
+    demo_session(s.app, true);
+    ChatPanel& chat = s.app.room().chat();
+    chat.set_names({"크롬이"});
+    chat.add({2, "c2", "구름빵", "1f436", "크롬이님, 오늘 회의 몇 시였죠?", wall_clock_seconds() * 1000});
     return true;
   }
   if (name == "room-new-line") {  // two messages came while the window was behind another

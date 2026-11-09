@@ -163,6 +163,8 @@ void on_chat(Shell& s, const ChatEntry& entry) {
       .tray_notify = s.prefs->get(pref::chat_tray_notify),
       .taskbar_flash = s.prefs->get(pref::chat_taskbar_flash),
       .flashing = state.flashing,
+      .mention = ui::mentions(entry.text, s.app.room().chat().names()),
+      .mention_notify = s.prefs->get(pref::chat_mention_notify),
   });
   if (reaction.sound) play(s, chat_sound_key, chat_sound_file);
   if (reaction.notify) notify_chat(s, entry);

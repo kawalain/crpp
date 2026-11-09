@@ -64,6 +64,12 @@ void ChatPanel::add(ChatEntry entry) {
   }
 }
 
+void ChatPanel::set_names(std::vector<std::string> names) {
+  if (names == names_) return;
+  names_ = std::move(names);
+  dirty_ = true;
+}
+
 void ChatPanel::set_away(bool away) {
   if (away == away_) return;
   away_ = away;

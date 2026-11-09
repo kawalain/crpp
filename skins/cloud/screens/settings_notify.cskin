@@ -2,9 +2,10 @@ text @tr.notify_heading (9, 25, @W-9, 32) style heading color hl_text
 text @tr.notify_on_message (12, 70, @W-12, 28) style subheading color @dark ? hl_text_dark : hl
 use toggle(on = @tray, hit = hit(tray)) (16, 110, 505, 36) text @tr.notify_tray
 use toggle(on = @flash, hit = hit(flash)) (16, 154, 505, 36) text @tr.notify_flash
-text @tr.notify_sounds (9, 204, @W-9, 32) style heading color hl_text
+use toggle(on = @mention, hit = hit(mention)) (16, 198, 505, 36) text @tr.notify_mention
+text @tr.notify_sounds (9, 248, @W-9, 32) style heading color hl_text
 repeat @sounds {
-  let top = 255+@i*44
+  let top = 299+@i*44
   use toggle(on = @sound_on, hit = hit(sound)+@i) (16, top, 505, 36)
   // .notice-name: grows from its left edge under the pointer, with its tip above.
   let name_w = textw(row, @sound_name, 2000)
@@ -23,4 +24,4 @@ repeat @sounds {
     }
   }
 }
-report height = (@sounds>0 ? 255+(@sounds-1)*44+36 : 204+32)+25
+report height = (@sounds>0 ? 299+(@sounds-1)*44+36 : 248+32)+25

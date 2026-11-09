@@ -250,6 +250,7 @@ const Strings korean{
     .notify_on_message = "메시지를 받으면",
     .notify_tray = "트레이 알림 띄우기",
     .notify_flash = "작업 표시줄 아이콘 깜빡이기",
+    .notify_mention = "내 별명이 나오면 위 설정과 상관없이 알려 주기",
     .notify_sounds = "알림음",
     .notify_preview = "미리 듣기",
     .notify_sound_chat = "메시지",

@@ -110,6 +110,7 @@ void ChatPanel::append_row_of_look(std::size_t index, float list_w, bool arrivin
   const ChatEntry& e = log_[index];
   Row row;
   row.new_line = new_from_ && *new_from_ == dropped_ + index;
+  row.mention = e.slot != my_slot_ && mentions(e.text, names_);
   const bool cont = !row.new_line && chat_grouped_with_previous(index);
   row.head = !cont;
   if (row.new_line) {
@@ -204,6 +205,10 @@ void ChatPanel::paint_rows(Painter& p, Rect area) {
     const float rise = look.rise * (1 - arrived);
     const Color ink = with_alpha(look.ink, arrived);
     if (row.new_line) paint_new_line(p, x, row.y_line + rise, list_w, look.head_h, look.time, with_alpha(look.link, arrived));
+    if (row.mention) {
+      const float top = (row.head ? row.y_head : row.y_text) + rise;
+      p.fill_round({x - 8, top - 3, list_w + 16, row.y_text + rise + row.h_text + 3 - (top - 3)}, 8, with_alpha(look.link, 0.14f * arrived));
+    }
     if (row.head) {
       draw_svg(p, ui_.emoji_image(e.emoji), {x, row.y_head + rise, look.face, look.face}, arrived);
       if (!row.time) {
@@ -306,6 +311,7 @@ void ChatPanel::append_message(std::size_t index, float list_w) {
   const ChatEntry& e = log_[index];
   Row row;
   row.new_line = new_from_ && *new_from_ == dropped_ + index;
+  row.mention = e.slot != my_slot_ && mentions(e.text, names_);
   const bool cont = !row.new_line && chat_grouped_with_previous(index);
   row.head = !cont;
   if (row.new_line) {
@@ -382,6 +388,10 @@ void ChatPanel::paint_messages(Painter& p, Rect inner) {
     const std::size_t index = first_ + r;
     const ChatEntry& e = log_[index];
     if (row.new_line) paint_new_line(p, x, top + row.y_line, text_w_full, body.line_height + 4, head, look.link);
+    if (row.mention) {
+      const float from = top + (row.head ? row.y_head : row.y_text);
+      p.fill_rect({x - 2, from - 1, text_w_full + 4, top + row.y_text + row.h_text + 1 - (from - 1)}, with_alpha(look.link, 0.12f));
+    }
     if (row.head) {
       if (!row.time) {
         row.time = ui_.gfx.layout(widen(chat_clock_text(e.time_ms, use_24h_)), time_style, text_w_full, head.line_height);

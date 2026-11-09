@@ -57,6 +57,8 @@ struct ChatFacts {
   bool tray_notify = true;
   bool taskbar_flash = true;
   bool flashing = false;  // a flash from an earlier message is still running
+  bool mention = false;   // it names this member
+  bool mention_notify = true;
 };
 
 struct ChatReaction {
@@ -68,7 +70,8 @@ struct ChatReaction {
 [[nodiscard]] constexpr ChatReaction chat_reaction(const ChatFacts& c) {
   if (c.mine) return {};
   const bool away = c.hidden || !c.focused;
-  return {.sound = !c.muted, .notify = away && c.tray_notify && !c.muted, .flash = away && c.taskbar_flash && !c.flashing};
+  const bool named = c.mention && c.mention_notify;  // the two settings do not hold it back
+  return {.sound = !c.muted, .notify = away && (c.tray_notify || named) && !c.muted, .flash = away && (c.taskbar_flash || named) && !c.flashing};
 }
 
 // Who a member is across list updates.

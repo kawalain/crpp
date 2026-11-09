@@ -38,6 +38,10 @@ class Platform {
                       const update::Signature& signature) = 0;
   // Before another attempt at a file the network did not deliver.
   virtual void wait(std::chrono::milliseconds time) = 0;
+  // Writes a fetched file under its temporary name. The bytes should be on the disk when this
+  // returns: the file is listed as installed afterwards, and a later start only compares its size
+  // with the catalog's, so one a power cut left empty would stay. This one only hands them to the OS.
+  virtual bool write_file(const std::filesystem::path& path, std::span<const std::uint8_t> bytes);
 
  protected:
   ~Platform() = default;

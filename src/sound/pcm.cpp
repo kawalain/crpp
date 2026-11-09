@@ -13,6 +13,9 @@ namespace {
 
 constexpr std::uint16_t format_pcm = 1, format_float = 3, format_extensible = 0xFFFE;
 constexpr std::uint32_t min_rate = 8000, max_rate = 192000;
+// The rates recordings come in. The resampler keeps a row of its kernel per phase of the ratio of
+// two rates, which is a handful between any two of these and tens of thousands for one a step off.
+constexpr std::array<std::uint32_t, 13> known_rates{8000, 11025, 12000, 16000, 22050, 24000, 32000, 44100, 48000, 88200, 96000, 176400, 192000};
 
 std::uint16_t u16(const std::uint8_t* p) noexcept { return static_cast<std::uint16_t>(p[0] | p[1] << 8); }
 std::uint32_t u32(const std::uint8_t* p) noexcept {
@@ -96,7 +99,9 @@ std::expected<Pcm, WavError> parse_wav(std::span<const std::uint8_t> bytes) {
   const bool pcm_ok = format == format_pcm && (bits == 8 || bits == 16 || bits == 24 || bits == 32);
   const bool float_ok = format == format_float && bits == 32;
   if (!pcm_ok && !float_ok) return std::unexpected(WavError::Unsupported);
+  if (std::ranges::find(known_rates, rate) == known_rates.end()) return std::unexpected(WavError::Unsupported);
   if (data.size() < block) return std::unexpected(WavError::NoData);
+  if (data.size() / block > std::uint64_t{rate} * max_recording_seconds) return std::unexpected(WavError::TooLong);
 
   Pcm out;
   out.rate = rate;
@@ -132,7 +137,7 @@ Resampler::Resampler(std::uint32_t in_rate, std::uint32_t out_rate) {
   first_.resize(out_step_);
   for (std::uint32_t phase = 0; phase < out_step_; ++phase) {
     // The output sample falls this far after its base input sample.
-    const double frac = static_cast<double>(phase * in_step_ % out_step_) / out_step_;
+    const double frac = static_cast<double>(std::uint64_t{phase} * in_step_ % out_step_) / out_step_;
     const int first = static_cast<int>(std::ceil(frac - half_in));
     first_[phase] = first;
     double sum = 0;

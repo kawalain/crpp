@@ -43,6 +43,18 @@ std::vector<std::string_view> matching(const std::vector<std::string>& files, co
 
 std::string lower_name(std::string_view name) { return lower(std::string(name)); }
 
+// A file's or folder's name, when it is ASCII as every pack's and recording's is. Anything else is
+// nothing a pack names, and a narrow copy of it could fail in the ANSI code page.
+std::optional<std::string> ascii_name(const fs::path& path) {
+  const auto name = path.filename().native();
+  std::string out;
+  for (const auto c : name) {
+    if (c <= 0 || c >= 0x80) return std::nullopt;
+    out += static_cast<char>(c);
+  }
+  return out;
+}
+
 // The name in a pack.json ({"name": {"ko": "...", "en": "..."}}) in this language, or else
 // the Korean one; these files come with the app and hold nothing else, so this is no JSON
 // parser.
@@ -136,11 +148,15 @@ Catalog Catalog::scan(std::span<const PackRoot> roots, std::string_view language
       const std::span<const std::string> expected = place.expected;
       std::map<std::string, std::set<std::string>> packs;  // sorted: the display order
       std::error_code ec;
-      for (const auto& entry : fs::directory_iterator(root / folder, ec)) {
-        if (!entry.is_directory(ec) || !fs::is_regular_file(entry.path() / "pack.json", ec)) continue;
-        auto& files = packs[lower(entry.path().filename().string())];
-        for (const auto& file : fs::directory_iterator(entry.path(), ec)) {
-          if (file.is_regular_file(ec)) files.insert(file.path().filename().string());
+      // Stepped with an error code: a folder that cannot be read ends the walk, and throws nothing.
+      for (fs::directory_iterator entry(root / folder, ec), end; !ec && entry != end; entry.increment(ec)) {
+        const auto id = ascii_name(entry->path());
+        if (!id || !entry->is_directory(ec) || !fs::is_regular_file(entry->path() / "pack.json", ec)) continue;
+        auto& files = packs[lower(*id)];
+        std::error_code inner;
+        for (fs::directory_iterator file(entry->path(), inner), none; !inner && file != none; file.increment(inner)) {
+          const auto name = ascii_name(file->path());
+          if (name && file->is_regular_file(inner)) files.insert(*name);
         }
       }
       const std::string prefix = std::string(folder) + "/";

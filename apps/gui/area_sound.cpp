@@ -25,6 +25,19 @@ struct State {
   std::unique_ptr<crpp::sound::OutputDevices> devices;  // from the first look at the tab
 };
 
+// The packs this member plays and the emoji others see, as they are now. The emoji is never left
+// out: sending none would leave the sleeping face up after being away.
+void tell_server_my_sounds(Shell& s) {
+  if (!s.client) return;
+  const std::string emoji = presence_emoji(s.store->string_or("emoji", ""), s.sound_state->idle.idle());
+  session::event::SetSounds sounds;
+  sounds.key = s.audio.keyboard_pack;
+  sounds.mouse = s.audio.mouse_pack;
+  sounds.pen = s.audio.pen_pack;
+  if (!emoji.empty()) sounds.emoji = emoji;
+  s.client->set_sounds(sounds);
+}
+
 namespace {
 
 constexpr UINT_PTR idle_timer = 101;  // WM_TIMER goes to its own procedure, not the window's
@@ -41,17 +54,6 @@ void apply(Shell& s) {
   s.audio.idle_muted = s.sound_state->idle.idle() && s.prefs->get(pref::mute_on_idle);
   s.audio.chimes = s.app.notification_style() == 2 ? crpp::sound::ChimeStyle::Plain : s.app.notification_style() == 1 ? crpp::sound::ChimeStyle::Bells : crpp::sound::ChimeStyle::None;
   s.engine->set_settings(s.audio);
-}
-
-void tell_server_my_sounds(Shell& s) {
-  if (!s.client) return;
-  const std::string emoji = presence_emoji(s.store->string_or("emoji", ""), s.sound_state->idle.idle());
-  session::event::SetSounds sounds;
-  sounds.key = s.audio.keyboard_pack;
-  sounds.mouse = s.audio.mouse_pack;
-  sounds.pen = s.audio.pen_pack;
-  if (!emoji.empty()) sounds.emoji = emoji;
-  s.client->set_sounds(sounds);
 }
 
 // --- being away ---

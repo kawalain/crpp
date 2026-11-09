@@ -33,6 +33,22 @@ void all_drawn(UiHarness& h, const std::vector<Place>& places) {
   (void)rects_of(h, places);
 }
 
+// A hit holds a view of its shape in the pack it was drawn from. Once another pack is read, what the
+// last frame left to click is gone until the next frame, in every window.
+void test_a_pack_read_leaves_nothing_of_the_last_frame_to_click() {
+  UiHarness h;
+  CHECK(h.start());
+  h.app.show_home();
+  h.render();
+  CHECK(h.drawn(h.app.home(), HomeScreen::Create));
+  CHECK(h.app.load_skin_dir(CRPP_TEST_SKINS "/retro").has_value());
+  CHECK(!h.drawn(h.app.home(), HomeScreen::Create));
+  CHECK(h.app.ui().hit_at(475, 300) == nullptr);
+  h.app.mouse_move(475, 300);  // reads nothing of the pack that went
+  h.render();
+  CHECK(h.drawn(h.app.home(), HomeScreen::Create));
+}
+
 void test_the_layers_are_drawn() {
   UiHarness h;
   CHECK(h.start(1200, 900));
@@ -812,6 +828,7 @@ void test_path_data_that_cannot_be_read_gives_no_shape() {
 }  // namespace
 
 int main() {
+  test_a_pack_read_leaves_nothing_of_the_last_frame_to_click();
   test_path_data_that_cannot_be_read_gives_no_shape();
   test_the_official_packs_are_named_in_korean_and_english();
   test_the_rows_choose_a_theme_of_any_skin_and_a_dark_mode();

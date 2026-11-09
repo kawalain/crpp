@@ -9,6 +9,9 @@ namespace crpp::skin {
 
 namespace {
 
+// The most a pack's number counts as where it only tells things apart: a hit's index, a transition's key.
+constexpr int max_key = 1'000'000;
+
 class Walker final : public Env {
  public:
   Walker(const Pack& pack, int palette, Canvas& canvas, Source& source) : pack_(pack), palette_(palette), canvas_(canvas), source_(source) {}
@@ -81,7 +84,7 @@ class Walker final : public Env {
   }
 
   [[nodiscard]] Color color_at(float v) {
-    if (v < 0) return worked_[static_cast<std::size_t>(-v - 1) % worked_.size()];
+    if (v < 0) return worked_[static_cast<std::size_t>(whole(-v - 1, 0, static_cast<int>(worked_.size()) - 1))];
     const Paint* paint = pack_.paint(palette_, v);
     return paint ? paint->color : Color{0, 0, 0, 0};
   }
@@ -145,7 +148,7 @@ class Walker final : public Env {
     switch (n.kind) {
       case NodeKind::Let:
         if (n.transition) {
-          slots_[base_ + n.slot] = canvas_.transition(n.has_alpha ? mixed(static_cast<std::uint64_t>(&n - pack_.nodes.data()), static_cast<std::uint64_t>(value(n.alpha))) : key_of(n), {.on = value(n.extra) != 0, .ms_on = value(n.width), .ms_off = value(n.extra2), .first_jumps = n.first_jumps, .curve = n.linear ? Curve::Linear : Curve::Ease, .again = n.has_size ? value(n.size) : 0});
+          slots_[base_ + n.slot] = canvas_.transition(n.has_alpha ? mixed(static_cast<std::uint64_t>(&n - pack_.nodes.data()), static_cast<std::uint64_t>(whole(value(n.alpha), 0, max_key))) : key_of(n), {.on = value(n.extra) != 0, .ms_on = value(n.width), .ms_off = value(n.extra2), .first_jumps = n.first_jumps, .curve = n.linear ? Curve::Linear : Curve::Ease, .again = n.has_size ? value(n.size) : 0});
           return;
         }
         [[fallthrough]];
@@ -180,7 +183,7 @@ class Walker final : public Env {
     int hit = no_hit;
     HitPlace place;
     if (n.hit != no_hit) {
-      hit = n.hit + static_cast<int>(n.has_hit_index ? value(n.hit_index) : vars[VarI]);
+      hit = n.hit + whole(n.has_hit_index ? value(n.hit_index) : vars[VarI], -1 - n.hit, max_key);
       if (hit < 0) {
         hit = no_hit;
       } else {
@@ -243,7 +246,7 @@ class Walker final : public Env {
       }
       case NodeKind::Use: use(n, *used, box, outer_label); break;
       case NodeKind::Repeat: {
-        const int rounds = std::clamp(static_cast<int>(value(n.extra)), 0, max_repeat);
+        const int rounds = whole(value(n.extra), 0, max_repeat);
         const float outer = vars[VarI];
         const std::uint64_t outer_seed = seed_;
         for (int round = 0; round < rounds; ++round) {

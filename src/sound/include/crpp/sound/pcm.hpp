@@ -9,7 +9,11 @@
 
 namespace crpp::sound {
 
-enum class WavError : std::uint8_t { NotWav, BadFormat, Unsupported, NoData };
+// Unsupported: a format, or a rate recordings do not come in. TooLong: more than max_recording_seconds.
+enum class WavError : std::uint8_t { NotWav, BadFormat, Unsupported, NoData, TooLong };
+
+// A recording is a key or a click. The limit keeps a pack from anyone from asking for memory by the minute.
+inline constexpr std::uint32_t max_recording_seconds = 30;
 
 // Every recording plays from one point in space, so it is kept in mono.
 struct Pcm {

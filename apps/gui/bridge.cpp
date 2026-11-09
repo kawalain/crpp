@@ -43,7 +43,8 @@ void Bridge::on_status(session::State s) {
 void Bridge::on_deliver(const wire::ServerMessage& m) {
   const wire::RoomState* room = nullptr;
   std::string code;
-  std::uint32_t me = me_;
+  // On the client's thread: me_ is the UI thread's.
+  std::uint32_t me = my_slot_.load(std::memory_order_relaxed);
   if (const auto* j = std::get_if<wire::msg::Joined>(&m)) {
     room = &j->room;
     code = std::string(j->code);

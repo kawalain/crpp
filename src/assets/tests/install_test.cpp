@@ -46,6 +46,13 @@ class Fake final : public Platform {
     return key == good_key && !message.empty() && signature == good_signature;
   }
   void wait(std::chrono::milliseconds) override { ++waits; }
+  bool write_file(const std::filesystem::path& path, std::span<const std::uint8_t> bytes) override {
+    {
+      const std::lock_guard lock(mutex);
+      written.push_back(path.filename().string());
+    }
+    return Platform::write_file(path, bytes);
+  }
 
   [[nodiscard]] std::size_t count(std::string_view prefix) {
     const std::lock_guard lock(mutex);
@@ -56,6 +63,7 @@ class Fake final : public Platform {
   std::map<std::string, int> passing;  // how many more times the network fails it
   std::vector<std::string> down;       // prefixes that never answer
   std::vector<std::string> asked;
+  std::vector<std::string> written;  // what went through write_file, which is where a file reaches the disk
   std::atomic<int> waits{0};
   std::mutex mutex;
 };
@@ -117,6 +125,9 @@ void installs_only_the_groups_asked_for() {
   }));
   CHECK(last.files_done == 2 && last.files == 2 && last.bytes_done == 7 && last.bytes == 7);
   CHECK(read(dir.path / "emoji/a.svg") == "aaa" && read(dir.path / "fonts/f.ttf") == "ffff");
+  // Each file is on the disk before the list says it is installed: the next start only compares sizes.
+  std::ranges::sort(fake.written);
+  CHECK((fake.written == std::vector<std::string>{"a.svg.part", "f.ttf.part"}));
   CHECK(!fs::exists(dir.path / "skins"));
   CHECK(missing(catalog, shared_and_cloud, dir.path).empty());
 

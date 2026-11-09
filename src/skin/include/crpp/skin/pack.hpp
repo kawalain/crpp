@@ -92,6 +92,7 @@
 
 #include "crpp/skin/color.hpp"
 #include "crpp/skin/expr.hpp"
+#include "crpp/skin/naming.hpp"
 
 namespace crpp::skin {
 
@@ -115,6 +116,17 @@ inline constexpr int max_walk_depth = 64;
 inline constexpr std::size_t max_slot_values = 16;
 inline constexpr int max_pack_levels = 4;
 inline constexpr int max_palette_levels = 8;
+
+// A number a pack worked out, as a whole one from lo to hi. An expression can give anything, as
+// 1 / 0.000001 or what is no number at all, and converting that as it is has no defined result.
+[[nodiscard]] constexpr int whole(float value, int lo, int hi) {
+  if (!(value >= static_cast<float>(lo))) return lo;  // also what is not a number
+  return value >= static_cast<float>(hi) ? hi : static_cast<int>(value);
+}
+
+// What a constant may be. The shell makes windows, regions and timers of some of them.
+inline constexpr float max_constant = 1'000'000;
+inline constexpr float min_window_side = 50, max_window_side = 4096, max_window_radius = 100, max_frame_part = 500;
 
 // What a screen offers a pack, under the names it may use. The ids are the screen's own.
 struct Name {
@@ -276,11 +288,6 @@ struct ParentPin {
   std::string version;      // 0.y or 0.y.z: that version, or any 0.y.z; empty: any
   std::string sha256;       // the digest of its own files in its catalog, or empty
 };
-
-// 0.y.z, as a pack says its own version.
-[[nodiscard]] bool is_version(std::string_view s);
-// 0.y or 0.y.z, as a pin asks for one.
-[[nodiscard]] bool is_version_pin(std::string_view s);
 
 struct Pack {
   std::string id;

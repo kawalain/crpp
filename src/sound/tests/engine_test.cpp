@@ -1,6 +1,7 @@
 #include "crpp/sound/engine.hpp"
 
 #include <atomic>
+#include <filesystem>
 #include <mutex>
 #include <thread>
 
@@ -557,7 +558,32 @@ void settings_may_change_at_any_time() {
 
 }  // namespace
 
+// A user's folder may hold letters the system's ANSI code page lacks, as a Korean name does on an
+// English Windows: no path may go through that code page.
+void a_folder_outside_the_code_page_still_sounds() {
+  namespace fs = std::filesystem;
+  const fs::path root = fs::temp_directory_path() / L"crpp-กข-😀-sounds";
+  std::error_code ec;
+  fs::remove_all(root, ec);
+  fs::create_directories(root / "keyboard", ec);
+  fs::copy(fs::path(CRPP_SOUNDS_DIR) / "keyboard" / "walnut", root / "keyboard" / "walnut", fs::copy_options::recursive, ec);
+  CHECK(!ec);
+  {
+    FakeDevice device;
+    Engine engine(device, root);
+    engine.set_settings(full_volume());
+    engine.set_members({{3, "walnut", "", "", ""}});
+    engine.start();
+    engine.play_peer(3, Kind::KeySpace);
+    CHECK(eventually(device, [&] { return device.starts.load() == 1; }));
+    CHECK(loudest(device) > 0.001f);
+    engine.stop();
+  }
+  fs::remove_all(root, ec);
+}
+
 int main() {
+  a_folder_outside_the_code_page_still_sounds();
   nothing_happens_until_a_sound();
   a_peer_sounds_and_the_stream_stops_afterwards();
   own_sounds_need_listen_self();

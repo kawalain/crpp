@@ -15,36 +15,10 @@ namespace {
 
 using store::Json;
 
-// As a Repository's catalog takes them (ADR 0008), so that a pack id with a Repository's prefix
-// stays within what the server takes for a Sound pack.
-[[nodiscard]] bool is_pack_id(std::string_view s) {
-  return !s.empty() && s.size() <= 32 && std::ranges::all_of(s, [](char c) {
-    return (c >= 'a' && c <= 'z') || (c >= '0' && c <= '9') || c == '-' || c == '_';
-  });
-}
-
 // What a user calls a pack or Theme in a locale, as the catalog copies it.
 [[nodiscard]] bool good_name(const Json::Member& name) {
   const auto words = name.value.as_string();
-  return is_pack_id(name.key) && words && !words->empty() && words->size() <= 64 && words->front() != ' ' && words->back() != ' ' &&
-         std::ranges::all_of(*words, [](char c) { return static_cast<unsigned char>(c) >= 0x20 && c != 0x7f; });
-}
-
-[[nodiscard]] bool is_hex64(std::string_view s) {
-  return s.size() == 64 && std::ranges::all_of(s, [](char c) { return (c >= '0' && c <= '9') || (c >= 'a' && c <= 'f'); });
-}
-
-// Digits with no leading zero, separated by dots: count of them.
-[[nodiscard]] bool dotted(std::string_view s, std::size_t parts) {
-  for (std::size_t i = 0; i < parts; ++i) {
-    const std::size_t dot = s.find('.');
-    const std::string_view part = s.substr(0, dot);
-    if (part.empty() || part.size() > 9 || (part.size() > 1 && part[0] == '0') || !std::ranges::all_of(part, [](char c) { return c >= '0' && c <= '9'; })) return false;
-    if (i + 1 == parts) return dot == std::string_view::npos;
-    if (dot == std::string_view::npos) return false;
-    s.remove_prefix(dot + 1);
-  }
-  return false;
+  return is_pack_id(name.key) && words && is_shown_name(*words);
 }
 
 [[nodiscard]] std::optional<int> find_name(std::span<const Name> names, std::string_view name) {
@@ -72,6 +46,21 @@ using store::Json;
   const auto [end, ec] = std::from_chars(text.data(), text.data() + text.size(), value);
   if (ec != std::errc{} || end != text.data() + text.size()) return std::nullopt;
   return value;
+}
+
+// What is wrong with a constant's value, in words, if anything. The shell makes windows, their
+// corners and timers of these, so each has the range that leaves a window someone can use.
+[[nodiscard]] std::optional<std::string> out_of_range(std::string_view name, float value) {
+  const auto within = [&](float lo, float hi) -> std::optional<std::string> {
+    if (value >= lo && value <= hi) return std::nullopt;
+    return "from " + std::to_string(static_cast<long long>(lo)) + " to " + std::to_string(static_cast<long long>(hi));
+  };
+  static constexpr std::string_view frame_parts[] = {"caption_h", "frame_w", "menu_h", "frame_edge", "frame_corner", "frame_button", "frame_button_gap", "frame_button_top", "frame_button_right"};
+  if (name == "window_radius") return within(0, max_window_radius);
+  if (name.starts_with("window_") && (name.ends_with("_w") || name.ends_with("_h"))) return within(min_window_side, max_window_side);
+  if (std::ranges::find(frame_parts, name) != std::end(frame_parts)) return within(0, max_frame_part);
+  if (name.ends_with("_ms")) return within(0, max_constant);
+  return within(-max_constant, max_constant);
 }
 
 [[nodiscard]] bool key_allowed(NodeKind kind, std::string_view key) {
@@ -346,8 +335,8 @@ class Loader final : public Names {
     pin.fingerprint = field("fingerprint");
     pin.version = field("version");
     pin.sha256 = field("sha256");
-    if (!pin.fingerprint.empty() && !is_hex64(pin.fingerprint)) fail("a fingerprint is 64 lowercase hex digits");
-    else if (!pin.sha256.empty() && !is_hex64(pin.sha256)) fail("a sha256 is 64 lowercase hex digits");
+    if (!pin.fingerprint.empty() && !is_lower_hex(pin.fingerprint, 64)) fail("a fingerprint is 64 lowercase hex digits");
+    else if (!pin.sha256.empty() && !is_lower_hex(pin.sha256, 64)) fail("a sha256 is 64 lowercase hex digits");
     else if (!pin.version.empty() && !is_version_pin(pin.version)) fail("a parent's version is 0.y or 0.y.z");
     else if (pin.repository.size() > 300 || (!pin.repository.empty() && pin.fingerprint.empty())) fail("a repository needs the fingerprint of its key");
     else return pin;
@@ -521,6 +510,7 @@ class Loader final : public Names {
     for (const Json::Member& m : *all) {
       const auto value = as_float(m.value);
       if (!value) return fail("the constant \"" + m.key + "\" is not a number");
+      if (const auto wrong = out_of_range(m.key, *value)) return fail("the constant \"" + m.key + "\" is not " + *wrong);
       pack_.constants.emplace_back(m.key, *value);
     }
     return true;
@@ -1299,8 +1289,8 @@ const Part* Pack::part(std::string_view name) const {
 }
 
 const Paint* Pack::paint(int palette, float value) const {
+  if (!(value >= 0) || value >= static_cast<float>(paint_names)) return nullptr;  // also what is not a number
   const auto entry = static_cast<std::uint32_t>(value);
-  if (value < 0 || entry >= paint_names) return nullptr;
   return &paints[static_cast<std::size_t>(palette) * paint_names + entry];
 }
 
@@ -1367,9 +1357,5 @@ std::expected<Pack, std::string> load_pack(const ReadFile& read, std::span<const
   if (!loader.load(schemas)) return std::unexpected(loader.error());
   return loader.take();
 }
-
-bool is_version(std::string_view s) { return s.starts_with("0.") && dotted(s, 3); }
-
-bool is_version_pin(std::string_view s) { return s.starts_with("0.") && (dotted(s, 2) || dotted(s, 3)); }
 
 }  // namespace crpp::skin

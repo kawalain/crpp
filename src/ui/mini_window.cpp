@@ -78,7 +78,9 @@ MiniWindow::Shape MiniWindow::shape() const {
   if (!screen) return {200, 100, 0};
   Shown shown(room_, ui_, nullptr, active_);
   measure_screen(ui_, *screen, {0, 0, 2000, 2000}, shown);
-  return shown.shape;
+  // The pack reports these, and a window is made of them.
+  const auto within = [](float value, float lo, float hi) { return !(value >= lo) ? lo : value > hi ? hi : value; };
+  return {within(shown.shape.width, 40, 2000), within(shown.shape.height, 40, 2000), within(shown.shape.radius, 0, skin::max_window_radius)};
 }
 
 void MiniWindow::paint(Painter& p) {

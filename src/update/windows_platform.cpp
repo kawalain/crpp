@@ -8,26 +8,14 @@
 #include <array>
 #include <cstring>
 
+#include "crpp/winhttp/winhttp.hpp"
+
 namespace crpp::update {
 
 namespace {
 
 constexpr int timeout_ms = 30000;
 constexpr DWORD exit_wait_ms = 30000;
-
-class Internet {
- public:
-  explicit Internet(HINTERNET handle = nullptr) noexcept : handle_(handle) {}
-  ~Internet() {
-    if (handle_ != nullptr) WinHttpCloseHandle(handle_);
-  }
-  Internet(const Internet&) = delete;
-  Internet& operator=(const Internet&) = delete;
-  [[nodiscard]] HINTERNET get() const noexcept { return handle_; }
-
- private:
-  HINTERNET handle_;
-};
 
 class Kernel {
  public:
@@ -53,72 +41,46 @@ std::wstring ack_event_name(DWORD pid) { return L"Local\\crpp.update." + std::to
 struct WindowsPlatform::Impl {
   std::wstring relaunch_args;
   DWORD launch_wait_ms = 0;
-  // GitHub's API refuses requests without a User-Agent; this is it.
-  Internet session{WinHttpOpen(L"crpp-update", WINHTTP_ACCESS_TYPE_AUTOMATIC_PROXY, WINHTTP_NO_PROXY_NAME,
-                               WINHTTP_NO_PROXY_BYPASS, 0)};
+  // GitHub's API refuses requests without a User-Agent; this is it. A release's files are behind a
+  // redirect, and what arrives is checked against the signed manifest, so redirects are followed.
+  winhttp::Handle session = winhttp::open_session(L"crpp-update", timeout_ms, winhttp::Redirects::Follow);
 };
 
 WindowsPlatform::WindowsPlatform(std::wstring relaunch_args, unsigned long launch_wait_ms) : impl_(std::make_unique<Impl>()) {
   impl_->relaunch_args = std::move(relaunch_args);
   impl_->launch_wait_ms = launch_wait_ms;
-  if (impl_->session.get() != nullptr) WinHttpSetTimeouts(impl_->session.get(), timeout_ms, timeout_ms, timeout_ms, timeout_ms);
 }
 
 WindowsPlatform::~WindowsPlatform() = default;
 
 std::expected<std::vector<std::uint8_t>, Error> WindowsPlatform::get(const std::string& url, std::size_t limit,
                                                                      std::string_view accept, const OnBytes& on_bytes) {
-  if (impl_->session.get() == nullptr) return std::unexpected(Error::Network);
-  const std::wstring wide_url = ascii_wide(url);
-  URL_COMPONENTS parts{};
-  parts.dwStructSize = sizeof parts;
-  parts.dwHostNameLength = static_cast<DWORD>(-1);
-  parts.dwUrlPathLength = static_cast<DWORD>(-1);
-  parts.dwExtraInfoLength = static_cast<DWORD>(-1);
-  if (!WinHttpCrackUrl(wide_url.c_str(), 0, 0, &parts)) return std::unexpected(Error::Network);
-  const std::wstring host(parts.lpszHostName, parts.dwHostNameLength);
-  const std::wstring path = std::wstring(parts.lpszUrlPath, parts.dwUrlPathLength) +
-                            std::wstring(parts.lpszExtraInfo, parts.dwExtraInfoLength);
-  const Internet connection(WinHttpConnect(impl_->session.get(), host.c_str(), parts.nPort, 0));
-  if (connection.get() == nullptr) return std::unexpected(Error::Network);
-  // WinHTTP follows redirects itself, except from HTTPS down to HTTP.
-  const Internet request(WinHttpOpenRequest(connection.get(), L"GET", path.c_str(), nullptr, WINHTTP_NO_REFERER,
-                                            WINHTTP_DEFAULT_ACCEPT_TYPES,
-                                            parts.nScheme == INTERNET_SCHEME_HTTPS ? WINHTTP_FLAG_SECURE : 0));
-  if (request.get() == nullptr) return std::unexpected(Error::Network);
+  if (!impl_->session) return std::unexpected(Error::Network);
+  const auto address = winhttp::crack(url);
+  if (!address) return std::unexpected(Error::Network);
+  const winhttp::Handle connection(WinHttpConnect(impl_->session.get(), address->host.c_str(), address->port, 0));
+  if (!connection) return std::unexpected(Error::Network);
+  const winhttp::Handle request(WinHttpOpenRequest(connection.get(), L"GET", address->path.c_str(), nullptr, WINHTTP_NO_REFERER,
+                                                   WINHTTP_DEFAULT_ACCEPT_TYPES, address->secure ? WINHTTP_FLAG_SECURE : 0));
+  if (!request) return std::unexpected(Error::Network);
   const std::wstring headers = accept.empty() ? std::wstring{} : L"Accept: " + ascii_wide(accept);
   if (!WinHttpSendRequest(request.get(), headers.empty() ? WINHTTP_NO_ADDITIONAL_HEADERS : headers.c_str(),
                           headers.empty() ? 0 : static_cast<DWORD>(-1), WINHTTP_NO_REQUEST_DATA, 0, 0, 0) ||
       !WinHttpReceiveResponse(request.get(), nullptr)) {
     return std::unexpected(Error::Network);
   }
-  DWORD status = 0;
-  DWORD status_size = sizeof status;
-  if (!WinHttpQueryHeaders(request.get(), WINHTTP_QUERY_STATUS_CODE | WINHTTP_QUERY_FLAG_NUMBER,
-                           WINHTTP_HEADER_NAME_BY_INDEX, &status, &status_size, WINHTTP_NO_HEADER_INDEX)) {
-    return std::unexpected(Error::Network);
-  }
-  if (status != 200) return std::unexpected(Error::Unavailable);
-  // Grows as data arrives: for most requests `limit` is only an upper bound.
+  const auto status = winhttp::status_of(request.get());
+  if (!status) return std::unexpected(Error::Network);
+  if (*status != 200) return std::unexpected(Error::Unavailable);
   std::vector<std::uint8_t> bytes;
-  std::size_t received = 0;
-  while (received <= limit) {
-    const std::size_t room = std::min<std::size_t>(limit + 1 - received, 256 * 1024);
-    bytes.resize(received + room);
-    DWORD read = 0;
-    if (!WinHttpReadData(request.get(), bytes.data() + received, static_cast<DWORD>(room), &read)) {
-      return std::unexpected(Error::Network);
-    }
-    if (read == 0) break;
-    received += read;
-    if (on_bytes) on_bytes(received);
-  }
-  bytes.resize(received);
+  if (!winhttp::read_body(request.get(), limit, bytes, on_bytes)) return std::unexpected(Error::Network);
   bytes.shrink_to_fit();
   return bytes;
 }
 
-std::string WindowsPlatform::sha256(std::span<const std::uint8_t> bytes) {
+std::string WindowsPlatform::sha256(std::span<const std::uint8_t> bytes) { return sha256_hex(bytes); }
+
+std::string sha256_hex(std::span<const std::uint8_t> bytes) {
   std::array<UCHAR, 32> digest{};
   if (!BCRYPT_SUCCESS(BCryptHash(BCRYPT_SHA256_ALG_HANDLE, nullptr, 0, const_cast<UCHAR*>(bytes.data()),
                                  static_cast<ULONG>(bytes.size()), digest.data(), static_cast<ULONG>(digest.size())))) {
@@ -162,7 +124,9 @@ bool verify_signature(const PublicKey& key, std::span<const std::uint8_t> messag
   return good;
 }
 
-bool WindowsPlatform::write_file(const std::filesystem::path& path, std::span<const std::uint8_t> bytes) {
+bool WindowsPlatform::write_file(const std::filesystem::path& path, std::span<const std::uint8_t> bytes) { return write_flushed(path, bytes); }
+
+bool write_flushed(const std::filesystem::path& path, std::span<const std::uint8_t> bytes) {
   const Kernel file(CreateFileW(path.c_str(), GENERIC_WRITE, 0, nullptr, CREATE_ALWAYS, FILE_ATTRIBUTE_NORMAL, nullptr));
   if (file.get() == nullptr) return false;
   std::size_t done = 0;

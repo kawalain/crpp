@@ -4,12 +4,13 @@
 #include <charconv>
 #include <unordered_set>
 
+#include "crpp/skin/naming.hpp"
+
 namespace crpp::assets {
 
 namespace {
 
 constexpr std::size_t max_path = 200;
-constexpr std::size_t max_id = 32;
 constexpr std::size_t max_url = 300;
 
 std::vector<std::string_view> fields_of(std::string_view line) {
@@ -22,17 +23,14 @@ std::vector<std::string_view> fields_of(std::string_view line) {
   }
 }
 
-constexpr std::size_t max_words = 64;
-
-// The rest of a line after its first `skip` fields: a name, with no control characters.
+// The rest of a line after its first `skip` fields: a name, as skin::is_shown_name takes one.
 std::optional<std::string_view> words_after(std::string_view line, std::size_t skip) {
   for (std::size_t i = 0; i < skip; ++i) {
     const std::size_t space = line.find(' ');
     if (space == std::string_view::npos) return std::nullopt;
     line.remove_prefix(space + 1);
   }
-  if (line.empty() || line.size() > max_words || line.front() == ' ' || line.back() == ' ') return std::nullopt;
-  if (!std::ranges::all_of(line, [](char c) { return static_cast<unsigned char>(c) >= 0x20 && c != 0x7f; })) return std::nullopt;
+  if (!skin::is_shown_name(line)) return std::nullopt;
   return line;
 }
 
@@ -42,17 +40,11 @@ bool has_name(const Names& names, std::string_view locale) {
 
 }  // namespace
 
-bool is_id(std::string_view s) {
-  return !s.empty() && s.size() <= max_id && std::ranges::all_of(s, [](char c) {
-    return (c >= 'a' && c <= 'z') || (c >= '0' && c <= '9') || c == '-' || c == '_';
-  });
-}
+bool is_id(std::string_view s) { return skin::is_pack_id(s); }
 
 namespace {
 
-bool is_hex(std::string_view s, std::size_t length) {
-  return s.size() == length && std::ranges::all_of(s, [](char c) { return (c >= '0' && c <= '9') || (c >= 'a' && c <= 'f'); });
-}
+bool is_hex(std::string_view s, std::size_t length) { return skin::is_lower_hex(s, length); }
 
 // CON, PRN, AUX, NUL, COM0-9 and LPT0-9, in any case and with any extension, are devices to Windows.
 bool names_a_device(std::string_view part) {
@@ -82,21 +74,8 @@ bool is_path(std::string_view s) {
   }
 }
 
-// Digits with no leading zero, `parts` of them between dots.
-bool dotted(std::string_view s, std::size_t parts) {
-  for (std::size_t i = 0; i < parts; ++i) {
-    const std::size_t dot = s.find('.');
-    const std::string_view part = s.substr(0, dot);
-    if (part.empty() || part.size() > 9 || (part.size() > 1 && part[0] == '0') || !std::ranges::all_of(part, [](char c) { return c >= '0' && c <= '9'; })) return false;
-    if (i + 1 == parts) return dot == std::string_view::npos;
-    if (dot == std::string_view::npos) return false;
-    s.remove_prefix(dot + 1);
-  }
-  return false;
-}
-
-bool is_version(std::string_view s) { return s.starts_with("0.") && dotted(s, 3); }
-bool is_version_pin(std::string_view s) { return s.starts_with("0.") && (dotted(s, 2) || dotted(s, 3)); }
+using skin::is_version;
+using skin::is_version_pin;
 
 bool is_local_host(std::string_view rest) {
   return rest.starts_with("127.0.0.1:") || rest.starts_with("127.0.0.1/") || rest.starts_with("localhost:") ||
@@ -212,6 +191,7 @@ std::expected<Catalog, CatalogError> parse_catalog(std::string_view text) {
     } else if (f[0] == "source") {
       if (f.size() != 3 || !is_id(f[1]) || !is_url(f[2])) return fail("a source is a name and an address ending with '/'");
       if (catalog.source(f[1])) return fail("a second source of that name");
+      if (catalog.sources.size() == max_packs) return fail("more sources than a catalog lists");
       catalog.sources.push_back({std::string(f[1]), std::string(f[2])});
     } else if (f[0] == "skin") {
       SkinPack skin;
@@ -219,6 +199,7 @@ std::expected<Catalog, CatalogError> parse_catalog(std::string_view text) {
         return fail("a skin is an id, a format and maybe a parent");
       }
       if (catalog.skin(f[1])) return fail("a second skin of that id");
+      if (catalog.skins.size() == max_packs) return fail("more skins than a catalog lists");
       if (f.size() == 4 && (!is_id(f[3]) || f[3] == f[1])) return fail("a parent is another skin's id");
       skin.id = f[1];
       if (f.size() == 4) skin.parent = f[3];
@@ -273,6 +254,7 @@ std::expected<Catalog, CatalogError> parse_catalog(std::string_view text) {
     } else if (f[0] == "sound") {
       if (f.size() != 2 || !is_id(f[1])) return fail("a sound is an id");
       if (catalog.sound(f[1])) return fail("a second sound of that id");
+      if (catalog.sounds.size() == max_packs) return fail("more sounds than a catalog lists");
       catalog.sounds.push_back({std::string(f[1]), {}});
     } else if (f[0] == "sound-name") {
       const auto it = f.size() >= 4 ? std::ranges::find(catalog.sounds, f[1], &SoundPack::id) : catalog.sounds.end();

@@ -11,20 +11,13 @@
 
 #include <string>
 #include <string_view>
+#include <vector>
+
+#include "crpp/winhttp/winhttp.hpp"
 
 namespace crpp::transport {
 
-namespace {
-
-std::wstring widen(std::string_view s) {
-  if (s.empty()) return {};
-  const int n = MultiByteToWideChar(CP_UTF8, 0, s.data(), static_cast<int>(s.size()), nullptr, 0);
-  std::wstring w(static_cast<std::size_t>(n), L'\0');
-  MultiByteToWideChar(CP_UTF8, 0, s.data(), static_cast<int>(s.size()), w.data(), n);
-  return w;
-}
-
-}  // namespace
+using winhttp::widen;
 
 bool WinHttpHealth::publish(Handle& slot, Handle handle) {
   std::lock_guard lock(mutex_);
@@ -85,18 +78,13 @@ std::optional<std::string> WinHttpHealth::ask(const Target& target) {
     // Blocking calls run without the lock, so cancel() can close the handle under them.
     if (!WinHttpSendRequest(request, WINHTTP_NO_ADDITIONAL_HEADERS, 0, WINHTTP_NO_REQUEST_DATA, 0, 0, 0)) return std::nullopt;
     if (!WinHttpReceiveResponse(request, nullptr)) return std::nullopt;
-    DWORD status = 0, size = sizeof status;
-    if (!WinHttpQueryHeaders(request, WINHTTP_QUERY_STATUS_CODE | WINHTTP_QUERY_FLAG_NUMBER, WINHTTP_HEADER_NAME_BY_INDEX,
-                             &status, &size, WINHTTP_NO_HEADER_INDEX) ||
-        status < 200 || status >= 300) {
-      return std::nullopt;
-    }
-    // Upstream answers a few short lines; anything past a KB is not read.
-    std::string body;
-    char buffer[256];
-    DWORD read = 0;
-    while (body.size() < 1024 && WinHttpReadData(request, buffer, sizeof buffer, &read) && read > 0) body.append(buffer, read);
-    return body;
+    const auto status = winhttp::status_of(request);
+    if (!status || *status < 200 || *status >= 300) return std::nullopt;
+    // Upstream answers a few short lines; anything past a KB is not read. What arrived before a
+    // failure is still an answer, as the status was.
+    std::vector<std::uint8_t> bytes;
+    (void)winhttp::read_body(request, 1023, bytes);
+    return std::string(bytes.begin(), bytes.end());
   };
   std::optional<std::string> answer = ask();
   release();

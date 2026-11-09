@@ -9,28 +9,15 @@
 #include <windows.h>
 #include <winhttp.h>
 
+#include "crpp/winhttp/winhttp.hpp"
+
 namespace crpp::transport {
 
 namespace {
 
-std::wstring widen(std::string_view s) {
-  if (s.empty()) return {};
-  const int n = MultiByteToWideChar(CP_UTF8, 0, s.data(), static_cast<int>(s.size()), nullptr, 0);
-  std::wstring w(static_cast<std::size_t>(n), L'\0');
-  MultiByteToWideChar(CP_UTF8, 0, s.data(), static_cast<int>(s.size()), w.data(), n);
-  return w;
-}
+using winhttp::widen;
 
 HINTERNET as_handle(void* h) { return static_cast<HINTERNET>(h); }
-
-// A header value must not be able to start another header.
-bool is_header_safe(std::string_view s) {
-  for (const char c : s) {
-    const auto u = static_cast<unsigned char>(c);
-    if (u < 0x20 || u == 0x7F) return false;
-  }
-  return true;
-}
 
 constexpr DWORD keepalive_ms = 15000;  // the minimum WinHTTP accepts
 
@@ -104,48 +91,40 @@ bool WinHttpTransport::send_binary(std::span<const std::uint8_t> bytes) {
 }
 
 WinHttpTransport::Outcome WinHttpTransport::connect(const Target& target, const std::string& token) {
-  if (!is_header_safe(token)) return Outcome::Failed;
+  if (!winhttp::header_safe(token)) return Outcome::Failed;
+  const auto gave_up = [&] { return stopping_ ? Outcome::Stopped : Outcome::Failed; };
 
+  // Each handle is used here by the copy this thread made of it: the members are close()'s to
+  // empty from another thread, under the lock.
   const DWORD timeout = static_cast<DWORD>(options_.handshake_timeout.count());
-  if (!publish(session_, WinHttpOpen(L"crpp", WINHTTP_ACCESS_TYPE_AUTOMATIC_PROXY, WINHTTP_NO_PROXY_NAME,
-                                     WINHTTP_NO_PROXY_BYPASS, 0))) {
-    return stopping_ ? Outcome::Stopped : Outcome::Failed;
-  }
-  WinHttpSetTimeouts(as_handle(session_), static_cast<int>(timeout), static_cast<int>(timeout),
-                     static_cast<int>(timeout), static_cast<int>(timeout));
+  const HINTERNET session = WinHttpOpen(L"crpp", WINHTTP_ACCESS_TYPE_AUTOMATIC_PROXY, WINHTTP_NO_PROXY_NAME, WINHTTP_NO_PROXY_BYPASS, 0);
+  if (!publish(session_, session)) return gave_up();
+  WinHttpSetTimeouts(session, static_cast<int>(timeout), static_cast<int>(timeout), static_cast<int>(timeout), static_cast<int>(timeout));
   // The token goes in a header, which a followed redirect would carry to another host.
   DWORD never = WINHTTP_OPTION_REDIRECT_POLICY_NEVER;
-  if (!WinHttpSetOption(as_handle(session_), WINHTTP_OPTION_REDIRECT_POLICY, &never, sizeof never)) {
-    return stopping_ ? Outcome::Stopped : Outcome::Failed;
-  }
+  if (!WinHttpSetOption(session, WINHTTP_OPTION_REDIRECT_POLICY, &never, sizeof never)) return gave_up();
 
   const std::wstring host = widen(target.host);
-  if (!publish(connection_, WinHttpConnect(as_handle(session_), host.c_str(), target.port, 0))) {
-    return stopping_ ? Outcome::Stopped : Outcome::Failed;
-  }
+  const HINTERNET connection = WinHttpConnect(session, host.c_str(), target.port, 0);
+  if (!publish(connection_, connection)) return gave_up();
   const std::wstring path = widen(target.path_and_query);
-  if (!publish(request_, WinHttpOpenRequest(as_handle(connection_), L"GET", path.c_str(), nullptr,
-                                            WINHTTP_NO_REFERER, WINHTTP_DEFAULT_ACCEPT_TYPES,
-                                            target.secure ? WINHTTP_FLAG_SECURE : 0))) {
-    return stopping_ ? Outcome::Stopped : Outcome::Failed;
-  }
-  if (!WinHttpSetOption(as_handle(request_), WINHTTP_OPTION_UPGRADE_TO_WEB_SOCKET, nullptr, 0)) {
-    return stopping_ ? Outcome::Stopped : Outcome::Failed;
-  }
+  const HINTERNET request = WinHttpOpenRequest(connection, L"GET", path.c_str(), nullptr, WINHTTP_NO_REFERER, WINHTTP_DEFAULT_ACCEPT_TYPES,
+                                               target.secure ? WINHTTP_FLAG_SECURE : 0);
+  if (!publish(request_, request)) return gave_up();
+  if (!WinHttpSetOption(request, WINHTTP_OPTION_UPGRADE_TO_WEB_SOCKET, nullptr, 0)) return gave_up();
 
   std::wstring headers = L"Sec-WebSocket-Protocol: " + widen(subprotocol) + L"\r\n";
   if (!token.empty()) headers += L"Authorization: Bearer " + widen(token) + L"\r\n";
-  if (!WinHttpSendRequest(as_handle(request_), headers.c_str(), static_cast<DWORD>(headers.size()),
-                          nullptr, 0, 0, 0) ||
-      !WinHttpReceiveResponse(as_handle(request_), nullptr)) {
-    return stopping_ ? Outcome::Stopped : Outcome::Failed;
+  if (!WinHttpSendRequest(request, headers.c_str(), static_cast<DWORD>(headers.size()), nullptr, 0, 0, 0) ||
+      !WinHttpReceiveResponse(request, nullptr)) {
+    return gave_up();
   }
 
   DWORD status = 0;
   DWORD size = sizeof status;
-  if (!WinHttpQueryHeaders(as_handle(request_), WINHTTP_QUERY_STATUS_CODE | WINHTTP_QUERY_FLAG_NUMBER,
-                           WINHTTP_HEADER_NAME_BY_INDEX, &status, &size, WINHTTP_NO_HEADER_INDEX)) {
-    return stopping_ ? Outcome::Stopped : Outcome::Failed;
+  if (!WinHttpQueryHeaders(request, WINHTTP_QUERY_STATUS_CODE | WINHTTP_QUERY_FLAG_NUMBER, WINHTTP_HEADER_NAME_BY_INDEX, &status, &size,
+                           WINHTTP_NO_HEADER_INDEX)) {
+    return gave_up();
   }
   if (status == 401) return Outcome::Unauthorized;
   if (status != 101) return Outcome::Failed;
@@ -153,14 +132,13 @@ WinHttpTransport::Outcome WinHttpTransport::connect(const Target& target, const 
   // Exactly the offered subprotocol must have been selected.
   wchar_t selected[64] = {};
   size = sizeof selected;
-  if (!WinHttpQueryHeaders(as_handle(request_), WINHTTP_QUERY_CUSTOM, L"Sec-WebSocket-Protocol", selected,
-                           &size, WINHTTP_NO_HEADER_INDEX) ||
+  if (!WinHttpQueryHeaders(request, WINHTTP_QUERY_CUSTOM, L"Sec-WebSocket-Protocol", selected, &size, WINHTTP_NO_HEADER_INDEX) ||
       widen(subprotocol) != selected) {
     return Outcome::Failed;
   }
 
-  HINTERNET socket = WinHttpWebSocketCompleteUpgrade(as_handle(request_), 0);
-  if (socket == nullptr) return stopping_ ? Outcome::Stopped : Outcome::Failed;
+  HINTERNET socket = WinHttpWebSocketCompleteUpgrade(request, 0);
+  if (socket == nullptr) return gave_up();
   if (!publish(socket_, socket)) return Outcome::Stopped;
 
   // An idle connection must not time out, whatever the handshake limit was.

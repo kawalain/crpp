@@ -17,8 +17,10 @@
 //   ... --update-url <url>        (not in official builds) look for updates at <url>,
 //                                 which must be signed with the key built in
 //   ... --updated-from <pid>      started by the update of process <pid>
-//   ... --data <dir>              (last) keep data in <dir>, not the user's
+//   ... --data <dir>              keep data in <dir>, not the user's
 //                                 folders; other instances are then allowed
+// An option with a value may stand anywhere; a word with dashes that is no option ends the
+// start with 3 and no window (options.hpp).
 // A development build always allows other instances, and without --data keeps its data in
 // a data folder beside the exe.
 #include <algorithm>
@@ -31,6 +33,8 @@
 #include "crpp/assets/built_in.hpp"
 #include "crpp/assets/windows_platform.hpp"
 #include "crpp/update/built_in.hpp"
+#include "crpp/update/windows_platform.hpp"
+#include "options.hpp"
 #include "os_policy.hpp"
 #include "shell.hpp"
 #include "sound_prefs.hpp"
@@ -48,10 +52,11 @@ bool on_a_desktop_someone_sees() {
   return GetUserObjectInformationW(GetThreadDesktop(GetCurrentThreadId()), UOI_NAME, name, sizeof name, nullptr) && std::wstring_view(name) == L"Default";
 }
 
-std::filesystem::path exe_dir() {
-  wchar_t buf[MAX_PATH];
-  const DWORD n = GetModuleFileNameW(nullptr, buf, MAX_PATH);
-  return std::filesystem::path(std::wstring(buf, n)).parent_path();
+std::filesystem::path exe_dir() { return update::running_exe().parent_path(); }
+
+bool is_file(const std::filesystem::path& path) {
+  std::error_code ec;
+  return std::filesystem::is_regular_file(path, ec);
 }
 
 sound::Settings load_audio_settings(const store::Store& data) {
@@ -110,52 +115,46 @@ void wire_areas(Shell& s) {
 }  // namespace
 
 int main(int argc, char** argv) {
-  std::filesystem::path data_dir;
-  if (argc >= 3 && std::string(argv[argc - 2]) == "--data") {
-    data_dir = ui::widen(argv[argc - 1]);
-    argc -= 2;
+  // Options are read wherever they stand; what is left says what to do, in its order.
+  const auto options = read_options(std::span<const char* const>(argv, static_cast<std::size_t>(argc)));
+  if (!options) {
+    // Never the real app in place of what was asked: a scripted run that misspelt an option stops here,
+    // with no window, and says why where it can be found.
+    std::error_code ec;
+    for (int i = 1; i + 1 < argc; ++i) {
+      const std::string_view word = argv[i];
+      if (word == "--shot") std::ofstream(ui::widen(std::string(argv[i + 1]) + ".error"), std::ios::binary) << options.error();
+      if (word == "--data" && std::filesystem::is_directory(ui::widen(argv[i + 1]), ec)) {
+        std::ofstream(std::filesystem::path(ui::widen(argv[i + 1])) / "start-failure.txt", std::ios::binary) << options.error();
+      }
+    }
+    return scripted_start_failure;
   }
+  // From here on argc and argv are what says what to do, without the options.
+  std::vector<std::string> words = options->words;
+  std::vector<char*> kept;
+  for (std::string& word : words) kept.push_back(word.data());
+  argc = static_cast<int>(kept.size());
+  argv = kept.data();
+
+  const std::filesystem::path data_dir = ui::widen(options->value("data"));
   Shell shell;
   shell.throwaway_data = !data_dir.empty();
   shell.shares_the_machine = os_policy::shares_the_machine(update::official_build(), !data_dir.empty());
   shell.data_override = data_dir.wstring();
-  unsigned long updated_from = 0;
-  if (argc >= 3 && std::string(argv[argc - 2]) == "--update-url") {
-    shell.update_url = argv[argc - 1];
-    argc -= 2;
-  }
-  if (argc >= 3 && std::string(argv[argc - 2]) == "--updated-from") {
-    updated_from = std::strtoul(argv[argc - 1], nullptr, 10);
-    argc -= 2;
-  }
+  shell.update_url = std::string(options->value("update-url"));
+  const unsigned long updated_from = std::strtoul(std::string(options->value("updated-from")).c_str(), nullptr, 10);
   shell.repository = assets::official_repository();
-  if (argc >= 3 && std::string(argv[argc - 2]) == "--asset-url") {
+  if (std::string url(options->value("asset-url")); !url.empty()) {
     // A Repository signed with this build's key, as a test key makes possible.
-    std::string url = argv[argc - 1];
     if (!url.ends_with('/')) url += '/';
     if (const auto key = update::built_in_key()) shell.repository = assets::Repository{std::move(url), "", *key};
-    argc -= 2;
   }
-  std::filesystem::path skin_dir;
-  if (argc >= 3 && std::string(argv[argc - 2]) == "--skin-dir") {
-    skin_dir = ui::widen(argv[argc - 1]);
-    argc -= 2;
-  }
+  const std::filesystem::path skin_dir = ui::widen(options->value("skin-dir"));
   const locale::Locale* shot_locale = locale::find_locale("ko");
-  if (argc >= 3 && std::string(argv[argc - 2]) == "--locale") {
-    if (const locale::Locale* named = locale::find_locale(argv[argc - 1])) shot_locale = named;
-    argc -= 2;
-  }
-  std::string shot_theme;
-  if (argc >= 3 && std::string(argv[argc - 2]) == "--theme") {
-    shot_theme = argv[argc - 1];
-    argc -= 2;
-  }
-  float shot_dpi = 96;
-  if (argc >= 3 && std::string(argv[argc - 2]) == "--dpi") {
-    shot_dpi = static_cast<float>(std::atof(argv[argc - 1]));
-    argc -= 2;
-  }
+  if (const locale::Locale* named = locale::find_locale(options->value("locale"))) shot_locale = named;
+  const std::string shot_theme(options->value("theme"));
+  const float shot_dpi = options->value("dpi").empty() ? 96.0f : static_cast<float>(std::atof(std::string(options->value("dpi")).c_str()));
   const store::Locations beside_exe{exe_dir() / "data" / "crpp", exe_dir() / "data" / "Cloudroom"};
   auto locations = !data_dir.empty()
                        ? std::expected<store::Locations, store::Error>(store::Locations{data_dir / "crpp", data_dir / "Cloudroom"})
@@ -165,7 +164,7 @@ int main(int argc, char** argv) {
   if (!locations) locations = beside_exe;
   // A development build runs from the folders its build put beside it, and installs nothing. An official
   // one never does: those files are signed by nobody, and anyone could leave them beside a downloaded exe.
-  const bool assets_beside_exe = !update::official_build() && std::filesystem::exists(exe_dir() / "assets" / assets::catalog_name);
+  const bool assets_beside_exe = !update::official_build() && is_file(exe_dir() / "assets" / assets::catalog_name);
   shell.assets_dir = assets_beside_exe ? exe_dir() / "assets" : locations->protected_dir / "assets";
   shell.skins_dir = assets_beside_exe ? exe_dir() / "skins" : shell.assets_dir / "skins";
   shell.repositories_dir = locations->protected_dir / "repositories";

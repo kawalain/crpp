@@ -34,8 +34,11 @@ and developer communities, not from memory.
 - Tests use CTest with the tiny `tests/support/check.hpp`; no framework.
   Golden vectors are derived from upstream `server/src/main.rs`.
 - Layout: `src/<module>/` (CMake static library) with `src/<module>/tests/`.
-  Dependency direction: `ui -> session -> wire`, and `ui -> skin`; `transport` and `input`
-  are reached from `session` only through interfaces.
+  Dependency direction, as CMake links them: `session`, `input`, `sound -> wire`; `client -> session,
+  transport`; `api -> store, locale`; `update -> store`; `skin -> store, locale`; `assets -> update, skin`;
+  `ui -> session, update, locale, skin`. `store` is also the JSON reader of `api`, `update` and `skin`.
+  `transport` and `input` are reached from `session` only through interfaces, and only `apps/gui` links
+  every adapter. Nothing lower may come to depend on `ui` or `assets`.
 - Audio is raw WASAPI with a hand-written WAV parser (no third party).
 - `client-apk` and the upstream Rust `app` are out of scope.
 - Goal: the same features and screens as upstream, one instance at a time.
@@ -58,7 +61,7 @@ and developer communities, not from memory.
   quality by ear.
 - Every UI element is vector data (paths, SVG); no bitmaps. Animations follow
   upstream CSS durations and easings; where upstream has none (scrolling, screens, tabs,
-  chat rows) the durations are ours, listed under Differences from upstream. App font: Pretendard GOV Variable.
+  chat rows) the durations are ours, listed in `docs/differences-from-upstream.md`. App font: Pretendard GOV Variable.
 - Distribution differs from upstream: releases are built and published from a developer's
   machine (`docs/releases/README.md`), the app checks the
   latest GitHub Release, and release notes are shown as the changelog. GitHub Actions runs
@@ -99,173 +102,10 @@ against a real `server/` yet; do that once a local build of it is available.
 
 ## Differences from upstream
 
-- No input log. The advanced settings keep a diagnostic log without input data.
-- "키보드 문자열 구분" is replaced by the Detail mode toggle, off by default: only with it on
-  are the row of a key and the special keys sent
-  (`docs/adr/0003-presence-mode-by-default.md`). The row is the key's place on the keyboard,
-  so another layout than QWERTY can give another row than upstream's.
-- No "최소화 시 절전 모드" toggle: it switches a WebView2 memory mode. Render
-  resources are always released while the window is hidden, and after 30 s hidden so is
-  the GPU driver's memory; see `docs/research/memory-floor.md`.
-- Escape closes every dialog that has a cancel action.
-- More text can be selected and copied: besides chat messages and the fields, the changelog and a Repository's key
-  fingerprint, and a question's words with Ctrl+C, as in a Windows message box. Fields select by word and paragraph
-  with a double or triple click and move and delete by word with Ctrl.
-- Text has a context menu, where upstream suppresses every one: by a right-click, the menu key or Shift+F10, drawn
-  from the Skin Pack. A field offers Cut, Copy, Paste, Delete and Select all, read-only text Copy and Select all, and
-  a link in chat its address first. What cannot be done is greyed. Cloud's fades in over 120 ms.
-- The keyboard alone works the controls, where upstream has no keyboard navigation. Tab and Shift+Tab go from control
-  to control, staying inside what is open on top, and Enter and Space act. The arrows, Page keys, Home and End move
-  sliders, dropdowns, tabs and the emoji grid, and Ctrl+Tab changes the settings tab, as in Windows. Where the keyboard
-  is shows after Tab, an arrow or Alt, drawn by the Skin Pack. A layer that opens takes the keyboard and gives it back
-  when it closes; a question that cannot be undone starts on Cancel. A menu's access keys are underlined once
-  Alt was pressed or when the menu opened from the keyboard, as in Windows; in Korean the letter is in the words too,
-  as 복사(C).
-- A message that names this member, by Nickname or `@handle` anywhere in it and Latin letters in either case,
-  stands out in the list and notifies even with tray notifications and the taskbar flash off, unless "누가 내 별명이나
-  사용자명을 부르면 항상 알려 주기" is turned off (`chatMentionNotify`, a key of this client's own).
-- What others write while every window of the app is behind another program, minimized or hidden sits under a line
-  "여기부터 새 메시지". It goes when the app is left again after coming back, or when a message is sent.
-- Up and Down at the chat field's first or last line go through the last 20 messages sent, as in a shell, and
-  back to what was being written. They are kept in memory only.
-- The chat field counts characters as the server does, so an emoji is one, and from 30 left it shows how many.
-- A link in chat has a colour of its own, the Palette's `link`, where upstream's is the text's and shows only by
-  an underline under the pointer.
-- The channel balance is explained: "위치에 따라 좌우로 듣기" and "좌우 차이", in words
-  instead of a ratio, and locked while virtual surround is off, when it changes nothing.
-  Its settings keys are upstream's, but a value means more: straight to the side, 60 is 6 dB
-  between the ears and 90 is 19 dB, so the default can be heard. The same value sounds weaker in
-  upstream.
-- The sound is built for working side by side, on panning rather than echo. Members sit
-  far apart left to right while Desks are free, not at random. Reverb is a list of its own,
-  "울림": 끔, 사무실 (the default, short and quiet), 넓은 공간 (the old one). It is kept under a
-  key of this client's own and does not depend on virtual surround.
-- Logging out inside a Room says it leaves the Room, then does so. Nickname and
-  handle can be changed without leaving.
-- The first-run prompt shows only to someone with no stored identity: a saved
-  nickname, Guest ID or token goes straight to Home, and an account's details are
-  refreshed in the background. Upstream waits for `api/me` before showing anything.
-- Logging out, or a rejected token, also erases the Guest ID, so the next start asks
-  again. A token refused on connecting leads to the sign-in prompt at once.
-- HTTP redirects are not followed, so a password never goes to another address.
-- The emoji picker from the account tab dims the whole window, not only the settings
-  panel, so the droplet is not usable under it.
-- The first time the window hides to the tray while in a Room, a notification says
-  the Room is still connected, because input timing keeps being shared.
-- Reachability is not polled in the background. `GET /health` runs at startup, after a
-  connection that failed without reaching the server, and every 5 s while the offline
-  popup is up. A server lost while on Home shows at the next attempt. Its answer's count of
-  public Rooms is shown under the search, and coming back to Home asks once more for it.
-- Reconnecting backs off and gives up at the server's grace instead of retrying every
-  3 s forever; it does not ask `/health` first. A connection error names no reason in
-  parentheses, because the transport reports none.
-- A speaking disc costs less than upstream's: held up by someone who keeps typing it draws
-  no frame, and otherwise only the avatars are drawn.
-- A Room that cannot be resumed at startup says so; upstream returns to Home silently.
-- A held Seat says how many minutes it is still held, in Retro's list and in Cloud's question. Home wakes for it only
-  when the minute drawn changes.
-- The program calls itself Cloudroom++, so its autostart entry does not collide with upstream's.
-- Home greets by the day instead of the hour on New Year's Day, 1 April, 24 and 25 December and 7 November, the day
-  v0.1.0 came out.
-- A profile says "(오늘 2주년)" after the date an account was made, on that day of a later year by the local calendar;
-  one made on 29 February has it on the 28th in other years.
-- Cloud's settings droplet, clicked five times in a row with less than half a second between clicks, splashes for
-  700 ms. Retro has no droplet and no motion.
-- A Room whose code holds a word shows it: ZZZ puts a doze over every avatar, CAKE a cake (in Cloud at the bottom of
-  the window, in Retro at the toolbar's end) and STAR stars (in Cloud's sky, in Retro by the cake). Codes are random,
-  so these are rare.
-- Cloud's Home has the season's fall behind its clouds, by the local month: snow from December to February, petals
-  from March to May, leaves from September to November, nothing in summer. It comes down for 3 s each time Home
-  appears and then holds still, and is still at once without animations. Retro has none.
-- A Room has weather, from how busy it is: every input event over the last minute, mine too, per online member.
-  From 20 a minute it is cloudy, from 80 it rains and from 200 there is a storm, and a step must hold 10 s before
-  the sky follows. Cloud darkens its sky and cloud, with rain and lightning that do not move; Retro shows a cloud
-  at the status line's end. Only counts go in, and nothing is kept or sent. A quiet Room looks again every 5 s
-  only until the sky has cleared.
-- "계절과 날씨 효과" in the display tab's Theme section (`skyEffects`, a key of this client's own, on by default)
-  turns off the season and the weather together. Off, nothing is counted and nothing wakes, so the hidden
-  Achievement for a storm cannot be reached until it is on again; a Room's sky starts clear when it comes back.
-- Achievements, 24 of them in four groups (input, together, discovery, hidden), in a settings tab of their own after
-  the account tab. Reaching one shows a toast with the message sound. They are counted only while "도전과제 기록하기"
-  (`achievementsOn`, on by default) is on, and "기록 지우기" asks before clearing them. The record is four totals
-  (presses, clicks, minutes in Rooms, messages sent) and the day each was reached, under `achievementRecord`, a key of
-  this client's own beside the settings, so a Shared store's upstream may drop it when it saves. The server has
-  nowhere to carry them: only my own profile card shows how many.
-- The Konami code (↑↑↓↓←→←→BA) pressed anywhere in the app finds hidden Themes (`hiddenThemesFound`, a key of this
-  client's own): Retro's "핫도그 가게" ("Hot Dog Stand"), classic's shapes in loud red and yellow after the Windows 3.1
-  scheme of that name, in colours chosen here. A pack marks such a Theme `hidden`, and a catalog does not offer it.
-- The tray menu has mute, the Mini window and leaving the Room while in one, and the options, besides quitting.
-- "음소거 단축키" in the sound tab mutes the Room from any program, with Ctrl+Alt+M, Ctrl+Shift+M or Pause (`muteHotkey`,
-  a key of this client's own, none by default). It is a system shortcut (`RegisterHotKey`, no hook), held only while
-  in a Room so that other programs have it otherwise, and a choice another program holds makes the row say so.
-- A Room can be kept beside other work in the Mini window ("작은 창"), opened from the Room's options, the tray and
-  under Retro the menu bar's 도구(T): a small window, always on top and without a taskbar button, with every member's
-  disc, lit while they make a sound, mute and close. It stays while the main window is minimized or in the tray,
-  moves by any place with nothing to click, opens at the top right of the screen without taking the keyboard, and
-  closes when the Room is left. A disc is lit or dark with no fade, so it draws only when one changes. Each Skin
-  draws it whole: Cloud a rounded card, Retro a tool window.
-- The system tab's advanced section has "가려져 있을 때 메모리 비우기" (at once, 10 s, 1 min, never), kept
-  under a key of this client's own. Behind another program, outside a Room, the window lets go of its
-  graphics device after that wait and makes it again when it next draws.
-- Assets may be missing without stopping the app; see ADR 0004.
-- Motion upstream does not have: wheel scrolling settles over 160 ms, the ends stretch up
-  to 48 px and return over 240 ms, screens cross-fade over 180 ms with an 8 px rise,
-  settings tabs over 140 ms, the settings panel and emoji picker over 160 ms with 6 px,
-  a dropdown fades in over 120 ms, and a new chat message rises 8 px over 300 ms. Scrolled
-  areas fade at the edge they cut, by up to 27 px. All of it follows the system's "Show
-  animations" setting; there is no toggle of its own.
-- The app is named Cloudroom++, and its data stays in the same folders as upstream's.
-- Every JSON file this client reads may hold comments and a comma after the last item. It writes plain
-  JSON, so upstream reads what it saved, but not a file someone commented by hand. Saving drops comments.
-- English besides Korean, chosen in a section of its own; it follows the OS language until then.
-  Other words for the same things: 구름 is "Room", 사용자명 is "handle".
-- The wording is gentler than upstream's: Korean speaks in ~해요 and ~할게요, with plainer names (외관 for
-  디스플레이, 대화 for 채팅, 나가기 for 떠나기), and English says "we" and "please". "진정하세요" stays as it is,
-  as the app's own catchphrase. The third block in a row, each within a minute of the last, says "정말 진정하세요".
-- The time section (24시간제, 자리비움으로 바뀌는 시간) and the language section are on the display tab, after the
-  chat size, where upstream has time on the system tab. They are about what the screen shows.
-- The changelog comes from GitHub release notes, so an empty one says it could not be
-  loaded, and a first run ever does not open it. A new version's notes open when the app
-  first notices it, not after the update, and not again once it is installed. They are
-  the release's most important changes, then its commits by kind.
-- A user picks a Theme and a dark mode (off, on, following the system) in the display tab, where
-  upstream has a toggle and lists of light and dark Themes. One list holds every Skin's Themes, each Skin's
-  under a heading with its name between lines, so a Theme brings its Skin. They are read from the packs in
-  `skins/` beside the exe and kept under `skin`, `skinTheme` and `darkMode`; until those are set upstream's
-  `theme`, `systemTheme` and `lightTheme` are read, and the choice never writes them. The dark mode is
-  locked while a Theme has no dark variant, keeping its value. A Theme of a pack not yet installed is in the
-  list with its size, and is fetched when picked, with progress and a cancel under the list.
-- Skins come from Repositories (ADR 0008), listed in the system tab: the official one, which stays, and those
-  the user adds by an HTTPS address or `github:owner/repo[@ref]`, after a dialog with the key's fingerprint.
-  A pack of an added one is `<first 16 digits of the fingerprint>/<id>`. A pack may extend one of another
-  Repository, pinned by its key's fingerprint and maybe a version and digest; an update it was not made for
-  waits in the system tab until the user takes it. An added Repository may offer Sound packs too, which the sound
-  tab fetches when picked. Upstream has none of this.
-- Upstream's Theme 구름 is 뭉게구름 ("Cumulus"), as the Skin it belongs to is 구름 too. Its id is `cumulus`;
-  upstream's keys keep upstream's `cloudroom`, which is read as `cumulus` wherever it is found.
-- The create cloud on Home really grows under the pointer, as upstream's does.
-- A second Skin upstream does not have, Retro, in the look of the desktops of the 1990s and early 2000s
-  (`docs/research/retro-messenger-look.md`, `docs/research/retro-themes.md`). Values and shapes are re-created
-  as vectors, and nothing is taken from Windows or the old programs: no logo, person icon, sound or font of
-  theirs. 구름 stays the default. Under Retro:
-  - The app draws its window frame, with minimize and close only. Those two are ordinary hits in
-    the client area, not caption buttons.
-  - The window has a size per screen, remembered per screen under `window<Screen>Width` and
-    `Height`, so it shrinks to Home and grows to a Room. Cloud's saved size is left alone.
-  - Options, What's new, a profile, the emoji picker, the offline message and every question are
-    real windows, owned by the main one and without a taskbar button. A question holds the others
-    off until it is answered. Only messages inside the main window, menus and popups stay in it.
-  - Home lists the Seats to return to, where Cloud asks once in a dialog.
-  - A menu bar holds only commands that work. Alt or F10 alone goes into it and Alt with a title's letter opens
-    that menu, as in Windows: the arrows, Enter, an item's letter and Escape work inside. The letter shows in
-    the words, as "파일(F)", and is underlined once Alt was pressed.
-  - Only links show the hand cursor, and none of the motion listed above runs.
-  - Text is in the fonts of the time on this system, not Pretendard.
-  - A message and someone entering sound as tones made in `synth`, not the pack's recordings: plain tones
-    under classic, and bells under Luna.
-  - The pointer is drawn here too, and only in the app's windows: seven vector cursors of the Skin Pack, made into
-    system cursors when first needed. "테마 커서 쓰기" in the display tab, on by default and shown only for a Theme
-    with cursors, gives the system's back (`themeCursor`, a key of this client's own).
+What this client does otherwise than upstream, and why, is listed in
+`docs/differences-from-upstream.md`. Read it before changing what a user sees, and add to it in the
+commit that makes a new difference. A setting this client adds is a key of its own beside
+upstream's, which upstream may drop when it saves a Shared store.
 
 ## Build
 
@@ -282,8 +122,10 @@ The desktop stays for two minutes after the last run, held by a windowless `crpp
 every desktop made and destroyed leaves composition objects in dwm.exe and the kernel that only a
 restart frees, and one per scene slowed dwm.exe down over a day of renders.
 
-Options are read from the end of the command line: `crpp --shot <png> <size> <hour> <scene>
---data <dir>`. Put first, `--data` is ignored and the real app opens on the user's desktop.
+An option with a value stands anywhere on the command line: `crpp --shot <png> <size> <hour> <scene>
+--data <dir>`, or `--data <dir>` first. What says what to do keeps its order. A word with dashes that
+is no option ends the start with 3 and no window, and says why in `<png>.error` or
+`start-failure.txt` (`apps/gui/options.hpp`).
 A shot is in Korean and in the Theme of its scene unless `--locale <id>` or
 `--theme <id>` says otherwise. `auto` for the size renders the window size of the Skin's screen.
 A scene that opens a panel with a window of its own renders that window. Under `--skin-dir`, the scene `cursors`, which
@@ -339,6 +181,9 @@ exist (real + test).
   resume/ticket, seat grace, heartbeat, backoff, 100 ms input throttle).
   Reconnect waits 1 s doubling to 30 s with jitter, and stops at the server's
   15-minute `OFFLINE_GRACE`, on an auth failure, or when the Room is closed.
+- `winhttp`: what the WinHTTP adapters of `transport`, `api`, `assets` and `update` do the same way: a handle
+  that closes itself, a session with one timeout and one rule for redirects, a status, a body up to a
+  limit. A new request goes through it; an adapter keeps only what is its own. Windows only.
 - `transport`: WinHTTP WebSocket/HTTPS adapter with one receive thread; fake
   adapter for tests.
 - `input`: Raw Input (`RIDEV_INPUTSINK`) adapter on its own thread with a
@@ -362,7 +207,8 @@ exist (real + test).
   the screen shows. `pack.hpp` describes the format. Expressions are compiled to a short program, and
   running one allocates nothing. Pure. A screen says what a pack can name in a `ScreenSchema`, keeps
   its state, hit ids and callbacks, and `SkinCanvas` in `ui` draws on a `Painter`. `skins/` holds the packs, and how to write one in its README.
-  `keys.hpp` lists what a node may have, for the reader and the loader. `crpp_skin check <dir>` loads a pack as the
+  `keys.hpp` lists what a node may have, for the reader and the loader. `naming.hpp` says how a pack, a
+  Theme and a version are written and what a shown name may hold, for the loader and for `assets`' catalog alike. `crpp_skin check <dir>` loads a pack as the
   program does and says its first mistake as `file:line`, and tests run it on the official packs; `crpp_skin names`
   lists what each screen offers.
   A panel with a window of its own reports its size, and `measure_screen` walks the screen without drawing to learn it. What the
@@ -400,6 +246,9 @@ exist (real + test).
   expire, `Prefs` the typed settings keys. `src/ui/tests/ui_harness.hpp` drives an
   `App` without a window. `apps/gui/area_*.cpp` is the shell's side of each feature:
   wiring, `--shot` scenes, and reactions to changed settings.
+  `window_input.hpp` is the pointer, keys and IME of every window of the app, which the main window's and
+  the panels' procedures both go through; `options.hpp` reads the command line; and
+  `area::sound::tell_server_my_sounds` is the one place the message of my packs and emoji is made.
   Native rendering; redraw on demand only. Per-Monitor
   v2, set by manifest: `App` works entirely in DIPs and the render target's DPI
   maps them, so only the shell in `apps/gui` converts pixels. The saved window
@@ -474,6 +323,16 @@ exist (real + test).
 
 ## Known limitations
 
+- A Skin Pack that loads can still leave no way to the settings: it draws every screen, so one that
+  leaves out the droplet or the menu, or draws nothing, cannot be changed from inside the app. The
+  loader bounds its numbers (`skin::whole`, the ranges of constants), not what it chooses to draw.
+  The way back is to delete `skin` and `skinTheme` from `settings.json` in the data folder, or the
+  pack's folder. A start that ignores the chosen Skin, as with Shift held, is not built.
+- A `chat.bin` that cannot be read is reported as the secrets are: the notice says they could not be
+  read, though only the kept chat is gone.
+- Sound is resampled from the thirteen rates `parse_wav` takes to whatever rate the device gives. A
+  device at a rate that shares few factors with them, which no ordinary device has, would make a
+  large resampler: the limit is on the recordings, not on the device.
 - No screen reader or high contrast: there is no UI Automation provider (`WM_GETOBJECT`), and
   `SPI_GETHIGHCONTRAST` is not read. The keyboard works every control, but Narrator reads nothing.
 - The keyboard cannot reach the Mini window: it never takes focus and has no taskbar button, so it is not
@@ -486,104 +345,6 @@ exist (real + test).
 
 ## Verification debt
 
-- Pen input via Raw Input needs device checks, including devices that expose no
-  HID digitizer collection. If a Pen tap also arrives as a mouse click on a real
-  device, suppress clicks briefly after tip activity; add this only once
-  reproduced.
-- Raw Input reports nothing while an elevated window has focus, as seen with Task Manager, which
-  elevates without a prompt for an administrator (High integrity against the app's Medium). Microsoft
-  lists reading raw input "for all integrity levels" among what only uiAccess grants, and uiAccess
-  needs a code signature and an install under Program Files. Keyboard sound apps and Discord document
-  the same limit and ask to run as administrator. The limit is accepted: no elevation, no uiAccess
-  until the exe is signed and installed. Confirm a game that is not elevated still reports.
-- IME composition and candidate windows at a scale above 100%: they get physical
-  client pixels, which Microsoft's DPI pages do not state for the IME calls.
-- Output device changes (plug, unplug, default change) were never exercised on real
-  hardware: only listing and opening every device is. Nor has the idle mute run a
-  full idle period in a real Room. It ends on a key or click, not on mouse movement
-  alone: Raw Input only reports Input kinds.
-- Achievements have run in tests and scenes only: watch a real Room reach one, its toast and sound, and the record
-  surviving a restart.
-- Room weather has run in tests and scenes only. Its steps (20, 80 and 200 a minute) are starting values: watch a
-  real Room and tune them by eye.
-- The sound of spatial audio and reverb needs ears: run
-  `crpp_soundtest assets/sounds`, which walks every Desk; `--balance` and `--reverb` compare
-  values. The left-right difference and Office's level and decay are starting points until then. `--synth` plays the generated
-  stand-ins instead, which also need ears.
-- Following the OS theme: `WM_SETTINGCHANGE` was only posted in a scripted run.
-  Flipping the real Windows setting and seeing the dark title bar are unverified.
-- The Mini window has run in tests, shots and on a hidden desktop, where it was made topmost at the top right and
-  cost about 1.5 MB private and no idle CPU. See on a real desktop: dragging it, staying on top of other programs and
-  of a full-screen one, its rounded region under Cloud, the main window in the tray with it open, a real Room's
-  discs lighting while the main window is hidden, and the window growing to the left as members join.
-- The mute shortcut has run in tests and on a hidden desktop, where it was held only in a Room and a posted
-  `WM_HOTKEY` muted and unmuted. A real key press has not: press each choice on a real desktop, in a game and over an
-  elevated window, and pick one another program holds.
-- The tray needs a real desktop: a hidden one has no taskbar, so the icon fails to
-  add and a close exits. A chat notification was seen on one Windows 10 PC, with a window
-  of a fake Room behind another. Upstream's developer saw none, on a machine not yet looked
-  at; a notification respects Focus Assist. The menu (mute, leaving and options in a Room), flash, the Run key and a
-  second start have
-  only been tested as decisions, not seen.
-- Partial frames (a speaking disc over a retained frame) were measured on a hidden desktop,
-  where one person typing went from 16.7% GPU to 0.0% and five at once from 17.5% to 10.7%.
-  A real display adds composition, and Intel and AMD drivers have not run them.
-- Letting go of the device while shown was seen to come back quickly on one Windows 10 PC with an
-  NVIDIA card. Intel, AMD and hybrid laptops have not run it, and the pointer guard, which a hidden
-  desktop cannot exercise, has not been watched. The trim when quiet has not run under memory
-  pressure, where its pages may come back from disk.
-- Coming back from a hidden window that gave up its graphics has only run on a hidden
-  desktop, on one NVIDIA card. See it on a real desktop, and on Intel and AMD drivers. The
-  same goes for a chat notification drawn in that state.
-- The own-drawn window frame and the panels' windows have only run on a hidden desktop, where hit
-  tests, the region, sizes, ownership and a question holding the others off were checked. A window
-  corner is cut by a region, which has no partial pixels: those it only partly covers are blended
-  with a grey, not with what is behind. See on a real desktop: focus and z-order between the windows, Snap, resizing by each edge, minimize and
-  restore, Alt+Space, a right-click on the caption, moving between monitors of different DPI, the
-  taskbar title, and what the region does to the shadow. Windows 11 has not run it at all, nor have
-  Intel and AMD drivers, and a Room with real members has not been seen under these Themes.
-- Following the OS theme with a Theme of another Skin on the other side has only run in tests: the
-  frame and window size should change with it.
-- The tones of Retro's Themes need ears: `crpp_soundtest --chimes`, bells and then plain tones.
-- Retro's colours for Homestead, Metallic and the dark variants are drawn here (`docs/research/retro-themes.md`),
-  and only some of their screens have been seen, on a hidden desktop. Choosing a Skin and going from one to
-  another has run in tests and on a hidden desktop only: see it on a real one.
-- Cloud from its pack gave the old C++ layout's image in every scene, moments of motion included, which proves the
-  look and not the feel. Try scrolling, hovering and every transition by hand.
-- The pack's cursors have only been drawn into bitmaps, with `DrawIconEx` for the blending. See on a real desktop: their edges,
-  whether a resize keeps them during the drag, and whether the system puts its pointer shadow on them; Microsoft does not say,
-  so they draw none. `CursorBaseSize` for "Pointer size" is undocumented and taken from what Qt does; try other sizes, and whether
-  changing it sends `WM_SETTINGCHANGE`. Microsoft's sample calls a cursor's pixels premultiplied, while `DrawIconEx` blends them as straight.
-- The keyboard, selection and the context menu have run in tests, and on a hidden desktop from posted messages only:
-  Tab, and the menu bar's Alt keys opening the options window and What's new. Real key presses have not: Alt and F10
-  alone beside the system's own handling, Alt+Space with the menu bar, the menu key, "Underline access keys" turned
-  on in Windows, the clipboard with other programs, and IME composition while Tab or a menu takes the keys. The
-  focus ring, the context menu and a dropdown's keys have not been seen on a real desktop.
-- The line above new chat follows `WM_ACTIVATE` of the app's windows, which has run in tests only: see it on a real
-  desktop with Alt+Tab, the taskbar, minimizing and the tray, and between the main window and Retro's panels.
-- Dead-peer detection (network cut) is untested.
-- Shared store compatibility is tested against upstream's format as read from
-  its source, not yet against the upstream client itself.
-- Accounts are tested with a fake HTTP seam and a scripted localhost server, never
-  against a real `server/`.
-- Re-check C++26 status against WG21 primary records.
-- Motion has been compared frame by frame and measured, not felt: how scrolling and
-  transitions feel needs the user's own hands, on a real display.
-- The generated stand-in sounds need ears: `crpp_soundtest --synth`.
-- Installing from a Repository has run on a hidden desktop only: against a local server a first start,
-  a second that fetched nothing, a failure with no server, and "다시 시도" once it was back; against the
-  official Repository (deployed 2026-11-08, on `https://crpp.kawala.in/` since) a first start that took
-  14 s for 15.3 MB on one connection, and again after v0.2.0's release script deployed it. The second
-  source ran once: with only v0.2.0's catalog served on localhost, all 327 files came from
-  raw.githubusercontent.com, at the tag and at the third-party pins. A release of the exe from GitHub has not
-  been installed by updating from v0.1.1 yet.
-- Adding a Repository, fetching a Theme of it and removing it, updates behind the app and removing a
-  downloaded Skin have run on a hidden desktop against localhost only, driven by a throwaway build, not by
-  hand. So have a parent in another Repository, a pin that asks first or holds an update back, adding a
-  parent's Repository with its child, a key that changed, and picking, failing and removing another
-  Repository's Sound pack; a member playing one in a Room has not run. An update of the font itself, which waits a start, has only run in tests. A `github:` address has not been added from a real
-  repository (raw.githubusercontent.com answered `HEAD` and a tag without a redirect), and the field, the
-  dialog's long fingerprint and a pack's progress have not been seen on a real desktop.
-- v0.1.0 updated itself to v0.1.1 from GitHub on one Windows 10 PC with Defender. The cause
-  of the detection in `docs/releases/README.md` is unknown, and it may come back with any
-  release. The exe has no code signature, so try another machine and SmartScreen.
+What has only run in tests, in shots or on a hidden desktop, and still needs a real desktop, real
+hardware, ears or a real server, is listed in `docs/verification-debt.md`. Add to it what a change
+could not verify, and take out what someone has since seen.

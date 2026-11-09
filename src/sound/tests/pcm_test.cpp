@@ -101,6 +101,23 @@ void rejects_bad_files() {
   CHECK(parse_wav(wav(1, 1, 44100, 16, {})).error() == WavError::NoData);
 }
 
+// The resampler's kernel has a row per phase of the two rates' ratio: 191999 to 48000 would make
+// 48000 rows of 591, over 100 MB, where 192000 makes one. A pack from anyone must not ask for that.
+void only_the_rates_recordings_come_in() {
+  for (const std::uint32_t rate : {8000u, 11025u, 12000u, 16000u, 22050u, 24000u, 32000u, 44100u, 48000u, 88200u, 96000u, 176400u, 192000u}) {
+    CHECK(parse_wav(wav(1, 1, rate, 16, {0, 0})).has_value());
+  }
+  for (const std::uint32_t rate : {8001u, 44101u, 47999u, 191999u, 100000u}) {
+    CHECK(parse_wav(wav(1, 1, rate, 16, {0, 0})).error() == WavError::Unsupported);
+  }
+}
+
+// A recording is a key or a click, not a song: the longest of the official ones is under a second.
+void a_recording_is_short() {
+  CHECK(parse_wav(wav(1, 1, 8000, 8, std::vector<std::uint8_t>(8000 * 30, 128))).has_value());
+  CHECK(parse_wav(wav(1, 1, 8000, 8, std::vector<std::uint8_t>(8000 * 30 + 1, 128))).error() == WavError::TooLong);
+}
+
 void truncated_data_is_safe() {
   auto bytes = wav(1, 1, 44100, 16, {0x00, 0x40, 0x00, 0x40, 0x00, 0x40});
   bytes.resize(bytes.size() - 3);  // the data chunk now claims more than exists
@@ -161,6 +178,8 @@ void downsampling_removes_what_cannot_fit() {
 }  // namespace
 
 int main() {
+  only_the_rates_recordings_come_in();
+  a_recording_is_short();
   reads_each_sample_format();
   stereo_becomes_mono();
   skips_unknown_chunks_with_padding();

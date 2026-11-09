@@ -20,6 +20,13 @@ std::uint32_t read_u32(Reader& r) noexcept {
   return static_cast<std::uint32_t>(v);
 }
 
+// A member's place in a Room. An input frame carries it in a byte, so no slot is more.
+std::uint32_t read_slot(Reader& r) noexcept {
+  const std::uint32_t v = read_u32(r);
+  if (v > max_slot) r.fail(ParseError::Number);
+  return v;
+}
+
 // Fields of every message type; each message picks the ones it needs.
 struct Fields {
   std::optional<Sv> t, code, error, gid, ticket, key, cid, nick, emoji, text, handle;
@@ -37,7 +44,7 @@ void read_member(Reader& r, MemberInfo& out) noexcept {
   r.begin_object();
   while (const auto key = r.next_key()) {
     if (r.null()) continue;
-    if (*key == "slot") { m.slot = read_u32(r); has_slot = true; }
+    if (*key == "slot") { m.slot = read_slot(r); has_slot = true; }
     else if (*key == "order") m.order = r.u64();
     else if (*key == "offline") m.offline = r.boolean();
     else if (*key == "reconnected") m.reconnected = r.boolean();
@@ -82,9 +89,9 @@ void read_fields(Reader& r, ParseBuffers buffers, Fields& f) noexcept {
     else if (*key == "emoji") f.emoji = r.string();
     else if (*key == "text") f.text = r.string();
     else if (*key == "handle") f.handle = r.string();
-    else if (*key == "me") f.me = read_u32(r);
-    else if (*key == "host") f.host = read_u32(r);
-    else if (*key == "slot") f.slot = read_u32(r);
+    else if (*key == "me") f.me = read_slot(r);
+    else if (*key == "host") f.host = read_slot(r);
+    else if (*key == "slot") f.slot = read_slot(r);
     else if (*key == "public") f.is_public = r.boolean();
     else if (*key == "chat") f.chat = r.boolean();
     else if (*key == "chatLock") f.chat_lock = r.u64();

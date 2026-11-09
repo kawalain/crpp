@@ -367,7 +367,8 @@ void accept(Shell& s, std::string_view child, const std::string& digest) {
 std::optional<fs::path> parent_dir(const Shell& s, std::string_view id, std::string_view fingerprint, const fs::path& from) {
   const fs::path name(widen(id));
   if (fingerprint.empty()) {
-    if (const fs::path beside = from.parent_path() / name; fs::exists(beside / "pack.cskin")) return beside;
+    std::error_code ec;
+    if (const fs::path beside = from.parent_path() / name; fs::is_regular_file(beside / "pack.cskin", ec)) return beside;
     return s.skins_dir / name;
   }
   if (fingerprint == s.official_fingerprint) return s.skins_dir / name;

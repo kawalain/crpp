@@ -10,6 +10,7 @@
 #include "os_policy.hpp"
 #include "shell.hpp"
 #include "tray.hpp"
+#include "window_input.hpp"
 
 using namespace crpp::ui;
 
@@ -97,7 +98,9 @@ void set_frame_region(HWND hwnd, UINT dpi, float radius_dips) {
   RECT rc;
   if (IsIconic(hwnd) || !GetWindowRect(hwnd, &rc)) return;
   const int w = rc.right - rc.left, h = rc.bottom - rc.top;
-  const double radius = static_cast<double>(radius_dips) * dpi / 96;
+  // A row of the region for each pixel of it: never more than the window has, whatever a pack says.
+  const double asked = static_cast<double>(radius_dips) * dpi / 96;
+  const double radius = !(asked > 0) ? 0 : std::min(asked, std::min(w, h) / 2.0);
   // Every pixel the curve touches, row by row: drawing smooths the ones it only partly covers.
   HRGN shape = CreateRectRgn(0, static_cast<int>(std::ceil(radius)), w, h);
   for (int y = 0; y < static_cast<int>(std::ceil(radius)); ++y) {
@@ -190,6 +193,11 @@ LRESULT CALLBACK wnd_proc(HWND hwnd, UINT msg, WPARAM wp, LPARAM lp) {
     sync_frames(*s);
   };
   const auto dips = [&](int pixels) { return static_cast<float>(pixels) * 96 / static_cast<float>(s->dpi); };
+  // The pointer, the keys and the IME, as every window of the app takes them.
+  if (LRESULT answer = 0; handle_input(*s, hwnd, s->dpi, s->tracking, hold_timer, msg, wp, lp, repaint, answer)) {
+    sync_blink(*s, hwnd);
+    return answer;
+  }
   switch (msg) {
     case WM_DPICHANGED: {
       s->dpi = HIWORD(wp);
@@ -353,61 +361,6 @@ LRESULT CALLBACK wnd_proc(HWND hwnd, UINT msg, WPARAM wp, LPARAM lp) {
       invalidate_mini(*s);
       sync_frames(*s);
       return 0;
-    case WM_MOUSEMOVE:
-      if (!s->tracking) {
-        TRACKMOUSEEVENT t{sizeof t, TME_LEAVE, hwnd, 0};
-        TrackMouseEvent(&t);
-        s->tracking = true;
-      }
-      repaint(s->app.mouse_move(dips(GET_X_LPARAM(lp)), dips(GET_Y_LPARAM(lp))), true);
-      return 0;
-    case WM_MOUSELEAVE:
-      s->tracking = false;
-      repaint(s->app.mouse_leave(), true);
-      return 0;
-    case WM_LBUTTONDOWN:
-      SetFocus(hwnd);
-      SetCapture(hwnd);
-      repaint(s->app.mouse_down(dips(GET_X_LPARAM(lp)), dips(GET_Y_LPARAM(lp)), (wp & MK_SHIFT) != 0));
-      if (const unsigned wait = s->app.hold_wait_ms()) SetTimer(hwnd, hold_timer, wait, nullptr);
-      sync_blink(*s, hwnd);
-      return 0;
-    case WM_LBUTTONUP: {
-      // Before the capture goes, since losing it calls off a press.
-      const bool changed = s->app.mouse_up(dips(GET_X_LPARAM(lp)), dips(GET_Y_LPARAM(lp)));
-      ReleaseCapture();
-      repaint(changed);
-      sync_blink(*s, hwnd);
-      return 0;
-    }
-    case WM_CAPTURECHANGED:
-      KillTimer(hwnd, hold_timer);
-      repaint(s->app.mouse_cancel());
-      return 0;
-    case WM_MOUSEWHEEL: {
-      POINT pt{GET_X_LPARAM(lp), GET_Y_LPARAM(lp)};
-      ScreenToClient(hwnd, &pt);
-      repaint(s->app.wheel(dips(pt.x), dips(pt.y), static_cast<float>(GET_WHEEL_DELTA_WPARAM(wp)) / WHEEL_DELTA), true);
-      return 0;
-    }
-    case WM_RBUTTONUP:
-      // As Windows does, on the way up; what is being composed goes in first.
-      complete_composition(hwnd);
-      repaint(s->app.right_click(dips(GET_X_LPARAM(lp)), dips(GET_Y_LPARAM(lp))));
-      return 0;
-    case WM_SETCURSOR:
-      if (apply_cursor(*s, LOWORD(lp), s->dpi)) return TRUE;
-      break;
-    case WM_CHAR:
-      repaint(s->app.char_input(static_cast<wchar_t>(wp), (GetKeyState(VK_SHIFT) & 0x8000) != 0));
-      return 0;
-    case WM_SYSKEYDOWN:
-      if (wp == VK_F10 && (GetKeyState(VK_SHIFT) & 0x8000) != 0) complete_composition(hwnd);
-      if (s->app.sys_key(static_cast<unsigned>(wp), (GetKeyState(VK_SHIFT) & 0x8000) != 0)) {
-        repaint(true);
-        return 0;
-      }
-      break;
     case WM_SYSKEYUP:
       if (s->app.sys_key_up(static_cast<unsigned>(wp))) {
         repaint(true);
@@ -418,28 +371,6 @@ LRESULT CALLBACK wnd_proc(HWND hwnd, UINT msg, WPARAM wp, LPARAM lp) {
       // Alt+Space and the rest still reach the system's own menu.
       if (s->app.take_sys_char(static_cast<wchar_t>(wp))) return 0;
       break;
-    case WM_KEYDOWN:
-      if (wp == VK_APPS) complete_composition(hwnd);
-      repaint(s->app.key_down(static_cast<unsigned>(wp), (GetKeyState(VK_CONTROL) & 0x8000) != 0,
-                              (GetKeyState(VK_SHIFT) & 0x8000) != 0));
-      return 0;
-    case WM_IME_STARTCOMPOSITION:
-      place_ime(*s, hwnd, s->dpi);
-      return 0;  // our own drawing replaces the IME's composition window
-    case WM_IME_COMPOSITION: {
-      HIMC imc = ImmGetContext(hwnd);
-      std::wstring result, comp;
-      if (imc) {
-        if (lp & GCS_RESULTSTR) result = ime_string(imc, GCS_RESULTSTR);
-        if (lp & GCS_COMPSTR) comp = ime_string(imc, GCS_COMPSTR);
-        ImmReleaseContext(hwnd, imc);
-      }
-      repaint(s->app.ime_composition(comp, result));
-      return 0;
-    }
-    case WM_IME_ENDCOMPOSITION:
-      repaint(s->app.ime_composition({}, {}));
-      return 0;
     case WM_TIMER:
       if (wp == smoke_timer) {
         const ULONGLONG elapsed = clock_ms() - s->smoke_start;

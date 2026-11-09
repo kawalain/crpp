@@ -15,6 +15,7 @@
 #include "areas.hpp"
 #include "autostart.hpp"
 #include "autostart_windows.hpp"
+#include "crpp/update/windows_platform.hpp"
 #include "os_policy.hpp"
 #include "shell.hpp"
 #include "tray.hpp"
@@ -294,10 +295,10 @@ void on_tray_event(Shell& s, WPARAM wp, LPARAM lp) {
 // Only when the setting changes: Windows asks programs run from this key not to write
 // to it during their run, so a logon does not refresh it as upstream's does.
 void apply_start_with_system(Shell& s) {
-  wchar_t exe[MAX_PATH];
-  const DWORD n = GetModuleFileNameW(nullptr, exe, MAX_PATH);
+  // However long its path: apply_autostart says when the command would not fit the key.
+  const std::wstring exe = crpp::update::running_exe().wstring();
   const bool enabled = s.prefs->get(pref::start_with_system);
-  if (n > 0 && n < MAX_PATH && apply_autostart(*state.run_key, enabled, std::wstring_view(exe, n))) return;
+  if (!exe.empty() && apply_autostart(*state.run_key, enabled, exe)) return;
   state.reverting_autostart = true;
   s.prefs->set(pref::start_with_system, !enabled);
   state.reverting_autostart = false;

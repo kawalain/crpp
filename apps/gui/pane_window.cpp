@@ -7,6 +7,7 @@
 #include "areas.hpp"
 #include "shell.hpp"
 #include "tray.hpp"
+#include "window_input.hpp"
 
 using namespace crpp::ui;
 
@@ -72,6 +73,11 @@ LRESULT CALLBACK pane_proc(HWND hwnd, UINT msg, WPARAM wp, LPARAM lp) {
     sync_frames(s);
   };
   const auto dips = [&](int pixels) { return static_cast<float>(pixels) * 96 / static_cast<float>(w->dpi); };
+  // The pointer, the keys and the IME, as every window of the app takes them.
+  if (LRESULT answer = 0; handle_input(s, hwnd, w->dpi, w->tracking, pane_hold_timer, msg, wp, lp, changed, answer)) {
+    sync_pane_blink(*w);
+    return answer;
+  }
   switch (msg) {
     case WM_ERASEBKGND:
       return 1;
@@ -142,82 +148,6 @@ LRESULT CALLBACK pane_proc(HWND hwnd, UINT msg, WPARAM wp, LPARAM lp) {
       else area::os::painted(s);
       return 0;
     }
-    case WM_MOUSEMOVE:
-      if (!w->tracking) {
-        TRACKMOUSEEVENT t{sizeof t, TME_LEAVE, hwnd, 0};
-        TrackMouseEvent(&t);
-        w->tracking = true;
-      }
-      changed(s.app.mouse_move(dips(GET_X_LPARAM(lp)), dips(GET_Y_LPARAM(lp))), true);
-      return 0;
-    case WM_MOUSELEAVE:
-      w->tracking = false;
-      changed(s.app.mouse_leave(), true);
-      return 0;
-    case WM_LBUTTONDOWN:
-      SetFocus(hwnd);
-      SetCapture(hwnd);
-      changed(s.app.mouse_down(dips(GET_X_LPARAM(lp)), dips(GET_Y_LPARAM(lp)), (wp & MK_SHIFT) != 0));
-      if (const unsigned wait = s.app.hold_wait_ms()) SetTimer(hwnd, pane_hold_timer, wait, nullptr);
-      sync_pane_blink(*w);
-      return 0;
-    case WM_LBUTTONUP: {
-      // Before the capture goes, since losing it calls off a press.
-      const bool did = s.app.mouse_up(dips(GET_X_LPARAM(lp)), dips(GET_Y_LPARAM(lp)));
-      ReleaseCapture();
-      changed(did);
-      sync_pane_blink(*w);
-      return 0;
-    }
-    case WM_CAPTURECHANGED:
-      KillTimer(hwnd, pane_hold_timer);
-      changed(s.app.mouse_cancel());
-      return 0;
-    case WM_RBUTTONUP:
-      // As Windows does, on the way up; what is being composed goes in first.
-      complete_composition(hwnd);
-      changed(s.app.right_click(dips(GET_X_LPARAM(lp)), dips(GET_Y_LPARAM(lp))));
-      return 0;
-    case WM_MOUSEWHEEL: {
-      POINT pt{GET_X_LPARAM(lp), GET_Y_LPARAM(lp)};
-      ScreenToClient(hwnd, &pt);
-      changed(s.app.wheel(dips(pt.x), dips(pt.y), static_cast<float>(GET_WHEEL_DELTA_WPARAM(wp)) / WHEEL_DELTA), true);
-      return 0;
-    }
-    case WM_SETCURSOR:
-      if (apply_cursor(s, LOWORD(lp), w->dpi)) return TRUE;
-      break;
-    case WM_CHAR:
-      changed(s.app.char_input(static_cast<wchar_t>(wp), (GetKeyState(VK_SHIFT) & 0x8000) != 0));
-      return 0;
-    case WM_SYSKEYDOWN:
-      if (wp == VK_F10 && (GetKeyState(VK_SHIFT) & 0x8000) != 0) complete_composition(hwnd);
-      if (s.app.sys_key(static_cast<unsigned>(wp), (GetKeyState(VK_SHIFT) & 0x8000) != 0)) {
-        changed(true);
-        return 0;
-      }
-      break;
-    case WM_KEYDOWN:
-      if (wp == VK_APPS) complete_composition(hwnd);
-      changed(s.app.key_down(static_cast<unsigned>(wp), (GetKeyState(VK_CONTROL) & 0x8000) != 0, (GetKeyState(VK_SHIFT) & 0x8000) != 0));
-      return 0;
-    case WM_IME_STARTCOMPOSITION:
-      place_ime(s, hwnd, w->dpi);
-      return 0;  // our own drawing replaces the IME's composition window
-    case WM_IME_COMPOSITION: {
-      HIMC imc = ImmGetContext(hwnd);
-      std::wstring result, comp;
-      if (imc) {
-        if (lp & GCS_RESULTSTR) result = ime_string(imc, GCS_RESULTSTR);
-        if (lp & GCS_COMPSTR) comp = ime_string(imc, GCS_COMPSTR);
-        ImmReleaseContext(hwnd, imc);
-      }
-      changed(s.app.ime_composition(comp, result));
-      return 0;
-    }
-    case WM_IME_ENDCOMPOSITION:
-      changed(s.app.ime_composition({}, {}));
-      return 0;
     case WM_TIMER:
       if (wp == pane_blink_timer) {
         changed(s.app.blink(), true);

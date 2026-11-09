@@ -235,6 +235,7 @@ constexpr Key keys[] = {
     KEY(menu_options),
     KEY(mini_title),
     KEY(menu_mini),
+    KEY(mini_open),
     KEY(menu_help),
     KEY(menu_changelog),
     KEY(options_title),

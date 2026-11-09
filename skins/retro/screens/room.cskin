@@ -94,7 +94,7 @@ slot chat (6, 58, main_w-112-6, main_h) if @chat
   // The Mini window: a small one, always on top, with the discs and mute.
   fill edge_dark (5, 84, @W-10, 1)
   fill edge_light (5, snap(@Y+84)-@Y+@u, @W-10, 1)
-  use link (10, 86, @W-20, 24) text @tr.mini_title hit opt_mini
+  use link (10, 86, @W-20, 24) text @tr.mini_open hit opt_mini
 }
 (mute.x, mute.bottom+1, 190, 33) if @controls_shown && @mute_popup_open {
   use panel_popup

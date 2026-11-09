@@ -230,7 +230,7 @@ void show_menu(Shell& s, int x, int y) {
     AppendMenuW(menu, MF_STRING | muted, mute_item, ui::widen(tr().mute).c_str());
     AppendMenuW(menu, MF_STRING, leave_item, ui::widen(tr().room_tip_leave).c_str());
     const UINT mini = s.app.mini().is_open() ? MF_CHECKED : MF_UNCHECKED;
-    AppendMenuW(menu, MF_STRING | mini, mini_item, ui::widen(tr().mini_title).c_str());
+    AppendMenuW(menu, MF_STRING | mini, mini_item, ui::widen(tr().mini_open).c_str());
     AppendMenuW(menu, MF_SEPARATOR, 0, nullptr);
   }
   AppendMenuW(menu, MF_STRING, options_item, ui::widen(tr().room_options).c_str());

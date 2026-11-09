@@ -128,7 +128,7 @@ if @controls_shown {
     // The Mini window: a small one, always on top, with the discs and mute.
     fill hl_pale2 (25, 164, @W-50, 2) radius 1
     hit opt_mini (25, 171, @W-50, 41) {
-      text @tr.mini_title style room_label color @hot ? hl_text_dark : hl_text
+      text @tr.mini_open style room_label color @hot ? hl_text_dark : hl_text
     }
   }
   (@W-12-200, @H-72-50, 200, 50) if @mute_popup_open {

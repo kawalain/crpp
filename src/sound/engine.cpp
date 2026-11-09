@@ -305,7 +305,9 @@ std::string_view Engine::pack_for(const Event& event, Device device) const {
 }
 
 std::span<const float> Engine::recording(const std::filesystem::path& path) {
-  const std::string key = path.string();
+  // The path's own bytes: a narrow copy goes through the ANSI code page, which a user's folder may not fit.
+  const auto& native = path.native();
+  const std::string key(reinterpret_cast<const char*>(native.data()), native.size() * sizeof(native[0]));
   if (const auto found = recordings_.find(key); found != recordings_.end()) return found->second;
   std::vector<float> converted;
   if (const auto pcm = parse_wav(read_bytes(path))) {

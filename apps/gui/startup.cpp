@@ -1,5 +1,6 @@
 // What happens between the window opening and the Home screen.
-#include <cstdio>
+#include <fstream>
+#include <iterator>
 #include <random>
 #include <vector>
 
@@ -64,12 +65,10 @@ void restore_seat(Shell& s) {
 std::string random_nickname(const std::filesystem::path& words) {
   const auto load = [&](const char* name) {
     std::vector<std::string> list;
-    FILE* f = std::fopen((words / name).string().c_str(), "rb");
-    if (!f) return list;
-    std::string text;
-    char buf[512];
-    for (std::size_t n; (n = std::fread(buf, 1, sizeof buf, f)) > 0;) text.append(buf, n);
-    std::fclose(f);
+    // By the path itself: a narrow copy goes through the ANSI code page, which a user's folder may not fit.
+    std::ifstream in(words / name, std::ios::binary);
+    if (!in) return list;
+    std::string text{std::istreambuf_iterator<char>(in), std::istreambuf_iterator<char>()};
     while (!text.empty() && (text.back() == '\n' || text.back() == '\r')) text.pop_back();
     for (std::size_t start = 0, comma = 0; comma != std::string::npos; start = comma + 1) {
       comma = text.find(',', start);

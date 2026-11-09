@@ -72,12 +72,7 @@ class Host final : public AccountHost {
   void set_emoji(std::string id) override {
     s_.store->set("emoji", store::Json(id));
     (void)s_.store->save();
-    session::event::SetSounds sounds;
-    sounds.key = s_.audio.keyboard_pack;
-    sounds.mouse = s_.audio.mouse_pack;
-    sounds.pen = s_.audio.pen_pack;
-    sounds.emoji = std::move(id);
-    if (s_.client) s_.client->set_sounds(sounds);
+    sound::tell_server_my_sounds(s_);
   }
 
   void send(api::Request request, std::function<void(api::HttpResult)> done) override {

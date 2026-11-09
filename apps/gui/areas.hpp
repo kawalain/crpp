@@ -82,6 +82,9 @@ void play_notification(Shell& s, std::string_view name);
 void preview_notification(Shell& s, std::string_view name);
 // The user pressed something, which ends being away.
 void own_input(Shell& s);
+// Tells the server which packs this member plays and which emoji others see: after a connection
+// is made, and whenever one of them changes. The one place that message is put together.
+void tell_server_my_sounds(Shell& s);
 // The mute shortcut was pressed, wherever the keyboard was.
 void hotkey_pressed(Shell& s);
 }  // namespace sound

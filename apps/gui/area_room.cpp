@@ -13,33 +13,11 @@ namespace crpp::gui::area::room {
 
 namespace {
 
-bool copy_to_clipboard(HWND hwnd, const std::string& text) {
-  const std::wstring w = widen(text);
-  if (!OpenClipboard(hwnd)) return false;
-  bool copied = false;
-  if (HGLOBAL mem = GlobalAlloc(GMEM_MOVEABLE, (w.size() + 1) * sizeof(wchar_t))) {
-    auto* dst = static_cast<wchar_t*>(GlobalLock(mem));
-    std::copy(w.begin(), w.end(), dst);
-    dst[w.size()] = L'\0';
-    GlobalUnlock(mem);
-    EmptyClipboard();
-    copied = SetClipboardData(CF_UNICODETEXT, mem) != nullptr;
-    if (!copied) GlobalFree(mem);
-  }
-  CloseClipboard();
-  return copied;
-}
-
 // Saves the new emoji and tells the server, as start_client does at startup.
 void change_emoji(Shell& s, const std::string& id) {
   s.store->set("emoji", store::Json(id));
   (void)s.store->save();
-  session::event::SetSounds sounds;
-  sounds.key = s.audio.keyboard_pack;
-  sounds.mouse = s.audio.mouse_pack;
-  sounds.pen = s.audio.pen_pack;
-  sounds.emoji = id;
-  s.client->set_sounds(sounds);
+  sound::tell_server_my_sounds(s);
 }
 
 void demo_session(App& app, bool chat) {
@@ -84,7 +62,8 @@ void wire(Shell& s) {
     return reinterpret_cast<INT_PTR>(ShellExecuteW(nullptr, L"open", widen(url).c_str(), nullptr, nullptr, SW_SHOWNORMAL)) > 32;
   };
   s.bridge->on_chat_blocked = [sp](std::uint64_t ms) { sp->app.room().chat().blocked(ms); };
-  s.app.room().on_copy = [sp](std::string text) { return copy_to_clipboard(sp->hwnd, text); };
+  // The Room says itself whether it worked, so not Ui::copy, which would say so too.
+  s.app.room().on_copy = [sp](std::string text) { return sp->app.ui().clipboard->set_text(widen(text)); };
   s.app.room().on_request_profile = [sp](std::uint32_t slot) { sp->client->request_profile(slot); };
   s.app.room().on_member_volume = [sp](const std::string& cid, int percent) { sound::set_member_volume(*sp, cid, percent); };
   s.app.room().on_member_muted = [sp](const std::string& cid, bool muted) { sound::set_member_muted(*sp, cid, muted); };

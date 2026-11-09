@@ -89,13 +89,7 @@ void start_client(Shell& s) {
   s.client->start();
   const std::string gid = s.store->string_or("gid", "");
   if (!gid.empty()) s.client->restore_gid(gid);
-  const std::string emoji = s.store->string_or("emoji", "");
-  session::event::SetSounds sounds;
-  sounds.key = s.audio.keyboard_pack;
-  sounds.mouse = s.audio.mouse_pack;
-  sounds.pen = s.audio.pen_pack;
-  if (!emoji.empty()) sounds.emoji = emoji;
-  s.client->set_sounds(sounds);
+  area::sound::tell_server_my_sounds(s);
 }
 
 // The part of startup that needs the assets in place.

@@ -82,7 +82,7 @@ void the_engine_stops_the_stream_when_quiet() {
     if (!probe.open(silence)) return;
   }
   Counting device;
-  Engine engine(device, CRPP_SOUNDS_DIR);
+  Engine engine(device, crpp::files::Tree::of_folder(CRPP_SOUNDS_DIR));
   Settings settings;
   settings.volume = 1;  // about -80 dB: the whole path runs, nothing is audible
   engine.set_settings(settings);

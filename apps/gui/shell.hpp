@@ -294,8 +294,16 @@ bool fetch_sound(Shell& s, const std::string& id);
 void remove_sound(Shell& s, const std::string& id);
 // Whether a Sound pack of an added Repository is queued or on its way.
 [[nodiscard]] bool sound_coming(const Shell& s, std::string_view id);
-// A nickname like the upstream one: "<adjective> <animal>".
-std::string random_nickname(const std::filesystem::path& words);
+// A nickname like the upstream one: "<adjective> <animal>", from the word lists in that folder.
+std::string random_nickname(const files::Tree& assets, std::string_view words);
+
+// --- installed.cpp ---
+// What the official Repository installed, or the folders beside a development exe.
+[[nodiscard]] files::Tree official_files(const Shell& s);
+// What a Repository the user added installed.
+[[nodiscard]] files::Tree added_files(const AddedRepository& added);
+// The official "sounds" folder, with what the catalog promises that has not arrived yet.
+[[nodiscard]] files::Tree official_sounds(const Shell& s);
 
 // --- window.cpp ---
 HWND create_window(Shell& s);

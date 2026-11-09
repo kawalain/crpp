@@ -66,7 +66,7 @@ int main(int argc, char** argv) {
   }
 
   // Generated sounds need no files.
-  const auto catalog = synth || chimes ? sound::Catalog{} : sound::Catalog::scan(sounds);
+  const auto catalog = synth || chimes ? sound::Catalog{} : sound::Catalog::scan(files::Tree::of_folder(sounds));
   if (!synth && !chimes && catalog.empty()) {
     std::fprintf(stderr, "no sound packs in %s\n", sounds.string().c_str());
     return 1;

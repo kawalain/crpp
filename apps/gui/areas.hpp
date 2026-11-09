@@ -147,8 +147,8 @@ void found(Shell& s, std::vector<Candidate> wanted, std::vector<Candidate> rekey
 void accept(Shell& s, std::string_view child, const std::string& digest);
 // Where the pack a pack in `from` extends is: beside it or in the official Repository without a
 // fingerprint, else in the Repository of that key.
-[[nodiscard]] std::optional<std::filesystem::path> parent_dir(const Shell& s, std::string_view id, std::string_view fingerprint,
-                                                              const std::filesystem::path& from);
+[[nodiscard]] std::optional<ui::App::PackFiles> parent_dir(const Shell& s, std::string_view id, std::string_view fingerprint,
+                                                           const std::filesystem::path& from);
 void wire(Shell& s);
 [[nodiscard]] bool scene(Shell& s, std::string_view name);
 }  // namespace repositories

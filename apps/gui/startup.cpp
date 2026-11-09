@@ -61,15 +61,10 @@ void restore_seat(Shell& s) {
 
 }  // namespace
 
-std::string random_nickname(const std::filesystem::path& words) {
+std::string random_nickname(const files::Tree& assets, std::string_view words) {
   const auto load = [&](const char* name) {
     std::vector<std::string> list;
-    FILE* f = std::fopen((words / name).string().c_str(), "rb");
-    if (!f) return list;
-    std::string text;
-    char buf[512];
-    for (std::size_t n; (n = std::fread(buf, 1, sizeof buf, f)) > 0;) text.append(buf, n);
-    std::fclose(f);
+    std::string text = assets.read(std::string(words) + "/" + name, 1024 * 1024).value_or(std::string());
     while (!text.empty() && (text.back() == '\n' || text.back() == '\r')) text.pop_back();
     for (std::size_t start = 0, comma = 0; comma != std::string::npos; start = comma + 1) {
       comma = text.find(',', start);
@@ -108,7 +103,7 @@ void enter_app(Shell& s) {
   if (const std::string handle = data.string_or("handle", ""); nickname.empty() && !handle.empty()) {
     nickname = "@" + handle;  // an account can go by its handle alone
   } else if (nickname.empty()) {
-    nickname = random_nickname(s.assets_dir / locale::current().words_folder);
+    nickname = random_nickname(official_files(s), locale::current().words_folder);
     if (!first_run) data.set("nickname", store::Json(nickname));
   }
   s.app.home().set_nickname(nickname);
@@ -195,7 +190,7 @@ void use_catalog(Shell& s, assets::Catalog catalog) {
   s.catalog = std::move(catalog);
   s.app.ui().emoji_ids = assets::picker_emoji(*s.catalog);
   s.expected_sounds = assets::sound_files(*s.catalog);
-  s.engine->set_expected(s.expected_sounds);
+  s.engine->set_sounds(official_sounds(s));
 }
 
 struct Installed {
@@ -414,7 +409,7 @@ void finish_install(Shell& s, const InstallJob& job, bool cancelled, Installed i
       s.app.show_setup(status);
       return;
     }
-    s.app.reload_assets(s.assets_dir);
+    s.app.reload_assets(official_files(s));
     area::preferences::skins_installed(s);
     enter_app(s);
   } else {

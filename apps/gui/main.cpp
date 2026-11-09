@@ -182,7 +182,6 @@ int main(int argc, char** argv) {
   // Only a start without its Skin Pack waits for files: a network that keeps the others out
   // would otherwise hold up every start.
   const bool first_install = !assets_beside_exe && shell.repository && !skin_installed(shell);
-  const auto& assets = shell.assets_dir;
   // Windows refuses to replace an open font file, so one about to change stays closed.
   const bool font_pending = std::ranges::any_of(absent, [](const assets::File* file) { return file->path.ends_with(".ttf"); });
   const auto failed_to_start = [&](const std::string& reason) {
@@ -198,7 +197,7 @@ int main(int argc, char** argv) {
     if (!report.empty()) std::ofstream(report, std::ios::binary) << reason;
     return scripted_start_failure;
   };
-  if (!shell.app.init(first_install ? std::filesystem::path{} : assets, !font_pending)) return failed_to_start(locale::tr().start_failed);
+  if (!shell.app.init(first_install ? files::Tree{} : official_files(shell), !font_pending)) return failed_to_start(locale::tr().start_failed);
   shell.fonts_loaded = !first_install && !font_pending;
   if (!skin_dir.empty()) {
     if (const auto loaded = shell.app.load_skin_dir(skin_dir); !loaded) return failed_to_start(loaded.error());
@@ -206,7 +205,7 @@ int main(int argc, char** argv) {
     // The packs beside the exe, as a run has them: the one with the Theme asked for, or the default.
     // A first run has none, so its scenes load none.
     const bool before_any_pack = argc >= 6 && std::string_view(argv[5]).starts_with("first-run");
-    const ui::App::SkinFolder beside[] = {{before_any_pack ? std::filesystem::path{} : shell.skins_dir, ""}};
+    const ui::App::SkinFolder beside[] = {{before_any_pack ? files::Tree{} : official_files(shell).under("skins/"), "", shell.skins_dir}};
     if (!shell.app.find_skins(beside) && !before_any_pack) return failed_to_start("no Skin Pack in " + ui::narrow(shell.skins_dir.wstring()));
     const auto& skins = shell.app.ui().skins;
     if (!before_any_pack) {
@@ -214,7 +213,7 @@ int main(int argc, char** argv) {
       for (const ui::SkinInfo& info : skins) {
         if (!shot_theme.empty() && std::ranges::any_of(info.themes, [&](const skin::PackTheme& t) { return t.palette == shot_theme || t.dark == shot_theme; })) dir = info.dir;
       }
-      if (const auto loaded = shell.app.load_skin_dir(ui::widen(dir)); !loaded) return failed_to_start(loaded.error());
+      if (const auto loaded = shell.app.load_found_skin(dir); !loaded) return failed_to_start(loaded.error());
     }
   } else {
     area::repositories::load(shell);
@@ -246,7 +245,7 @@ int main(int argc, char** argv) {
   shell.audio = load_audio_settings(data);
   shell.app.room().set_volume(shell.audio.volume);
   if (shell.catalog) shell.expected_sounds = assets::sound_files(*shell.catalog);
-  shell.engine = std::make_unique<sound::Engine>(shell.audio_device, assets / "sounds", shell.expected_sounds);
+  shell.engine = std::make_unique<sound::Engine>(shell.audio_device, official_sounds(shell));
   shell.engine->set_settings(shell.audio);
   shell.engine->start();
   shell.input = std::make_unique<input::RawInputSource>(shell.input_sink);

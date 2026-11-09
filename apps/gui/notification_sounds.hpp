@@ -1,16 +1,12 @@
 #pragma once
 // Finds the notification sounds in a pack folder: each .wav is one, in the order of
 // their names, named by pack.json under its key.
-#include <algorithm>
-#include <filesystem>
-#include <fstream>
-#include <iterator>
 #include <set>
 #include <span>
 #include <string>
-#include <system_error>
 #include <vector>
 
+#include "crpp/files/tree.hpp"
 #include "crpp/store/json.hpp"
 
 namespace crpp::gui {
@@ -20,21 +16,14 @@ struct FoundSound {
 };
 
 template <typename IdOf>
-[[nodiscard]] std::vector<FoundSound> find_notification_sounds(const std::filesystem::path& folder, IdOf id_of,
+[[nodiscard]] std::vector<FoundSound> find_notification_sounds(const files::Tree& folder, IdOf id_of,
                                                                std::span<const std::string> expected_stems = {}) {
-  std::string pack_text;
-  {
-    std::ifstream in(folder / "pack.json", std::ios::binary);
-    pack_text.assign(std::istreambuf_iterator<char>(in), {});
-  }
+  const std::string pack_text = folder.read("pack.json", 64 * 1024).value_or(std::string());
   const auto pack = store::Json::parse(pack_text);
 
   std::set<std::string> stems(expected_stems.begin(), expected_stems.end());
-  std::error_code ec;
-  for (const auto& entry : std::filesystem::directory_iterator(folder, ec)) {
-    if (entry.path().extension() != ".wav") continue;
-    const auto stem8 = entry.path().stem().u8string();
-    stems.emplace(stem8.begin(), stem8.end());
+  for (const std::string& name : folder.names_in("")) {
+    if (name.size() > 4 && name.ends_with(".wav")) stems.insert(name.substr(0, name.size() - 4));
   }
   std::vector<FoundSound> found;
   for (const std::string& stem : stems) {

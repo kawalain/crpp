@@ -8,8 +8,11 @@
 
 using namespace crpp::sound;
 using crpp::wire::Kind;
+using crpp::files::Tree;
 
 namespace {
+
+Tree sounds() { return Tree::of_folder(CRPP_SOUNDS_DIR); }
 
 std::string pick_name(const Catalog& catalog, Kind kind, std::string_view pack, Random& random) {
   const auto file = catalog.pick(kind, pack, random);
@@ -17,7 +20,7 @@ std::string pick_name(const Catalog& catalog, Kind kind, std::string_view pack, 
 }
 
 void finds_the_packs_in_order() {
-  const auto catalog = Catalog::scan(CRPP_SOUNDS_DIR);
+  const auto catalog = Catalog::scan(sounds());
   CHECK(!catalog.empty());
   CHECK((catalog.packs(Device::Keyboard) == std::vector<std::string>{"plastic", "thocky", "walnut"}));
   CHECK((catalog.packs(Device::Mouse) == std::vector<std::string>{"plastic", "rubber", "walnut"}));
@@ -35,7 +38,7 @@ void kinds_reach_their_devices() {
 }
 
 void plain_sounds_match_by_name() {
-  const auto catalog = Catalog::scan(CRPP_SOUNDS_DIR);
+  const auto catalog = Catalog::scan(sounds());
   Random random(1);
   CHECK(pick_name(catalog, Kind::KeySpace, "plastic", random) == "mod_space.wav");
   CHECK(pick_name(catalog, Kind::KeyEscape, "plastic", random) == "mod_esc.wav");
@@ -44,7 +47,7 @@ void plain_sounds_match_by_name() {
 }
 
 void variations_are_chosen_at_random() {
-  const auto catalog = Catalog::scan(CRPP_SOUNDS_DIR);
+  const auto catalog = Catalog::scan(sounds());
   Random random(7);
   std::vector<std::string> seen;
   for (int i = 0; i < 200; ++i) {
@@ -55,7 +58,7 @@ void variations_are_chosen_at_random() {
 }
 
 void the_any_key_gets_some_letter_sound() {
-  const auto catalog = Catalog::scan(CRPP_SOUNDS_DIR);
+  const auto catalog = Catalog::scan(sounds());
   Random random(3);
   std::vector<std::string> seen;
   for (int i = 0; i < 200; ++i) {
@@ -67,7 +70,7 @@ void the_any_key_gets_some_letter_sound() {
 }
 
 void hold_and_release_come_in_pairs() {
-  const auto catalog = Catalog::scan(CRPP_SOUNDS_DIR);
+  const auto catalog = Catalog::scan(sounds());
   Random random(1);
   CHECK(pick_name(catalog, Kind::KeyShiftHold, "plastic", random) == "mod_shift_hold.wav");
   CHECK(pick_name(catalog, Kind::KeyShiftUp, "plastic", random) == "mod_shift_release.wav");
@@ -76,7 +79,7 @@ void hold_and_release_come_in_pairs() {
 }
 
 void missing_sounds_stay_silent() {
-  const auto catalog = Catalog::scan(CRPP_SOUNDS_DIR);
+  const auto catalog = Catalog::scan(sounds());
   Random random(1);
   CHECK(pick_name(catalog, Kind::MouseWheel, "rubber", random).empty());  // this pack has no wheel
   CHECK(pick_name(catalog, Kind::KeyNormal, "plastic", random).empty());
@@ -84,21 +87,21 @@ void missing_sounds_stay_silent() {
 }
 
 void an_unknown_pack_means_the_default() {
-  const auto catalog = Catalog::scan(CRPP_SOUNDS_DIR);
+  const auto catalog = Catalog::scan(sounds());
   Random random(1);
   CHECK(pick_name(catalog, Kind::KeySpace, "gone", random) == "mod_space.wav");
   CHECK(pick_name(catalog, Kind::KeySpace, "", random) == "mod_space.wav");
 }
 
 void a_missing_folder_is_empty() {
-  const auto catalog = Catalog::scan(std::filesystem::path(CRPP_SOUNDS_DIR) / "no-such-folder");
+  const auto catalog = Catalog::scan(Tree::of_folder(std::filesystem::path(CRPP_SOUNDS_DIR) / "no-such-folder"));
   CHECK(catalog.empty());
   Random random(1);
   CHECK(!catalog.pick(Kind::KeySpace, "plastic", random));
 }
 
 void choices_have_the_names_in_pack_json() {
-  const Catalog catalog = Catalog::scan(CRPP_SOUNDS_DIR);
+  const Catalog catalog = Catalog::scan(sounds());
   const auto keyboard = catalog.choices(Device::Keyboard);
   CHECK(keyboard.size() == 3);
   CHECK(keyboard[0].id == "plastic" && keyboard[0].name == "\xED\x94\x8C\xEB\x9D\xBC\xEC\x8A\xA4\xED\x8B\xB1");
@@ -108,12 +111,12 @@ void choices_have_the_names_in_pack_json() {
 }
 
 void notification_files_are_found_with_or_without_the_number() {
-  const std::filesystem::path root(CRPP_SOUNDS_DIR);
+  const Tree root = sounds();
   CHECK(notification_file(root, "cloud_chat")->filename() == "cloud_chat.wav");
   CHECK(notification_file(root, "01_cloud_chat")->filename() == "cloud_chat.wav");
   CHECK(notification_file(root, "02_cloud_enter")->filename() == "cloud_enter.wav");
   CHECK(!notification_file(root, "none"));
-  CHECK(!notification_file(root / "none", "cloud_chat"));
+  CHECK(!notification_file(Tree{}, "cloud_chat"));
 }
 
 // Another Repository's packs come after the official ones, under its prefix: the default stays.
@@ -123,7 +126,11 @@ void a_second_folder_comes_after_with_its_prefix() {
   std::filesystem::create_directories(other / "keyboard" / "aaa");
   std::ofstream(other / "keyboard" / "aaa" / "pack.json") << R"({"name": {"en": "First"}})";
   std::ofstream(other / "keyboard" / "aaa" / "alpha_r1.wav") << "x";
-  const PackRoot roots[] = {{CRPP_SOUNDS_DIR, {}, {}}, {other, "0123456789abcdef", {"keyboard/bbb/alpha_r1.wav"}}};
+  // bbb is still coming: its files are listed where they will be.
+  Tree theirs = Tree::of_folder(other);
+  theirs.add("keyboard/bbb/pack.json", other / "keyboard/bbb/pack.json");
+  theirs.add("keyboard/bbb/alpha_r1.wav", other / "keyboard/bbb/alpha_r1.wav");
+  const PackRoot roots[] = {{sounds(), {}}, {theirs, "0123456789abcdef"}};
   const auto catalog = Catalog::scan(roots, "en");
   const auto ids = catalog.packs(Device::Keyboard);
   CHECK(!ids.empty() && ids.front() == "plastic");

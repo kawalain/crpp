@@ -34,8 +34,8 @@ std::vector<float> load_recording(const std::filesystem::path& path, std::uint32
   return Resampler(pcm->rate, rate).run(pcm->samples);
 }
 
-Engine::Engine(AudioDevice& device, std::filesystem::path sounds_dir, std::span<const std::string> expected)
-    : device_(device), sounds_dir_(std::move(sounds_dir)), expected_(expected.begin(), expected.end()), random_(std::random_device{}()) {
+Engine::Engine(AudioDevice& device, files::Tree sounds)
+    : device_(device), sounds_(std::move(sounds)), random_(std::random_device{}()) {
   device_.set_on_changed([this] {
     {
       std::lock_guard lock(mutex_);
@@ -94,10 +94,10 @@ void Engine::set_member_volume(std::string cid, int percent) {
   wake_.notify_one();
 }
 
-void Engine::set_expected(std::vector<std::string> expected) {
+void Engine::set_sounds(files::Tree sounds) {
   {
     std::lock_guard lock(mutex_);
-    new_expected_ = std::move(expected);
+    new_sounds_ = std::move(sounds);
   }
   wake_.notify_one();
 }
@@ -169,7 +169,7 @@ void Engine::run() {
     {
       std::unique_lock lock(mutex_);
       const auto ready = [&] {
-        return stopping_ || device_changed_ || pending_count_ > 0 || new_settings_ || new_members_ || new_expected_ || new_added_ ||
+        return stopping_ || device_changed_ || pending_count_ > 0 || new_settings_ || new_members_ || new_sounds_ || new_added_ ||
                !new_volumes_.empty() || !new_cues_.empty() || check_device_;
       };
       // Asleep with no timer unless a stream is running and must be stopped later.
@@ -182,8 +182,8 @@ void Engine::run() {
       changed = std::exchange(device_changed_, false);
       settings = std::exchange(new_settings_, std::nullopt);
       members = std::exchange(new_members_, std::nullopt);
-      if (new_expected_) {
-        expected_ = std::move(*std::exchange(new_expected_, std::nullopt));
+      if (new_sounds_) {
+        sounds_ = std::move(*std::exchange(new_sounds_, std::nullopt));
         catalog_ = {};  // read again at the next sound
       }
       if (new_added_) {
@@ -361,7 +361,7 @@ void Engine::play(const Event& event) {
   const int member_volume = event.own ? 100 : volume_of(event.slot);
   if (member_volume <= 0) return;
   if (catalog_.empty()) {
-    std::vector<PackRoot> roots{{sounds_dir_, {}, expected_}};
+    std::vector<PackRoot> roots{{sounds_, {}}};
     roots.insert(roots.end(), added_.begin(), added_.end());
     catalog_ = Catalog::scan(roots);
   }
@@ -390,8 +390,10 @@ void Engine::play_cue(const Cue& cue) {
     if (ensure_open()) start_voice(generated_chime(cue.name), own_mix(), 1.0f);
     return;
   }
-  const auto file = cue.kind == CueKind::System ? std::optional(sounds_dir_ / "system" / (cue.name + ".wav"))
-                                                : notification_file(sounds_dir_, cue.name);
+  // A system sound always has one: generated, when its file is not there.
+  const std::filesystem::path* system = cue.kind == CueKind::System ? sounds_.find("system/" + cue.name + ".wav") : nullptr;
+  const auto file = cue.kind == CueKind::System ? std::optional(system ? *system : std::filesystem::path())
+                                                : notification_file(sounds_, cue.name);
   if ((!file && !can_synthesize_cue(cue.name)) || !ensure_open()) return;
   std::span<const float> samples;
   if (file) samples = recording(*file);

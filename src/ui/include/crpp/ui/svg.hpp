@@ -8,6 +8,7 @@
 #include <string_view>
 #include <vector>
 
+#include "crpp/files/tree.hpp"
 #include "crpp/ui/gfx.hpp"
 
 namespace crpp::ui {
@@ -44,11 +45,10 @@ void draw_svg(Painter& p, const SvgImage& image, Rect dst, float opacity = 1.0f,
 // font if that can show it.
 class EmojiCache {
  public:
-  explicit EmojiCache(std::filesystem::path assets_dir, std::size_t capacity = 48)
-      : dir_(std::move(assets_dir)), capacity_(capacity) {}
+  explicit EmojiCache(files::Tree assets, std::size_t capacity = 48) : files_(std::move(assets)), capacity_(capacity) {}
   // Never null; an unknown id yields an empty image.
   const SvgImage& get(const Gfx& gfx, const std::string& id);
-  [[nodiscard]] const std::filesystem::path& dir() const { return dir_; }
+  [[nodiscard]] const files::Tree& files() const { return files_; }
   // Whether get would find something to show, without parsing it.
   [[nodiscard]] bool available(const Gfx& gfx, const std::string& id) const;
   [[nodiscard]] std::size_t parsed() const { return entries_.size(); }
@@ -58,7 +58,7 @@ class EmojiCache {
     std::string id;
     SvgImage image;
   };
-  std::filesystem::path dir_;
+  files::Tree files_;
   std::list<Entry> entries_;  // most recently used first
   std::size_t capacity_;
 };

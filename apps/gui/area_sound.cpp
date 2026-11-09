@@ -109,12 +109,12 @@ bool in_use_here(const Shell& s, const AddedRepository& added, const std::vector
 std::vector<crpp::sound::PackRoot> added_roots(const Shell& s) {
   std::vector<crpp::sound::PackRoot> roots;
   for (const AddedRepository& added : s.added) {
-    crpp::sound::PackRoot root{added.dir / "sounds", added.id, {}};
+    crpp::sound::PackRoot root{added_files(added).under("sounds/"), added.id};
     if (added.catalog) {
       const auto installed = assets::kept_groups(*added.catalog, added.dir);
       for (const assets::File& file : added.catalog->files) {
-        if (!file.group.starts_with("sound:") || !file.path.starts_with("sounds/")) continue;
-        if (in_use_here(s, added, installed, std::string_view(file.group).substr(6))) root.expected.push_back(file.path.substr(7));
+        if (!file.group.starts_with("sound:") || !file.path.starts_with("sounds/") || root.tree.find(file.path.substr(7))) continue;
+        if (in_use_here(s, added, installed, std::string_view(file.group).substr(6))) root.tree.add(file.path.substr(7), added.dir / std::filesystem::path(file.path));
       }
     }
     roots.push_back(std::move(root));
@@ -127,7 +127,7 @@ std::vector<crpp::sound::PackRoot> added_roots(const Shell& s) {
 // False if there were none, as before the assets are in place.
 bool list_packs(Shell& s) {
   using crpp::sound::Device;
-  std::vector<crpp::sound::PackRoot> roots{{s.assets_dir / "sounds", {}, s.expected_sounds}};
+  std::vector<crpp::sound::PackRoot> roots{{official_sounds(s), {}}};
   for (auto& root : added_roots(s)) roots.push_back(std::move(root));
   const auto catalog = crpp::sound::Catalog::scan(roots, locale::current().id);
   // Then those of the added Repositories not installed, with what fetching them takes.

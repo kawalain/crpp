@@ -46,9 +46,8 @@ std::string lower_name(std::string_view name) { return lower(std::string(name));
 // The name in a pack.json ({"name": {"ko": "...", "en": "..."}}) in this language, or else
 // the Korean one; these files come with the app and hold nothing else, so this is no JSON
 // parser.
-std::string pack_name(const fs::path& json, std::string fallback, std::string_view language) {
-  std::ifstream in(json, std::ios::binary);
-  const std::string text{std::istreambuf_iterator<char>(in), std::istreambuf_iterator<char>()};
+std::string pack_name(const files::Tree& pack, std::string fallback, std::string_view language) {
+  const std::string text = pack.read("pack.json", 64 * 1024).value_or(std::string());
   auto at = text.find("\"" + std::string(language) + "\"");
   if (at == std::string::npos) at = text.find("\"ko\"");
   if (at == std::string::npos || (at = text.find(':', at)) == std::string::npos ||
@@ -101,17 +100,16 @@ std::optional<std::string_view> sound_name(wire::Kind kind) noexcept {
   }
 }
 
-std::optional<fs::path> notification_file(const fs::path& root, std::string_view name) {
+std::optional<fs::path> notification_file(const files::Tree& sounds, std::string_view name) {
   std::string wanted = lower_name(name);
   if (const auto underscore = wanted.find('_');
       underscore != std::string::npos && underscore > 0 &&
       std::all_of(wanted.begin(), wanted.begin() + static_cast<std::ptrdiff_t>(underscore), [](char c) { return c >= '0' && c <= '9'; })) {
     wanted.erase(0, underscore + 1);  // upstream's names keep their order in a leading number
   }
-  fs::path file = root / "notifications" / (wanted + ".wav");
-  std::error_code ec;
-  if (!fs::is_regular_file(file, ec)) return std::nullopt;
-  return file;
+  const fs::path* file = sounds.find("notifications/" + wanted + ".wav");
+  if (!file) return std::nullopt;
+  return *file;
 }
 
 Device device_of(wire::Kind kind) noexcept {
@@ -121,8 +119,8 @@ Device device_of(wire::Kind kind) noexcept {
   return Device::Pen;
 }
 
-Catalog Catalog::scan(const fs::path& root, std::span<const std::string> expected, std::string_view language) {
-  const PackRoot one[] = {{root, {}, {expected.begin(), expected.end()}}};
+Catalog Catalog::scan(const files::Tree& sounds, std::string_view language) {
+  const PackRoot one[] = {{sounds, {}}};
   return scan(one, language);
 }
 
@@ -132,29 +130,17 @@ Catalog Catalog::scan(std::span<const PackRoot> roots, std::string_view language
       {{"keyboard", Device::Keyboard}, {"mouse", Device::Mouse}, {"pen", Device::Pen}}};
   for (const auto& [folder, device] : folders) {
     for (const PackRoot& place : roots) {
-      const fs::path& root = place.dir;
-      const std::span<const std::string> expected = place.expected;
-      std::map<std::string, std::set<std::string>> packs;  // sorted: the display order
-      std::error_code ec;
-      for (const auto& entry : fs::directory_iterator(root / folder, ec)) {
-        if (!entry.is_directory(ec) || !fs::is_regular_file(entry.path() / "pack.json", ec)) continue;
-        auto& files = packs[lower(entry.path().filename().string())];
-        for (const auto& file : fs::directory_iterator(entry.path(), ec)) {
-          if (file.is_regular_file(ec)) files.insert(file.path().filename().string());
+      // Sorted: the display order.
+      for (const std::string& id : place.tree.names_in(std::string(folder) + "/")) {
+        files::Tree pack = place.tree.under(std::string(folder) + "/" + id + "/");
+        if (!pack.find("pack.json")) continue;
+        std::vector<std::string> names;
+        for (const auto& [path, real] : pack.entries()) {
+          if (path.find('/') == std::string::npos) names.push_back(path);
         }
-      }
-      const std::string prefix = std::string(folder) + "/";
-      for (const std::string& path : expected) {
-        if (!path.starts_with(prefix)) continue;
-        const auto slash = path.find('/', prefix.size());
-        if (slash == std::string::npos) continue;
-        packs[path.substr(prefix.size(), slash - prefix.size())].insert(path.substr(slash + 1));
-      }
-      for (auto& [id, files] : packs) {
-        const fs::path dir = root / folder / id;
-        const std::string full = place.prefix.empty() ? id : place.prefix + "/" + id;
-        std::string name = pack_name(dir / "pack.json", id, language);
-        catalog.packs_.push_back({device, full, std::move(name), dir, {files.begin(), files.end()}});
+        const std::string full = place.prefix.empty() ? lower(id) : place.prefix + "/" + lower(id);
+        std::string name = pack_name(pack, lower(id), language);
+        catalog.packs_.push_back({device, full, std::move(name), std::move(pack), std::move(names)});
       }
     }
   }
@@ -225,7 +211,9 @@ std::optional<fs::path> Catalog::pick(wire::Kind kind, std::string_view pack_id,
   }
   if (found.empty()) return std::nullopt;
   const std::string_view chosen = found[random.below(found.size())];
-  return pack->dir / fs::path(std::string(chosen));
+  const fs::path* file = pack->tree.find(chosen);
+  if (!file) return std::nullopt;
+  return *file;
 }
 
 }  // namespace crpp::sound

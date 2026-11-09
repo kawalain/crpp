@@ -1,7 +1,7 @@
 if(WIN32)
   # The Windows subsystem: no console opens with the window.
   add_executable(crpp WIN32
-    main.cpp window.cpp pane_window.cpp cursors.cpp startup.cpp bridge.cpp shot.cpp
+    main.cpp window.cpp pane_window.cpp cursors.cpp startup.cpp installed.cpp bridge.cpp shot.cpp
     area_connection.cpp area_home.cpp area_room.cpp area_sound.cpp area_preferences.cpp area_repositories.cpp area_os.cpp area_account.cpp area_achievements.cpp
     area_update.cpp tray.cpp autostart_windows.cpp account_controller.cpp)
   # Releases use MSVC, whose linker embeds this. A GCC build runs unaware of DPI,
@@ -78,7 +78,7 @@ if(WIN32)
   add_test(NAME gui.sound_prefs COMMAND crpp_gui_sound_prefs_test)
 
   add_executable(crpp_gui_parts_test tests/parts_test.cpp)
-  target_link_libraries(crpp_gui_parts_test PRIVATE crpp_store)
+  target_link_libraries(crpp_gui_parts_test PRIVATE crpp_store crpp_files)
   target_include_directories(crpp_gui_parts_test PRIVATE . ${PROJECT_SOURCE_DIR}/tests/support)
   crpp_target_defaults(crpp_gui_parts_test)
   add_test(NAME gui.parts COMMAND crpp_gui_parts_test ${PROJECT_SOURCE_DIR}/assets/sounds/notifications)

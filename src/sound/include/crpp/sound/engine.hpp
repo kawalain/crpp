@@ -88,8 +88,8 @@ struct Member {
 
 class Engine final : private Renderer {
  public:
-  // `expected`: see Catalog::scan.
-  Engine(AudioDevice& device, std::filesystem::path sounds_dir, std::span<const std::string> expected = {});
+  // `sounds`: the official Sound packs, notifications and system sounds; see PackRoot.
+  Engine(AudioDevice& device, files::Tree sounds);
   ~Engine();
   Engine(const Engine&) = delete;
   Engine& operator=(const Engine&) = delete;
@@ -98,8 +98,8 @@ class Engine final : private Renderer {
   void stop();  // idempotent; the device is closed
 
   void set_settings(Settings settings);
-  // What the packs should hold, once a first install has said: see Catalog::scan.
-  void set_expected(std::vector<std::string> expected);
+  // The official sounds again, as after an install.
+  void set_sounds(files::Tree sounds);
   // The Sound packs of the Repositories the user added, after the official ones.
   void set_added(std::vector<PackRoot> roots);
   void set_members(std::vector<Member> members);
@@ -160,8 +160,7 @@ class Engine final : private Renderer {
   [[nodiscard]] std::size_t desk_of(std::uint32_t slot) const;
 
   AudioDevice& device_;
-  std::filesystem::path sounds_dir_;
-  std::vector<std::string> expected_;
+  files::Tree sounds_;
 
   // Shared with the callers; guarded by mutex_.
   std::mutex mutex_;
@@ -171,7 +170,7 @@ class Engine final : private Renderer {
   bool stopping_ = false, device_changed_ = false;
   std::optional<Settings> new_settings_;
   std::optional<std::vector<Member>> new_members_;
-  std::optional<std::vector<std::string>> new_expected_;
+  std::optional<files::Tree> new_sounds_;
   std::optional<std::vector<PackRoot>> new_added_;
   std::vector<PackRoot> added_;
   std::vector<VolumeChange> new_volumes_;

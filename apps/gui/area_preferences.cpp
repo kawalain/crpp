@@ -66,7 +66,7 @@ std::vector<NotifySound> load_sounds(const Shell& s) {
     if (path.starts_with(folder) && path.ends_with(wav)) stems.push_back(path.substr(folder.size(), path.size() - folder.size() - wav.size()));
   }
   std::vector<NotifySound> sounds;
-  for (auto& found : find_notification_sounds(s.assets_dir / "sounds" / "notifications", pref::notification_id, stems)) {
+  for (auto& found : find_notification_sounds(official_sounds(s).under("notifications/"), pref::notification_id, stems)) {
     // Those this program has words for; a pack.json names only what it brings.
     if (found.id == "cloud_chat") found.name = tr().notify_sound_chat;
     if (found.id == "cloud_enter") found.name = tr().notify_sound_enter;

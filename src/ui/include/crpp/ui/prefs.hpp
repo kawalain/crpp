@@ -43,6 +43,8 @@ inline constexpr Bool channel_balance_enabled{"channelBalanceEnabled", true};
 inline constexpr Int channel_balance{"channelBalance", 60};
 // Not upstream's: "off", "office" or "large".
 inline constexpr Text reverb{"reverb", "office"};
+// Not upstream's: the shortcut that mutes the Room from any program, by its id in mute_hotkeys; empty for none.
+inline constexpr Text mute_hotkey{"muteHotkey", ""};
 
 // --- display tab ---
 inline constexpr Text theme{"theme", "cloudroom"};
@@ -94,7 +96,7 @@ inline constexpr std::array all_bool{mute_others,       listen_self,       other
                                      log_enabled,       input_detail};
 inline constexpr std::array all_int{volume, keyboard_volume, mouse_volume, pen_volume, channel_balance, chat_scale, idle_minutes, release_graphics_after};
 inline constexpr std::array all_text{speaker_device, speaker_device_name, keyboard_sound, mouse_sound, pen_sound,
-                                     reverb,         theme,               light_theme,    dark_theme,
+                                     reverb,         mute_hotkey,         theme,          light_theme,    dark_theme,
                                      language,       skin,                skin_theme,     dark_mode};
 
 // The key of a sound in notificationSounds: its file name stem without the order

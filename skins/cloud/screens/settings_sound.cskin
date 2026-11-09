@@ -3,6 +3,7 @@ let pen_shift = @show_pen ? 0 : 69
 let effects_shift = 104-pen_shift
 let balance_top = 749+effects_shift
 let reverb_top = balance_top+60+16
+let hotkey_top = reverb_top+36+16
 text @tr.sound_speaker (9, 25, 500, 32) style heading color hl_text
 text @tr.sound_devices (9, 167, 500, 32) style heading color hl_text
 text @tr.sound_effects (9, 535+effects_shift, 500, 32) style heading color hl_text
@@ -52,4 +53,7 @@ hit balance (138.5, balance_top+(60-39)/2, 273, 39) hit_if @balance_on {
 }
 text @tr.sound_reverb (16, reverb_top, 505, 36) style row color hl_text
 slot reverb_list (285, reverb_top+(36-38)/2, 246, 38)
-report height = reverb_top+36+25
+text @tr.sound_hotkey (16, hotkey_top, 505, 36) style row color hl_text
+slot hotkey_list (285, hotkey_top+(36-38)/2, 246, 38)
+text @tr.sound_hotkey_taken (16, hotkey_top+36+4, 505, 20) style balance_hint color alpha(hl_text, 0.75) if @hotkey_taken
+report height = hotkey_top+36+25+(@hotkey_taken ? 24 : 0)

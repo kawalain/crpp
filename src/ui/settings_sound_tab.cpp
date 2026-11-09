@@ -49,6 +49,9 @@ SoundTab::SoundTab(Ui& ui) : SettingsTab(ui) {
   packs_[2].box.id_base = PenList;
   reverb_.box.id_base = ReverbList;
   reverb_.ids = {"off", "office", "large"};
+  hotkey_.box.id_base = HotkeyList;
+  hotkey_.ids = {""};
+  for (const MuteHotkey& key : mute_hotkeys) hotkey_.ids.emplace_back(key.id);
   refresh_speakers();
 }
 
@@ -102,6 +105,7 @@ void SoundTab::sync_selection() {
   // A name this version does not know sounds like the default, so it shows as that.
   const int reverb = index_of(reverb_, ui_.prefs->get(pref::reverb));
   reverb_.box.selected = reverb >= 0 ? reverb : index_of(reverb_, pref::reverb.fallback);
+  hotkey_.box.selected = std::max(0, index_of(hotkey_, ui_.prefs->get(pref::mute_hotkey)));
 }
 
 SoundTab::Picker* SoundTab::picker_of_row(std::size_t row) {
@@ -160,11 +164,13 @@ void SoundTab::paint_popups(Painter& p, Rect) {
     if (row_shown(i)) picker_of_row(i)->box.paint_list(ui_, this, p, combo_rects_[i]);
   }
   reverb_.box.paint_list(ui_, this, p, combo_rects_[4]);
+  hotkey_.box.paint_list(ui_, this, p, combo_rects_[5]);
 }
 
 void SoundTab::close_lists(const Picker* except) {
   speaker_.box.open = speaker_.box.open && &speaker_ == except;
   reverb_.box.open = reverb_.box.open && &reverb_ == except;
+  hotkey_.box.open = hotkey_.box.open && &hotkey_ == except;
   for (Picker& picker : packs_) picker.box.open = picker.box.open && &picker == except;
 }
 
@@ -176,6 +182,7 @@ void SoundTab::before_click(const Surface* owner, int id) {
   const Picker* keep = nullptr;
   if (speaker_.box.owns(id)) keep = &speaker_;
   if (reverb_.box.owns(id)) keep = &reverb_;
+  if (hotkey_.box.owns(id)) keep = &hotkey_;
   for (const Picker& picker : packs_) {
     if (picker.box.owns(id)) keep = &picker;
   }
@@ -196,7 +203,10 @@ void SoundTab::set_slider(int id, float window_x) {
 
 void SoundTab::pick(Picker& picker, int id) {
   if (id == picker.box.id_base && !picker.box.open) {
-    const auto row = &picker == &reverb_ ? std::size_t{4} : &picker == &speaker_ ? std::size_t{0} : static_cast<std::size_t>(&picker - packs_.data()) + 1;
+    const auto row = &picker == &hotkey_  ? std::size_t{5}
+                     : &picker == &reverb_ ? std::size_t{4}
+                     : &picker == &speaker_ ? std::size_t{0}
+                                            : static_cast<std::size_t>(&picker - packs_.data()) + 1;
     place_dropdown(ui_, picker.box, combo_rects_[row]);
   }
   if (!picker.box.click(id)) return;
@@ -210,6 +220,9 @@ void SoundTab::pick(Picker& picker, int id) {
     if (on_speaker_picked) on_speaker_picked();
   } else if (&picker == &reverb_) {
     ui_.prefs->set(pref::reverb, chosen);
+  } else if (&picker == &hotkey_) {
+    hotkey_taken_ = false;  // until the shell has tried the new one
+    ui_.prefs->set(pref::mute_hotkey, chosen);
   } else if (&picker == &packs_[0]) {
     ui_.prefs->set(pref::keyboard_sound, chosen);
   } else if (&picker == &packs_[1]) {
@@ -221,7 +234,7 @@ void SoundTab::pick(Picker& picker, int id) {
 
 bool SoundTab::acts_on_press(int id) const {
   if ((id >= SpeakerVolume && id <= PenVolume) || id == Balance) return true;
-  if (id == speaker_.box.id_base || id == reverb_.box.id_base) return true;
+  if (id == speaker_.box.id_base || id == reverb_.box.id_base || id == hotkey_.box.id_base) return true;
   return std::ranges::any_of(packs_, [id](const Picker& picker) { return id == picker.box.id_base; });
 }
 
@@ -245,6 +258,10 @@ void SoundTab::click(int id, float x, float, bool) {
     pick(reverb_, id);
     return;
   }
+  if (hotkey_.box.owns(id)) {
+    pick(hotkey_, id);
+    return;
+  }
   for (Picker& picker : packs_) {
     if (picker.box.owns(id)) {
       pick(picker, id);
@@ -260,12 +277,12 @@ void SoundTab::drag(float x, float) {
 void SoundTab::release() { held_ = -1; }
 
 bool SoundTab::wheel(float x, float y, float delta) {
-  if (speaker_.box.wheel(ui_, x, y, delta) || reverb_.box.wheel(ui_, x, y, delta)) return true;
+  if (speaker_.box.wheel(ui_, x, y, delta) || reverb_.box.wheel(ui_, x, y, delta) || hotkey_.box.wheel(ui_, x, y, delta)) return true;
   return std::ranges::any_of(packs_, [&](Picker& picker) { return picker.box.wheel(ui_, x, y, delta); });
 }
 
 const Dropdown* SoundTab::dropdown_of(int id) const {
-  for (const Dropdown* box : {&speaker_.box, &reverb_.box, &packs_[0].box, &packs_[1].box, &packs_[2].box}) {
+  for (const Dropdown* box : {&speaker_.box, &reverb_.box, &hotkey_.box, &packs_[0].box, &packs_[1].box, &packs_[2].box}) {
     if (box->owns(id)) return box;
   }
   return nullptr;
@@ -281,7 +298,7 @@ bool SoundTab::stop_key(int id, unsigned vk, bool ctrl, bool, bool alt) {
     if (*value != ui_.prefs->get(key)) ui_.prefs->set(key, *value);
     return true;
   }
-  for (Dropdown* box : {&speaker_.box, &reverb_.box, &packs_[0].box, &packs_[1].box, &packs_[2].box}) {
+  for (Dropdown* box : {&speaker_.box, &reverb_.box, &hotkey_.box, &packs_[0].box, &packs_[1].box, &packs_[2].box}) {
     if (box->owns(id)) {
       const std::optional<int> hit = box->key(ui_, this, vk, alt);
       if (!hit) return false;
@@ -293,7 +310,7 @@ bool SoundTab::stop_key(int id, unsigned vk, bool ctrl, bool, bool alt) {
 }
 
 bool SoundTab::escape() {
-  const bool any = speaker_.box.open || reverb_.box.open || std::ranges::any_of(packs_, [](const Picker& picker) { return picker.box.open; });
+  const bool any = speaker_.box.open || reverb_.box.open || hotkey_.box.open || std::ranges::any_of(packs_, [](const Picker& picker) { return picker.box.open; });
   close_lists(nullptr);
   return any;
 }

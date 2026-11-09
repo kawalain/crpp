@@ -364,6 +364,9 @@ struct Strings {
   const char* sound_reverb_off;
   const char* sound_reverb_office;
   const char* sound_reverb_large;
+  const char* sound_hotkey;
+  const char* sound_hotkey_off;
+  const char* sound_hotkey_taken;
   const char* sound_default_output;
   const char* sound_current_output;
   const char* sound_me;

@@ -53,8 +53,8 @@ void the_controls_are_there_and_pen_is_hidden() {
   CHECK(show_pen == f.h.drawn(f.tab, SoundTab::PenVolume));
   CHECK(show_pen == f.h.drawn(f.tab, SoundTab::PenList));
   // Upstream's height, the balance control's bottom and the panel's padding, a line more,
-  // and the reverb's row.
-  CHECK(f.tab.content_height() == 921);
+  // and the rows of the reverb and the mute shortcut.
+  CHECK(f.tab.content_height() == 973);
 }
 
 void sliders_change_their_settings_and_only_when_different() {
@@ -162,6 +162,29 @@ void the_reverb_is_picked_from_its_list_and_stays_without_the_surround() {
   f.h.key(VK_ESCAPE);
   CHECK(!f.h.drawn(f.tab, SoundTab::ReverbList + 1));
   CHECK(f.h.app.settings().is_open());
+}
+
+void the_mute_shortcut_is_picked_from_its_list_and_says_when_it_is_taken() {
+  Fixture f;
+  f.show_end();
+  CHECK(f.prefs.get(pref::mute_hotkey).empty());
+  CHECK(f.h.click(f.tab, SoundTab::HotkeyList));
+  CHECK(f.h.click(f.tab, SoundTab::HotkeyList + 3));
+  CHECK(f.prefs.get(pref::mute_hotkey) == "ctrl_shift_m");
+  const MuteHotkey* key = mute_hotkey_named(f.prefs.get(pref::mute_hotkey));
+  CHECK(key && key->vk == 'M' && key->modifiers == (2u | 4u));
+  // The shell found another program holding it: the row says so, and the panel grows by a line.
+  const float before = f.tab.content_height();
+  f.tab.set_hotkey_taken(true);
+  f.h.render();
+  CHECK(f.tab.content_height() > before);
+  // Another choice is unknown until tried, and none is never taken.
+  CHECK(f.h.click(f.tab, SoundTab::HotkeyList));
+  CHECK(f.h.click(f.tab, SoundTab::HotkeyList + 4));
+  CHECK(f.prefs.get(pref::mute_hotkey) == "pause");
+  CHECK(!f.tab.hotkey_taken());
+  CHECK(mute_hotkey_named("") == nullptr);
+  CHECK(mute_hotkey_named("ctrl_alt_x") == nullptr);
 }
 
 void a_tab_fading_out_keeps_its_edge_fades() {
@@ -288,6 +311,7 @@ int main() {
   the_balance_is_said_in_words();
   the_balance_is_locked_without_the_surround();
   the_reverb_is_picked_from_its_list_and_stays_without_the_surround();
+  the_mute_shortcut_is_picked_from_its_list_and_says_when_it_is_taken();
   a_pack_is_picked_from_its_list();
   one_list_is_open_at_a_time_and_escape_closes_it_first();
   a_click_elsewhere_closes_the_list_and_changes_nothing();

@@ -79,6 +79,8 @@ void play_notification(Shell& s, std::string_view name);
 void preview_notification(Shell& s, std::string_view name);
 // The user pressed something, which ends being away.
 void own_input(Shell& s);
+// The mute shortcut was pressed, wherever the keyboard was.
+void hotkey_pressed(Shell& s);
 }  // namespace sound
 
 namespace preferences {  // display, notification and system tabs

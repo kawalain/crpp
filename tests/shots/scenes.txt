@@ -62,6 +62,7 @@ settings-sound-dark
 settings-sound-effects
 settings-sound-effects-dark
 settings-sound-effects-flat
+settings-sound-hotkey-taken
 settings-sound-open
 settings-display
 settings-display-dark

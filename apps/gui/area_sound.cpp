@@ -19,6 +19,7 @@ struct State {
   std::array<std::string, 3> settled;
   crpp::sound::IdleWatch idle;
   bool in_room = false;
+  bool hotkey_held = false;  // the mute shortcut, registered while in a Room
   bool packs_listed = false;
   std::atomic<bool> devices_posted{false};
   std::unique_ptr<crpp::sound::OutputDevices> devices;  // from the first look at the tab
@@ -167,7 +168,37 @@ void list_speakers(Shell& s) {
   s.app.settings().sound().set_speakers(std::move(choices));
 }
 
+// --- the mute shortcut ---
+
+constexpr int mute_hotkey_id = 1;  // RegisterHotKey's id, of the main window
+
+// The shortcut is held only in a Room, where it acts, so that out of one it is left to other programs. Out of a Room
+// a choice is only tried and let go, to say whether another program holds it.
+void sync_hotkey(Shell& s, bool try_now) {
+  if (!s.hwnd) return;  // a shot, which has no window and leaves the system's shortcuts alone
+  State& st = *s.sound_state;
+  if (st.hotkey_held) {
+    UnregisterHotKey(s.hwnd, mute_hotkey_id);
+    st.hotkey_held = false;
+  }
+  SoundTab& tab = s.app.settings().sound();
+  const MuteHotkey* key = mute_hotkey_named(s.prefs->get(pref::mute_hotkey));
+  if (!key) {
+    tab.set_hotkey_taken(false);
+  } else if (st.in_room || try_now) {
+    // Without MOD_NOREPEAT a held key would toggle again and again.
+    const bool held = RegisterHotKey(s.hwnd, mute_hotkey_id, key->modifiers | MOD_NOREPEAT, key->vk) != 0;
+    tab.set_hotkey_taken(!held);
+    if (held && st.in_room) st.hotkey_held = true;
+    else if (held) UnregisterHotKey(s.hwnd, mute_hotkey_id);
+  }
+  InvalidateRect(s.hwnd, nullptr, FALSE);
+  invalidate_panes(s);
+}
+
 void tab_shown(Shell& s) {
+  // Another program may have taken the shortcut since; in a Room it is held already.
+  if (!s.sound_state->in_room) sync_hotkey(s, true);
   State& state = *s.sound_state;
   if (!state.packs_listed) state.packs_listed = list_packs(s);
   if (!state.devices) {
@@ -271,6 +302,7 @@ void wire(Shell& s) {
       sp->engine->clear_member_volumes();
     }
     sync_idle(*sp);
+    sync_hotkey(*sp, false);
   };
 }
 
@@ -283,6 +315,11 @@ bool scene(Shell& s, std::string_view name) {
   s.app.settings().open(SettingsPage::Sound);
   if (name == "settings-sound-dark" || name == "settings-sound-effects-dark") s.app.set_theme("darkcloud");
   if (name == "settings-sound-effects-flat") s.app.ui().prefs->set(pref::spatial_audio, false);
+  if (name == "settings-sound-hotkey-taken") {  // another program holds the shortcut
+    s.app.ui().prefs->set(pref::mute_hotkey, "ctrl_alt_m");
+    tab.set_hotkey_taken(true);
+    s.app.settings().scroll_to(10000);
+  }
   if (name == "settings-sound-effects" || name == "settings-sound-effects-dark" || name == "settings-sound-effects-flat") {
     s.app.settings().scroll_to(10000);
   }
@@ -296,6 +333,11 @@ bool scene(Shell& s, std::string_view name) {
 
 void pref_changed(Shell& s, std::string_view key) {
   if (!s.sound_state) return;
+  if (key == pref::mute_hotkey.name) {
+    sync_hotkey(s, true);
+    save_soon(s);
+    return;
+  }
   if (key == pref::mute_on_idle.name || key == pref::idle_minutes.name) {
     sync_idle(s);
     // Whether being away mutes may have changed though being away did not.
@@ -322,6 +364,12 @@ void pref_changed(Shell& s, std::string_view key) {
     tell_server_my_sounds(s);
   }
   save_soon(s);
+}
+
+void hotkey_pressed(Shell& s) {
+  if (!s.sound_state || !s.sound_state->in_room || s.app.view() != View::Session) return;
+  // As the Room's button, which says so and does the rest, also with the window hidden.
+  s.app.room().click(RoomScreen::Mute, 0, 0, false);
 }
 
 void own_input(Shell& s) {

@@ -37,13 +37,13 @@ constexpr skin::Name panel_notes[] = {{"track", TrackNote}, {"pane", PaneNote}};
 constexpr skin::Name panel_hits[] = {{"overlay", SettingsPanel::Overlay}, {"droplet", SettingsPanel::Droplet}, {"thumb", SettingsPanel::Thumb}, {"version", SettingsPanel::Version}, {"track", SettingsPanel::Track}, {"bar_up", SettingsPanel::BarUp}, {"bar_down", SettingsPanel::BarDown}, {"tab", SettingsPanel::TabBase}};
 
 // --- sound ---
-enum SoundNumber : int { SpeakerVolumeN, KeyboardVolumeN, MouseVolumeN, PenVolumeN, ShowPen, ListenSelfN, OthersN, MuteNotifyN, MuteIdleN, SpatialN, BalanceEnabledN, BalanceOn, BalanceN };
+enum SoundNumber : int { SpeakerVolumeN, KeyboardVolumeN, MouseVolumeN, PenVolumeN, ShowPen, ListenSelfN, OthersN, MuteNotifyN, MuteIdleN, SpatialN, BalanceEnabledN, BalanceOn, BalanceN, HotkeyTakenN };
 enum SoundNote : int { Slider0, Slider1, Slider2, Slider3, BalanceNote };
 constexpr skin::Name sound_texts[] = {{"balance_word", 0}};
 constexpr skin::Name sound_numbers[] = {{"speaker_volume", SpeakerVolumeN}, {"keyboard_volume", KeyboardVolumeN}, {"mouse_volume", MouseVolumeN}, {"pen_volume", PenVolumeN}, {"show_pen", ShowPen},
                                         {"listen_self", ListenSelfN}, {"others_use_mine", OthersN}, {"mute_notifications", MuteNotifyN}, {"mute_on_idle", MuteIdleN}, {"spatial", SpatialN},
-                                        {"balance_enabled", BalanceEnabledN}, {"balance_on", BalanceOn}, {"balance", BalanceN}};
-constexpr skin::Name sound_slots[] = {{"speaker_list", 0}, {"keyboard_list", 1}, {"mouse_list", 2}, {"pen_list", 3}, {"reverb_list", 4}};
+                                        {"balance_enabled", BalanceEnabledN}, {"balance_on", BalanceOn}, {"balance", BalanceN}, {"hotkey_taken", HotkeyTakenN}};
+constexpr skin::Name sound_slots[] = {{"speaker_list", 0}, {"keyboard_list", 1}, {"mouse_list", 2}, {"pen_list", 3}, {"reverb_list", 4}, {"hotkey_list", 5}};
 constexpr skin::Name sound_notes[] = {{"slider_0", Slider0}, {"slider_1", Slider1}, {"slider_2", Slider2}, {"slider_3", Slider3}, {"balance", BalanceNote}};
 constexpr skin::Name sound_hits[] = {{"speaker_volume", SoundTab::SpeakerVolume}, {"keyboard_volume", SoundTab::KeyboardVolume}, {"mouse_volume", SoundTab::MouseVolume}, {"pen_volume", SoundTab::PenVolume},
                                      {"listen_self", SoundTab::ListenSelf}, {"others_use_mine", SoundTab::OthersUseMine}, {"mute_notifications", SoundTab::MuteNotifications}, {"mute_on_idle", SoundTab::MuteOnIdle},
@@ -277,6 +277,8 @@ void SettingsPanel::paint_pack(Painter& p, const skin::Screen& screen) {
 
 void SoundTab::paint_pack(Painter& p, const skin::Screen& screen, Rect area) {
   reverb_.box.options = {tr().sound_reverb_off, tr().sound_reverb_office, tr().sound_reverb_large};
+  hotkey_.box.options = {tr().sound_hotkey_off};
+  for (const MuteHotkey& key : mute_hotkeys) hotkey_.box.options.emplace_back(key.label);
   speaker_.box.options[0] = tr().sound_default_output;
   last_area_ = area;
   sync_selection();
@@ -304,6 +306,7 @@ void SoundTab::paint_pack(Painter& p, const skin::Screen& screen, Rect area) {
         case BalanceEnabledN: return yes(prefs_.get(pref::channel_balance_enabled));
         case BalanceOn: return yes(on());
         case BalanceN: return static_cast<float>(balance());
+        case HotkeyTakenN: return yes(s_.hotkey_taken_ && !prefs_.get(pref::mute_hotkey).empty());
         default: return 0;
       }
     }
@@ -312,7 +315,7 @@ void SoundTab::paint_pack(Painter& p, const skin::Screen& screen, Rect area) {
       const auto row = static_cast<std::size_t>(id);
       const Rect r = rect_of(box);
       s_.combo_rects_[row] = r;
-      Dropdown& list = id == 4 ? s_.reverb_.box : s_.picker_of_row(row)->box;
+      Dropdown& list = id == 5 ? s_.hotkey_.box : id == 4 ? s_.reverb_.box : s_.picker_of_row(row)->box;
       list.paint_button(s_.ui_, &s_, p_, r);
     }
 

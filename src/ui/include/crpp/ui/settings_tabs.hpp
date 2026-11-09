@@ -17,6 +17,25 @@
 
 namespace crpp::ui {
 
+// The shortcuts "단축키로 음소거" offers, by the id kept under muteHotkey. Modifiers are RegisterHotKey's
+// (MOD_ALT 1, MOD_CONTROL 2, MOD_SHIFT 4), and the key a virtual-key code. Their names are the keys' own, in every Locale.
+struct MuteHotkey {
+  std::string_view id, label;
+  unsigned modifiers = 0, vk = 0;
+};
+inline constexpr std::array<MuteHotkey, 3> mute_hotkeys{{
+    {"ctrl_alt_m", "Ctrl+Alt+M", 2 | 1, 'M'},
+    {"ctrl_shift_m", "Ctrl+Shift+M", 2 | 4, 'M'},
+    {"pause", "Pause", 0, 0x13},
+}};
+// The shortcut kept under this id; none for an empty or unknown one.
+[[nodiscard]] constexpr const MuteHotkey* mute_hotkey_named(std::string_view id) {
+  for (const MuteHotkey& key : mute_hotkeys) {
+    if (key.id == id) return &key;
+  }
+  return nullptr;
+}
+
 class SettingsTab : public Surface {
  public:
   using Surface::Surface;
@@ -72,7 +91,8 @@ class SoundTab final : public SettingsTab {
     KeyboardList = 200,
     MouseList = 300,
     PenList = 400,
-    ReverbList = 500
+    ReverbList = 500,
+    HotkeyList = 600
   };
   [[nodiscard]] std::optional<Role> role(int id) const override {
     if (dropdown_of(id)) return Role::Dropdown;
@@ -97,6 +117,9 @@ class SoundTab final : public SettingsTab {
   // from them stays on the list under its saved name.
   void set_speakers(std::vector<SoundChoice> speakers);
   void set_packs(SoundDevice device, std::vector<SoundChoice> packs);
+  // Whether another program holds the chosen mute shortcut, which the row then says.
+  void set_hotkey_taken(bool taken) { hotkey_taken_ = taken; }
+  [[nodiscard]] bool hotkey_taken() const { return hotkey_taken_; }
   // For tests: the list as shown.
   [[nodiscard]] const std::vector<std::string>& speaker_options() const { return speaker_.box.options; }
   [[nodiscard]] bool tip_shown() const { return tip_on_; }
@@ -128,16 +151,17 @@ class SoundTab final : public SettingsTab {
 
   Picker speaker_;
   std::array<Picker, 3> packs_;  // by SoundDevice
-  Picker reverb_;
+  Picker reverb_, hotkey_;
   std::vector<SoundChoice> speakers_;
   Rect last_area_;
-  // Where the flowing layout last put these: by volume row, the list after them for reverb.
+  // Where the flowing layout last put these: by volume row, then the lists for reverb and the shortcut.
   std::array<Rect, 4> slider_rects_;
-  std::array<Rect, 5> combo_rects_;
+  std::array<Rect, 6> combo_rects_;
   Rect balance_rect_;
   int held_ = -1;  // the slider being dragged
   int tip_row_ = -1;
   bool tip_on_ = false;
+  bool hotkey_taken_ = false;
 };
 
 class DisplayTab final : public SettingsTab {

@@ -192,6 +192,9 @@ against a real `server/` yet; do that once a local build of it is available.
   client's own): Retro's "핫도그 가게" ("Hot Dog Stand"), classic's shapes in loud red and yellow after the Windows 3.1
   scheme of that name, in colours chosen here. A pack marks such a Theme `hidden`, and a catalog does not offer it.
 - The tray menu has mute, the Mini window and leaving the Room while in one, and the options, besides quitting.
+- "단축키로 음소거" in the sound tab mutes the Room from any program, with Ctrl+Alt+M, Ctrl+Shift+M or Pause (`muteHotkey`,
+  a key of this client's own, none by default). It is a system shortcut (`RegisterHotKey`, no hook), held only while
+  in a Room so that other programs have it otherwise, and a choice another program holds makes the row say so.
 - A Room can be kept beside other work in the Mini window ("작은 창"), opened from the Room's options, the tray and
   under Retro the menu bar's 도구(T): a small window, always on top and without a taskbar button, with every member's
   disc, lit while they make a sound, mute and close. It stays while the main window is minimized or in the tray,
@@ -495,6 +498,9 @@ exist (real + test).
   cost about 1.5 MB private and no idle CPU. See on a real desktop: dragging it, staying on top of other programs and
   of a full-screen one, its rounded region under Cloud, the main window in the tray with it open, and a real Room's
   discs lighting while the main window is hidden.
+- The mute shortcut has run in tests and on a hidden desktop, where it was held only in a Room and a posted
+  `WM_HOTKEY` muted and unmuted. A real key press has not: press each choice on a real desktop, in a game and over an
+  elevated window, and pick one another program holds.
 - The tray needs a real desktop: a hidden one has no taskbar, so the icon fails to
   add and a close exits. A chat notification was seen on one Windows 10 PC, with a window
   of a fake Room behind another. Upstream's developer saw none, on a machine not yet looked

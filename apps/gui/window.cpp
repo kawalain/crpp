@@ -338,6 +338,12 @@ LRESULT CALLBACK wnd_proc(HWND hwnd, UINT msg, WPARAM wp, LPARAM lp) {
         s->save_timer_on = true;
       }
       return 0;
+    case WM_HOTKEY:
+      area::sound::hotkey_pressed(*s);
+      InvalidateRect(hwnd, nullptr, FALSE);
+      invalidate_panes(*s);
+      invalidate_mini(*s);
+      return 0;
     case wm_own_input:
       s->input_sink.pulse_taken();
       area::sound::own_input(*s);

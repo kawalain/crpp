@@ -66,11 +66,11 @@ void failure_wording_is_upstreams() {
   CHECK(text(Failure::RoomGone, "not_found") == "구름을 찾지 못했어요.");
   CHECK(text(Failure::RoomClosed, "not_found", true) == "구름이 닫혀 다시 연결하지 못했어요.");
   CHECK(text(Failure::GraceExpired, {}, true) == "서버와의 연결이 끊어졌어요.");
-  CHECK(text(Failure::Unauthorized) == "로그인이 만료되어 구름에 연결하지 못했어요.");
-  CHECK(text(Failure::Unauthorized, {}, true) == "로그인이 만료되어 구름에 다시 연결하지 못했어요.");
+  CHECK(text(Failure::Unauthorized) == "로그인이 만료돼서 구름에 연결하지 못했어요.");
+  CHECK(text(Failure::Unauthorized, {}, true) == "로그인이 만료돼서 구름에 다시 연결하지 못했어요.");
   CHECK(text(Failure::ConnectFailed) == "서버에 연결하지 못했어요.");
-  CHECK(text(Failure::ConnectFailed, session::detail_closed) == "구름 서버와의 연결이 끊어졌어요.");
-  CHECK(text(Failure::ConnectFailed, session::detail_no_reply) == "서버가 구름을 만들어 주지 않았어요. 잠시 후 다시 시도해 주세요.");
+  CHECK(text(Failure::ConnectFailed, session::detail_closed) == "구름 서버와 연결이 끊어졌어요.");
+  CHECK(text(Failure::ConnectFailed, session::detail_no_reply) == "서버가 대답이 없어서 구름을 띄우지 못했어요. 잠시 후 다시 해 주세요.");
   CHECK(text(Failure::InvalidArgument, "code") == "구름을 찾지 못했어요.");
   CHECK(text(Failure::InvalidArgument, "resume") == "구름에 들어가지 못했어요.");
 }

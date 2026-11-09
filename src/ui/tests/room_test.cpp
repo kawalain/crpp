@@ -322,7 +322,7 @@ void test_leaving_host_is_told_about_delegation() {
   CHECK(h.start());
   enter(h, 2, false, 0, 0);
   CHECK(h.click(h.app.room(), RoomScreen::Leave));
-  CHECK(h.app.dialogs().text() == "이 구름에서 나갈까요?\n호스트는 다른 사람에게 무작위로 넘어가요.");
+  CHECK(h.app.dialogs().text() == "이 구름에서 나갈까요?\n호스트는 남은 사람 중 한 명에게 넘어가요.");
   h.key(VK_ESCAPE);
   h.app.room().set_room(people(2), 1, 0, false, false);  // someone else is Host
   h.render();

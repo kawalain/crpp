@@ -163,7 +163,7 @@ void test_register_walks_all_steps_to_home() {
   CHECK(r.host.requests.back().path == "api/handle");
   r.host.answer(r.h, 200, R"({"username":"alice","handle":"cloud"})");
   CHECK(r.prompt().prompt().heading == "별명 정하기");
-  CHECK(r.prompt().prompt().extra == "무작위로 정하기");
+  CHECK(r.prompt().prompt().extra == "랜덤으로 정하기");
   CHECK(r.prompt().prompt().extra2 == "사용자명으로 쓰기");
 
   CHECK(r.h.click(r.prompt(), PromptScreen::Extra));

@@ -201,7 +201,7 @@ against a real `server/` yet; do that once a local build of it is available.
   moves by any place with nothing to click, opens at the top right of the screen without taking the keyboard, and
   closes when the Room is left. A disc is lit or dark with no fade, so it draws only when one changes. Each Skin
   draws it whole: Cloud a rounded card, Retro a tool window.
-- The system tab's advanced section has "뒤에 있을 때 메모리 비우기" (at once, 10 s, 1 min, never), kept
+- The system tab's advanced section has "가려져 있을 때 메모리 비우기" (at once, 10 s, 1 min, never), kept
   under a key of this client's own. Behind another program, outside a Room, the window lets go of its
   graphics device after that wait and makes it again when it next draws.
 - Assets may be missing without stopping the app; see ADR 0004.

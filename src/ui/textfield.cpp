@@ -253,7 +253,8 @@ Rect TextField::paint(Painter& p, Rect box, const TextStyle& style, Color text, 
   if (!scrolls) {
     scroll_y_ = 0;
   } else {
-    scroll_y_ = std::clamp(scroll_y_, caret_top + m.height - box.h, caret_top);
+    // A line taller than the box has no place that shows all of it: its top wins.
+    scroll_y_ = std::clamp(scroll_y_, std::min(caret_top + m.height - box.h, caret_top), caret_top);
     scroll_y_ = std::clamp(scroll_y_, 0.0f, content_h - box.h);
     p.rt()->PushAxisAlignedClip(D2D1::RectF(box.x, box.y, box.x + box.w, box.y + box.h), D2D1_ANTIALIAS_MODE_ALIASED);
   }

@@ -499,8 +499,8 @@ exist (real + test).
   Flipping the real Windows setting and seeing the dark title bar are unverified.
 - The Mini window has run in tests, shots and on a hidden desktop, where it was made topmost at the top right and
   cost about 1.5 MB private and no idle CPU. See on a real desktop: dragging it, staying on top of other programs and
-  of a full-screen one, its rounded region under Cloud, the main window in the tray with it open, and a real Room's
-  discs lighting while the main window is hidden.
+  of a full-screen one, its rounded region under Cloud, the main window in the tray with it open, a real Room's
+  discs lighting while the main window is hidden, and the window growing to the left as members join.
 - The mute shortcut has run in tests and on a hidden desktop, where it was held only in a Room and a posted
   `WM_HOTKEY` muted and unmuted. A real key press has not: press each choice on a real desktop, in a game and over an
   elevated window, and pick one another program holds.

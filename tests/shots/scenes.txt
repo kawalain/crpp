@@ -54,6 +54,8 @@ room-word-star
 room-weather-cloudy
 room-weather-rain
 room-weather-storm
+room-mini
+room-mini-many
 room-calm-firm
 settings-sound
 settings-sound-dark

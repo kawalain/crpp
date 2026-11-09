@@ -324,6 +324,8 @@ void complete_composition(HWND hwnd);
 void request_pane_sync(Shell& s);
 void sync_panes(Shell& s);
 void invalidate_panes(Shell& s);
+// The Mini window, if it is open: a disc came up or went down.
+void invalidate_mini(Shell& s);
 // The look changed: each window's corners are cut by its radius again.
 void recut_pane_regions(Shell& s);
 // Before App::release_graphics, and whenever nobody sees them.

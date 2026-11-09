@@ -184,6 +184,23 @@ bool scene(Shell& s, std::string_view name) {
     (void)weather.update(now + RoomWeather::hold_ms, 4);
     return true;
   }
+  if (name == "room-mini" || name == "room-mini-many") {  // the Mini window, two members making a sound
+    demo_session(s.app, false);
+    if (name == "room-mini-many") {
+      s.app.room().set_room({{0, "크롬이", "1f600", false, "c0"},
+                             {1, "하늘", "1f431", false, "c1"},
+                             {2, "구름빵", "1f436", false, "c2"},
+                             {3, "졸린 곰", "1f43b", true, "c3"},
+                             {4, "여우", "1f98a", false, "c4"},
+                             {5, "판다", "1f43c", false, "c5"},
+                             {6, "토끼", "1f430", false, "c6"}},
+                            0, 0, false, false);
+    }
+    s.app.room().pulse(0);
+    s.app.room().pulse(2);
+    s.app.toggle_mini();
+    return true;
+  }
   if (name == "room-mention") {  // someone names this member
     demo_session(s.app, true);
     ChatPanel& chat = s.app.room().chat();

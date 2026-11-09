@@ -27,6 +27,8 @@ App::App() {
     if (!settings_.is_open()) settings_.open(settings_.page());
     raised_pane_ = Pane::Options;
   };
+  frame_.on_mini = [this] { toggle_mini(); };
+  room_.on_mini = [this] { toggle_mini(); };
   frame_.on_changelog = [this] {
     if (settings_.on_version) settings_.on_version();
     raised_pane_ = Pane::Changelog;
@@ -60,7 +62,7 @@ void App::reload_assets(const std::filesystem::path& assets_dir) {
 
 std::span<const skin::ScreenSchema> screen_schemas() {
   static const skin::ScreenSchema schemas[] = {HomeScreen::schema(), HomeScreen::return_schema(), PromptScreen::schema(), WindowFrame::schema(), WindowFrame::menu_schema(), RoomScreen::schema(), ChatPanel::schema(),
-                                               SettingsPanel::schema(), SettingsPanel::droplet_schema(), SoundTab::schema(), DisplayTab::schema(), NotifyTab::schema(), SystemTab::schema(), AccountTab::schema(), AchievementsTab::schema(),
+                                               SettingsPanel::schema(), SettingsPanel::droplet_schema(), SoundTab::schema(), DisplayTab::schema(), NotifyTab::schema(), SystemTab::schema(), AccountTab::schema(), AchievementsTab::schema(), MiniWindow::schema(),
                                                SetupScreen::schema(), Dialogs::schema(), OfflinePopup::schema(), NoticeCard::schema(), UpdatePopup::schema(), Toasts::schema(),
                                                Toasts::bubble_schema(), HoverTip::schema(), MemberMenu::schema(), ProfileCard::schema(), EmojiPicker::schema(), Dropdown::schema(), SoundTab::tip_schema(), ChangelogView::schema(), ContextMenu::schema()};
   return schemas;
@@ -286,6 +288,7 @@ void App::show_home() {
     if (home_.special_today()) ui_.achieve(AchievementId::SpecialDay);
   }
   if (from == View::Session) {
+    mini_.close();  // it belongs to the Room
     achievements_.leave_room(clock_ms(), local_day());
     if (on_left_room) on_left_room();
   }
@@ -339,8 +342,17 @@ void App::close_prompt() {
   view_left(View::Prompt);
 }
 
+void App::toggle_mini() {
+  if (view_ != View::Session) return;
+  mini_.toggle();
+  if (mini_.is_open()) raised_pane_ = Pane::Mini;
+}
+
+bool App::mini_drags_at(float x, float y) const { return pane_ == Pane::Mini && ui_.hit_at(x, y) == nullptr; }
+
 std::vector<Pane> App::open_panes() const {
   std::vector<Pane> list;
+  if (view_ == View::Session && mini_.is_open()) list.push_back(Pane::Mini);
   if (!own_frame()) return list;
   const bool screen = view_ != View::Setup && view_ != View::Prompt;
   if (screen && settings_.is_open()) list.push_back(Pane::Options);
@@ -395,6 +407,15 @@ PaneInfo App::pane_info(Pane pane) const {
       info.close = dialogs_.has_cancel();
       fixed(dialogs_.content_size());
       break;
+    case Pane::Mini: {
+      const MiniWindow::Shape shape = mini_.shape();
+      info.title = tr().mini_title;
+      info.w = info.min_w = shape.width;
+      info.h = info.min_h = shape.height;
+      info.radius = shape.radius;
+      info.floating = true;
+      break;
+    }
     case Pane::Main:
       break;
   }
@@ -406,6 +427,7 @@ PaneState App::pane_state() const {
   for (const Pane pane : open_panes()) state.open |= 1u << static_cast<unsigned>(pane);
   state.revision = dialogs_.revision() * 2 + (room_.profile_card().profile().created ? 1 : 0);
   state.raising = raised_pane_.has_value();
+  if (mini_.is_open()) state.members = room_.member_count();
   return state;
 }
 
@@ -426,6 +448,7 @@ void App::close_pane(Pane pane) {
     case Pane::Profile: room_.profile_card().close(); break;
     case Pane::Emoji: emoji_picker_.close(); break;
     case Pane::Dialog: (void)dialogs_.escape(); break;
+    case Pane::Mini: mini_.close(); break;
     case Pane::Main:
     case Pane::Offline: break;
   }
@@ -469,6 +492,7 @@ std::vector<Surface*> App::layers() {
 
 std::vector<Surface*> App::layers_below_menu() {
   std::vector<Surface*> list;
+  if (pane_ == Pane::Mini) return {&mini_};
   if (own_frame()) {
     switch (pane_) {
       case Pane::Options: return {&pane_frame_, &toasts_, &settings_};
@@ -504,6 +528,12 @@ std::vector<Surface*> App::layers_below_menu() {
 void App::paint_pane(Painter& p, float width, float height) {
   p.set_base(D2D1::Matrix3x2F::Identity());
   p.clear(ui_.theme.sky);
+  if (pane_ == Pane::Mini) {  // its screen draws the whole window, frame and all
+    ui_.content = ui_.modal_area = {0, 0, width, height};
+    mini_.set_active(pane_active_[static_cast<std::size_t>(pane_)]);
+    mini_.paint(p);
+    return;
+  }
   const PaneInfo info = pane_info(pane_);
   pane_frame_.set_title(info.title);
   pane_frame_.set_parts({.resizable = info.resizable, .minimize = false, .close = info.close});
@@ -519,6 +549,7 @@ void App::paint_pane(Painter& p, float width, float height) {
     case Pane::Emoji: emoji_picker_.paint(p); break;
     case Pane::Offline: offline_.paint(p); break;
     case Pane::Dialog: dialogs_.paint(p); break;
+    case Pane::Mini:
     case Pane::Main: break;
   }
   p.set_base(D2D1::Matrix3x2F::Identity());

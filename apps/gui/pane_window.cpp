@@ -18,6 +18,12 @@ constexpr UINT_PTR pane_blink_timer = 1;
 constexpr UINT_PTR pane_hold_timer = 2;
 constexpr const wchar_t* pane_class = L"CrppPane";
 
+// How round a pane's corners are cut: the frame's, or what the Mini window's screen says.
+float region_radius(Shell& s, Pane pane) {
+  if (pane == Pane::Mini) return s.app.pane_info(pane).radius;
+  return s.app.frame_metrics().radius;
+}
+
 void save_pane_size(const PaneWindow& w) {
   Shell& s = *w.shell;
   RECT rc;
@@ -87,6 +93,8 @@ LRESULT CALLBACK pane_proc(HWND hwnd, UINT msg, WPARAM wp, LPARAM lp) {
       ScreenToClient(hwnd, &pt);
       RECT rc;
       GetClientRect(hwnd, &rc);
+      // The Mini window has no frame: wherever there is nothing to click, it moves.
+      if (w->pane == Pane::Mini) return s.app.mini_drags_at(dips(pt.x), dips(pt.y)) ? HTCAPTION : HTCLIENT;
       const PaneInfo info = s.app.pane_info(w->pane);
       return frame_hit_code(WindowFrame::zone_at(dips(pt.x), dips(pt.y), dips(rc.right), dips(rc.bottom), {.resizable = info.resizable, .minimize = false, .close = info.close}, w->shell->app.frame_metrics()));
     }
@@ -101,7 +109,7 @@ LRESULT CALLBACK pane_proc(HWND hwnd, UINT msg, WPARAM wp, LPARAM lp) {
     }
     case WM_SIZE:
       if (w->target) w->target->Resize(D2D1::SizeU(LOWORD(lp), HIWORD(lp)));
-      set_frame_region(hwnd, w->dpi, w->shell->app.frame_metrics().radius);
+      set_frame_region(hwnd, w->dpi, region_radius(s, w->pane));
       InvalidateRect(hwnd, nullptr, FALSE);
       return 0;
     case WM_EXITSIZEMOVE:
@@ -248,6 +256,14 @@ void register_pane_class() {
   (void)done;
 }
 
+// The Mini window starts at the top right of the main window's monitor.
+POINT top_right(const Shell& s, SIZE size, UINT dpi) {
+  MONITORINFO info{sizeof info};
+  const LONG margin = MulDiv(16, static_cast<int>(dpi), 96);
+  if (!GetMonitorInfoW(MonitorFromWindow(s.hwnd, MONITOR_DEFAULTTONEAREST), &info)) return {margin, margin};
+  return {info.rcWork.right - size.cx - margin, info.rcWork.top + margin};
+}
+
 // The size in pixels this pane wants: what was left for one that resizes.
 SIZE wanted_size(Shell& s, const PaneInfo& info, UINT dpi) {
   const auto scaled = [&](std::int64_t dips) { return MulDiv(static_cast<int>(dips), static_cast<int>(dpi), 96); };
@@ -275,18 +291,21 @@ void create_pane(Shell& s, PaneWindow& w) {
   w.shell = &s;
   w.dpi = s.dpi;
   const SIZE size = wanted_size(s, info, w.dpi);
-  const POINT at = centred_on_main(s, size);
-  const DWORD style = WS_CAPTION | WS_SYSMENU | (info.resizable ? WS_THICKFRAME : 0);
+  const POINT at = info.floating ? top_right(s, size, w.dpi) : centred_on_main(s, size);
+  // The Mini window belongs to no other, so that it stays while the main one is minimized or in the tray.
+  const DWORD style = info.floating ? WS_POPUP | WS_SYSMENU : WS_CAPTION | WS_SYSMENU | (info.resizable ? WS_THICKFRAME : 0);
+  const DWORD ex_style = info.floating ? WS_EX_TOPMOST | WS_EX_TOOLWINDOW : 0;
   // w.hwnd stays empty until this returns: nothing is handled while the window is being made.
-  HWND hwnd = CreateWindowExW(0, pane_class, widen(info.title).c_str(), style, at.x, at.y, size.cx, size.cy, s.hwnd, nullptr, GetModuleHandleW(nullptr), &w);
+  HWND hwnd = CreateWindowExW(ex_style, pane_class, widen(info.title).c_str(), style, at.x, at.y, size.cx, size.cy, info.floating ? nullptr : s.hwnd, nullptr,
+                              GetModuleHandleW(nullptr), &w);
   if (!hwnd) return;
   w.hwnd = hwnd;
   w.fitted_w = info.w;
   w.fitted_h = info.h;
   w.dpi = GetDpiForWindow(hwnd);
   SetWindowPos(hwnd, nullptr, 0, 0, 0, 0, SWP_NOMOVE | SWP_NOSIZE | SWP_NOZORDER | SWP_NOACTIVATE | SWP_FRAMECHANGED);
-  set_frame_region(hwnd, w.dpi, w.shell->app.frame_metrics().radius);
-  ShowWindow(hwnd, w.pane == Pane::Offline ? SW_SHOWNOACTIVATE : SW_SHOW);
+  set_frame_region(hwnd, w.dpi, region_radius(s, w.pane));
+  ShowWindow(hwnd, w.pane == Pane::Offline || w.pane == Pane::Mini ? SW_SHOWNOACTIVATE : SW_SHOW);
 }
 
 }  // namespace
@@ -297,14 +316,17 @@ void invalidate_panes(Shell& s) {
   }
 }
 
+void invalidate_mini(Shell& s) {
+  if (const HWND hwnd = s.panes[static_cast<std::size_t>(Pane::Mini)].hwnd) InvalidateRect(hwnd, nullptr, FALSE);
+}
+
 void drop_pane_targets(Shell& s) {
   for (PaneWindow& w : s.panes) w.target.reset();
 }
 
 void recut_pane_regions(Shell& s) {
-  const float radius = s.app.frame_metrics().radius;
   for (const PaneWindow& w : s.panes) {
-    if (w.hwnd) set_frame_region(w.hwnd, w.dpi, radius);
+    if (w.hwnd) set_frame_region(w.hwnd, w.dpi, region_radius(s, w.pane));
   }
 }
 
@@ -325,42 +347,47 @@ void sync_panes(Shell& s) {
   EnableWindow(s.hwnd, modal ? FALSE : TRUE);
   for (std::size_t i = 1; i < s.panes.size(); ++i) {
     PaneWindow& w = s.panes[i];
-    if (w.hwnd && static_cast<Pane>(i) != Pane::Dialog) EnableWindow(w.hwnd, modal ? FALSE : TRUE);
+    if (w.hwnd && static_cast<Pane>(i) != Pane::Dialog && static_cast<Pane>(i) != Pane::Mini) EnableWindow(w.hwnd, modal ? FALSE : TRUE);
   }
   for (std::size_t i = 1; i < s.panes.size(); ++i) {
     PaneWindow& w = s.panes[i];
     w.pane = static_cast<Pane>(i);
     if (w.hwnd && !is_open(w.pane)) DestroyWindow(w.hwnd);
   }
-  if (!s.hidden) {
-    for (std::size_t i = 1; i < s.panes.size(); ++i) {
-      PaneWindow& w = s.panes[i];
-      if (!is_open(w.pane)) continue;
-      if (!w.hwnd) {
-        create_pane(s, w);
-        if (w.hwnd && modal && w.pane != Pane::Dialog) EnableWindow(w.hwnd, FALSE);
-      } else if (!IsWindowVisible(w.hwnd)) {
-        ShowWindow(w.hwnd, SW_SHOWNOACTIVATE);
-      }
-      const PaneInfo info = s.app.pane_info(w.pane);
-      if (w.hwnd && !info.resizable && (info.w != w.fitted_w || info.h != w.fitted_h)) {
-        // Another question in the same window.
-        const SIZE size = wanted_size(s, info, w.dpi);
-        w.fitted_w = info.w;
-        w.fitted_h = info.h;
-        SetWindowPos(w.hwnd, nullptr, 0, 0, size.cx, size.cy, SWP_NOMOVE | SWP_NOZORDER | SWP_NOACTIVATE);
-      }
-      if (w.hwnd) InvalidateRect(w.hwnd, nullptr, FALSE);
+  for (std::size_t i = 1; i < s.panes.size(); ++i) {
+    PaneWindow& w = s.panes[i];
+    // The main window hidden, everything goes but the Mini window, which is for that.
+    if (s.hidden && w.pane != Pane::Mini) continue;
+    if (!is_open(w.pane)) continue;
+    if (!w.hwnd) {
+      create_pane(s, w);
+      if (w.hwnd && modal && w.pane != Pane::Dialog && w.pane != Pane::Mini) EnableWindow(w.hwnd, FALSE);
+    } else if (!IsWindowVisible(w.hwnd)) {
+      ShowWindow(w.hwnd, SW_SHOWNOACTIVATE);
     }
+    const PaneInfo info = s.app.pane_info(w.pane);
+    if (w.hwnd && !info.resizable && (info.w != w.fitted_w || info.h != w.fitted_h)) {
+      // Another question in the same window.
+      const SIZE size = wanted_size(s, info, w.dpi);
+      w.fitted_w = info.w;
+      w.fitted_h = info.h;
+      SetWindowPos(w.hwnd, nullptr, 0, 0, size.cx, size.cy, SWP_NOMOVE | SWP_NOZORDER | SWP_NOACTIVATE);
+    }
+    if (w.hwnd) InvalidateRect(w.hwnd, nullptr, FALSE);
+  }
+  if (!s.hidden) {
     if (const auto raised = s.app.take_raised_pane()) {
       const PaneWindow& w = s.panes[static_cast<std::size_t>(*raised)];
-      if (w.hwnd) SetForegroundWindow(w.hwnd);
+      // The Mini window comes up without taking the keyboard from what is being worked in.
+      if (w.hwnd && *raised != Pane::Mini) SetForegroundWindow(w.hwnd);
     }
   } else {
     for (PaneWindow& w : s.panes) {
-      if (w.hwnd) ShowWindow(w.hwnd, SW_HIDE);
+      if (w.hwnd && w.pane != Pane::Mini) {
+        ShowWindow(w.hwnd, SW_HIDE);
+        w.target.reset();
+      }
     }
-    drop_pane_targets(s);
   }
   s.panes_made = s.app.pane_state();
   s.panes_made.hidden = s.hidden;

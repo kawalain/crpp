@@ -230,6 +230,8 @@ const Strings korean{
     .menu_exit = "끝내기(&X)",
     .menu_tools = "도구(&T)",
     .menu_options = "옵션(&O)...",
+    .mini_title = "작은 창",
+    .menu_mini = "작은 창(&M)",
     .menu_help = "도움말(&H)",
     .menu_changelog = "변경 기록(&W)",
     .options_title = "옵션",

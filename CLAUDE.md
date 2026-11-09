@@ -191,7 +191,13 @@ against a real `server/` yet; do that once a local build of it is available.
 - The Konami code (↑↑↓↓←→←→BA) pressed anywhere in the app finds hidden Themes (`hiddenThemesFound`, a key of this
   client's own): Retro's "핫도그 가게" ("Hot Dog Stand"), classic's shapes in loud red and yellow after the Windows 3.1
   scheme of that name, in colours chosen here. A pack marks such a Theme `hidden`, and a catalog does not offer it.
-- The tray menu has mute and leaving the Room while in one, and the options, besides quitting.
+- The tray menu has mute, the Mini window and leaving the Room while in one, and the options, besides quitting.
+- A Room can be kept beside other work in the Mini window ("작은 창"), opened from the Room's options, the tray and
+  under Retro the menu bar's 도구(T): a small window, always on top and without a taskbar button, with every member's
+  disc, lit while they make a sound, mute and close. It stays while the main window is minimized or in the tray,
+  moves by any place with nothing to click, opens at the top right of the screen without taking the keyboard, and
+  closes when the Room is left. A disc is lit or dark with no fade, so it draws only when one changes. Each Skin
+  draws it whole: Cloud a rounded card, Retro a tool window.
 - The system tab's advanced section has "뒤에 있을 때 메모리 비우기" (at once, 10 s, 1 min, never), kept
   under a key of this client's own. Behind another program, outside a Room, the window lets go of its
   graphics device after that wait and makes it again when it next draws.
@@ -485,6 +491,10 @@ exist (real + test).
   stand-ins instead, which also need ears.
 - Following the OS theme: `WM_SETTINGCHANGE` was only posted in a scripted run.
   Flipping the real Windows setting and seeing the dark title bar are unverified.
+- The Mini window has run in tests, shots and on a hidden desktop, where it was made topmost at the top right and
+  cost about 1.5 MB private and no idle CPU. See on a real desktop: dragging it, staying on top of other programs and
+  of a full-screen one, its rounded region under Cloud, the main window in the tray with it open, and a real Room's
+  discs lighting while the main window is hidden.
 - The tray needs a real desktop: a hidden one has no taskbar, so the icon fails to
   add and a close exits. A chat notification was seen on one Windows 10 PC, with a window
   of a fake Room behind another. Upstream's developer saw none, on a machine not yet looked

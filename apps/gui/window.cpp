@@ -344,6 +344,7 @@ LRESULT CALLBACK wnd_proc(HWND hwnd, UINT msg, WPARAM wp, LPARAM lp) {
       s->app.room().pulse_me();
       s->app.note_own_input(s->input_sink.take_events(), s->input_sink.take_presses(), s->input_sink.take_clicks());
       InvalidateRect(hwnd, nullptr, FALSE);
+      invalidate_mini(*s);
       sync_frames(*s);
       return 0;
     case WM_MOUSEMOVE:
@@ -508,6 +509,7 @@ void invalidate_frame(Shell& s) {
   } else {
     InvalidateRect(s.hwnd, nullptr, FALSE);
   }
+  invalidate_mini(s);
 }
 
 void sync_frames(Shell& s) {

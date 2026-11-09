@@ -23,6 +23,7 @@
 #include "crpp/ui/emoji_picker.hpp"
 #include "crpp/ui/home_screen.hpp"
 #include "crpp/ui/konami.hpp"
+#include "crpp/ui/mini_window.hpp"
 #include "crpp/ui/notice_card.hpp"
 #include "crpp/ui/offline_popup.hpp"
 #include "crpp/ui/prefs.hpp"
@@ -49,9 +50,9 @@ struct ScreenSize {
 
 // The windows of the app. A Skin that draws its own frame shows each panel on a window of its
 // own; under Cloud only Main exists and the panels are layers in it. The order is the order
-// they are made in, so a later one comes up on top.
-enum class Pane : std::uint8_t { Main, Options, Changelog, Profile, Emoji, Offline, Dialog };
-inline constexpr std::size_t pane_count = 7;
+// they are made in, so a later one comes up on top. Mini is a window under every Skin.
+enum class Pane : std::uint8_t { Main, Options, Changelog, Profile, Emoji, Offline, Dialog, Mini };
+inline constexpr std::size_t pane_count = 8;
 
 // How a pane's window is made, in DIPs. One that resizes keeps its size under `key`.
 struct PaneInfo {
@@ -59,12 +60,16 @@ struct PaneInfo {
   std::string title;
   float w = 0, h = 0, min_w = 0, min_h = 0;
   bool resizable = false, close = true;
+  // Its own: always on top, owned by no window, and drawn whole by its screen, which says how round it is.
+  bool floating = false;
+  float radius = 0;
 };
 
 // What decides which windows should exist and how large; the shell compares it with what it made.
 struct PaneState {
   unsigned open = 0;
   unsigned revision = 0;
+  std::size_t members = 0;  // the Mini window's size follows them
   bool raising = false, hidden = false;
   bool operator==(const PaneState&) const = default;
 };
@@ -95,6 +100,11 @@ class App {
   [[nodiscard]] OfflinePopup& offline() { return offline_; }
   [[nodiscard]] SettingsPanel& settings() { return settings_; }
   [[nodiscard]] Achievements& achievements() { return achievements_; }
+  [[nodiscard]] MiniWindow& mini() { return mini_; }
+  // Opens the Mini window in a Room, or closes it.
+  void toggle_mini();
+  // Whether a point of the Mini window has nothing to click, so that it moves the window.
+  [[nodiscard]] bool mini_drags_at(float x, float y) const;
   // Each Achievement as it is reached, after its toast.
   std::function<void(AchievementId)> on_achievement;
   // Back from a Room: the time in it has been counted.
@@ -272,6 +282,7 @@ class App {
   SetupScreen setup_{ui_};
   HomeScreen home_{ui_};
   RoomScreen room_{ui_};
+  MiniWindow mini_{ui_, room_};
   NoticeCard notice_{ui_};
   OfflinePopup offline_{ui_};
   SettingsPanel settings_{ui_};

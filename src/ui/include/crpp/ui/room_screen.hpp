@@ -38,6 +38,8 @@ class RoomScreen final : public Surface {
   [[nodiscard]] static skin::ScreenSchema schema();
 
   std::function<void()> on_leave;
+  // The Mini window, from the options.
+  std::function<void()> on_mini;
   std::function<void(bool)> on_set_public;
   std::function<void(bool)> on_set_chat;
   std::function<void(int percent)> on_volume;
@@ -53,10 +55,10 @@ class RoomScreen final : public Surface {
   std::function<void(const std::string& id)> on_pick_emoji;
 
   // Hit ids tests click by.
-  enum Id : int { Leave, Mute, More, OptCode, OptPublic, OptChat, VolumeSlider, Popup, MembersBar, MembersUp, MembersDown, MembersTrack, MembersThumb, MemberBase = 1000 };
+  enum Id : int { Leave, Mute, More, OptCode, OptPublic, OptChat, OptMini, VolumeSlider, Popup, MembersBar, MembersUp, MembersDown, MembersTrack, MembersThumb, MemberBase = 1000 };
   [[nodiscard]] std::optional<Role> role(int id) const override {
     if (id >= MemberBase) return Role::List;
-    if (id == Leave || id == Mute || id == More || id == OptCode) return Role::Button;
+    if (id == Leave || id == Mute || id == More || id == OptCode || id == OptMini) return Role::Button;
     if (id == OptPublic || id == OptChat) return Role::Toggle;
     if (id == VolumeSlider) return Role::Slider;
     return std::nullopt;
@@ -101,6 +103,9 @@ class RoomScreen final : public Surface {
   // The buttons are not drawn under the settings panel.
   void set_controls_shown(bool shown) { controls_shown_ = shown; }
   [[nodiscard]] std::size_t member_count() const { return members_.size(); }
+  [[nodiscard]] const std::vector<MemberView>& members() const { return members_; }
+  // Whether a member's disc is up right now, as the Mini window shows it: held, not fading.
+  [[nodiscard]] bool lit(const MemberView& member) const;
 
   void paint(Painter& p);
   // The card and the menu, over the settings droplet as they are over everything else.

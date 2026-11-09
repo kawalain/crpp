@@ -109,7 +109,7 @@ if @controls_shown {
       fill @hot ? hl_text : hl_text_soft (21+(@i-1)*10-3, 18, 6, 6) ellipse
     }
   }
-  (@W-12-251, @H-72-183, 251, 183) if @options_open {
+  (@W-12-251, @H-72-230, 251, 230) if @options_open {
     use panel_info
     hit popup
     text @tr.room_code (25, 24, 150, 41) style room_label color hl_text
@@ -125,6 +125,11 @@ if @controls_shown {
     text @tr.room_word_chat (25, 118, 150, 41) style room_label color @public_off ? alpha(hl_text, 0.5) : hl_text
     use switch(on = @chat, off = @chat_off, ms = 0) (169, 125, 51, 27) hit opt_chat note chat
     fill alpha(hl_mid, @chat_off ? 0.5 : 1) (169+(@chat ? 37.5 : 13.5)-5.5, 125+13.5-1.5, 11, 3) radius 1.5 if @pin_chat
+    // The Mini window: a small one, always on top, with the discs and mute.
+    fill hl_pale2 (25, 164, @W-50, 2) radius 1
+    hit opt_mini (25, 171, @W-50, 41) {
+      text @tr.mini_title style room_label color @hot ? hl_text_dark : hl_text
+    }
   }
   (@W-12-200, @H-72-50, 200, 50) if @mute_popup_open {
     use panel_info

@@ -230,6 +230,8 @@ const Strings english{
     .menu_exit = "E&xit",
     .menu_tools = "&Tools",
     .menu_options = "&Options...",
+    .mini_title = "Mini window",
+    .menu_mini = "&Mini window",
     .menu_help = "&Help",
     .menu_changelog = "&What's new",
     .options_title = "Options",

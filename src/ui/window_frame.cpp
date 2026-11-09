@@ -47,8 +47,12 @@ std::vector<WindowFrame::Item> WindowFrame::items_of(int menu) {
       items.push_back({tr().menu_exit, &on_exit});
       return items;
     }
-    case 1:
-      return {{tr().menu_options, &on_options}};
+    case 1: {
+      std::vector<Item> items;
+      if (in_room_) items.push_back({tr().menu_mini, &on_mini});
+      items.push_back({tr().menu_options, &on_options});
+      return items;
+    }
     default:
       return {{tr().menu_changelog, &on_changelog}};
   }

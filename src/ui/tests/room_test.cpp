@@ -238,6 +238,66 @@ void test_member_list_scrolls_only_when_it_overflows() {
   CHECK(!h.drawn(room, RoomScreen::MemberBase + 0));
 }
 
+// The Mini window, from the Room's options under either Skin: its own window, which mutes, closes and moves.
+void mini_window_opens_mutes_and_closes(const char* pack, float radius) {
+  UiHarness h;
+  CHECK(h.start(951, 692, pack));
+  enter(h, 3);
+  RoomScreen& room = h.app.room();
+  MiniWindow& mini = h.app.mini();
+  CHECK(h.click(room, RoomScreen::More));
+  CHECK(h.click(room, RoomScreen::OptMini));
+  CHECK(mini.is_open());
+  CHECK(!h.drawn(room, RoomScreen::OptMini));  // the options closed behind it
+  const std::vector<Pane> panes = h.app.open_panes();
+  CHECK(!panes.empty() && panes.front() == Pane::Mini);
+  const PaneInfo info = h.app.pane_info(Pane::Mini);
+  CHECK(info.floating);
+  CHECK(info.w > 0 && info.h > 0);
+  CHECK(info.radius == radius);
+
+  h.on_pane(Pane::Mini);
+  CHECK(h.drawn(mini, MiniWindow::Close));
+  CHECK(h.app.mini_drags_at(1, info.h - 1) || h.app.mini_drags_at(info.w / 2, 1));
+  const Ui::Hit* close = h.app.ui().find_hit(&mini, MiniWindow::Close);
+  CHECK(close && !h.app.mini_drags_at(close->rect.x + close->rect.w / 2, close->rect.y + close->rect.h / 2));
+  CHECK(h.click(mini, MiniWindow::Mute));
+  CHECK(h.app.ui().prefs->get(pref::mute_others));
+  CHECK(h.click(mini, MiniWindow::Mute));
+  CHECK(!h.app.ui().prefs->get(pref::mute_others));
+  CHECK(h.click(mini, MiniWindow::Close));
+  CHECK(!mini.is_open());
+  h.on_pane(Pane::Main);
+
+  // More members, more rows; leaving the Room closes it.
+  h.app.toggle_mini();
+  room.set_room(people(7), 0, 0, false, false);
+  CHECK(h.app.pane_info(Pane::Mini).h > info.h);
+  h.app.show_home();
+  CHECK(!mini.is_open());
+  CHECK(h.app.open_panes().empty() || h.app.open_panes().front() != Pane::Mini);
+  h.app.toggle_mini();  // only in a Room
+  CHECK(!mini.is_open());
+}
+
+void test_mini_window_opens_mutes_and_closes() {
+  mini_window_opens_mutes_and_closes(CRPP_TEST_SKINS "/cloud", 16);
+  mini_window_opens_mutes_and_closes(CRPP_TEST_SKINS "/retro", 0);
+}
+
+void test_a_disc_is_lit_while_its_member_sounds_unless_muted() {
+  UiHarness h;
+  CHECK(h.start());
+  enter(h, 3);
+  RoomScreen& room = h.app.room();
+  CHECK(!room.lit(room.members()[1]));
+  room.pulse(1);
+  CHECK(room.lit(room.members()[1]));
+  CHECK(!room.lit(room.members()[2]));
+  h.app.ui().prefs->set(pref::mute_others, true);
+  CHECK(!room.lit(room.members()[1]));
+}
+
 void test_leave_asks_first() {
   UiHarness h;
   CHECK(h.start());
@@ -1504,6 +1564,8 @@ int main() {
   test_picker_closes_without_picking();
   test_picker_thumb_scrolls_and_fades_on_a_wake_up();
   test_leave_asks_first();
+  test_mini_window_opens_mutes_and_closes();
+  test_a_disc_is_lit_while_its_member_sounds_unless_muted();
   test_leaving_host_is_told_about_delegation();
   test_chat_notice_shows_once_then_the_pin_tip_once();
   test_public_notice_cancel_changes_nothing_but_counts_as_seen();

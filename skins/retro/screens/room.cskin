@@ -80,7 +80,7 @@ let cols = @chat ? 1 : max(1, floor((main_w-scrollbar_w)/112))
 }
 slot chat (6, 58, main_w-112-6, main_h) if @chat
 // Hangs under its toolbar button: the code, then two boxes to tick.
-(min(more.x, @W-190-4), more.bottom+1, 190, 87) if @controls_shown && @options_open {
+(min(more.x, @W-190-4), more.bottom+1, 190, 113) if @controls_shown && @options_open {
   use panel_popup
   hit popup
   text @tr.room_code (10, 5, 100, 24) style body color ink
@@ -91,6 +91,10 @@ slot chat (6, 58, main_w-112-6, main_h) if @chat
       hit opt_public note public
   use check_row(on = @chat, off = @chat_off, pinned = @pin_chat) (10, 58, @W-20, 24) text @tr.room_word_chat
       hit opt_chat note chat
+  // The Mini window: a small one, always on top, with the discs and mute.
+  fill edge_dark (5, 84, @W-10, 1)
+  fill edge_light (5, snap(@Y+84)-@Y+@u, @W-10, 1)
+  use link (10, 86, @W-20, 24) text @tr.mini_title hit opt_mini
 }
 (mute.x, mute.bottom+1, 190, 33) if @controls_shown && @mute_popup_open {
   use panel_popup

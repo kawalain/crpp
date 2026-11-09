@@ -1,0 +1,27 @@
+// The Mini window: a small tool window with every member's disc, lit while they make a sound, and mute. It is the
+// whole window, whose size it reports. Nothing here moves.
+let per_row = 5
+let cols = min(max(@members, 1), per_row)
+let rows = max(1, ceil(@members/per_row))
+let cap = 18
+let width = max(4+4+cols*44+4+4, 168)
+let height = cap+3+30+rows*44+8+4
+report width = width
+report height = height
+report radius = 0
+fill face
+fill edge_out
+fill face (1, 1, @W-2, @H-2)
+fill @active ? caption : caption_idle (2, 2, @W-4, cap) across
+text @tr.mini_title (6, 2, @W-30, cap) style caption color caption_ink
+use caption_button(is_close = 1) (@W-2-16-2, 4, 16, 14) hit close
+use toolbar_button(lit = @muted) (4, cap+5) text @mute_label hit mute
+(4, cap+34, @W-8, rows*44+8) {
+  use field
+  repeat @members {
+    let dx = 4+(@i-floor(@i/per_row)*per_row)*44
+    let dy = 4+floor(@i/per_row)*44
+    use picture_frame(glow = @member_lit) (dx, dy, 36, 36)
+    picture member (dx+2, dy+2, 32, 32) opacity @member_offline ? 0.55 : 1 gray @muted
+  }
+}

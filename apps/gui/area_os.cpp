@@ -223,12 +223,14 @@ void close_to_tray(Shell& s) {
 void show_menu(Shell& s, int x, int y) {
   HMENU menu = CreatePopupMenu();
   if (!menu) return;
-  constexpr UINT_PTR exit_item = 1, mute_item = 2, leave_item = 3, options_item = 4;
+  constexpr UINT_PTR exit_item = 1, mute_item = 2, leave_item = 3, options_item = 4, mini_item = 5;
   // In a Room, what is done most without opening the window; the words are the Room's own.
   if (in_room(s)) {
     const UINT muted = s.prefs->get(pref::mute_others) ? MF_CHECKED : MF_UNCHECKED;
     AppendMenuW(menu, MF_STRING | muted, mute_item, ui::widen(tr().mute).c_str());
     AppendMenuW(menu, MF_STRING, leave_item, ui::widen(tr().room_tip_leave).c_str());
+    const UINT mini = s.app.mini().is_open() ? MF_CHECKED : MF_UNCHECKED;
+    AppendMenuW(menu, MF_STRING | mini, mini_item, ui::widen(tr().mini_title).c_str());
     AppendMenuW(menu, MF_SEPARATOR, 0, nullptr);
   }
   AppendMenuW(menu, MF_STRING, options_item, ui::widen(tr().room_options).c_str());
@@ -251,6 +253,10 @@ void show_menu(Shell& s, int x, int y) {
       show_window(s);
       if (in_room(s) && s.app.frame().on_leave_room) s.app.frame().on_leave_room();
       break;
+    case mini_item:  // without bringing the main window back, which is what it is for
+      s.app.toggle_mini();
+      request_pane_sync(s);
+      return;
     case options_item:
       show_window(s);
       if (s.app.frame().on_options) s.app.frame().on_options();

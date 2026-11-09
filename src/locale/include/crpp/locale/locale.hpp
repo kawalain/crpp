@@ -254,6 +254,8 @@ struct Strings {
   const char* menu_exit;
   const char* menu_tools;
   const char* menu_options;
+  const char* mini_title;  // the Mini window
+  const char* menu_mini;
   const char* menu_help;
   const char* menu_changelog;
   const char* options_title;

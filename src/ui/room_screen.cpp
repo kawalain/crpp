@@ -129,6 +129,12 @@ void RoomScreen::note_input(std::size_t events) {
   }
 }
 
+bool RoomScreen::lit(const MemberView& member) const {
+  if (ui_.prefs && ui_.prefs->get(pref::mute_others)) return false;
+  if (member.slot != me_ && member_volume(member.cid) == 0) return false;
+  return std::ranges::any_of(pulses_, [&](const Pulse& p) { return p.slot == member.slot && ui_.now_ms < p.until; });
+}
+
 float RoomScreen::speaking_level(std::uint32_t slot) const {
   for (const auto& p : pulses_) {
     if (p.slot == slot) return p.level(ui_.now_ms, ui_.animations);
@@ -500,7 +506,7 @@ void RoomScreen::before_click(const Surface* owner, int id) {
   // Popups close when anything outside them is clicked, except a notice's buttons,
   // which leave the switches in view.
   const bool own = owner == this;
-  const bool in_options = own && (id == Popup || id == OptCode || id == OptPublic || id == OptChat || id == More);
+  const bool in_options = own && (id == Popup || id == OptCode || id == OptPublic || id == OptChat || id == OptMini || id == More);
   const bool in_mute = own && (id == Popup || id == VolumeSlider || id == Mute);
   if (options_open_ && !in_options && owner != ui_.dialogs) options_open_ = false;
   if (mute_popup_open_ && !in_mute) mute_popup_open_ = false;
@@ -545,6 +551,10 @@ void RoomScreen::click(int id, float x, float y, bool) {
       break;
     case OptChat:
       toggle_chat();
+      break;
+    case OptMini:
+      options_open_ = false;
+      if (on_mini) on_mini();
       break;
     case VolumeSlider:
       ui_.capture = this;

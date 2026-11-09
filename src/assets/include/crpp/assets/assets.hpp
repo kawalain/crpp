@@ -1,7 +1,11 @@
 #pragma once
-// Keeps a folder of assets equal to a Repository's signed catalog (ADR 0008). Every file
+// Keeps what is installed from a Repository equal to its signed catalog (ADR 0008). Every file
 // is checked against the catalog before it is kept, so whoever serves the files cannot
 // change what the app loads.
+//
+// Files are kept once, under their hashes, in a store every Repository shares (ADR 0010). A
+// Repository's own folder holds its catalog and the list of what it installed: each path with
+// the hash it has, which may be older than the catalog's while a pack is held back.
 #include <atomic>
 #include <chrono>
 #include <cstdint>
@@ -15,6 +19,7 @@
 #include <vector>
 
 #include "crpp/assets/catalog.hpp"
+#include "crpp/files/tree.hpp"
 
 namespace crpp::assets {
 
@@ -126,9 +131,21 @@ enum class PinCheck : std::uint8_t { Holds, Version, Digest };
 [[nodiscard]] std::vector<std::string> kept_groups(const Catalog& catalog, const std::filesystem::path& dir);
 
 // The files of those groups that need work. This only compares the list of what was
-// installed and file sizes, so it is cheap enough for every start.
+// installed and the sizes in the store, so it is cheap enough for every start.
 [[nodiscard]] std::vector<const File*> missing(const Catalog& catalog, std::span<const std::string> groups,
-                                               const std::filesystem::path& dir);
+                                               const std::filesystem::path& dir, const std::filesystem::path& store);
+
+// What `dir` lists as installed, each path at its file in the store.
+[[nodiscard]] files::Tree installed_tree(const std::filesystem::path& dir, const std::filesystem::path& store);
+
+// Removes from the store every file that none of these folders lists, and what a stopped
+// download left. Run before any file of the store is open, as at start.
+void collect_garbage(const std::filesystem::path& store, std::span<const std::filesystem::path> dirs);
+
+// An install by an exe before ADR 0010 kept each file at its path in `dir`. Moves those whose
+// hash matches what the list says into the store, removes the rest, and the folders left empty.
+// Does nothing once they are gone.
+void move_into_store(const std::filesystem::path& dir, const std::filesystem::path& store, Platform& platform);
 
 struct Progress {
   std::size_t files_done = 0, files = 0;
@@ -136,8 +153,8 @@ struct Progress {
 };
 using OnProgress = std::function<void(const Progress&)>;
 
-// Fetches what is missing of the groups, a few files at a time, and removes files the
-// catalog no longer lists. Each file comes from `base`, the Repository's folder, as
+// Fetches what is missing of the groups into the store, a few files at a time, once for each
+// content, and lists in `dir` what the catalog lists. Each file comes from `base`, the Repository's folder, as
 // <base><sha256>, or else from the catalog's mirror the same way, or else from its source; an
 // empty base skips the Repository, as when it did not answer for its catalog. A file the network
 // did not deliver is tried twice more after a short wait, and once the Repository or the mirror
@@ -146,12 +163,12 @@ using OnProgress = std::function<void(const Progress&)>;
 // does, as the rest would only fail the same way. What arrived is kept and listed either
 // way, and the first error is returned; calling again fetches the rest. progress is called
 // in turn, from the working threads, and only moves forward. Once `cancel` is set no file is
-// begun, and what arrived is kept as after a failure. A path in `held` is open and cannot be
-// replaced now, or belongs to a pack held back: it is left as it is, listed with the hash it had,
-// so it is missing at the next start, and is not removed when the catalog no longer lists it. One
-// ending with '/' holds everything under it.
+// begun, and what arrived is kept as after a failure. A path in `held` belongs to a pack held
+// back: it is left as it is, listed with the hash it had, so it is missing at the next start, and
+// stays listed when the catalog no longer lists it. One ending with '/' holds everything under it.
 std::expected<void, Error> install(const Catalog& catalog, std::string_view base, std::span<const std::string> groups,
-                                   const std::filesystem::path& dir, Platform& platform, const OnProgress& progress,
+                                   const std::filesystem::path& dir, const std::filesystem::path& store, Platform& platform,
+                                   const OnProgress& progress,
                                    const std::atomic<bool>* cancel = nullptr, std::span<const std::string> held = {});
 
 // Adds to `held` what holds back a Skin: its folder, skins/<id>/, and the files of its group that
@@ -163,10 +180,9 @@ void hold_skin(std::vector<std::string>& held, std::string_view id, const Catalo
 void hold_unreadable(std::vector<std::string>& held, const Catalog& latest, const Catalog* installed_by, int min_format,
                      int max_format);
 
-// Removes what is installed of these groups: the files the catalog lists for them, and for a
-// Skin's group whatever is listed under its folder, skins/<id>/, which an older catalog may have
-// put there. Folders left empty go too. A file that cannot be removed only takes up space, and is
-// no longer listed.
+// Removes what is installed of these groups from the list: the files the catalog lists for them,
+// and for a Skin's group whatever is listed under its folder, skins/<id>/, which an older catalog
+// may have put there. Their files leave the store at the next collect_garbage.
 std::expected<void, Error> uninstall(const Catalog& catalog, std::span<const std::string> groups, const std::filesystem::path& dir);
 
 }  // namespace crpp::assets

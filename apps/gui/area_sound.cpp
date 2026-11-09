@@ -109,12 +109,12 @@ bool in_use_here(const Shell& s, const AddedRepository& added, const std::vector
 std::vector<crpp::sound::PackRoot> added_roots(const Shell& s) {
   std::vector<crpp::sound::PackRoot> roots;
   for (const AddedRepository& added : s.added) {
-    crpp::sound::PackRoot root{added_files(added).under("sounds/"), added.id};
+    crpp::sound::PackRoot root{added_files(s, added).under("sounds/"), added.id};
     if (added.catalog) {
       const auto installed = assets::kept_groups(*added.catalog, added.dir);
       for (const assets::File& file : added.catalog->files) {
         if (!file.group.starts_with("sound:") || !file.path.starts_with("sounds/") || root.tree.find(file.path.substr(7))) continue;
-        if (in_use_here(s, added, installed, std::string_view(file.group).substr(6))) root.tree.add(file.path.substr(7), added.dir / std::filesystem::path(file.path));
+        if (in_use_here(s, added, installed, std::string_view(file.group).substr(6))) root.tree.add(file.path.substr(7), s.files_dir / file.sha256);
       }
     }
     roots.push_back(std::move(root));
@@ -361,7 +361,7 @@ void pref_changed(Shell& s, std::string_view key) {
       const auto at = repositories::place(s, id);
       const AddedRepository* added = at && at->first > 0 ? &s.added[at->first - 1] : nullptr;
       const std::string group[] = {assets::sound_group(at ? at->second : std::string())};
-      const bool missing = added && added->catalog && added->catalog->sound(at->second) && !assets::missing(*added->catalog, group, added->dir).empty();
+      const bool missing = added && added->catalog && added->catalog->sound(at->second) && !assets::missing(*added->catalog, group, added->dir, s.files_dir).empty();
       if (missing && fetch_sound(s, id)) packs_changed(s);
       else if (!missing) s.sound_state->settled[i] = id;
     }

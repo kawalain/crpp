@@ -169,6 +169,19 @@ int main(int argc, char** argv) {
   shell.assets_dir = assets_beside_exe ? exe_dir() / "assets" : locations->protected_dir / "assets";
   shell.skins_dir = assets_beside_exe ? exe_dir() / "skins" : shell.assets_dir / "skins";
   shell.repositories_dir = locations->protected_dir / "repositories";
+  shell.files_dir = locations->protected_dir / "files";
+  shell.assets_beside_exe = assets_beside_exe;
+  // Every Repository's folder, whose lists say what the store holds.
+  std::vector<std::filesystem::path> repository_dirs{shell.assets_dir};
+  if (!assets_beside_exe) {
+    std::error_code ec;
+    for (const auto& entry : std::filesystem::directory_iterator(shell.repositories_dir, ec)) {
+      if (entry.is_directory(ec)) repository_dirs.push_back(entry.path());
+    }
+    // Before the font is opened from it: what an older exe installed at its path goes into the store.
+    assets::WindowsPlatform platform;
+    for (const std::filesystem::path& dir : repository_dirs) assets::move_into_store(dir, shell.files_dir, platform);
+  }
   if (assets_beside_exe) {
     shell.catalog = assets::load_local_catalog(shell.assets_dir);
   } else if (shell.repository) {
@@ -176,14 +189,9 @@ int main(int argc, char** argv) {
     shell.catalog = assets::load_catalog(shell.assets_dir, shell.repository->key, platform);
   }
   shell.offered = shell.catalog;  // until the latest is read
-  const auto absent = assets_beside_exe || !shell.catalog
-                          ? std::vector<const assets::File*>{}
-                          : assets::missing(*shell.catalog, assets::wanted_groups(*shell.catalog, shell.assets_dir), shell.assets_dir);
   // Only a start without its Skin Pack waits for files: a network that keeps the others out
   // would otherwise hold up every start.
   const bool first_install = !assets_beside_exe && shell.repository && !skin_installed(shell);
-  // Windows refuses to replace an open font file, so one about to change stays closed.
-  const bool font_pending = std::ranges::any_of(absent, [](const assets::File* file) { return file->path.ends_with(".ttf"); });
   const auto failed_to_start = [&](const std::string& reason) {
     if (on_a_desktop_someone_sees()) {
       // There is no console to report to, and the app has no way to draw yet.
@@ -197,8 +205,8 @@ int main(int argc, char** argv) {
     if (!report.empty()) std::ofstream(report, std::ios::binary) << reason;
     return scripted_start_failure;
   };
-  if (!shell.app.init(first_install ? files::Tree{} : official_files(shell), !font_pending)) return failed_to_start(locale::tr().start_failed);
-  shell.fonts_loaded = !first_install && !font_pending;
+  // A font that changes comes as another file, so the one in use is never replaced under it.
+  if (!shell.app.init(first_install ? files::Tree{} : official_files(shell))) return failed_to_start(locale::tr().start_failed);
   if (!skin_dir.empty()) {
     if (const auto loaded = shell.app.load_skin_dir(skin_dir); !loaded) return failed_to_start(loaded.error());
   } else if (std::string_view(argc >= 2 ? argv[1] : "") == "--shot") {
@@ -233,6 +241,9 @@ int main(int argc, char** argv) {
   }
   if (updated_from != 0) area::update::took_over(updated_from);
   if (shell.shares_the_machine && another_instance_running()) return 0;
+  // What nothing lists leaves the store, once no other start can be installing into it. Of the
+  // store only the font is open yet, and it is listed.
+  if (!assets_beside_exe) assets::collect_garbage(shell.files_dir, repository_dirs);
 
   shell.data_dir = locations->protected_dir;
   shell.store.emplace(store::Store::open(*locations, shell.platform, unix_ms()));

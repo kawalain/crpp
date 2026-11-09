@@ -187,7 +187,7 @@ void offer_from(const Shell& s, std::span<const assets::Shelf> shelves, std::siz
       }
       if (!repositories::installs_into(s, link.shelf)) continue;
       const std::string group[] = {assets::skin_group(link.pack)};
-      for (const assets::File* file : assets::missing(catalog, group, repositories::install_dir(s, link.shelf))) info.to_fetch += file->size;
+      for (const assets::File* file : assets::missing(catalog, group, repositories::install_dir(s, link.shelf), s.files_dir)) info.to_fetch += file->size;
     }
     if (chain.gap == assets::Chain::Gap::Repository) {
       const assets::ParentPin& wanted = *chain.wanted;

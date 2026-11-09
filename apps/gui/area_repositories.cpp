@@ -369,7 +369,7 @@ std::optional<App::PackFiles> parent_dir(const Shell& s, std::string_view id, st
   const fs::path name(widen(id));
   const std::string folder = "skins/" + std::string(id) + "/";
   const auto official = [&]() -> App::PackFiles { return {official_files(s).under(folder), s.skins_dir / name}; };
-  const auto of_added = [&](const AddedRepository& added) -> App::PackFiles { return {added_files(added).under(folder), added.dir / "skins" / name}; };
+  const auto of_added = [&](const AddedRepository& added) -> App::PackFiles { return {added_files(s, added).under(folder), added.dir / "skins" / name}; };
   if (fingerprint.empty()) {
     // Beside it, in the same Repository, or else in the official one.
     for (const AddedRepository& added : s.added) {
@@ -469,7 +469,7 @@ void load(Shell& s) {
 
 std::vector<App::SkinFolder> skin_folders(const Shell& s) {
   std::vector<App::SkinFolder> folders{{official_files(s).under("skins/"), {}, s.skins_dir}};
-  for (const AddedRepository& added : s.added) folders.push_back({added_files(added).under("skins/"), added.id, added.dir / "skins"});
+  for (const AddedRepository& added : s.added) folders.push_back({added_files(s, added).under("skins/"), added.id, added.dir / "skins"});
   return folders;
 }
 

@@ -132,25 +132,14 @@ bool skin_installed(const Shell& s) {
   if (!s.catalog) return false;
   std::vector<std::string> groups;
   for (const std::string& id : assets::skin_chain(*s.catalog, s.catalog->default_skin)) groups.push_back(assets::skin_group(id));
-  return !groups.empty() && assets::missing(*s.catalog, groups, s.assets_dir).empty();
+  return !groups.empty() && assets::missing(*s.catalog, groups, s.assets_dir, s.files_dir).empty();
 }
 
 namespace {
 
-// Files open in this run, which an install leaves for the next start.
-std::vector<std::string> open_files(const Shell& s, std::size_t shelf) {
-  std::vector<std::string> held;
-  if (shelf == 0 && s.fonts_loaded && s.catalog) {
-    for (const assets::File& file : s.catalog->files) {
-      if (file.path.ends_with(".ttf")) held.push_back(file.path);
-    }
-  }
-  return held;
-}
-
-// What an install on that shelf leaves alone: open files, and the packs held back.
+// What an install on that shelf leaves alone: the packs held back.
 std::vector<std::string> left_alone(const Shell& s, std::size_t shelf) {
-  std::vector<std::string> held = open_files(s, shelf);
+  std::vector<std::string> held;
   for (const Hold& hold : s.holds) {
     const auto at = area::repositories::place(s, hold.parent);
     if (at && at->first == shelf) assets::hold_skin(held, at->second, shelf == 0 && s.catalog ? &*s.catalog : nullptr);
@@ -219,9 +208,9 @@ Installed install(Shell& s, const InstallJob& job, const std::atomic<bool>& canc
   }
   if (job.kind == InstallJob::Kind::Pack || job.kind == InstallJob::Kind::Sound) {
     // Each Repository's share in turn, with progress over them all.
-    const auto bytes_of = [](const InstallPart& part) {
+    const auto bytes_of = [&s](const InstallPart& part) {
       std::uint64_t bytes = 0;
-      for (const assets::File* file : assets::missing(*part.catalog, part.groups, part.dir)) bytes += file->size;
+      for (const assets::File* file : assets::missing(*part.catalog, part.groups, part.dir, s.files_dir)) bytes += file->size;
       return bytes;
     };
     std::uint64_t total = 0, before = 0;
@@ -229,7 +218,7 @@ Installed install(Shell& s, const InstallJob& job, const std::atomic<bool>& canc
     for (const InstallPart& part : job.parts) {
       if (cancel) break;
       const std::uint64_t share = bytes_of(part);
-      done.result = assets::install(*part.catalog, part.base, part.groups, part.dir, platform,
+      done.result = assets::install(*part.catalog, part.base, part.groups, part.dir, s.files_dir, platform,
                                     [&](const assets::Progress& p) {
                                       assets::Progress all = p;
                                       all.bytes_done += before;
@@ -332,8 +321,8 @@ Installed install(Shell& s, const InstallJob& job, const std::atomic<bool>& canc
     }
   }
   const auto groups = assets::wanted_groups(*catalog, s.assets_dir);
-  if (wait || !assets::missing(*catalog, groups, s.assets_dir).empty()) {
-    done.result = assets::install(*catalog, base, groups, s.assets_dir, platform, progress, &cancel, held[0]);
+  if (wait || !assets::missing(*catalog, groups, s.assets_dir, s.files_dir).empty()) {
+    done.result = assets::install(*catalog, base, groups, s.assets_dir, s.files_dir, platform, progress, &cancel, held[0]);
   }
   // A Repository a pack names but that is not added yet, which could not be read when it was asked
   // for, or which a pack named since.
@@ -352,8 +341,8 @@ Installed install(Shell& s, const InstallJob& job, const std::atomic<bool>& canc
     const assets::Catalog* follow = shelves[i + 1].catalog;
     if (follow && !cancel) {
       const auto kept = assets::kept_groups(*follow, other.dir);
-      if (!assets::missing(*follow, kept, other.dir).empty()) {
-        if (const auto result = assets::install(*follow, other.repository.url, kept, other.dir, platform, nullptr, &cancel, held[i + 1]); !result) {
+      if (!assets::missing(*follow, kept, other.dir, s.files_dir).empty()) {
+        if (const auto result = assets::install(*follow, other.repository.url, kept, other.dir, s.files_dir, platform, nullptr, &cancel, held[i + 1]); !result) {
           done.other_errors.push_back(result.error());
         }
       }
@@ -430,7 +419,6 @@ void run_install(Shell& s, InstallJob job) {
   }
   if (job.kind == InstallJob::Kind::Behind) {
     job.others = s.added;  // as they are now; the worker reads only its own
-    job.held = open_files(s, 0);
     for (const SkinInfo& info : s.app.ui().skins) {
       job.installed.push_back(info.id);
       if (std::string digest = area::repositories::accepted(s, info.id); !digest.empty()) job.accepted.emplace_back(info.id, std::move(digest));

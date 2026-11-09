@@ -308,6 +308,9 @@ void sync_hidden(Shell& s) {
   const bool hidden = os_policy::window_hidden(IsWindowVisible(s.hwnd) != FALSE, IsIconic(s.hwnd) != FALSE);
   if (hidden == s.hidden) return;
   s.hidden = hidden;
+  // What comes while hidden is below the new-messages line; shown, it is seen if the app is in front.
+  const HWND front = GetForegroundWindow();
+  s.app.room().chat().set_away(hidden || front == nullptr || !ours(front));
   if (hidden) {
     s.target.reset();
     drop_pane_targets(s);
@@ -327,6 +330,8 @@ void sync_hidden(Shell& s) {
 void wire(Shell& s) {
   state.shell = &s;
   state.tray.attach(s.hwnd);
+  // The window starts hidden, and may stay so in the tray: until it shows, nothing is seen.
+  s.app.room().chat().set_away(s.hidden);
   // A Skin's own frame asks for these; posted, so the surface is not destroyed under its click.
   s.app.frame().on_minimize = [hwnd = s.hwnd] { PostMessageW(hwnd, WM_SYSCOMMAND, SC_MINIMIZE, 0); };
   s.app.frame().on_close = [hwnd = s.hwnd] { PostMessageW(hwnd, WM_CLOSE, 0, 0); };
@@ -390,7 +395,8 @@ void activation(Shell& s, WPARAM wp, LPARAM lp) {
   const bool minimized = HIWORD(wp) != 0;
   // Going from one of the app's windows to another of them is still being here.
   const bool to_ours = inactive && lp != 0 && ours(reinterpret_cast<HWND>(lp));
-  s.app.room().chat().set_away(minimized || (inactive && !to_ours));
+  // In the tray nothing is seen, though the tray's menu or the Mini window activate the app.
+  s.app.room().chat().set_away(s.hidden || minimized || (inactive && !to_ours));
   if (!inactive) area::home::read_clock(s);
 }
 

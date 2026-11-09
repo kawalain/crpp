@@ -1,5 +1,7 @@
 # Downloads come from Repositories, signed catalogs anyone can host
 
+Where files are served and kept, and the official Repository's host, are replaced by ADR 0010.
+
 This replaces where files come from in ADR 0002 and ADR 0004, and the list of files built into the exe. Their other
 reasons hold: files are fetched one by one at first run, each is checked by its hash, and nothing but a Skin Pack is
 required (ADR 0007).

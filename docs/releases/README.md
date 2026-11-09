@@ -37,15 +37,17 @@ To release: commit the notes to `main`, push, then run this in Git Bash:
 
 It refuses a tree that differs from `origin/main`, then builds an official exe in
 `build-release`, tests it, signs it with the key in `~/.crpp-signing` (see
-`docs/signing-key.md`) and verifies the result against the key built into it. It fills
-`dist/repository` with the official Repository (ADR 0008) through
-`.github/scripts/build-repository.sh`, signing its catalog with the same key, from `assets/`,
-`skins/` and the third-party files a development build caches in `.cache/remote-assets`. Each
-pack format has its own catalog (ADR 0009): this release's goes in `dist/repository/<format>/`,
-and the older ones are rebuilt from the last tag of each, at the address their exes know, and
-must hash as they did then. When a release raises `pack_format`, add the format it leaves to
-`frozen` in `build-repository.sh` with its last tag and that hash. Then it
-pushes the tag, deploys the Repository with `npx --yes wrangler@4.152.0 deploy`
+`docs/signing-key.md`) and verifies the result against the key built into it. It clones the
+official Repository, the public GitHub repository `kawalain/crpp-repository`, into `dist/github`
+and fills it through `.github/scripts/build-repository.sh` (ADR 0010): this release's
+`catalog-<format>.txt`, signed with the same key, and every file a served catalog lists, once,
+named by its SHA-256, from `assets/`, `skins/` and the third-party files a development build
+caches in `.cache/remote-assets`. `dist/repository` is the Worker's half: the same files under
+`s/`, its mirror, and the catalogs that v0.2.x and v0.3.0 read, kept in `.github/frozen-catalogs/`
+as they were signed, answered from `s/` by `_redirects`. Each pack format has its own catalog (ADR
+0009); when a release raises `pack_format`, its catalog gets the new number and the old one
+stays only while `build-repository.sh` keeps listing its files. Then it pushes the tag, commits
+and pushes `dist/github`, deploys the mirror with `npx --yes wrangler@4.152.0 deploy`
 (`wrangler.jsonc`, your own `CLOUDFLARE_API_TOKEN` or `wrangler login`) and publishes the
 Release. `--dry-run` stops before the tag and leaves the result in `dist/`. A run that fails
 after the tag can be run again: it rebuilds, deploys and publishes what is missing.

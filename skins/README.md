@@ -178,3 +178,28 @@ tests/shots/render.sh --exe build-msvc/apps/gui/crpp.exe --out out --size auto -
 
 `check` runs the loader the program uses, once for each overlay. A pack that a Theme does not name a Palette for is not
 drawn under that Theme.
+
+## Publishing a pack
+
+Others get a pack from a Repository: a folder anyone can host that holds a signed `catalog.txt` and every file it
+lists, named by its SHA-256 (`docs/adr/0010-repositories-serve-files-by-their-hash.md`). The folder is built, not
+written: keep the packs as they are above, in `skins/<id>/` and Sound packs in `sounds/<keyboard|mouse|pen>/<id>/`,
+and let the tool turn them into one. In Git Bash, after a build:
+
+```bash
+openssl ecparam -name prime256v1 -genkey -noout -out my-repository.pem
+public=$(.github/scripts/p256.sh public my-repository.pem)
+mkdir -p empty && : > empty/remote.txt
+build-msvc/src/assets/crpp_catalog.exe out --remote empty/remote.txt --skins my/skins --sounds my/sounds --key "$public" --copy empty
+.github/scripts/sign-catalog.sh out/catalog.txt my-repository.pem
+```
+
+Keep the key file to yourself and keep it: the program trusts a Repository by its key, and warns when the key
+changes. `sign-catalog.sh` prints the key's fingerprint, which users see when they add the Repository, so publish it
+where they can compare. `--mirror <url>` names another folder that serves the same files.
+
+Then publish what is in `out` and nothing else, as it is: for example push it to a branch of its own, `pages`, and
+add the Repository as `github:<you>/<repo>@pages`, or put it in any HTTPS folder and add that address. To update,
+build into an empty `out` again and replace the whole branch or folder with it: files no catalog lists any more are
+not needed. A Repository built before ADR 0010 holds its files at their paths, and the program asks for it to be
+built again.

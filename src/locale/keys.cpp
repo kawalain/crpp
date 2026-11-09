@@ -43,6 +43,7 @@ constexpr Key keys[] = {
     KEY(chat_calm),
     KEY(chat_send_failed),
     KEY(chat_link_tip),
+    KEY(chat_new_here),
     KEY(chat_placeholder),
     KEY(chat_link_failed),
     KEY(join_not_found),

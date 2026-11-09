@@ -33,6 +33,7 @@ const Strings korean{
     .chat_calm = "진정하세요",
     .chat_send_failed = "메시지를 보내지 못했어요.",
     .chat_link_tip = "링크 열기",
+    .chat_new_here = "여기부터 새 메시지",
     .chat_placeholder = "메시지를 입력해 주세요...",
     .chat_link_failed = "링크를 열지 못했어요.",
 

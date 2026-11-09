@@ -108,9 +108,14 @@ void ChatPanel::paint_pack(Painter& p, const skin::Screen& screen, Rect panel) {
 void ChatPanel::append_row_of_look(std::size_t index, float list_w, bool arriving) {
   const RowLook& look = rows_look_;
   const ChatEntry& e = log_[index];
-  const bool cont = chat_grouped_with_previous(index);
   Row row;
+  row.new_line = new_from_ && *new_from_ == dropped_ + index;
+  const bool cont = !row.new_line && chat_grouped_with_previous(index);
   row.head = !cont;
+  if (row.new_line) {
+    row.y_line = next_y_;
+    next_y_ += look.head_h;
+  }
   if (cont) {
     next_y_ -= look.pull;
   } else {
@@ -182,7 +187,7 @@ void ChatPanel::paint_rows(Painter& p, Rect area) {
   std::size_t in_view_from = rows_.size(), in_view_to = 0;
   for (std::size_t r = 0; r < rows_.size(); ++r) {
     Row& row = rows_[r];
-    const float row_top = list_top + (row.head ? row.y_head : row.y_text) * zoom_;
+    const float row_top = list_top + (row.new_line ? row.y_line : row.head ? row.y_head : row.y_text) * zoom_;
     const float row_bottom = list_top + (row.y_text + row.h_text) * zoom_;
     if (row_bottom <= area.y) continue;
     if (row_top >= area.bottom()) break;
@@ -198,6 +203,7 @@ void ChatPanel::paint_rows(Painter& p, Rect area) {
     }
     const float rise = look.rise * (1 - arrived);
     const Color ink = with_alpha(look.ink, arrived);
+    if (row.new_line) paint_new_line(p, x, row.y_line + rise, list_w, look.head_h, look.time, with_alpha(look.link, arrived));
     if (row.head) {
       draw_svg(p, ui_.emoji_image(e.emoji), {x, row.y_head + rise, look.face, look.face}, arrived);
       if (!row.time) {
@@ -271,6 +277,20 @@ void ChatPanel::paint_rows(Painter& p, Rect area) {
   }
 }
 
+void ChatPanel::paint_new_line(Painter& p, float x, float y, float width, float height, const TextStyle& style, Color color) {
+  TextStyle centred = style;
+  centred.align = Align::Center;
+  centred.wrap = false;
+  const auto words = ui_.gfx.layout(widen(tr().chat_new_here), centred, width, height);
+  DWRITE_TEXT_METRICS m{};
+  if (words) words->GetMetrics(&m);
+  const float mid = std::floor(y + height / 2);
+  const float side = std::max(0.0f, (width - m.width) / 2 - 8);
+  p.fill_rect({x, mid, side, 1}, color);
+  p.fill_rect({x + width - side, mid, side, 1}, color);
+  if (words) p.draw_layout(words.get(), x, mid - m.height / 2, color);
+}
+
 void ChatPanel::paint_body(Painter& p, std::size_t r, float x, float y) {
   const Row& row = rows_[r];
   const LogGeometry& g = log_geometry_;
@@ -284,9 +304,14 @@ void ChatPanel::paint_body(Painter& p, std::size_t r, float x, float y) {
 
 void ChatPanel::append_message(std::size_t index, float list_w) {
   const ChatEntry& e = log_[index];
-  const bool cont = chat_grouped_with_previous(index);
   Row row;
+  row.new_line = new_from_ && *new_from_ == dropped_ + index;
+  const bool cont = !row.new_line && chat_grouped_with_previous(index);
   row.head = !cont;
+  if (row.new_line) {
+    row.y_line = next_y_;
+    next_y_ += messages_.body.line_height + 4;
+  }
   if (cont) {
     next_y_ -= messages_.gap - 2;
   } else {
@@ -349,13 +374,14 @@ void ChatPanel::paint_messages(Painter& p, Rect inner) {
   std::size_t in_view_from = rows_.size(), in_view_to = 0;
   for (std::size_t r = 0; r < rows_.size(); ++r) {
     Row& row = rows_[r];
-    const float row_top = top + (row.head ? row.y_head : row.y_text);
+    const float row_top = top + (row.new_line ? row.y_line : row.head ? row.y_head : row.y_text);
     if (top + row.y_text + row.h_text <= inner.y) continue;
     if (row_top >= inner.bottom()) break;
     in_view_from = std::min(in_view_from, r);
     in_view_to = r + 1;
     const std::size_t index = first_ + r;
     const ChatEntry& e = log_[index];
+    if (row.new_line) paint_new_line(p, x, top + row.y_line, text_w_full, body.line_height + 4, head, look.link);
     if (row.head) {
       if (!row.time) {
         row.time = ui_.gfx.layout(widen(chat_clock_text(e.time_ms, use_24h_)), time_style, text_w_full, head.line_height);

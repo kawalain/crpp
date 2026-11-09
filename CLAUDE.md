@@ -121,6 +121,8 @@ against a real `server/` yet; do that once a local build of it is available.
   when it closes; a question that cannot be undone starts on Cancel. A menu's access keys are underlined once
   Alt was pressed or when the menu opened from the keyboard, as in Windows; in Korean the letter is in the words too,
   as 복사(C).
+- What others write while every window of the app is behind another program, minimized or hidden sits under a line
+  "여기부터 새 메시지". It goes when the app is left again after coming back, or when a message is sent.
 - Up and Down at the chat field's first or last line go through the last 20 messages sent, as in a shell, and
   back to what was being written. They are kept in memory only.
 - The chat field counts characters as the server does, so an emoji is one, and from 30 left it shows how many.
@@ -488,6 +490,8 @@ exist (real + test).
   alone beside the system's own handling, Alt+Space with the menu bar, the menu key, "Underline access keys" turned
   on in Windows, the clipboard with other programs, and IME composition while Tab or a menu takes the keys. The
   focus ring, the context menu and a dropdown's keys have not been seen on a real desktop.
+- The line above new chat follows `WM_ACTIVATE` of the app's windows, which has run in tests only: see it on a real
+  desktop with Alt+Tab, the taskbar, minimizing and the tray, and between the main window and Retro's panels.
 - Dead-peer detection (network cut) is untested.
 - Shared store compatibility is tested against upstream's format as read from
   its source, not yet against the upstream client itself.

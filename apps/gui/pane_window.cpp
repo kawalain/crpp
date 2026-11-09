@@ -79,6 +79,7 @@ LRESULT CALLBACK pane_proc(HWND hwnd, UINT msg, WPARAM wp, LPARAM lp) {
       InvalidateRect(hwnd, nullptr, FALSE);
       return DefWindowProcW(hwnd, msg, wp, -1);  // -1: the system draws no frame of its own
     case WM_ACTIVATE:
+      area::os::activation(s, wp, lp);
       if (LOWORD(wp) == WA_INACTIVE) changed(s.app.window_deactivated());
       break;
     case WM_NCHITTEST: {

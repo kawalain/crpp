@@ -246,6 +246,7 @@ LRESULT CALLBACK wnd_proc(HWND hwnd, UINT msg, WPARAM wp, LPARAM lp) {
       }
       break;
     case WM_ACTIVATE:
+      area::os::activation(*s, wp, lp);
       if (LOWORD(wp) == WA_INACTIVE) {
         if (s->own_frame) {
           repaint(s->app.window_deactivated(), true);

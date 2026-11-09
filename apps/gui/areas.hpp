@@ -158,6 +158,8 @@ void pref_changed(Shell& s, std::string_view key);
 void first_show(Shell& s, bool minimized);
 // A frame was drawn and nothing moves: the clocks to giving memory back start again.
 void painted(Shell& s);
+// WM_ACTIVATE of any of the app's windows: the chat learns whether the app is in front.
+void activation(Shell& s, WPARAM wp, LPARAM lp);
 }  // namespace os
 
 namespace account {  // HTTP API, first-run flow, the account tab

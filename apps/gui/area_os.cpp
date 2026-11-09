@@ -349,6 +349,14 @@ void painted(Shell& s) {
   else SetTimer(s.hwnd, unused_timer, static_cast<UINT>(std::min(seconds, 86400)) * 1000, release_when_unused);  // 0: the shortest a timer waits
 }
 
+void activation(Shell& s, WPARAM wp, LPARAM lp) {
+  const bool inactive = LOWORD(wp) == WA_INACTIVE;
+  const bool minimized = HIWORD(wp) != 0;
+  // Going from one of the app's windows to another of them is still being here.
+  const bool to_ours = inactive && lp != 0 && ours(reinterpret_cast<HWND>(lp));
+  s.app.room().chat().set_away(minimized || (inactive && !to_ours));
+}
+
 bool on_message(Shell& s, UINT msg, WPARAM wp, LPARAM lp, LRESULT& result) {
   if (msg == wm_tray) {
     if (HIWORD(lp) == tray_icon_id) on_tray_event(s, wp, lp);

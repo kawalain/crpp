@@ -63,6 +63,13 @@ bool stop_key(int id, unsigned vk, bool ctrl, bool shift, bool alt) override;
   }
 
   void add(ChatEntry entry);
+  // The window is behind another program, minimized or hidden. What others write meanwhile gets a
+  // line above the first of it, which goes when the window is left again after coming back, or
+  // when a message is sent.
+  void set_away(bool away);
+  void set_my_slot(std::uint32_t slot) { my_slot_ = slot; }
+  // The number of the first message under the line (the dropped ones counted), if there is one.
+  [[nodiscard]] std::optional<std::size_t> new_from() const { return new_from_; }
   void clear();
   // The server refused a message and allows the next one after `ms`.
   void blocked(std::uint64_t ms);
@@ -103,6 +110,8 @@ bool stop_key(int id, unsigned vk, bool ctrl, bool shift, bool alt) override;
   struct Row {
     float y_head = 0, y_text = 0, h_text = 0;
     bool head = false;
+    bool new_line = false;  // "여기부터 새 메시지" above it, at y_line
+    float y_line = 0;
     std::vector<LinkSpan> links;
     unsigned long long arrived_at = 0;  // rises and fades in from then; 0: it is just there
     // Kept while the row is in view, which is what painting every frame costs least with.
@@ -191,6 +200,13 @@ bool stop_key(int id, unsigned vk, bool ctrl, bool shift, bool alt) override;
 
   ChatLimiter limiter_;
   std::string last_sent_;  // what comes back if the server refuses it
+  bool away_ = false;
+  bool new_seen_ = false;  // the window came back while the line was there
+  std::optional<std::size_t> new_from_;
+  std::uint32_t my_slot_ = 0xFFFFFFFF;
+  void forget_new_line();
+  // Draws the line across width at y, with its words in the middle.
+  void paint_new_line(Painter& p, float x, float y, float width, float height, const TextStyle& style, Color color);
   // What was sent, oldest first, for Up and Down in an empty or recalled draft, as a shell has.
   // In memory only.
   static constexpr std::size_t history_size = 20;

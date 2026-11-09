@@ -40,6 +40,7 @@ room-text-menu
 room-text-menu-dark
 room-field-menu
 room-chat-left
+room-new-line
 settings-sound
 settings-sound-dark
 settings-sound-effects

@@ -33,6 +33,7 @@ const Strings english{
     .chat_calm = "Calm down",
     .chat_send_failed = "Couldn't send the message.",
     .chat_link_tip = "Open link",
+    .chat_new_here = "New messages",
     .chat_placeholder = "Type a message...",
     .chat_link_failed = "Couldn't open the link.",
 

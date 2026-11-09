@@ -61,6 +61,7 @@ void RoomScreen::set_room(std::vector<MemberView> members, std::uint32_t me, std
   members_ = std::move(members);
   std::erase_if(came_later_, [&](const auto& c) { return std::ranges::find(members_, c.first, &MemberView::slot) == members_.end(); });
   me_ = me;
+  chat_panel_.set_my_slot(me);
   host_ = host;
   public_ = is_public;
   chat_ = chat;

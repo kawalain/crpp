@@ -50,7 +50,12 @@ ChatPanel::ChatPanel(Ui& ui) : Surface(ui) {
 }
 
 void ChatPanel::add(ChatEntry entry) {
+  const bool new_line = away_ && !new_from_ && entry.slot != my_slot_;
   log_.push_back(std::move(entry));
+  if (new_line) {
+    new_from_ = dropped_ + log_.size() - 1;
+    new_seen_ = false;
+  }
   if (log_.size() > 1000) {
     log_.erase(log_.begin());
     ++dropped_;
@@ -59,7 +64,26 @@ void ChatPanel::add(ChatEntry entry) {
   }
 }
 
+void ChatPanel::set_away(bool away) {
+  if (away == away_) return;
+  away_ = away;
+  if (!away) {
+    if (new_from_) new_seen_ = true;
+  } else if (new_seen_) {
+    forget_new_line();
+  }
+}
+
+void ChatPanel::forget_new_line() {
+  if (!new_from_) return;
+  new_from_.reset();
+  new_seen_ = false;
+  dirty_ = true;  // the rows are laid out without it
+}
+
 void ChatPanel::clear() {
+  new_from_.reset();
+  new_seen_ = false;
   dropped_ += log_.size();
   log_.clear();
   rows_.clear();
@@ -94,6 +118,7 @@ void ChatPanel::send() {
     if (ui_.toasts) ui_.toasts->toast(tr().chat_send_failed);
     return;
   }
+  forget_new_line();
   if (history_.empty() || history_.back() != text) history_.push_back(text);
   if (history_.size() > history_size) history_.erase(history_.begin());
   history_at_ = -1;

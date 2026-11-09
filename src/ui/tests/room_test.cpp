@@ -1173,6 +1173,34 @@ void test_send_failure_keeps_the_text_and_says_so() {
   CHECK(h.app.wake_at() != 0);  // the toast
 }
 
+// What others wrote while the window was away sits under a line, until the window is left again
+// after coming back, or something is sent.
+void test_a_line_marks_what_came_while_away() {
+  UiHarness h;
+  CHECK(h.start());
+  enter(h, 3, true);
+  ChatPanel& chat = h.app.room().chat();
+  chat.on_send = [](std::string) { return true; };
+  const auto from_sky = [](std::string text) { return ChatEntry{1, "c1", "하늘", "", std::move(text), 1700000000000}; };
+  chat.add(from_sky("before"));
+  chat.set_away(true);
+  chat.add({0, "c0", "me", "", "mine first", 1700000000000});  // slot 0 is this member's own
+  CHECK(!chat.new_from());
+  chat.add(from_sky("one"));
+  chat.add(from_sky("two"));
+  CHECK(chat.new_from() == 2u);
+  chat.set_away(false);
+  h.render();
+  CHECK(chat.new_from() == 2u);  // seen now, still there
+  chat.set_away(true);
+  CHECK(!chat.new_from());  // left again: it goes
+  chat.add(from_sky("three"));
+  CHECK(chat.new_from() == 4u);
+  chat.set_away(false);
+  send_text(h, chat, L"reply");
+  CHECK(!chat.new_from());
+}
+
 // Up and Down at the draft's first and last line go through what was sent, as in a shell.
 void test_arrows_bring_back_what_was_sent() {
   UiHarness h;
@@ -1350,6 +1378,7 @@ void test_clearing_the_chat_starts_over() {
 
 int main() {
   test_arrows_bring_back_what_was_sent();
+  test_a_line_marks_what_came_while_away();
   messages_can_be_selected_and_copied(CRPP_TEST_SKINS "/cloud");
   messages_can_be_selected_and_copied(CRPP_TEST_SKINS "/retro");
   test_a_pack_cannot_read_past_a_list();

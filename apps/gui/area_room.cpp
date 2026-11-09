@@ -151,6 +151,16 @@ bool scene(Shell& s, std::string_view name) {
     chat.input().select_all();
     return true;
   }
+  if (name == "room-new-line") {  // two messages came while the window was behind another
+    demo_session(s.app, true);
+    ChatPanel& chat = s.app.room().chat();
+    const long long now = wall_clock_seconds() * 1000;
+    chat.set_away(true);
+    chat.add({2, "c2", "구름빵", "1f436", "다녀오셨어요? 회의 자료 올려 뒀어요.", now - 60000});
+    chat.add({1, "c1", "하늘", "1f431", "저도 확인했어요!", now - 30000});
+    chat.set_away(false);
+    return true;
+  }
   if (name == "room-chat-left") {  // a draft near the server's limit, with emoji counted as one
     demo_session(s.app, true);
     ChatPanel& chat = s.app.room().chat();

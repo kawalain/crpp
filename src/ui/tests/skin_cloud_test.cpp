@@ -793,9 +793,26 @@ void test_a_path_can_fill_where_its_shapes_overlap() {
   CHECK(inside("F1 M0 0H10V10H0ZM0 0H10V10H0Z"));
 }
 
+// A pack is data from anywhere: path data that cannot be read gives no shape, and nothing waits on it.
+void test_path_data_that_cannot_be_read_gives_no_shape() {
+  UiHarness h;
+  CHECK(h.start(100, 100));
+  const Gfx& gfx = h.app.ui().gfx;
+  for (const std::string_view bad : {"M0 0 L1 1 #", "M0 0 Z 1", "M0 0 L1 -", "M0 0 L1", "M0 0 A1 1 0 2 0 5 5", "M0 0 Q1 1 2 2", "M0 0 Linf 1"}) {
+    CHECK(!gfx.parse_path(bad));
+  }
+  // Only what the view holds is read, not what follows it in memory.
+  const std::string longer = "M0 0 L1 2";
+  CHECK(!gfx.parse_path(std::string_view(longer).substr(0, 7)));
+  for (const std::string_view good : {"M0 0L1 1", "M.5.5l-1-1z", "M+1 0 1e1 2", "M0 0 A1 1 0 1 0 5 5", "M0 0A1 1 0 105 5"}) {
+    CHECK(gfx.parse_path(good));
+  }
+}
+
 }  // namespace
 
 int main() {
+  test_path_data_that_cannot_be_read_gives_no_shape();
   test_the_official_packs_are_named_in_korean_and_english();
   test_the_rows_choose_a_theme_of_any_skin_and_a_dark_mode();
   test_a_theme_not_installed_is_listed_and_asked_for();

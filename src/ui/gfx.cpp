@@ -53,21 +53,31 @@ class PathReader {
     return pos_ < s_.size() && std::isalpha(static_cast<unsigned char>(s_[pos_]));
   }
   char command() { return s_[pos_++]; }
+  // Reads only inside the view; what cannot be read marks the data bad and gives 0.
   float number() {
     skip_separators();
-    const char* begin = s_.data() + pos_;
-    char* end = nullptr;
-    const float v = std::strtof(begin, &end);
-    pos_ += static_cast<std::size_t>(end - begin);
+    std::size_t at = pos_;
+    if (at < s_.size() && s_[at] == '+') ++at;  // from_chars takes no '+'
+    float v = 0;
+    const auto [end, error] = std::from_chars(s_.data() + at, s_.data() + s_.size(), v);
+    if (error != std::errc{} || !std::isfinite(v)) {
+      bad_ = true;
+      return 0;
+    }
+    pos_ = static_cast<std::size_t>(end - s_.data());
     return v;
   }
-  // Arc flags are single characters and may be written without separators.
+  // Arc flags are single characters, 0 or 1, and may be written without separators.
   bool flag() {
     skip_separators();
-    const bool v = pos_ < s_.size() && s_[pos_] == '1';
-    ++pos_;
-    return v;
+    if (pos_ >= s_.size() || (s_[pos_] != '0' && s_[pos_] != '1')) {
+      bad_ = true;
+      return false;
+    }
+    return s_[pos_++] == '1';
   }
+  [[nodiscard]] bool bad() const { return bad_; }
+  [[nodiscard]] std::size_t pos() const { return pos_; }
 
  private:
   void skip_separators() {
@@ -75,6 +85,7 @@ class PathReader {
   }
   std::string_view s_;
   std::size_t pos_ = 0;
+  bool bad_ = false;
 };
 
 }  // namespace
@@ -257,6 +268,7 @@ ComPtr<ID2D1PathGeometry> Gfx::parse_path(std::string_view d) const {
     cy = sy = y;
   };
   while (in.more()) {
+    const std::size_t step_from = in.pos();
     if (in.at_command()) {
       cmd = in.command();
     } else if (cmd == 'M') {
@@ -338,6 +350,8 @@ ComPtr<ID2D1PathGeometry> Gfx::parse_path(std::string_view d) const {
       default:
         return {};  // unsupported command
     }
+    // A number that would not read, or a step that read nothing, as "Z 1", would go round forever.
+    if (in.bad() || in.pos() == step_from) return {};
     prev = cmd;
   }
   if (open) sink->EndFigure(D2D1_FIGURE_END_OPEN);

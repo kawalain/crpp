@@ -115,6 +115,13 @@ void refuses_paths_that_leave_the_folder() {
     CHECK(!parse_catalog(head + file_line("shared", path)));
   }
   CHECK(parse_catalog(head + file_line("shared", "a/b.c-d_E")).has_value());
+  // Windows opens a device for these names, with any extension, in any folder.
+  for (const char* path : {"skins/x/prn", "con", "a/CON.txt", "aux.svg", "a/nul", "com1.wav", "a/LPT9", "com0"}) {
+    CHECK(!parse_catalog(head + file_line("shared", path)));
+  }
+  for (const char* path : {"console", "a/prn2", "com", "lpt10", "auxiliary.txt", "a/nulls.wav"}) {
+    CHECK(parse_catalog(head + file_line("shared", path)).has_value());
+  }
 }
 
 void refuses_unsure_fields() {
@@ -163,6 +170,10 @@ void an_address_names_a_folder() {
   CHECK(folder_of("  https://packs.example.org/a/catalog.txt ") == "https://packs.example.org/a/");
   CHECK(folder_of("http://127.0.0.1:8765/") == "http://127.0.0.1:8765/");
   CHECK(folder_of("http://packs.example.org/").empty());  // plain HTTP only to this machine
+  // What comes before an @ is a user name to WinHTTP, and the host is what follows it.
+  CHECK(folder_of("http://localhost:1@packs.example.org/").empty());
+  CHECK(folder_of("http://127.0.0.1/@packs.example.org/") == "http://127.0.0.1/@packs.example.org/");
+  CHECK(folder_of("https://someone@packs.example.org/").empty());
   CHECK(folder_of("github:someone/my.packs") == "https://raw.githubusercontent.com/someone/my.packs/HEAD/");
   CHECK(folder_of("github:someone/packs@v0.2.0") == "https://raw.githubusercontent.com/someone/packs/v0.2.0/");
   CHECK(folder_of("github:someone/packs@feature/new") == "https://raw.githubusercontent.com/someone/packs/feature/new/");

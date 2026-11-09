@@ -54,7 +54,19 @@ bool is_hex(std::string_view s, std::size_t length) {
   return s.size() == length && std::ranges::all_of(s, [](char c) { return (c >= '0' && c <= '9') || (c >= 'a' && c <= 'f'); });
 }
 
-// Relative, with no empty, "." or ".." part, so it stays inside the assets folder.
+// CON, PRN, AUX, NUL, COM0-9 and LPT0-9, in any case and with any extension, are devices to Windows.
+bool names_a_device(std::string_view part) {
+  const std::string_view stem = part.substr(0, part.find('.'));
+  const auto is = [&](std::string_view name) {
+    return stem.size() >= name.size() && std::ranges::equal(stem.substr(0, name.size()), name, [](char a, char b) {
+             return (a >= 'A' && a <= 'Z' ? static_cast<char>(a - 'A' + 'a') : a) == b;
+           });
+  };
+  if (stem.size() == 3) return is("con") || is("prn") || is("aux") || is("nul");
+  return stem.size() == 4 && (is("com") || is("lpt")) && stem[3] >= '0' && stem[3] <= '9';
+}
+
+// Relative, with no empty, "." or ".." part, so it stays inside the assets folder, and no device name.
 bool is_path(std::string_view s) {
   if (s.empty() || s.size() > max_path) return false;
   const bool plain = std::ranges::all_of(s, [](char c) {
@@ -64,7 +76,7 @@ bool is_path(std::string_view s) {
   while (true) {
     const std::size_t slash = s.find('/');
     const std::string_view part = s.substr(0, slash);
-    if (part.empty() || part == "." || part == "..") return false;
+    if (part.empty() || part == "." || part == ".." || names_a_device(part)) return false;
     if (slash == std::string_view::npos) return true;
     s.remove_prefix(slash + 1);
   }
@@ -95,8 +107,13 @@ bool is_local_host(std::string_view rest) {
 bool is_url(std::string_view s) {
   if (s.size() > max_url || !s.ends_with('/')) return false;
   if (!std::ranges::all_of(s, [](char c) { return c > ' ' && c < 127; })) return false;
-  if (s.starts_with("https://")) return s.size() > 9;
-  return s.starts_with("http://") && is_local_host(s.substr(7));
+  const std::size_t scheme = s.starts_with("https://") ? 8 : s.starts_with("http://") ? 7 : 0;
+  if (scheme == 0) return false;
+  // Before an @ is a user name, and the host is what follows it, so "localhost:1@" would hide another.
+  const std::string_view rest = s.substr(scheme);
+  if (rest.substr(0, rest.find('/')).contains('@')) return false;
+  if (scheme == 8) return s.size() > 9;
+  return is_local_host(rest);
 }
 
 constexpr std::string_view sound_kind_names[] = {"keyboard", "mouse", "pen"};

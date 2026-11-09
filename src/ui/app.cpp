@@ -182,7 +182,9 @@ void App::apply_skin_choice(bool system_dark) {
 }
 
 std::expected<void, std::string> App::load_skin_dir(const std::filesystem::path& dir) {
-  std::filesystem::path whole = std::filesystem::absolute(dir).lexically_normal();
+  std::error_code error;
+  std::filesystem::path whole = std::filesystem::absolute(dir, error).lexically_normal();
+  if (error) return std::unexpected("pack: no folder " + narrow(dir.wstring()));
   if (!whole.has_filename()) whole = whole.parent_path();
   const std::filesystem::path before = pack_dir_;
   pack_dir_ = whole;

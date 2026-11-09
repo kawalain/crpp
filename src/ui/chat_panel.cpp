@@ -94,7 +94,21 @@ void ChatPanel::send() {
     if (ui_.toasts) ui_.toasts->toast(tr().chat_send_failed);
     return;
   }
+  if (history_.empty() || history_.back() != text) history_.push_back(text);
+  if (history_.size() > history_size) history_.erase(history_.begin());
+  history_at_ = -1;
+  draft_.clear();
   input_.clear();
+}
+
+bool ChatPanel::recall(int dir) {
+  const int last = static_cast<int>(history_.size()) - 1;
+  const int to = history_at_ + (dir < 0 ? 1 : -1);
+  if (to > last || to < -1) return false;
+  if (history_at_ == -1) draft_ = input_.text();
+  history_at_ = to;
+  input_.set_text(to == -1 ? draft_ : history_[static_cast<std::size_t>(last - to)]);
+  return true;
 }
 
 void ChatPanel::blocked(std::uint64_t ms) {
@@ -380,7 +394,9 @@ bool ChatPanel::key(unsigned vk, bool ctrl, bool shift) {
     return false;
   }
   if (vk == VK_UP || vk == VK_DOWN) {
-    input_.move_vertical(ui_.gfx, pack_input_style_, input_text_w_, vk == VK_UP ? -1 : 1, shift);
+    const int dir = vk == VK_UP ? -1 : 1;
+    // Past the first or last line, the arrows go through what was sent.
+    if (!input_.move_vertical(ui_.gfx, pack_input_style_, input_text_w_, dir, shift) && !shift && !ctrl && !input_.composing()) recall(dir);
     return true;
   }
   return ui_.edit_key(input_, vk, ctrl, shift);

@@ -159,17 +159,21 @@ std::size_t TextField::position_at(const Gfx& gfx, const TextStyle& style, float
   return std::min(pos, text_.size());
 }
 
-void TextField::move_vertical(const Gfx& gfx, const TextStyle& style, float width, int dir, bool extend) {
+bool TextField::move_vertical(const Gfx& gfx, const TextStyle& style, float width, int dir, bool extend) {
   const auto layout = gfx.layout(text_, style, width, 10000);
-  if (!layout) return;
+  if (!layout) return false;
   float x = 0, y = 0;
   DWRITE_HIT_TEST_METRICS m{};
   layout->HitTestTextPosition(static_cast<UINT32>(caret_), FALSE, &x, &y, &m);
   const float line = m.height > 0 ? m.height : style.line_height;
+  DWRITE_TEXT_METRICS metrics{};
+  if (dir < 0 && y < line * 0.5f) return false;
+  if (dir > 0 && SUCCEEDED(layout->GetMetrics(&metrics)) && y + line * 1.5f > metrics.height) return false;
   BOOL trailing = FALSE, inside = FALSE;
   DWRITE_HIT_TEST_METRICS t{};
   layout->HitTestPoint(x, y + line * (dir < 0 ? -0.5f : 1.5f), &trailing, &inside, &t);
   move_to(std::min<std::size_t>(t.textPosition + (trailing ? t.length : 0), text_.size()), extend);
+  return true;
 }
 
 void TextField::select_all() {

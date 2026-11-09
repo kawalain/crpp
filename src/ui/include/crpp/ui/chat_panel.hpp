@@ -191,6 +191,14 @@ bool stop_key(int id, unsigned vk, bool ctrl, bool shift, bool alt) override;
 
   ChatLimiter limiter_;
   std::string last_sent_;  // what comes back if the server refuses it
+  // What was sent, oldest first, for Up and Down in an empty or recalled draft, as a shell has.
+  // In memory only.
+  static constexpr std::size_t history_size = 20;
+  std::vector<std::wstring> history_;
+  int history_at_ = -1;  // how far back the draft is, -1 for what is being written
+  std::wstring draft_;   // what was being written before going back
+  // Up (older) or Down (newer) through what was sent. False when there is nothing that way.
+  bool recall(int dir);
   std::string calm_text_;
   HoverTip link_tip_;
   HoverTip::Spec link_tip_spec_;

@@ -1173,6 +1173,32 @@ void test_send_failure_keeps_the_text_and_says_so() {
   CHECK(h.app.wake_at() != 0);  // the toast
 }
 
+// Up and Down at the draft's first and last line go through what was sent, as in a shell.
+void test_arrows_bring_back_what_was_sent() {
+  UiHarness h;
+  CHECK(h.start());
+  enter(h, 3, true);
+  ChatPanel& chat = h.app.room().chat();
+  chat.on_send = [](std::string) { return true; };
+  send_text(h, chat, L"하나");
+  send_text(h, chat, L"둘");
+  h.render();
+  CHECK(h.click(chat, ChatPanel::Input));
+  chat.input().set_text(L"쓰던 글");
+  CHECK(h.app.key_down(VK_UP, false, false));
+  CHECK(chat.input().text() == L"둘");
+  CHECK(h.app.key_down(VK_UP, false, false));
+  CHECK(chat.input().text() == L"하나");
+  CHECK(h.app.key_down(VK_UP, false, false));  // nothing older: it stays
+  CHECK(chat.input().text() == L"하나");
+  CHECK(h.app.key_down(VK_DOWN, false, false));
+  CHECK(h.app.key_down(VK_DOWN, false, false));
+  CHECK(chat.input().text() == L"쓰던 글");  // back to what was being written
+  // Shift goes on selecting, and recalls nothing.
+  CHECK(h.app.key_down(VK_UP, false, true));
+  CHECK(chat.input().text() == L"쓰던 글");
+}
+
 ChatEntry entry_with(std::string text) { return {1, "c1", "하늘", "", std::move(text), 1700000000000}; }
 
 void test_link_opens_through_the_seam_and_shows_its_tip() {
@@ -1323,6 +1349,7 @@ void test_clearing_the_chat_starts_over() {
 }  // namespace
 
 int main() {
+  test_arrows_bring_back_what_was_sent();
   messages_can_be_selected_and_copied(CRPP_TEST_SKINS "/cloud");
   messages_can_be_selected_and_copied(CRPP_TEST_SKINS "/retro");
   test_a_pack_cannot_read_past_a_list();

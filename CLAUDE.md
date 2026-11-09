@@ -121,6 +121,8 @@ against a real `server/` yet; do that once a local build of it is available.
   when it closes; a question that cannot be undone starts on Cancel. A menu's access keys are underlined once
   Alt was pressed or when the menu opened from the keyboard, as in Windows; in Korean the letter is in the words too,
   as 복사(C).
+- Up and Down at the chat field's first or last line go through the last 20 messages sent, as in a shell, and
+  back to what was being written. They are kept in memory only.
 - The chat field counts characters as the server does, so an emoji is one, and from 30 left it shows how many.
 - A link in chat has a colour of its own, the Palette's `link`, where upstream's is the text's and shows only by
   an underline under the pointer.

@@ -62,8 +62,9 @@ class TextField {
   void drag_to(std::size_t pos);
   // The place in the text nearest a point, the text's origin at 0,0. wrap_width 0 is one line.
   [[nodiscard]] std::size_t position_at(const Gfx& gfx, const TextStyle& style, float x, float y, float wrap_width = 0) const;
-  // Moves the caret one wrapped line up (dir < 0) or down.
-  void move_vertical(const Gfx& gfx, const TextStyle& style, float width, int dir, bool extend);
+  // Moves the caret one wrapped line up (dir < 0) or down. False, and nothing moves, when it is
+  // already on the first line going up or the last going down.
+  bool move_vertical(const Gfx& gfx, const TextStyle& style, float width, int dir, bool extend);
 
   // Draws inside box (the text origin is the box's left edge; the line box is
   // box.h tall). Draws the placeholder when empty and not composing.

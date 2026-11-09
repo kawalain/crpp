@@ -81,8 +81,9 @@ void Dialogs::click(int id, float, float, bool) {
 bool Dialogs::wheel(float, float, float) { return is_open(); }
 
 bool Dialogs::escape() {
-  if (!dialog_ || dialog_->cancel.empty()) return false;
-  click(Cancel, 0, 0, false);
+  if (!dialog_) return false;
+  // A question with no cancel stays, and holds Escape off what is under it, as it holds clicks off.
+  if (!dialog_->cancel.empty()) click(Cancel, 0, 0, false);
   return true;
 }
 

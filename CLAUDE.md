@@ -469,6 +469,18 @@ exist (real + test).
 - `crpp_cli` against the production server (wss) created a private room and
   got its own chat message back, built with both MSVC and GCC.
 
+## Known limitations
+
+- No screen reader or high contrast: there is no UI Automation provider (`WM_GETOBJECT`), and
+  `SPI_GETHIGHCONTRAST` is not read. The keyboard works every control, but Narrator reads nothing.
+- The keyboard cannot reach the Mini window: it never takes focus and has no taskbar button, so it is not
+  in Alt+Tab. The tray menu and the mute shortcut do what it does.
+- The DLL search order is the default, beyond `/DEPENDENTLOADFLAG` for the exe's own imports.
+  `SetDefaultDllDirectories(LOAD_LIBRARY_SEARCH_SYSTEM32)` would keep a DLL left beside a downloaded exe
+  out of later loads, but Microsoft's pages imply a COM or IME DLL loaded later may then miss DLLs beside
+  it, and they do not say which flags COM loads with. Adopt it only after a third-party IME has been
+  watched with Process Monitor.
+
 ## Verification debt
 
 - Pen input via Raw Input needs device checks, including devices that expose no

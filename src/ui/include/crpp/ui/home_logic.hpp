@@ -57,6 +57,20 @@ struct HeldSeat {
   return {Entry::Kind::Resume, std::move(latest->code), std::move(latest->key)};
 }
 
+// A day the greeting is about instead of the hour, by the local calendar.
+enum class SpecialDay : unsigned char { None, NewYear, AprilFools, Birthday, Christmas };
+
+// Cloudroom++'s own: v0.1.0 was released on 7 November 2026.
+inline constexpr int birthday_month = 11, birthday_day = 7;
+
+[[nodiscard]] constexpr SpecialDay special_day(int month, int day) {
+  if (month == 1 && day == 1) return SpecialDay::NewYear;
+  if (month == 4 && day == 1) return SpecialDay::AprilFools;
+  if (month == birthday_month && day == birthday_day) return SpecialDay::Birthday;
+  if (month == 12 && (day == 24 || day == 25)) return SpecialDay::Christmas;
+  return SpecialDay::None;
+}
+
 // How many public Rooms are open, from GET /health's plain text: "ok", "rooms=<n>" (the private
 // ones) and "public_rooms=<n>", a line each. Nothing for an answer without that line.
 [[nodiscard]] inline std::optional<int> public_rooms_in_health(std::string_view body) {

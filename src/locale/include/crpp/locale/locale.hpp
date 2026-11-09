@@ -75,6 +75,11 @@ struct Strings {
   const char* home_afternoon;
   const char* home_evening;
   const char* home_night;
+  // In place of the four above on these days; as short as they are, for Cloud's large type.
+  const char* home_new_year;
+  const char* home_april_fools;
+  const char* home_birthday;
+  const char* home_christmas;
   const char* home_hello;  // {0} the Nickname
   const char* home_find;
   const char* home_code_placeholder;

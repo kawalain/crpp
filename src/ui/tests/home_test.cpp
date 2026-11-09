@@ -79,6 +79,16 @@ void test_search_finds_a_public_room() {
 }
 
 // Coming back to Home asks the server again how many public Rooms are open; staying on it does not.
+void test_some_days_have_a_greeting_of_their_own() {
+  CHECK(home::special_day(1, 1) == home::SpecialDay::NewYear);
+  CHECK(home::special_day(4, 1) == home::SpecialDay::AprilFools);
+  CHECK(home::special_day(11, 7) == home::SpecialDay::Birthday);
+  CHECK(home::special_day(12, 24) == home::SpecialDay::Christmas);
+  CHECK(home::special_day(12, 25) == home::SpecialDay::Christmas);
+  CHECK(home::special_day(12, 26) == home::SpecialDay::None);
+  CHECK(home::special_day(0, 0) == home::SpecialDay::None);
+}
+
 void test_coming_home_asks_once() {
   UiHarness h;
   CHECK(h.start());
@@ -327,6 +337,7 @@ int main() {
   test_short_code_does_not_join();
   test_search_finds_a_public_room();
   test_coming_home_asks_once();
+  test_some_days_have_a_greeting_of_their_own();
   test_busy_buttons_do_nothing();
   return crpp_test_result();
 }

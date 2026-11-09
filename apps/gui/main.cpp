@@ -225,6 +225,7 @@ int main(int argc, char** argv) {
   std::tm local{};
   localtime_s(&local, &now);
   shell.app.home().set_hour(local.tm_hour);
+  shell.app.home().set_date(local.tm_mon + 1, local.tm_mday);
 
   if (argc >= 3 && std::string(argv[1]) == "--shot") {
     locale::set_current(*shot_locale);

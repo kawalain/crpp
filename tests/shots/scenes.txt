@@ -14,6 +14,8 @@ home-hover
 home-hover-enter
 home-public
 home-public-none
+home-christmas
+home-birthday
 home-hover-droplet
 home-returning
 home-return

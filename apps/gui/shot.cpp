@@ -100,11 +100,13 @@ int run_shot(Shell& s, int argc, char** argv, float dpi) {
   if (argc >= 8 && std::string_view(argv[6]) == "--at") {
     if (const Motion* motion = motion_named(argv[5])) {
       if (argc >= 5) s.app.home().set_hour(std::atoi(argv[4]));
+      s.app.home().set_date(0, 0);
       s.app.home().set_nickname("크롬이");
       return run_motion(s, *motion, widen(argv[2]), w, h, dpi, std::atoi(argv[7]));
     }
   }
   if (argc >= 5) s.app.home().set_hour(std::atoi(argv[4]));
+  s.app.home().set_date(0, 0);  // a shot holds the clock, so no day of its own unless a scene says so
   s.app.home().set_nickname("크롬이");
   const bool sized_by_screen = argc >= 4 && std::string_view(argv[3]) == "auto" && !s.app.screen_size().key.empty();
   if (sized_by_screen) {  // a layout of its own says where things are by drawing them

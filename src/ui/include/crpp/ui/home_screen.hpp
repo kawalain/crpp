@@ -59,6 +59,11 @@ class HomeScreen final : public Surface {
 
   void set_nickname(std::string nickname) { nickname_ = std::move(nickname); }
   void set_hour(int hour) { hour_ = hour; }  // 0-23, for the greeting
+  // 1-12 and 1-31: some days have a greeting of their own. 0 for none.
+  void set_date(int month, int day) {
+    month_ = month;
+    day_ = day;
+  }
   // A Room could not be entered: says so above the button that tried, or at the top
   // of the window when no button did.
   void show_error(std::string text);
@@ -101,6 +106,7 @@ class HomeScreen final : public Surface {
   float code_x_ = 469 + 18;
   Rect join_rect_{469 + 221, 522 + 10, 52, 60}, find_rect_{759, 522, 92, 80};
   int hour_ = 12;
+  int month_ = 0, day_ = 0;
   TextField code_;
   Id last_action_ = Create;
   unsigned long long seat_ends_ = 0;  // when the latest held Seat expires; 0 = none

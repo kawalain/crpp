@@ -1,6 +1,7 @@
 // Home drawn from a Skin Pack. State, hit ids and callbacks stay the screen's own; the pack says
 // where everything goes and how it looks.
 #include "crpp/skin/draw.hpp"
+#include "crpp/ui/home_logic.hpp"
 #include "crpp/ui/home_screen.hpp"
 #include "crpp/ui/skin_canvas.hpp"
 
@@ -72,6 +73,13 @@ void HomeScreen::paint_pack(Painter& p, const skin::Screen& screen) {
       switch (id) {
         case Nickname: return home_.nickname_;
         case Greeting: {
+          switch (home::special_day(home_.month_, home_.day_)) {
+            case home::SpecialDay::NewYear: return tr().home_new_year;
+            case home::SpecialDay::AprilFools: return tr().home_april_fools;
+            case home::SpecialDay::Birthday: return tr().home_birthday;
+            case home::SpecialDay::Christmas: return tr().home_christmas;
+            case home::SpecialDay::None: break;
+          }
           const int hour = home_.hour_;
           return hour >= 5 && hour < 12 ? tr().home_morning : hour >= 12 && hour < 18 ? tr().home_afternoon : hour >= 18 && hour < 22 ? tr().home_evening : tr().home_night;
         }

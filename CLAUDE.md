@@ -165,6 +165,8 @@ against a real `server/` yet; do that once a local build of it is available.
 - A held Seat says how many minutes it is still held, in Retro's list and in Cloud's question. Home wakes for it only
   when the minute drawn changes.
 - The program calls itself Cloudroom++, so its autostart entry does not collide with upstream's.
+- Home greets by the day instead of the hour on New Year's Day, 1 April, 24 and 25 December and 7 November, the day
+  v0.1.0 came out.
 - The tray menu has mute and leaving the Room while in one, and the options, besides quitting.
 - The system tab's advanced section has "뒤에 있을 때 메모리 비우기" (at once, 10 s, 1 min, never), kept
   under a key of this client's own. Behind another program, outside a Room, the window lets go of its

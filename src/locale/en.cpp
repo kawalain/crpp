@@ -211,6 +211,7 @@ const Strings english{
     .account_password_mismatch = "The passwords don't match.",
     .account_skip_question = "You can go on without an account, though some features may be limited.",
     .account_logout_in_room = "Logging out will leave the Room.\nLog out?",
+    .account_logout_guest = "Your Guest ID will be erased, so you'll start over next time.",
     .account_logout_question = "Log out?",
     .account_logout = "Log out",
 

@@ -357,6 +357,7 @@ void test_logout_from_home() {
   r.open_tab();
   CHECK(r.h.click(r.tab(), AccountTab::Logout));
   CHECK(r.h.app.dialogs().is_open());
+  CHECK(r.h.app.dialogs().text() == tr().account_logout_question);  // an account comes back by signing in
   CHECK(r.h.click(r.h.app.dialogs(), Dialogs::Cancel));
   CHECK(r.host.stored.token == "TOKEN");
   CHECK(r.h.app.view() == View::Home);
@@ -384,6 +385,9 @@ void test_logout_inside_a_room_says_so_and_leaves() {
   r.h.app.show_session("ABC234");
   r.open_tab();
   CHECK(r.h.click(r.tab(), AccountTab::Logout));
+  // A Guest ID cannot come back: the question says it goes, and starts on Cancel.
+  CHECK(r.h.app.dialogs().text() == std::string(tr().account_logout_guest) + "\n" + tr().account_logout_in_room);
+  CHECK(r.h.app.dialogs().opening_stop() == Dialogs::Cancel);
   CHECK(r.h.click(r.h.app.dialogs(), Dialogs::Confirm));
   CHECK(r.host.left_room == 1);
   CHECK(r.host.requests.empty());  // a Guest has no token to revoke

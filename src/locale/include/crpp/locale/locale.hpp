@@ -234,6 +234,8 @@ struct Strings {
   const char* account_password_mismatch;
   const char* account_skip_question;
   const char* account_logout_in_room;
+  // Logging out as a Guest: the Guest ID cannot come back.
+  const char* account_logout_guest;
   const char* account_logout_question;
   const char* account_logout;
 

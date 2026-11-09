@@ -216,6 +216,7 @@ constexpr Key keys[] = {
     KEY(account_password_mismatch),
     KEY(account_skip_question),
     KEY(account_logout_in_room),
+    KEY(account_logout_guest),
     KEY(account_logout_question),
     KEY(account_logout),
     KEY(tab_sound),

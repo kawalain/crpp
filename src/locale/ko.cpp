@@ -211,6 +211,7 @@ const Strings korean{
     .account_password_mismatch = "비밀번호가 일치하지 않아요.",
     .account_skip_question = "계정 없이도 쓸 수 있지만, 몇몇 기능은 못 쓸 수도 있어요.",
     .account_logout_in_room = "로그아웃하면 구름에서 나가요.\n정말 로그아웃할까요?",
+    .account_logout_guest = "게스트 ID가 지워져서 다음에는 처음부터 다시 시작해요.",
     .account_logout_question = "정말 로그아웃할까요?",
     .account_logout = "로그아웃",
 

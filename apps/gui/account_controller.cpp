@@ -174,7 +174,10 @@ void AccountController::random_nickname() {
 void AccountController::logout() {
   // A difference from upstream: it leaves the Room without saying so.
   const bool in_room = app_.base_view() == View::Session;
-  app_.dialogs().show({in_room ? tr().account_logout_in_room : tr().account_logout_question, tr().account_logout, tr().cancel, false,
+  std::string question = in_room ? tr().account_logout_in_room : tr().account_logout_question;
+  // An account comes back by signing in; a Guest ID does not come back at all.
+  if (!host_.identity().has_account()) question = std::string(tr().account_logout_guest) + "\n" + question;
+  app_.dialogs().show({std::move(question), tr().account_logout, tr().cancel, false,
                        [this, in_room] {
                          if (in_room) host_.leave_room();
                          // Best effort: the token is forgotten here either way.

@@ -6,7 +6,8 @@ repeat 5 if @stars {
   path "M5 0 6.2 3.8 10 5 6.2 6.2 5 10 3.8 6.2 0 5 3.8 3.8Z" (@W*sx, sy) color alpha(white, 0.9) scale size
 }
 // The Room's weather, from how busy it is: the sky darkens a step at a time, it rains from the third step and
-// lightning strikes in a storm. Nothing moves, so a step costs one frame.
+// lightning strikes in a storm. Nothing moves, so a step costs one frame. A light cloud only tints, as the text on
+// it is pale: greyed as the sky is, the names and the chat could no longer be read.
 let gloom = @weather==1 ? 0.14 : @weather==2 ? 0.26 : 0.4
 fill alpha(weather_sky, gloom) if @weather>0
 repeat 44 if @weather>=2 {
@@ -22,7 +23,7 @@ path "M14 0 4 16H11L7 30 20 11H13L18 0Z" (@W*0.1, 22) color bolt scale 1.5 if @w
   path "F1 M461 190A169 169 0 0 1 292 359A169 169 0 0 1 123 190A169 169 0 0 1 292 21A169 169 0 0 1 461 190Z M860 160A250 250 0 0 1 610 410A250 250 0 0 1 360 160A250 250 0 0 1 610 -90A250 250 0 0 1 860 160Z M1045 400A185 185 0 0 1 860 585A185 185 0 0 1 675 400A185 185 0 0 1 860 215A185 185 0 0 1 1045 400Z M330 405A180 180 0 0 1 150 585A180 180 0 0 1 -30 405A180 180 0 0 1 150 225A180 180 0 0 1 330 405Z M150 300H860V585H150Z"
       color room_cloud y 33 from_y 0 to_y 585
   path "F1 M461 190A169 169 0 0 1 292 359A169 169 0 0 1 123 190A169 169 0 0 1 292 21A169 169 0 0 1 461 190Z M860 160A250 250 0 0 1 610 410A250 250 0 0 1 360 160A250 250 0 0 1 610 -90A250 250 0 0 1 860 160Z M1045 400A185 185 0 0 1 860 585A185 185 0 0 1 675 400A185 185 0 0 1 860 215A185 185 0 0 1 1045 400Z M330 405A180 180 0 0 1 150 585A180 180 0 0 1 -30 405A180 180 0 0 1 150 225A180 180 0 0 1 330 405Z M150 300H860V585H150Z"
-      color alpha(weather_cloud, gloom*0.9) y 33 if @weather>0
+      color alpha(weather_cloud, gloom*(@dark ? 0.9 : 0.25)) y 33 if @weather>0
 }
 // What of the stage the window shows, and where the members and the chat go in it.
 let k = @scale

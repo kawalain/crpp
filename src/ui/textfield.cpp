@@ -14,6 +14,22 @@ namespace {
 
 bool is_control(wchar_t c) { return c < 0x20 || c == 0x7F; }
 
+bool is_low_surrogate(wchar_t c) { return c >= 0xDC00 && c <= 0xDFFF; }
+
+std::size_t code_points(std::wstring_view s) {
+  return static_cast<std::size_t>(std::ranges::count_if(s, [](wchar_t c) { return !is_low_surrogate(c); }));
+}
+
+// The first n code points of s, never half of a surrogate pair.
+std::wstring_view first_code_points(std::wstring_view s, std::size_t n) {
+  std::size_t end = 0;
+  for (std::size_t taken = 0; end < s.size() && taken < n; ++taken) {
+    ++end;
+    if (end < s.size() && is_low_surrogate(s[end])) ++end;
+  }
+  return s.substr(0, end);
+}
+
 // Whole UTF-16 code points only: never leave a caret between surrogates.
 std::size_t step(const std::wstring& s, std::size_t pos, int dir) {
   if (dir < 0) {
@@ -29,6 +45,8 @@ std::size_t step(const std::wstring& s, std::size_t pos, int dir) {
 }
 
 }  // namespace
+
+std::size_t TextField::length() const { return code_points(text_); }
 
 void TextField::set_text(std::wstring_view s) {
   text_.assign(s);
@@ -55,8 +73,9 @@ void TextField::insert(std::wstring_view s) {
   if (clean.empty()) return;
   if (has_selection()) erase_selection();
   if (max_length != 0) {
-    if (text_.size() >= max_length) return;
-    clean = clean.substr(0, max_length - text_.size());
+    const std::size_t used = length();
+    if (used >= max_length) return;
+    clean = first_code_points(clean, max_length - used);
   }
   text_.insert(caret_, clean);
   caret_ = anchor_ = caret_ + clean.size();

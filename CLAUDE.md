@@ -121,6 +121,7 @@ against a real `server/` yet; do that once a local build of it is available.
   when it closes; a question that cannot be undone starts on Cancel. A menu's access keys are underlined once
   Alt was pressed or when the menu opened from the keyboard, as in Windows; in Korean the letter is in the words too,
   as 복사(C).
+- The chat field counts characters as the server does, so an emoji is one, and from 30 left it shows how many.
 - A link in chat has a colour of its own, the Palette's `link`, where upstream's is the text's and shows only by
   an underline under the pointer.
 - The channel balance is explained: "자리에 따라 좌우로 듣기" and "좌우 차이", in words

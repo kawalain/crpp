@@ -45,7 +45,7 @@ bool chat_grouped(const ChatEntry& e, const ChatEntry* prev) {
 }  // namespace
 
 ChatPanel::ChatPanel(Ui& ui) : Surface(ui) {
-  input_.max_length = 200;
+  input_.max_length = max_message;
   input_.multiline = true;
 }
 

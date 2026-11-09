@@ -37,6 +37,7 @@ room-options
 room-text-menu
 room-text-menu-dark
 room-field-menu
+room-chat-left
 settings-sound
 settings-sound-dark
 settings-sound-effects

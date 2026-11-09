@@ -2,6 +2,7 @@
 // message. Rows keep their layouts while in view, so they stay the panel's to draw.
 #include <algorithm>
 #include <cmath>
+#include <string>
 
 #include "crpp/skin/draw.hpp"
 #include "crpp/ui/chat_panel.hpp"
@@ -11,12 +12,12 @@ namespace crpp::ui {
 
 namespace {
 
-enum TextId : int { InputText, CalmText };
-enum NumberId : int { Zoom, View, Content, Offset, SendOff, Calm, Shakes };
+enum TextId : int { InputText, CalmText, LeftText };
+enum NumberId : int { Zoom, View, Content, Offset, SendOff, Calm, Shakes, Left };
 enum NoteId : int { AreaNote, BarTrackNote };
 
-constexpr skin::Name text_names[] = {{"input_text", InputText}, {"calm_text", CalmText}};
-constexpr skin::Name number_names[] = {{"zoom", Zoom}, {"view", View}, {"content", Content}, {"offset", Offset}, {"send_off", SendOff}, {"calm", Calm}, {"shakes", Shakes}};
+constexpr skin::Name text_names[] = {{"input_text", InputText}, {"calm_text", CalmText}, {"left_text", LeftText}};
+constexpr skin::Name number_names[] = {{"zoom", Zoom}, {"view", View}, {"content", Content}, {"offset", Offset}, {"send_off", SendOff}, {"calm", Calm}, {"shakes", Shakes}, {"left", Left}};
 constexpr skin::Name field_names[] = {{"input", 0}};
 constexpr skin::Name slot_names[] = {{"messages", 0}, {"rows", 1}};
 constexpr skin::Name note_names[] = {{"area", AreaNote}, {"bar_track", BarTrackNote}};
@@ -35,9 +36,16 @@ void ChatPanel::paint_pack(Painter& p, const skin::Screen& screen, Rect panel) {
       const std::wstring text = s_.input_.shown();
       input_text_ = text.empty() ? std::string(" ") : narrow(text);
       if (s_.limiter_.calm()) s_.calm_text_ = s_.limiter_.calm_text();
+      left_text_ = std::to_string(s_.left());
     }
 
-    std::string_view text(int id, int) override { return id == InputText ? input_text_ : s_.calm_text_; }
+    std::string_view text(int id, int) override {
+      switch (id) {
+        case InputText: return input_text_;
+        case LeftText: return left_text_;
+        default: return s_.calm_text_;
+      }
+    }
 
     float number(int id, int) override {
       switch (id) {
@@ -48,6 +56,7 @@ void ChatPanel::paint_pack(Painter& p, const skin::Screen& screen, Rect panel) {
         case SendOff: return s_.input_.text().empty() || s_.limiter_.cooling() ? 1.0f : 0.0f;
         case Calm: return s_.limiter_.calm() ? 1.0f : 0.0f;
         case Shakes: return static_cast<float>(s_.shakes_);
+        case Left: return static_cast<float>(s_.left());
         default: return 0;
       }
     }
@@ -87,6 +96,7 @@ void ChatPanel::paint_pack(Painter& p, const skin::Screen& screen, Rect panel) {
     ChatPanel& s_;
     Painter& p_;
     std::string input_text_;
+    std::string left_text_;
   } shown(*this, p);
 
   SkinCanvas canvas(ui_, p, this);

@@ -151,6 +151,16 @@ bool scene(Shell& s, std::string_view name) {
     chat.input().select_all();
     return true;
   }
+  if (name == "room-chat-left") {  // a draft near the server's limit, with emoji counted as one
+    demo_session(s.app, true);
+    ChatPanel& chat = s.app.room().chat();
+    s.app.ui().set_focus(&chat, &chat.input());
+    std::wstring draft;
+    while (draft.size() < 172) draft += L"오늘 할 일을 정리했어요 ";
+    draft.resize(172);
+    chat.input().set_text(draft + L"📝");  // 173 characters, 27 left
+    return true;
+  }
   if (name == "room-options") {
     demo_session(s.app, true);
     s.app.ui().prefs->set(pref::pin_chat, true);

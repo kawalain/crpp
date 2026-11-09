@@ -113,6 +113,21 @@ void a_paste_past_the_maximum_is_cut() {
   CHECK(field.text() == L"abcd");
 }
 
+// The server keeps 200 characters, not 200 UTF-16 units: an emoji outside the BMP is one.
+void the_maximum_counts_characters() {
+  TextField field;
+  field.max_length = 3;
+  field.insert(L"😀😀");
+  CHECK(field.text().size() == 4);
+  CHECK(field.length() == 2);
+  field.paste(L"a😀b");
+  CHECK(field.text() == L"😀😀a");
+  // A pair is never cut in half.
+  field.set_text(L"ab");
+  field.insert(L"😀😀");
+  CHECK(field.text() == L"ab😀");
+}
+
 void a_password_gives_no_text_to_copy() {
   TextField field = with(L"secret", 0);
   field.select_all();
@@ -136,6 +151,7 @@ int main() {
   the_chat_input_keeps_line_breaks();
   a_compact_field_drops_spaces();
   a_paste_past_the_maximum_is_cut();
+  the_maximum_counts_characters();
   a_password_gives_no_text_to_copy();
   return crpp_test_result();
 }

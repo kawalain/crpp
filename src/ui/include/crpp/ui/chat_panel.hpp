@@ -71,6 +71,9 @@ bool stop_key(int id, unsigned vk, bool ctrl, bool shift, bool alt) override;
   [[nodiscard]] std::size_t shown() const { return rows_.size(); }
   [[nodiscard]] const ChatLimiter& limiter() const { return limiter_; }
   [[nodiscard]] TextField& input() { return input_; }
+  // What can still be written, in characters as the server counts them.
+  [[nodiscard]] int left() const { return static_cast<int>(max_message) - static_cast<int>(input_.length()); }
+  static constexpr std::size_t max_message = 200;  // the server keeps no more
   [[nodiscard]] float scroll_offset() const { return scroll_.offset; }
   [[nodiscard]] const HoverTip& link_tip() const { return link_tip_; }
 

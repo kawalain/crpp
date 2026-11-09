@@ -221,6 +221,7 @@ style chat_input size 17 line_height 22 wrap
 style chat_body size 17 line_height 19 wrap
 style chat_time size 14 line_height 20 align right
 style chat_nick size 15 line_height 20 ellipsis
+style chat_left size 12 weight 700 line_height 10 align right
 style calm size 34 weight 800 line_height 34*1.35
 style note_title size 28 weight 800 line_height 36 wrap
 style note_date size 17 line_height 24 wrap

@@ -13,7 +13,7 @@ namespace crpp::ui {
 
 class TextField {
  public:
-  std::size_t max_length = 0;  // 0 = unlimited (UTF-16 units)
+  std::size_t max_length = 0;  // 0 = unlimited; counts characters (code points), as the server does
   bool uppercase = false;
   bool lowercase = false;
   bool (*accept)(wchar_t) = nullptr;  // when set, what it refuses cannot be typed
@@ -22,6 +22,8 @@ class TextField {
   bool compact = false;    // pasted spaces and line breaks are dropped, as in a code
 
   [[nodiscard]] const std::wstring& text() const { return text_; }
+  // Characters (code points) in the text, the unit of max_length.
+  [[nodiscard]] std::size_t length() const;
   void set_text(std::wstring_view s);
   void clear() { set_text({}); }
 

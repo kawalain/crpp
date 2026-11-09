@@ -1,5 +1,7 @@
 let field_w = @W-button_w-6
-let input_h = min(100, max(52, ceil(texth(chat_text, @input_text, field_w-8))+8))
+// Near the end, how many more characters the server keeps, at the field's right.
+let left_w = @left<=30 ? ceil(textw(body_right, @left_text))+6 : 0
+let input_h = min(100, max(52, ceil(texth(chat_text, @input_text, field_w-8-left_w))+8))
 // The messages.
 note area h @H-input_h-6 {
   use field
@@ -15,8 +17,9 @@ note area h @H-input_h-6 {
 hit input y @H-input_h w field_w h input_h {
   use field
   (1, 1, @W-2, @H-2) clip {
-    field input (3, 3, @W-6, @H-6) style chat_text color ink placeholder @tr.chat_placeholder placeholder_color ink_soft
+    field input (3, 3, @W-6-left_w, @H-6) style chat_text color ink placeholder @tr.chat_placeholder placeholder_color ink_soft
         caret ink selection selection
+    text @left_text (@W-left_w, @H-19, left_w-3, 16) style body_right color ink_soft if left_w>0
   }
 }
 use button(off = @send_off) (@W-button_w, @H-input_h, button_w, input_h) id send text @tr.chat_send hit send

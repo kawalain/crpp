@@ -11,6 +11,8 @@ hit input (5, @H-4-input_h, @W-11, input_h) {
   fill hl_mid radius 8
   field input (17, 10, text_w, input_h-20) style chat_input color ink placeholder @tr.chat_placeholder
       placeholder_color alpha(ink, 0.85) caret ink selection alpha(hl, 0.4)
+  // Near the end, how many more characters the server keeps.
+  text @left_text (0, 1, @W-10, 10) style chat_left color alpha(ink, 0.8) if @left<=30
 }
 // @keyframes chat-shake.
 let shake = ease(1, 420ms) first jump again @shakes curve linear

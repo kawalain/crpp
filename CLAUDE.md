@@ -278,6 +278,9 @@ The script imports the developer environment (vcvars) into bash; `cl` is not on 
 The app is a Windows-subsystem program with no console, which Git Bash waits for; read `--smoke`'s
 result from the exit code. `build-msvc/apps/gui/crpp_hidden_run.exe <seconds> <exe> <args...>` runs
 it on a hidden desktop, ends it after that many seconds with 124, and otherwise returns its code.
+The desktop stays for two minutes after the last run, held by a windowless `crpp_hidden_run --hold`:
+every desktop made and destroyed leaves composition objects in dwm.exe and the kernel that only a
+restart frees, and one per scene slowed dwm.exe down over a day of renders.
 
 Options are read from the end of the command line: `crpp --shot <png> <size> <hour> <scene>
 --data <dir>`. Put first, `--data` is ignored and the real app opens on the user's desktop.

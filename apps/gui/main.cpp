@@ -133,7 +133,7 @@ int main(int argc, char** argv) {
     // A Repository signed with this build's key, as a test key makes possible.
     std::string url = argv[argc - 1];
     if (!url.ends_with('/')) url += '/';
-    if (const auto key = update::built_in_key()) shell.repository = assets::Repository{std::move(url), "", *key};
+    if (const auto key = update::built_in_key()) shell.repository = assets::Repository{std::move(url), "", *key, std::string(assets::official_catalog_name())};
     argc -= 2;
   }
   std::filesystem::path skin_dir;

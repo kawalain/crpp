@@ -163,8 +163,9 @@ int main(int argc, char** argv) {
                        ? std::expected<store::Locations, store::Error>(beside_exe)
                        : store::default_locations();
   if (!locations) locations = beside_exe;
-  // A development build runs from the folders its build put beside it, and installs nothing.
-  const bool assets_beside_exe = std::filesystem::exists(exe_dir() / "assets" / assets::catalog_name);
+  // A development build runs from the folders its build put beside it, and installs nothing. An official
+  // one never does: those files are signed by nobody, and anyone could leave them beside a downloaded exe.
+  const bool assets_beside_exe = !update::official_build() && std::filesystem::exists(exe_dir() / "assets" / assets::catalog_name);
   shell.assets_dir = assets_beside_exe ? exe_dir() / "assets" : locations->protected_dir / "assets";
   shell.skins_dir = assets_beside_exe ? exe_dir() / "skins" : shell.assets_dir / "skins";
   shell.repositories_dir = locations->protected_dir / "repositories";

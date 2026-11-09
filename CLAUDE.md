@@ -309,9 +309,9 @@ the default server. A running exe cannot be linked over (LNK1104): build into an
 `serverUrl` in it skips the startup `/health`, so scripted runs stay off the default
 server; seed `serverUrl` in its `crpp/settings.json` to test the offline popup. That covers only
 `/health`: a click on creating or joining a Room still goes to the default server, which is production,
-so a run that clicks needs a `serverUrl` on localhost. An exe with an
+so a run that clicks needs a `serverUrl` on localhost. A development build with an
 `assets/` folder holding a `catalog.txt` beside it, as every build has, runs from that folder and
-`skins/` and installs nothing. To test installing, build with `-DCRPP_UPDATE_TEST_KEY=<hex>`, write a
+`skins/` and installs nothing; an official build never reads them, as nobody signed them. To test installing, build with `-DCRPP_UPDATE_TEST_KEY=<hex>`, write a
 Repository with `crpp_catalog`, sign it with `.github/scripts/sign-catalog.sh` and the test key's file, serve it
 on localhost and copy the exe elsewhere: `--asset-url <folder>` uses it, signed with the build's key.
 Rebuild without the test key afterwards.

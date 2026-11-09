@@ -233,7 +233,8 @@ void show_menu(Shell& s, int x, int y) {
     AppendMenuW(menu, MF_STRING | mini, mini_item, ui::widen(tr().mini_open).c_str());
     AppendMenuW(menu, MF_SEPARATOR, 0, nullptr);
   }
-  AppendMenuW(menu, MF_STRING, options_item, ui::widen(tr().room_options).c_str());
+  // Named as the Skin names the panel: Retro's window is 옵션, Cloud's panel 설정.
+  AppendMenuW(menu, MF_STRING, options_item, ui::widen(s.app.own_frame() ? tr().room_options : tr().tip_settings).c_str());
   AppendMenuW(menu, MF_SEPARATOR, 0, nullptr);
   AppendMenuW(menu, MF_STRING, exit_item, ui::widen(tr().tray_exit).c_str());
   // Without both of these the menu does not close on a click elsewhere, or closes

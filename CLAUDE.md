@@ -131,7 +131,7 @@ against a real `server/` yet; do that once a local build of it is available.
 - The chat field counts characters as the server does, so an emoji is one, and from 30 left it shows how many.
 - A link in chat has a colour of its own, the Palette's `link`, where upstream's is the text's and shows only by
   an underline under the pointer.
-- The channel balance is explained: "자리에 따라 좌우로 듣기" and "좌우 차이", in words
+- The channel balance is explained: "위치에 따라 좌우로 듣기" and "좌우 차이", in words
   instead of a ratio, and locked while virtual surround is off, when it changes nothing.
   Its settings keys are upstream's, but a value means more: straight to the side, 60 is 6 dB
   between the ears and 90 is 19 dB, so the default can be heard. The same value sounds weaker in

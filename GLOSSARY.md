@@ -20,7 +20,7 @@
 
 **Pen** (타블렛): a stylus used on a drawing tablet or pen display. "Pen" is the canonical term; "타블렛" is only the label users see.
 
-**Desk**: where a member's sound comes from in the virtual office one listener hears. Each listener arranges the members at Desks for themselves, so a member's Desk differs between listeners. Not a Seat, which is the same for everyone.
+**Desk** (위치): where a member's sound comes from in the virtual office one listener hears. Each listener arranges the members at Desks for themselves, so a member's Desk differs between listeners. Not a Seat, which is the same for everyone.
 
 **Virtual surround** (가상 서라운드): placing each member's sound around the listener by their Desk. Without it every member sounds centred.
 

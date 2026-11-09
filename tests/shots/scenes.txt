@@ -12,6 +12,8 @@ home-dark
 home-pastel
 home-hover
 home-hover-enter
+home-public
+home-public-none
 home-hover-droplet
 home-returning
 home-return

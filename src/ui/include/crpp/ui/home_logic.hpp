@@ -57,4 +57,26 @@ struct HeldSeat {
   return {Entry::Kind::Resume, std::move(latest->code), std::move(latest->key)};
 }
 
+// How many public Rooms are open, from GET /health's plain text: "ok", "rooms=<n>" (the private
+// ones) and "public_rooms=<n>", a line each. Nothing for an answer without that line.
+[[nodiscard]] inline std::optional<int> public_rooms_in_health(std::string_view body) {
+  constexpr std::string_view key = "public_rooms=";
+  while (!body.empty()) {
+    const std::size_t end = body.find('\n');
+    std::string_view line = body.substr(0, end);
+    body = end == std::string_view::npos ? std::string_view{} : body.substr(end + 1);
+    if (!line.empty() && line.back() == '\r') line.remove_suffix(1);
+    if (!line.starts_with(key)) continue;
+    line.remove_prefix(key.size());
+    if (line.empty() || line.size() > 9) return std::nullopt;
+    int n = 0;
+    for (const char c : line) {
+      if (c < '0' || c > '9') return std::nullopt;
+      n = n * 10 + (c - '0');
+    }
+    return n;
+  }
+  return std::nullopt;
+}
+
 }  // namespace crpp::ui::home

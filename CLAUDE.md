@@ -147,7 +147,8 @@ against a real `server/` yet; do that once a local build of it is available.
   the Room is still connected, because input timing keeps being shared.
 - Reachability is not polled in the background. `GET /health` runs at startup, after a
   connection that failed without reaching the server, and every 5 s while the offline
-  popup is up. A server lost while on Home shows at the next attempt.
+  popup is up. A server lost while on Home shows at the next attempt. Its answer's count of
+  public Rooms is shown under the search, and coming back to Home asks once more for it.
 - Reconnecting backs off and gives up at the server's grace instead of retrying every
   3 s forever; it does not ask `/health` first. A connection error names no reason in
   parentheses, because the transport reports none.

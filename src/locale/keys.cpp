@@ -178,6 +178,8 @@ constexpr Key keys[] = {
     KEY(home_seats),
     KEY(home_seats_empty),
     KEY(home_seat_left),
+    KEY(home_public_open),
+    KEY(home_public_none),
     KEY(home_tasks),
     KEY(room_contacts),
     KEY(room_options),

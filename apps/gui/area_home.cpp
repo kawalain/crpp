@@ -31,6 +31,7 @@ void wire(Shell& s) {
   Shell* sp = &s;
   HomeScreen& home = s.app.home();
   home.busy = [sp] { return !sp->bridge->idle(); };
+  home.on_shown = [sp] { area::connection::count_public_rooms(*sp); };
   home.on_create = [sp] {
     const Prefs& prefs = *sp->app.ui().prefs;
     sp->bridge->entering();
@@ -91,6 +92,10 @@ bool scene(Shell& s, std::string_view name) {
   if (name == "home-hover-droplet") {
     s.app.ui().hover_owner = &s.app.settings();
     s.app.ui().hover_id = SettingsPanel::Droplet;
+    return true;
+  }
+  if (name == "home-public" || name == "home-public-none") {  // as /health answered
+    s.app.home().set_public_rooms(name == "home-public" ? 3 : 0);
     return true;
   }
   if (name == "home-returning") {

@@ -8,13 +8,13 @@ namespace crpp::ui {
 
 namespace {
 
-enum TextId : int { Nickname, Greeting, Seat, Hello, SeatLeft };
-enum NumberId : int { Seats, Returning, CodeFocus, FindTip };
+enum TextId : int { Nickname, Greeting, Seat, Hello, SeatLeft, PublicRoomsText };
+enum NumberId : int { Seats, Returning, CodeFocus, FindTip, PublicRooms };
 enum PictureId : int { MyEmoji };
 enum FieldId : int { CodeField };
 
-constexpr skin::Name text_names[] = {{"nickname", Nickname}, {"greeting", Greeting}, {"seat", Seat}, {"hello", Hello}, {"seat_left", SeatLeft}};
-constexpr skin::Name number_names[] = {{"seats", Seats}, {"returning", Returning}, {"code_focus", CodeFocus}, {"find_tip", FindTip}};
+constexpr skin::Name text_names[] = {{"nickname", Nickname}, {"greeting", Greeting}, {"seat", Seat}, {"hello", Hello}, {"seat_left", SeatLeft}, {"public_rooms_text", PublicRoomsText}};
+constexpr skin::Name number_names[] = {{"seats", Seats}, {"returning", Returning}, {"code_focus", CodeFocus}, {"find_tip", FindTip}, {"public_rooms", PublicRooms}};
 constexpr skin::Name picture_names[] = {{"my_emoji", MyEmoji}};
 constexpr skin::Name field_names[] = {{"code", CodeField}};
 constexpr skin::Name hit_names[] = {{"create", HomeScreen::Create}, {"join", HomeScreen::Join}, {"code", HomeScreen::Code}, {"find", HomeScreen::Find}, {"seat", HomeScreen::SeatBase}};
@@ -62,6 +62,9 @@ void HomeScreen::paint_pack(Painter& p, const skin::Screen& screen) {
     Shown(HomeScreen& home, Painter& painter) : home_(home), p_(painter) {
       if (home_.held_seats) seats_ = home_.held_seats();
       for (const HeldSeatShown& seat : seats_) lefts_.push_back(seat_time_left(seat.left_ms));
+      if (const auto open = home_.public_rooms_) {
+        public_rooms_ = *open == 0 ? std::string(tr().home_public_none) : locale::fill(tr().home_public_open, {std::to_string(*open)});
+      }
       hello_ = locale::fill(tr().home_hello, {home_.nickname_});
     }
 
@@ -80,6 +83,7 @@ void HomeScreen::paint_pack(Painter& p, const skin::Screen& screen) {
           return lefts_[static_cast<std::size_t>(index)];
         }
         case Hello: return hello_;
+        case PublicRoomsText: return public_rooms_;
         default: return {};
       }
     }
@@ -90,6 +94,7 @@ void HomeScreen::paint_pack(Painter& p, const skin::Screen& screen) {
         case Returning: return home_.returning() ? 1.0f : 0.0f;
         case CodeFocus: return home_.ui_.focus == &home_.code_ ? 1.0f : 0.0f;
         case FindTip: return home_.tip_wanted(home_.ui_.now_ms) ? 1.0f : 0.0f;
+        case PublicRooms: return home_.public_rooms_ ? static_cast<float>(*home_.public_rooms_) : -1.0f;
         default: return 0;
       }
     }
@@ -111,6 +116,7 @@ void HomeScreen::paint_pack(Painter& p, const skin::Screen& screen) {
     std::vector<HeldSeatShown> seats_;
     std::string hello_;
     std::vector<std::string> lefts_;
+    std::string public_rooms_;
   } shown(*this, p);
 
   SkinCanvas canvas(ui_, p, this);

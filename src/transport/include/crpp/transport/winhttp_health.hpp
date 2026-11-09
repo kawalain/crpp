@@ -1,8 +1,10 @@
 #pragma once
-// One question to the server: does GET /health answer with success? Blocking, so a
-// caller runs it off the UI thread. Upstream gives the answer 5 s.
+// One question to the server: does GET /health answer with success, and with what? Blocking,
+// so a caller runs it off the UI thread. Upstream gives the answer 5 s.
 #include <chrono>
 #include <mutex>
+#include <optional>
+#include <string>
 
 #include "crpp/transport/target.hpp"
 
@@ -17,7 +19,9 @@ class WinHttpHealth {
   WinHttpHealth& operator=(const WinHttpHealth&) = delete;
 
   // False for anything but a 2xx answer, and after cancel().
-  [[nodiscard]] bool reachable(const Target& target);
+  [[nodiscard]] bool reachable(const Target& target) { return ask(target).has_value(); }
+  // The body of a 2xx answer, its first KB, or nothing for anything else and after cancel().
+  [[nodiscard]] std::optional<std::string> ask(const Target& target);
   // Any thread: a running reachable() returns soon, and later ones at once.
   void cancel();
 

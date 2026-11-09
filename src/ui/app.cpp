@@ -276,6 +276,7 @@ void App::show_home() {
   } else {
     view_ = View::Home;
     ui_.set_focus(nullptr, nullptr);
+    if (from != View::Home && home_.on_shown) home_.on_shown();
   }
   view_left(from);
   // The Room stays as it was while it fades out.

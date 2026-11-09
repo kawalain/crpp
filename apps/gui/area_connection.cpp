@@ -1,11 +1,14 @@
 #include <memory>
 #include <mutex>
+#include <optional>
+#include <string>
 #include <thread>
 
 #include "areas.hpp"
 #include "crpp/transport/target.hpp"
 #include "crpp/transport/winhttp_health.hpp"
 #include "crpp/ui/connection_feedback.hpp"
+#include "crpp/ui/home_logic.hpp"
 #include "shell.hpp"
 
 using namespace crpp::ui;
@@ -14,11 +17,12 @@ namespace crpp::gui {
 
 namespace {
 
-// One short-lived thread per question: a blocked WinHTTP call must not hold the UI.
-class WorkerProbe final : public HealthProbe {
+// One short-lived thread per question: a blocked WinHTTP call must not hold the UI. The answer's
+// body, or nothing, reaches `done` on the UI thread. Never started again until `done` has run.
+class HealthWorker {
  public:
-  explicit WorkerProbe(Shell& s) : s_(s) {}
-  ~WorkerProbe() override {
+  explicit HealthWorker(Shell& s) : s_(s) {}
+  ~HealthWorker() {
     {
       std::lock_guard lock(mutex_);
       closing_ = true;
@@ -26,8 +30,10 @@ class WorkerProbe final : public HealthProbe {
     }
     if (thread_.joinable()) thread_.join();
   }
+  HealthWorker(const HealthWorker&) = delete;
+  HealthWorker& operator=(const HealthWorker&) = delete;
 
-  void start(std::function<void(bool)> done) override {
+  void start(std::function<void(std::optional<std::string>)> done) {
     if (thread_.joinable()) thread_.join();  // it posted its answer and is ending
     auto health = std::make_shared<transport::WinHttpHealth>();
     {
@@ -37,8 +43,8 @@ class WorkerProbe final : public HealthProbe {
     }
     thread_ = std::thread([this, health, url = s_.config.server_url, done = std::move(done)]() mutable {
       const auto target = transport::make_health_target(url);
-      const bool reachable = target && health->reachable(*target);
-      s_.tasks.post([done = std::move(done), reachable] { done(reachable); });
+      std::optional<std::string> body = target ? health->ask(*target) : std::nullopt;
+      s_.tasks.post([done = std::move(done), body = std::move(body)]() mutable { done(std::move(body)); });
     });
   }
 
@@ -50,12 +56,31 @@ class WorkerProbe final : public HealthProbe {
   std::thread thread_;
 };
 
+// Whether the server is there. Its answer also tells Home how many public Rooms are open, so
+// startup needs no second question for that.
+class WorkerProbe final : public HealthProbe {
+ public:
+  explicit WorkerProbe(Shell& s) : s_(s), worker_(s) {}
+  void start(std::function<void(bool)> done) override {
+    worker_.start([this, done = std::move(done)](std::optional<std::string> body) {
+      if (body) s_.app.home().set_public_rooms(ui::home::public_rooms_in_health(*body));
+      done(body.has_value());
+    });
+  }
+
+ private:
+  Shell& s_;
+  HealthWorker worker_;
+};
+
 }  // namespace
 
 struct ConnectionArea {
-  explicit ConnectionArea(Shell& s) : probe(s), feedback(s.app, probe) {}
+  explicit ConnectionArea(Shell& s) : probe(s), feedback(s.app, probe), counter(s) {}
   WorkerProbe probe;
   ConnectionFeedback feedback;
+  HealthWorker counter;  // how many public Rooms, apart from whether the server is there
+  bool counting = false;
 };
 
 }  // namespace crpp::gui
@@ -87,6 +112,17 @@ void check_server(Shell& s, std::function<void()> then) {
 }
 
 void server_unreachable(Shell& s) { s.connection->feedback.server_unreachable(); }
+
+void count_public_rooms(Shell& s) {
+  if (s.throwaway_data && s.store->string_or("serverUrl", "").empty()) return;
+  if (s.connection->counting) return;
+  s.connection->counting = true;
+  Shell* sp = &s;
+  s.connection->counter.start([sp](std::optional<std::string> body) {
+    sp->connection->counting = false;
+    sp->app.home().set_public_rooms(body ? ui::home::public_rooms_in_health(*body) : std::nullopt);
+  });
+}
 
 namespace {
 

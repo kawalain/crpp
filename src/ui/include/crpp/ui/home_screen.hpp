@@ -51,6 +51,11 @@ class HomeScreen final : public Surface {
   // a Skin that shows them.
   std::function<std::vector<HeldSeatShown>()> held_seats;
   std::function<std::string()> my_emoji;
+  // Home came on screen, from anywhere else.
+  std::function<void()> on_shown;
+  // How many public Rooms the server says are open; nothing when it was not asked or did not say.
+  void set_public_rooms(std::optional<int> n) { public_rooms_ = n; }
+  [[nodiscard]] std::optional<int> public_rooms() const { return public_rooms_; }
 
   void set_nickname(std::string nickname) { nickname_ = std::move(nickname); }
   void set_hour(int hour) { hour_ = hour; }  // 0-23, for the greeting
@@ -106,6 +111,7 @@ class HomeScreen final : public Surface {
   void note_time_left(std::uint64_t left_ms);
   void after_drawing_times(unsigned long long now) { minute_wake_ = next_minute_ms_ == 0 ? 0 : now + next_minute_ms_; }
   bool return_open_ = false;
+  std::optional<int> public_rooms_;
   unsigned long long tip_muted_until_ = 0;  // a bubble is where the search label would be
 };
 

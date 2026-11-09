@@ -197,6 +197,8 @@ struct Strings {
   const char* home_seats;
   const char* home_seats_empty;
   const char* home_seat_left;  // {0} minutes until a held Seat is let go
+  const char* home_public_open;  // {0} public Rooms open now
+  const char* home_public_none;
   const char* home_tasks;
   const char* room_contacts;
   const char* room_options;

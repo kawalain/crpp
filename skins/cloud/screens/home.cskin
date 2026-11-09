@@ -27,6 +27,8 @@ let faint = @dark ? hl_text_soft : alpha(white, 0.85)
         color mix(@dark ? hl_text_dark : hl_text, @dark ? hl_text_soft : faint, over) scale 32/44 width 3
   }
 }
+// How many public Rooms are open, under the search, when the server said.
+text @public_rooms_text (705, 606, 200, 20) style modal_note color alpha(hl_text, 0.85) if @public_rooms>=0
 // Public room search. A held Seat lights it.
 hit find (759, 522, 92, 80) {
   let over = ease(@hot, 150ms)

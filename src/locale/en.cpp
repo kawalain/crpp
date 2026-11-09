@@ -175,6 +175,8 @@ const Strings english{
     .home_seats = "Seats to go back to",
     .home_seats_empty = "There's no Room to go back to.",
     .home_seat_left = "{0} min left",
+    .home_public_open = "{0} open now",
+    .home_public_none = "None open right now",
     .home_tasks = "I want to",
     .room_contacts = "To: {0}",
     .room_options = "Options",

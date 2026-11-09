@@ -9,6 +9,16 @@ using test::UiHarness;
 
 namespace {
 
+void test_public_rooms_are_read_from_health() {
+  CHECK(home::public_rooms_in_health("ok\nrooms=12\npublic_rooms=3") == 3);
+  CHECK(home::public_rooms_in_health("ok\r\nrooms=0\r\npublic_rooms=0\r\n") == 0);
+  CHECK(home::public_rooms_in_health("ok") == std::nullopt);
+  CHECK(home::public_rooms_in_health("ok\npublic_rooms=") == std::nullopt);
+  CHECK(home::public_rooms_in_health("ok\npublic_rooms=-1") == std::nullopt);
+  CHECK(home::public_rooms_in_health("ok\npublic_rooms=9999999999") == std::nullopt);
+  CHECK(home::public_rooms_in_health("") == std::nullopt);
+}
+
 void test_code_is_trimmed_and_upper_case() {
   CHECK(home::normalize_code(L"abc234") == L"ABC234");
   CHECK(home::normalize_code(L"ABC234") == L"ABC234");
@@ -66,6 +76,21 @@ void test_search_finds_a_public_room() {
   h.app.home().on_find_public = [&] { ++found; };
   CHECK(h.click(h.app.home(), HomeScreen::Find));
   CHECK(found == 1);
+}
+
+// Coming back to Home asks the server again how many public Rooms are open; staying on it does not.
+void test_coming_home_asks_once() {
+  UiHarness h;
+  CHECK(h.start());
+  int shown = 0;
+  h.app.home().on_shown = [&] { ++shown; };
+  h.app.show_home();
+  CHECK(shown == 0);
+  h.app.show_session("ABC234");
+  h.app.show_home();
+  CHECK(shown == 1);
+  h.app.show_home();
+  CHECK(shown == 1);
 }
 
 void test_busy_buttons_do_nothing() {
@@ -296,10 +321,12 @@ int main() {
   test_seat_gone_goes_straight_to_random();
   test_seat_expiry_needs_no_paint_and_no_spinning();
   test_code_is_trimmed_and_upper_case();
+  test_public_rooms_are_read_from_health();
   test_entry_for_code();
   test_join_on_enter_and_on_the_arrow();
   test_short_code_does_not_join();
   test_search_finds_a_public_room();
+  test_coming_home_asks_once();
   test_busy_buttons_do_nothing();
   return crpp_test_result();
 }

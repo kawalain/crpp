@@ -29,6 +29,9 @@ void wire(Shell& s);
 void check_server(Shell& s, std::function<void()> then);
 // An HTTP API call failed on the network: asks, and shows the popup if the server is gone.
 void server_unreachable(Shell& s);
+// Asks /health how many public Rooms are open, for Home to say. One question at a time; none
+// where startup's question is skipped too.
+void count_public_rooms(Shell& s);
 }  // namespace connection
 
 namespace home {  // create, join, find a public Room, return to a Seat

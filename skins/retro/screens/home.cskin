@@ -30,6 +30,8 @@ id tasks y @H-66 h 66 {
   use link (28, 24, @W-38, 18) text @tr.home_create hit create
   fill link (14, 48, 8, 8)
   use link (28, 43, @W-38, 18) text @tr.home_find_public hit find
+  // How many are open, when the server said.
+  text @public_rooms_text (40+textw(body, @tr.home_find_public), 43, @W-50, 18) style body color ink_soft if @public_rooms>=0
 }
 // The Seats to go back to.
 text @tr.home_seats (10, find.bottom+16, @W-20, 16) id seats_title style bold color ink

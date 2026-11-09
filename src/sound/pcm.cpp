@@ -12,6 +12,7 @@ namespace crpp::sound {
 namespace {
 
 constexpr std::uint16_t format_pcm = 1, format_float = 3, format_extensible = 0xFFFE;
+constexpr std::uint32_t min_rate = 8000, max_rate = 192000;
 
 std::uint16_t u16(const std::uint8_t* p) noexcept { return static_cast<std::uint16_t>(p[0] | p[1] << 8); }
 std::uint32_t u32(const std::uint8_t* p) noexcept {
@@ -89,7 +90,9 @@ std::expected<Pcm, WavError> parse_wav(std::span<const std::uint8_t> bytes) {
     pos += 8 + size + (size & 1);  // chunks are padded to an even size
   }
   if (!have_format) return std::unexpected(WavError::BadFormat);
-  if (channels == 0 || rate == 0 || block != channels * bits / 8) return std::unexpected(WavError::BadFormat);
+  // Real recordings lie between telephone and studio rates. Outside them the resampler's kernel and
+  // output, sized by the ratio, could ask for more memory than there is.
+  if (channels == 0 || rate < min_rate || rate > max_rate || block != channels * bits / 8) return std::unexpected(WavError::BadFormat);
   const bool pcm_ok = format == format_pcm && (bits == 8 || bits == 16 || bits == 24 || bits == 32);
   const bool float_ok = format == format_float && bits == 32;
   if (!pcm_ok && !float_ok) return std::unexpected(WavError::Unsupported);

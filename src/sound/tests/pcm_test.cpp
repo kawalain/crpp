@@ -90,6 +90,12 @@ void rejects_bad_files() {
   CHECK(parse_wav(text).error() == WavError::NotWav);
   CHECK(parse_wav(wav(1, 0, 44100, 16, {0, 0})).error() == WavError::BadFormat);
   CHECK(parse_wav(wav(1, 1, 0, 16, {0, 0})).error() == WavError::BadFormat);
+  // A pack is data from anywhere: a rate far from real ones would size the resampler past memory.
+  CHECK(parse_wav(wav(1, 1, 1, 16, {0, 0})).error() == WavError::BadFormat);
+  CHECK(parse_wav(wav(1, 1, 7999, 16, {0, 0})).error() == WavError::BadFormat);
+  CHECK(parse_wav(wav(1, 1, 192001, 16, {0, 0})).error() == WavError::BadFormat);
+  CHECK(parse_wav(wav(1, 1, 4294967291u, 16, {0, 0})).error() == WavError::BadFormat);
+  CHECK(parse_wav(wav(1, 1, 192000, 16, {0, 0})).has_value());
   CHECK(parse_wav(wav(2, 1, 44100, 16, {0, 0})).error() == WavError::Unsupported);
   CHECK(parse_wav(wav(1, 1, 44100, 12, {0, 0})).error() == WavError::Unsupported);
   CHECK(parse_wav(wav(1, 1, 44100, 16, {})).error() == WavError::NoData);

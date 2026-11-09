@@ -71,20 +71,20 @@ constexpr skin::Name notify_numbers[] = {{"tray", TrayN}, {"flash", FlashN}, {"s
 constexpr skin::Name notify_hits[] = {{"tray", NotifyTab::TrayToggle}, {"flash", NotifyTab::FlashToggle}, {"mention", NotifyTab::MentionToggle}, {"sound", NotifyTab::SoundBase}, {"preview", NotifyTab::PreviewBase}};
 
 // --- system ---
-enum SystemText : int { RepoAddressT, RepoFingerprintT, RepoStatusT, PackNameT, PackDetailT };
+enum SystemText : int { RepoAddressT, RepoFingerprintT, RepoStatusT, PackNameT, PackDetailT, ServerStatusT };
 constexpr skin::Name system_texts[] = {{"repo_address", RepoAddressT}, {"repo_fingerprint", RepoFingerprintT}, {"repo_status", RepoStatusT},
-                                       {"pack_name", PackNameT}, {"pack_detail", PackDetailT}};
-enum SystemNumber : int { AutostartN, SystemTrayN, DetailN, LoggingN, RepositoriesN, RepoOfficialN, RepoStateN, AddressFocusN, AddressEmptyN, PacksN, PackRemovableN, PackHeldN };
+                                       {"pack_name", PackNameT}, {"pack_detail", PackDetailT}, {"server_status", ServerStatusT}};
+enum SystemNumber : int { AutostartN, SystemTrayN, DetailN, LoggingN, RepositoriesN, RepoOfficialN, RepoStateN, AddressFocusN, AddressEmptyN, PacksN, PackRemovableN, PackHeldN, ServerStateN, ServerFocusN, ServerEmptyN };
 constexpr skin::Name system_numbers[] = {{"autostart", AutostartN}, {"tray", SystemTrayN}, {"detail", DetailN}, {"logging", LoggingN},
                                          {"repositories", RepositoriesN}, {"repo_official", RepoOfficialN}, {"repo_state", RepoStateN},
                                          {"address_focus", AddressFocusN}, {"address_empty", AddressEmptyN}, {"packs", PacksN}, {"pack_removable", PackRemovableN},
-                                         {"pack_held", PackHeldN}};
-enum SystemSlot : int { ReleaseSlot, AddressSlot, FingerprintSlot };
-constexpr skin::Name system_slots[] = {{"release_list", ReleaseSlot}, {"address", AddressSlot}, {"fingerprint", FingerprintSlot}};
+                                         {"pack_held", PackHeldN}, {"server_state", ServerStateN}, {"server_focus", ServerFocusN}, {"server_empty", ServerEmptyN}};
+enum SystemSlot : int { ReleaseSlot, AddressSlot, FingerprintSlot, ServerSlot };
+constexpr skin::Name system_slots[] = {{"release_list", ReleaseSlot}, {"address", AddressSlot}, {"fingerprint", FingerprintSlot}, {"server", ServerSlot}};
 constexpr skin::Name system_hits[] = {{"autostart", SystemTab::Autostart}, {"tray", SystemTab::Tray}, {"detail", SystemTab::Detail}, {"logging", SystemTab::Logging},
                                       {"open_logs", SystemTab::OpenLogs}, {"reset", SystemTab::Reset}, {"address", SystemTab::Address},
                                       {"add_repository", SystemTab::AddRepository}, {"remove_repository", SystemTab::RemoveRepository},
-                                      {"open_repository", SystemTab::OpenRepository},
+                                      {"open_repository", SystemTab::OpenRepository}, {"server", SystemTab::Server}, {"apply_server", SystemTab::ApplyServer},
                                       {"remove_pack", SystemTab::RemovePack}, {"update_pack", SystemTab::UpdatePack}};
 
 // --- account ---
@@ -482,7 +482,7 @@ void SystemTab::paint_pack(Painter& p, const skin::Screen& screen, Rect area) {
 
   class Shown final : public skin::Source {
    public:
-    Shown(SystemTab& tab, Painter& painter) : s_(tab), p_(painter), status_(tab.status_text()) {
+    Shown(SystemTab& tab, Painter& painter) : s_(tab), p_(painter), status_(tab.status_text()), server_(tab.server_text()) {
       for (std::size_t i = 0; i < s_.repositories_.size(); ++i) fingerprints_.push_back(s_.fingerprint_text(i));
     }
 
@@ -494,6 +494,7 @@ void SystemTab::paint_pack(Painter& p, const skin::Screen& screen, Rect area) {
         case RepoStatusT: return status_;
         case PackNameT: return at < s_.packs_.size() ? std::string_view(s_.packs_[at].name) : std::string_view();
         case PackDetailT: return at < s_.packs_.size() ? std::string_view(s_.packs_[at].detail) : std::string_view();
+        case ServerStatusT: return server_;
         default: return {};
       }
     }
@@ -514,6 +515,9 @@ void SystemTab::paint_pack(Painter& p, const skin::Screen& screen, Rect area) {
         case PacksN: return static_cast<float>(s_.packs_.size());
         case PackRemovableN: return yes(at < s_.packs_.size() && s_.packs_[at].removable);
         case PackHeldN: return yes(at < s_.packs_.size() && s_.packs_[at].held);
+        case ServerStateN: return static_cast<float>(s_.server_state_.state);
+        case ServerFocusN: return yes(s_.ui_.focus == &s_.server_);
+        case ServerEmptyN: return yes(s_.server_.text().empty() && !s_.server_.composing());
         default: return 0;
       }
     }
@@ -533,7 +537,8 @@ void SystemTab::paint_pack(Painter& p, const skin::Screen& screen, Rect area) {
         return;
       }
       if (values.styles.empty() || values.colors.size() < 5) return;
-      s_.paint_address(p_, rect_of(at), text_style_of(values.styles[0]), values.colors.first(5));
+      if (id == ServerSlot) s_.paint_server(p_, rect_of(at), text_style_of(values.styles[0]), values.colors.first(5));
+      else s_.paint_address(p_, rect_of(at), text_style_of(values.styles[0]), values.colors.first(5));
     }
 
     void report(int, float value) override { s_.flow_height_ = value; }
@@ -542,7 +547,7 @@ void SystemTab::paint_pack(Painter& p, const skin::Screen& screen, Rect area) {
     SystemTab& s_;
     Painter& p_;
     std::vector<std::string> fingerprints_;
-    std::string status_;
+    std::string status_, server_;
   } shown(*this, p);
 
   SkinCanvas canvas(ui_, p, this);

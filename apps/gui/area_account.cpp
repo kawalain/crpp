@@ -4,6 +4,8 @@
 #include "areas.hpp"
 #include "crpp/api/winhttp_client.hpp"
 #include "crpp/api/worker.hpp"
+#include "crpp/transport/target.hpp"
+#include "crpp/transport/winhttp_health.hpp"
 #include "shell.hpp"
 
 using namespace crpp::ui;
@@ -13,6 +15,12 @@ namespace crpp::gui::area::account {
 namespace {
 
 store::Json optional_text(const std::string& text) { return text.empty() ? store::Json{} : store::Json(text); }
+
+// A server as the user reads it: without https://, which every one but this machine's has.
+std::string shown(std::string_view normalized) {
+  if (normalized.starts_with("https://")) normalized.remove_prefix(8);
+  return std::string(normalized);
+}
 
 class Host final : public AccountHost {
  public:
@@ -80,6 +88,56 @@ class Host final : public AccountHost {
     worker_.post([http = http_, request = std::move(request), done = std::move(done)]() -> api::Worker::Done {
       return [result = http->send(request), done] { done(result); };
     });
+  }
+
+  [[nodiscard]] std::string server_shown() const override { return shown(s_.store->server()); }
+
+  void check_server(std::string typed, std::function<void(ServerCheck)> done) override {
+    const std::string fallback = store::normalize_server(store::default_server_url);
+    if (typed.find_first_not_of(" \t") == std::string::npos) {
+      done({true, "", shown(fallback), ""});
+      return;
+    }
+    auto address = transport::server_address(typed);
+    if (!address) {
+      done({false, "", "", address.error() == transport::AddressProblem::NotSecure ? tr().server_not_secure : tr().server_invalid});
+      return;
+    }
+    const std::string normalized = store::normalize_server(*address);
+    if (normalized == fallback) {
+      done({true, "", shown(fallback), ""});
+      return;
+    }
+    // WinHTTP refuses a certificate that does not hold and, here, any redirect: either is no answer.
+    worker_.post([address = *address, normalized, done = std::move(done)]() -> api::Worker::Done {
+      std::optional<std::string> body;
+      if (const auto target = transport::make_health_target(address)) body = transport::WinHttpHealth().ask(*target);
+      const bool answered = body.has_value(), cloudroom = body && transport::is_cloudroom_health(*body);
+      // The wording is read on the UI thread, where the language changes.
+      return [address, normalized, answered, cloudroom, done] {
+        ServerCheck check{cloudroom, address, shown(normalized), ""};
+        if (!answered) check.problem = tr().server_unreachable;
+        else if (!cloudroom) check.problem = tr().server_not_cloudroom;
+        done(check);
+      };
+    });
+  }
+
+  void change_server(const std::string& address) override {
+    if (s_.app.base_view() == View::Session) leave_room();
+    store::Store& data = *s_.store;
+    data.switch_server(address);
+    (void)data.save();
+    s_.config.server_url = data.string_or("serverUrl", store::default_server_url);
+    s_.config.token = data.string_or("token", "");
+    http_.reset();  // a request still out keeps its own
+    const api::Identity id = identity();
+    const std::string name = api::display_name(id);
+    s_.app.home().set_nickname(name);
+    s_.config.nickname = name;
+    area::room::names_changed(s_);
+    reconnect();
+    connection::count_public_rooms(s_);
   }
 
   // The session came to rest: a leave that was waiting for that has gone out.
@@ -153,6 +211,10 @@ bool scene(Shell& s, std::string_view name) {
     s.app.prompt().lock(600);
   } else if (name == "prompt-handle") {
     show(api::Step::Handle, account, "cloud", "");
+  } else if (name == "prompt-server") {
+    api::Flow flow({});
+    flow.start(api::Step::Server, "cr.example.com", tr().server_not_cloudroom, true);
+    s.app.show_prompt(prompt_for(flow));
   } else if (name == "settings-account" || name == "settings-account-guest") {
     const bool guest = name == "settings-account-guest";
     s.app.settings().account().set_profile(

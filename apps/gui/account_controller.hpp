@@ -31,6 +31,21 @@ class AccountHost {
   // Sends off the UI thread; `done` runs on the UI thread.
   virtual void send(api::Request request, std::function<void(api::HttpResult)> done) = 0;
 
+  // A server the user typed, checked: its address as kept, empty for the default, or why not.
+  struct ServerCheck {
+    bool ok = false;
+    std::string address;
+    std::string shown;  // its host and path, for the question
+    std::string problem;
+  };
+  // The server in use, as the user would read it: its host and path.
+  [[nodiscard]] virtual std::string server_shown() const = 0;
+  // Whether the address is good and a Cloudroom server answers there; `done` runs on the UI thread.
+  // Empty is the default server, which is taken as it is.
+  virtual void check_server(std::string typed, std::function<void(ServerCheck)> done) = 0;
+  // Uses that server from now on, with the account kept for it, leaving any Room first.
+  virtual void change_server(const std::string& address) = 0;
+
  protected:
   ~AccountHost() = default;
 };
@@ -49,6 +64,9 @@ class AccountController {
   void token_rejected();
   // The account tab shows what is stored now.
   void update_tab();
+  // Checks what was typed, asks the user to trust it, then switches. From the prompt's server step
+  // or the system tab.
+  void choose_server(std::string typed, bool from_prompt);
 
  private:
   void start(api::Step step, std::string value, std::string error, bool cancelable, bool from_settings);
@@ -59,6 +77,7 @@ class AccountController {
   void random_nickname();
   void logout();
   void sign_out_locally();
+  void switch_server(const std::string& address, bool from_prompt);
 
   ui::App& app_;
   AccountHost& host_;

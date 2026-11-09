@@ -25,7 +25,9 @@ struct Identity {
 // saved nickname, Guest ID or token goes straight to Home.
 [[nodiscard]] bool needs_first_run(const Identity& identity, std::string_view guest_id);
 
-enum class Step : std::uint8_t { Username, Password, PasswordConfirm, Login, Handle, Nickname };
+// Server is the address of the server to use, reached from Username's button. It asks for no
+// request of this flow: the caller checks the server and switches to it.
+enum class Step : std::uint8_t { Username, Password, PasswordConfirm, Login, Handle, Nickname, Server };
 
 // Whether the value could be submitted at this step (the arrow lights up).
 [[nodiscard]] bool step_valid(Step step, std::string_view value);

@@ -39,9 +39,15 @@ Prompt prompt_for(const Flow& flow) {
 
 AccountController::AccountController(App& app, AccountHost& host) : app_(app), host_(host) {
   PromptScreen& prompt = app_.prompt();
-  prompt.on_submit = [this](std::string value) { apply(flow_.submit(value)); };
+  prompt.on_submit = [this](std::string value) {
+    if (flow_.step() == Step::Server) choose_server(std::move(value), true);
+    else apply(flow_.submit(value));
+  };
   prompt.on_back = [this] { back(); };
-  prompt.on_extra = [this] { random_nickname(); };
+  prompt.on_extra = [this] {
+    if (flow_.step() == Step::Username) start(Step::Server, host_.server_shown(), {}, true, false);
+    else random_nickname();
+  };
   prompt.on_extra2 = [this] { apply(flow_.use_handle()); };
   prompt.on_link = [this] { link(); };
 
@@ -56,6 +62,62 @@ AccountController::AccountController(App& app, AccountHost& host) : app_(app), h
   tab.on_change_handle = [this] { start(Step::Handle, host_.identity().handle, {}, true, true); };
   tab.on_logout = [this] { logout(); };
   update_tab();
+
+  SystemTab& system = app_.settings().system();
+  system.on_apply_server = [this](std::string typed) { choose_server(std::move(typed), false); };
+  system.set_server({host_.server_shown(), SystemTab::ServerState::State::None, {}});
+}
+
+void AccountController::choose_server(std::string typed, bool from_prompt) {
+  SystemTab& system = app_.settings().system();
+  const auto failed = [this, from_prompt](std::string problem) {
+    if (from_prompt) {
+      app_.prompt().set_busy(false);
+      app_.prompt().set_error(std::move(problem));
+    } else {
+      app_.settings().system().set_server({host_.server_shown(), SystemTab::ServerState::State::Failed, std::move(problem)});
+    }
+  };
+  if (from_prompt) app_.prompt().set_busy(true);
+  else system.set_server({host_.server_shown(), SystemTab::ServerState::State::Checking, {}});
+  host_.check_server(std::move(typed), [this, from_prompt, failed](const AccountHost::ServerCheck& check) {
+    if (!check.ok) {
+      failed(check.problem);
+      return;
+    }
+    const auto go = [this, address = check.address, from_prompt] { switch_server(address, from_prompt); };
+    // The default server is the one this program comes with: nothing to trust anew.
+    if (check.address.empty()) {
+      go();
+      return;
+    }
+    const bool in_room = app_.base_view() == View::Session;
+    std::string question = locale::fill(tr().server_question, {check.shown});
+    if (in_room) question += std::string("\n") + tr().server_in_room;
+    app_.dialogs().show({std::move(question), tr().server_connect, tr().cancel, true, go,
+                         [this, from_prompt] {
+                           if (from_prompt) app_.prompt().set_busy(false);
+                           else app_.settings().system().set_server({host_.server_shown(), SystemTab::ServerState::State::None, {}});
+                         },
+                         true});
+  });
+}
+
+void AccountController::switch_server(const std::string& address, bool from_prompt) {
+  host_.change_server(address);
+  app_.settings().system().set_server({host_.server_shown(), SystemTab::ServerState::State::None, {}});
+  app_.settings().system().clear_server_field();
+  update_tab();
+  if (api::needs_first_run(host_.identity(), host_.guest_id())) {
+    start(Step::Username, {}, {}, false, false);
+    return;
+  }
+  if (from_prompt || app_.view() == View::Prompt) {
+    app_.prompt().set_busy(false);
+    from_settings_ = false;
+    app_.close_prompt();
+  }
+  refresh_profile();
 }
 
 bool AccountController::begin_first_run() {
@@ -148,6 +210,11 @@ void AccountController::apply(Flow::Next next) {
 }
 
 void AccountController::back() {
+  // The server step of the first run goes back to its first step.
+  if (flow_.step() == Step::Server && !from_settings_) {
+    start(Step::Username, {}, {}, false, false);
+    return;
+  }
   const bool to_settings = from_settings_;
   from_settings_ = false;
   app_.close_prompt();

@@ -25,6 +25,18 @@ std::string grouped(std::string_view digits) {
 SystemTab::SystemTab(Ui& ui) : SettingsTab(ui) {
   release_.id_base = ReleaseList;
   address_.max_length = 300;
+  server_.max_length = 300;
+}
+
+void SystemTab::apply_server() {
+  if (!on_apply_server || server_state_.state == ServerState::State::Checking) return;
+  on_apply_server(narrow(server_.text()));
+}
+
+std::string SystemTab::server_text() const {
+  if (server_state_.state == ServerState::State::Checking) return tr().server_checking;
+  if (server_state_.state == ServerState::State::Failed) return locale::fill(tr().server_failed, {server_state_.reason});
+  return locale::fill(tr().system_server_now, {server_state_.current});
 }
 
 void SystemTab::add() {
@@ -60,6 +72,13 @@ void SystemTab::paint_address(Painter& p, Rect box, const TextStyle& style, std:
   if (focused) ui_.caret = ui_.to_window(caret);
 }
 
+void SystemTab::paint_server(Painter& p, Rect box, const TextStyle& style, std::span<const Color> colors) {
+  const bool focused = ui_.focus == &server_;
+  const bool held = ui_.pressed_owner == this && ui_.pressed_id == Server;
+  const Rect caret = server_line_.paint(ui_, p, server_, box, style, widen(tr().account_server_placeholder), colors, focused, held);
+  if (focused) ui_.caret = ui_.to_window(caret);
+}
+
 void SystemTab::paint(Painter& p, Rect area) {
   if (const skin::Screen* screen = ui_.pack_screen("settings_system")) paint_pack(p, *screen, area);
 }
@@ -70,7 +89,7 @@ void SystemTab::before_click(const Surface* owner, int id) {
   if (owner != this || !release_.owns(id)) release_.open = false;
 }
 
-bool SystemTab::acts_on_press(int id) const { return id == release_.id_base || id == Address || is_fingerprint(id); }
+bool SystemTab::acts_on_press(int id) const { return id == release_.id_base || id == Address || id == Server || is_fingerprint(id); }
 
 void SystemTab::paint_fingerprint(Painter& p, std::size_t row, Rect box, const TextStyle& style, Color ink, Color selection) {
   if (fingerprints_.size() != repositories_.size()) fingerprints_.resize(repositories_.size());
@@ -115,16 +134,20 @@ TextPoint SystemTab::fingerprint_point(float x, float y) const {
 
 void SystemTab::focus(int id) {
   if (id == Address) ui_.set_focus(this, &address_);
+  if (id == Server) ui_.set_focus(this, &server_);
 }
 
 std::vector<MenuItem> SystemTab::context_menu(int id, float x, float y) {
-  menu_for_address_ = id == Address || (id == -1 && ui_.focus == &address_);
-  if (id == Address) {
-    ui_.set_focus(this, &address_);
-    address_.right_press(address_line_.position_at(ui_, address_, ui_.to_stage_x(x)));
-    return ui_.field_menu(address_);
+  if (id == Address || id == Server) {
+    TextField& field = id == Address ? address_ : server_;
+    LineBox& line = id == Address ? address_line_ : server_line_;
+    menu_field_ = &field;
+    ui_.set_focus(this, &field);
+    field.right_press(line.position_at(ui_, field, ui_.to_stage_x(x)));
+    return ui_.field_menu(field);
   }
-  if (id == -1 && ui_.focus == &address_) return ui_.field_menu(address_);
+  menu_field_ = id == -1 && (ui_.focus == &address_ || ui_.focus == &server_) ? static_cast<TextField*>(ui_.focus) : nullptr;
+  if (menu_field_) return ui_.field_menu(*menu_field_);
   if (is_fingerprint(id)) {
     // Outside what is selected, the selection goes, as in a browser.
     const TextPoint at = fingerprint_point(x, y);
@@ -137,9 +160,9 @@ std::vector<MenuItem> SystemTab::context_menu(int id, float x, float y) {
 }
 
 void SystemTab::menu_command(MenuCommand command) {
-  if (menu_for_address_) {
-    ui_.set_focus(this, &address_);
-    ui_.field_command(address_, command);
+  if (menu_field_) {
+    ui_.set_focus(this, menu_field_);
+    ui_.field_command(*menu_field_, command);
   } else if (command == MenuCommand::Copy) {
     if (!selection_.empty()) ui_.copy(selected_text());
   } else if (command == MenuCommand::SelectAll && !fingerprints_.empty()) {
@@ -149,7 +172,7 @@ void SystemTab::menu_command(MenuCommand command) {
 }
 
 bool SystemTab::key(unsigned vk, bool ctrl, bool shift) {
-  if (ui_.focus == &address_) return Surface::key(vk, ctrl, shift);
+  if (ui_.focus == &address_ || ui_.focus == &server_) return Surface::key(vk, ctrl, shift);
   if (!ctrl || shift) return false;
   if (vk == 'C' || vk == VK_INSERT) {
     if (!selection_.empty()) ui_.copy(selected_text());
@@ -206,6 +229,11 @@ void SystemTab::click(int id, float x, float y, bool shift) {
     address_.press(address_line_.position_at(ui_, address_, ui_.to_stage_x(x)), ui_.clicks, shift);
   } else if (id == AddRepository) {
     add();
+  } else if (id == Server) {
+    ui_.set_focus(this, &server_);
+    server_.press(server_line_.position_at(ui_, server_, ui_.to_stage_x(x)), ui_.clicks, shift);
+  } else if (id == ApplyServer) {
+    apply_server();
   } else if (id >= OpenRepository && static_cast<std::size_t>(id - OpenRepository) < repositories_.size()) {
     if (on_open_repository) on_open_repository(repositories_[static_cast<std::size_t>(id - OpenRepository)].address);
   } else if (id >= UpdatePack && static_cast<std::size_t>(id - UpdatePack) < packs_.size()) {
@@ -228,12 +256,16 @@ void SystemTab::drag(float x, float y) {
     selection_.drag_to(fingerprint_point(x, y), [this](std::size_t n) { return fingerprint_of(n); });
     return;
   }
-  address_line_.drag(ui_, address_, ui_.to_stage_x(x));
+  if (ui_.focus == &server_) server_line_.drag(ui_, server_, ui_.to_stage_x(x));
+  else address_line_.drag(ui_, address_, ui_.to_stage_x(x));
 }
 
-void SystemTab::enter(bool) { add(); }
+void SystemTab::enter(bool) {
+  if (ui_.focus == &server_) apply_server();
+  else add();
+}
 
-Cursor SystemTab::cursor(int id) const { return id == Address || is_fingerprint(id) ? Cursor::IBeam : Cursor::Hand; }
+Cursor SystemTab::cursor(int id) const { return id == Address || id == Server || is_fingerprint(id) ? Cursor::IBeam : Cursor::Hand; }
 
 bool SystemTab::wheel(float x, float y, float delta) { return release_.wheel(ui_, x, y, delta); }
 

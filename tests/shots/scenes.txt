@@ -84,6 +84,7 @@ settings-system-dark
 settings-system-on
 settings-system-end
 settings-system-tip
+settings-system-end-failed
 settings-system-repositories
 settings-system-repositories-failed
 settings-system-repositories-end
@@ -96,6 +97,7 @@ prompt-nickname
 prompt-error
 prompt-locked
 prompt-handle
+prompt-server
 update-popup
 update-progress
 update-failed

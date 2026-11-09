@@ -41,11 +41,23 @@ repeat @packs {
 // Time and language are on the display tab.
 let advanced_top = (@packs>0 ? packs_top+40+@packs*58-12 : repositories_end)+36
 text @tr.system_advanced (9, advanced_top, @W-9, 32) style heading color hl_text
-text @tr.system_release (16, advanced_top+56, 300, 26) style row_label color hl_text
-slot release_list (285, advanced_top+50, 246, 38)
-text @tr.system_release_hint (16, advanced_top+92, 505, 20) style row_hint color hl_text_soft
-use toggle(on = @logging, hit = hit(logging)) (16, advanced_top+119, 505, 36) text @tr.system_logging
-use text_button (381, advanced_top+163, 140, 38) text @tr.system_open_logs hit open_logs if @logging
-let reset_top = (@logging ? advanced_top+163+38 : advanced_top+119+36)+32
+// Which server to use, the default one unless another was checked and trusted.
+let server_top = advanced_top+56
+text @tr.system_server (16, server_top, 355, 26) style row_label color hl_text
+(16, server_top+34, 355, 38) {
+  fill hl_pale radius 10
+  hit server
+  slot server (12, 6, 355-24, 26) styles (row_code) colors (hl_text, hl_text_soft, hl_text, alpha(hl, 0.4), hl_pale)
+}
+use text_button (381, server_top+34, 140, 38) text @tr.system_server_apply hit apply_server
+let server_status_h = texth(row_hint, @server_status, 505)
+text @server_status (16, server_top+80, 505, server_status_h) style row_hint color @server_state>1 ? error_text : hl_text_soft
+let release_top = server_top+80+server_status_h+28
+text @tr.system_release (16, release_top, 300, 26) style row_label color hl_text
+slot release_list (285, release_top-6, 246, 38)
+text @tr.system_release_hint (16, release_top+36, 505, 20) style row_hint color hl_text_soft
+use toggle(on = @logging, hit = hit(logging)) (16, release_top+63, 505, 36) text @tr.system_logging
+use text_button (381, release_top+107, 140, 38) text @tr.system_open_logs hit open_logs if @logging
+let reset_top = (@logging ? release_top+107+38 : release_top+63+36)+32
 use text_button (381, reset_top, 140, 38) text @tr.system_reset hit reset
 report height = reset_top+38+25

@@ -101,6 +101,8 @@ bool step_valid(Step step, std::string_view value) {
       return !value.empty() && utf16_units(value) <= 128;
     case Step::Nickname:
       return nickname_valid(value);
+    case Step::Server:
+      return value.size() <= 300;  // empty is the default server
   }
   return false;
 }
@@ -137,7 +139,7 @@ StepText step_text(Step step) {
   const Strings& s = tr();
   switch (step) {
     case Step::Username:
-      return {"", s.account_id, s.account_id_placeholder, s.account_id_hint, "", "", s.account_id_link, 32, false, true, false};
+      return {"", s.account_id, s.account_id_placeholder, s.account_id_hint, "", s.account_server_change, s.account_id_link, 32, false, true, false};
     case Step::Password:
       return {s.account_create, s.account_password, s.account_password_placeholder, s.account_password_hint, "", "", s.account_password_link, 32, true, false, false};
     case Step::PasswordConfirm:
@@ -146,6 +148,8 @@ StepText step_text(Step step) {
       return {s.account_login, s.account_password, s.account_password_placeholder, s.account_login_hint, "", "", s.account_password_link, 128, true, false, false};
     case Step::Handle:
       return {s.account_handle_heading, s.account_handle, s.account_handle_placeholder, s.account_handle_hint, "@", "", "", 16, false, true, true};
+    case Step::Server:
+      return {s.account_server_heading, s.account_server, s.account_server_placeholder, s.account_server_hint, "", "", "", 300, false, false, false};
     case Step::Nickname:
       break;
   }
@@ -202,6 +206,8 @@ Flow::Next Flow::submit(std::string_view value) {
       return call(CallKind::CheckHandle, check_handle(identity_.token, value));
     case Step::Nickname:
       return finish_nickname(std::string(trimmed(value)));
+    case Step::Server:
+      break;
   }
   return {};
 }

@@ -290,14 +290,14 @@ class SystemTab final : public SettingsTab {
  public:
   explicit SystemTab(Ui& ui);
   [[nodiscard]] static skin::ScreenSchema schema();
-  enum Id : int { Autostart = 1, Tray, Detail, Logging, OpenLogs, Reset, Address, AddRepository, ReleaseList = 300, RemoveRepository = 500, RemovePack = 700, UpdatePack = 900, Fingerprint = 1100, OpenRepository = 1300 };
+  enum Id : int { Autostart = 1, Tray, Detail, Logging, OpenLogs, Reset, Address, AddRepository, Server, ApplyServer, ReleaseList = 300, RemoveRepository = 500, RemovePack = 700, UpdatePack = 900, Fingerprint = 1100, OpenRepository = 1300 };
   [[nodiscard]] std::optional<Role> role(int id) const override {
     if (id == Autostart || id == Tray || id == Detail || id == Logging) return Role::Toggle;
-    if (id == Address) return Role::Field;
+    if (id == Address || id == Server) return Role::Field;
     if (dropdown_of(id)) return Role::Dropdown;
     if (id >= OpenRepository) return Role::Link;
     if (id >= Fingerprint) return Role::List;
-    if (id == OpenLogs || id == Reset || id == AddRepository || id >= RemoveRepository) return Role::Button;
+    if (id == OpenLogs || id == Reset || id == AddRepository || id == ApplyServer || id >= RemoveRepository) return Role::Button;
     return std::nullopt;
   }
   // An option of a list is its dropdown's stop.
@@ -336,6 +336,20 @@ class SystemTab final : public SettingsTab {
   [[nodiscard]] const Adding& adding() const { return adding_; }
   void clear_address() { address_.clear(); }
   [[nodiscard]] TextField& address() { return address_; }
+
+  // The server in use, as its host and path, and a change of it being checked or refused.
+  struct ServerState {
+    std::string current;
+    enum class State : std::uint8_t { None, Checking, Failed };
+    State state = State::None;
+    std::string reason;
+  };
+  void set_server(ServerState server) { server_state_ = std::move(server); }
+  [[nodiscard]] const ServerState& server() const { return server_state_; }
+  void clear_server_field() { server_.clear(); }
+  [[nodiscard]] TextField& server_field() { return server_; }
+  // What was typed, as typed, empty for the default server.
+  std::function<void(std::string address)> on_apply_server;
 
   std::function<void()> on_open_logs;
   // What was typed, as typed: the shell reads it as an address.
@@ -376,9 +390,12 @@ class SystemTab final : public SettingsTab {
   void paint_pack(Painter& p, const skin::Screen& screen, Rect area);
   void sync_release();
   void add();
+  void apply_server();
+  [[nodiscard]] std::string server_text() const;
   // Its text scrolls inside the box, as the prompt's does, to keep the caret in view. Colors: the
   // text, the placeholder, the caret, the selection and what is behind.
   void paint_address(Painter& p, Rect box, const TextStyle& style, std::span<const Color> colors);
+  void paint_server(Painter& p, Rect box, const TextStyle& style, std::span<const Color> colors);
   [[nodiscard]] std::string fingerprint_text(std::size_t index) const;
   [[nodiscard]] std::string status_text() const;
   Dropdown release_;
@@ -388,6 +405,9 @@ class SystemTab final : public SettingsTab {
   std::vector<PackRow> packs_;
   TextField address_;
   LineBox address_line_;  // on the stage
+  ServerState server_state_;
+  TextField server_;
+  LineBox server_line_;  // on the stage
   // The fingerprints as drawn last, one block of text each.
   struct FingerprintLine {
     std::wstring text;
@@ -397,7 +417,7 @@ class SystemTab final : public SettingsTab {
   TextStyle fingerprint_style_;
   ReadSelection selection_;
   bool selecting_ = false;
-  bool menu_for_address_ = false;  // what the open context menu is about
+  TextField* menu_field_ = nullptr;  // the field a context menu is for
 };
 
 class AccountTab final : public SettingsTab {

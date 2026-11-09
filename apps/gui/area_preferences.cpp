@@ -374,6 +374,11 @@ bool scene(Shell& s, std::string_view name) {
   } else if (rest == "system") {
     open(SettingsPage::System);
     if (on) prefs.set(pref::log_enabled, true);
+    // A shot has no account area to say which server is in use: the default one, or one that was refused.
+    SystemTab& system = panel.system();
+    system.set_server({"cr.nanliburusu.com", failed ? SystemTab::ServerState::State::Failed : SystemTab::ServerState::State::None,
+                       failed ? tr().server_not_secure : ""});
+    if (failed) system.server_field().set_text(L"http://cr.example.com");
     if (tip) {
       s.app.ui().hover_owner = &panel;
       s.app.ui().hover_id = SettingsPanel::Version;

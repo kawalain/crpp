@@ -226,6 +226,20 @@ struct Strings {
   const char* account_invalid_credentials;
   const char* account_rate_limited;
   const char* account_expired;
+  const char* account_server_change;  // on the first step: to another server
+  const char* account_server_heading;
+  const char* account_server;
+  const char* account_server_placeholder;
+  const char* account_server_hint;
+  const char* server_checking;
+  const char* server_invalid;
+  const char* server_not_secure;
+  const char* server_unreachable;
+  const char* server_not_cloudroom;
+  const char* server_question;  // {0} the server's host
+  const char* server_in_room;   // after the question, in a Room
+  const char* server_connect;
+  const char* server_failed;  // {0} why
   const char* account_failed;
   const char* account_lock_hour;
   const char* account_lock_minutes;  // {0} minutes
@@ -399,6 +413,10 @@ struct Strings {
   const char* system_language_row;
   const char* system_language_auto;
   const char* system_advanced;
+  const char* system_server;
+  const char* system_server_now;  // {0} the host in use
+  const char* system_server_default;
+  const char* system_server_apply;
   const char* system_release;
   const char* system_release_hint;
   const char* system_release_now;

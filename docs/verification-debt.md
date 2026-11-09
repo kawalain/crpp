@@ -110,6 +110,10 @@ seen it; add one for what a change could not verify.
   Repository's Sound pack; a member playing one in a Room has not run. An update of the font itself, which waits a start, has only run in tests. A `github:` address has not been added from a real
   repository (raw.githubusercontent.com answered `HEAD` and a tag without a redirect), and the field, the
   dialog's long fingerprint and a pack's progress have not been seen on a real desktop.
+- Choosing a server has run in tests and shots only: no real second server has been checked, trusted and used,
+  nor has a certificate that does not hold been refused on a real host. Switching inside a Room (leave, then
+  reconnect), the account of each server coming back, and the trust question's look in both packs need a real run
+  against a local `server/`.
 - A Repository's address as a link has run in tests and shots only: its underline under the pointer and the
   browser opening its page (github.com for a raw.githubusercontent.com folder) have not been seen.
 - v0.1.0 updated itself to v0.1.1 from GitHub on one Windows 10 PC with Defender. The cause

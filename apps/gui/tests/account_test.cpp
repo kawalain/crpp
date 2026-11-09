@@ -1,5 +1,6 @@
 // The first-run flow and the account tab, through the real screens with a fake server.
 #include <deque>
+#include <map>
 #include <string>
 #include <vector>
 
@@ -42,6 +43,30 @@ class FakeHost final : public AccountHost {
   void send(api::Request request, std::function<void(api::HttpResult)> done) override {
     requests.push_back(std::move(request));
     pending.push_back(std::move(done));
+  }
+
+  // The server: each one keeps its own account, as the store does.
+  std::string server = "cr.nanliburusu.com";
+  std::map<std::string, api::Identity> kept;
+  std::vector<std::string> checked;
+  std::function<void(ServerCheck)> checking;
+  [[nodiscard]] std::string server_shown() const override { return server; }
+  void check_server(std::string typed, std::function<void(ServerCheck)> done) override {
+    checked.push_back(std::move(typed));
+    checking = std::move(done);
+  }
+  void change_server(const std::string& address) override {
+    kept[server] = stored;
+    server = address.empty() ? "cr.nanliburusu.com" : address;
+    stored = kept[server];
+    gid.clear();
+  }
+  // Answers the check that is out.
+  void server_answer(UiHarness& h, ServerCheck check) {
+    CHECK(static_cast<bool>(checking));
+    if (!checking) return;
+    std::exchange(checking, nullptr)(std::move(check));
+    h.render();
   }
 
   // Answers what is out, as the UI thread would receive it.
@@ -463,6 +488,81 @@ void test_refresh_at_startup() {
 
 }  // namespace
 
+// The first step's button leads to the server step, which checks the address, asks to trust it and
+// switches; the new server has no account yet, so the first step comes back.
+void test_the_first_run_can_choose_a_server() {
+  Rig r;
+  (void)r.controller->begin_first_run();
+  r.h.render();
+  CHECK(r.prompt().prompt().extra == "서버 바꾸기");
+  CHECK(r.h.click(r.prompt(), PromptScreen::Extra));
+  CHECK(r.prompt().prompt().heading == "서버");
+  CHECK(r.prompt().value() == "cr.nanliburusu.com");
+  CHECK(r.prompt().prompt().cancelable);
+
+  r.prompt().set_value("");
+  r.submit(L"http://packs.example.org");
+  CHECK(r.host.checked == std::vector<std::string>{"http://packs.example.org"});
+  CHECK(r.prompt().busy());
+  r.host.server_answer(r.h, {false, "", "", "안 돼요"});
+  CHECK(!r.prompt().busy());
+  CHECK(r.prompt().hint_shown() == "안 돼요");
+  CHECK(r.host.server == "cr.nanliburusu.com");
+
+  r.prompt().set_value("");
+  r.submit(L"cr.example.com");
+  r.host.server_answer(r.h, {true, "https://cr.example.com/", "cr.example.com", ""});
+  CHECK(r.h.app.dialogs().is_open());
+  CHECK(r.h.click(r.h.app.dialogs(), Dialogs::Cancel));
+  CHECK(r.host.server == "cr.nanliburusu.com");
+  CHECK(r.prompt().prompt().heading == "서버");
+  CHECK(!r.prompt().busy());
+
+  CHECK(r.h.click(r.prompt(), PromptScreen::Submit));
+  r.host.server_answer(r.h, {true, "https://cr.example.com/", "cr.example.com", ""});
+  CHECK(r.h.click(r.h.app.dialogs(), Dialogs::Confirm));
+  CHECK(r.host.server == "https://cr.example.com/");
+  CHECK(r.h.app.view() == View::Prompt);
+  CHECK(r.prompt().prompt().label == "ID");
+
+  // Back from the server step is the first step again.
+  CHECK(r.h.click(r.prompt(), PromptScreen::Extra));
+  CHECK(r.h.click(r.prompt(), PromptScreen::Back));
+  CHECK(r.prompt().prompt().label == "ID");
+}
+
+// From the system tab: the default server needs no trust, and the account kept for it comes back.
+void test_the_system_tab_switches_servers() {
+  Rig r;
+  r.host.stored = account();
+  r.host.kept["https://cr.example.com/"] = guest("저기");
+  (void)r.controller->begin_first_run();
+  r.h.render();
+  SystemTab& tab = r.h.app.settings().system();
+  CHECK(tab.server().current == "cr.nanliburusu.com");
+  CHECK(tab.on_apply_server != nullptr);
+  tab.on_apply_server("cr.example.com");
+  CHECK(tab.server().state == SystemTab::ServerState::State::Checking);
+  r.host.server_answer(r.h, {true, "https://cr.example.com/", "cr.example.com", ""});
+  CHECK(r.h.click(r.h.app.dialogs(), Dialogs::Confirm));
+  CHECK(r.host.server == "https://cr.example.com/");
+  CHECK(tab.server().state == SystemTab::ServerState::State::None);
+  CHECK(r.h.app.view() == View::Home);  // that server's Guest is still there
+  CHECK(r.host.requests.size() == 1);  // the first account's only: a Guest has no profile to refresh
+
+  tab.on_apply_server("");
+  r.host.server_answer(r.h, {true, "", "cr.nanliburusu.com", ""});
+  CHECK(!r.h.app.dialogs().is_open());
+  CHECK(r.host.server == "cr.nanliburusu.com");
+  CHECK(r.host.stored.token == "TOKEN");
+  CHECK(r.host.requests.size() == 2);  // the account's profile, from the server it belongs to
+
+  tab.on_apply_server("nope");
+  r.host.server_answer(r.h, {false, "", "", "안 돼요"});
+  CHECK(tab.server().state == SystemTab::ServerState::State::Failed);
+  CHECK(tab.server().reason == "안 돼요");
+}
+
 int main() {
   test_stored_identity_goes_straight_home();
   test_register_walks_all_steps_to_home();
@@ -479,5 +579,7 @@ int main() {
   test_logout_inside_a_room_says_so_and_leaves();
   test_rejected_token_asks_to_sign_in_again();
   test_refresh_at_startup();
+  test_the_first_run_can_choose_a_server();
+  test_the_system_tab_switches_servers();
   return crpp_test_result();
 }

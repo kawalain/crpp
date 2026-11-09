@@ -34,6 +34,15 @@ column id form y 10 {
     }
   }
   use form_group text @tr.system_advanced {
+    // Which server to use, the default one unless another was checked and trusted.
+    text @tr.system_server style body color ink h 16 after 4
+    h field_h after 4 {
+      use field w @W-87
+      hit server w @W-87
+      slot server (3, 0, @W-87-6, field_h) styles (mono) colors (ink, ink_soft, ink, selection, field)
+      use button text @tr.system_server_apply hit apply_server right @W
+    }
+    use form_hint text @server_status after 8
     use form_combo text @tr.system_release after 4 {
       slot release_list
     }

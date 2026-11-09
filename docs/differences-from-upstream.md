@@ -13,6 +13,13 @@ the commit that makes it.
   resources are always released while the window is hidden, and after 30 s hidden so is
   the GPU driver's memory; see `docs/research/memory-floor.md`.
 - Escape closes every dialog that has a cancel action.
+- The server can be chosen, where upstream only reads `serverUrl` from its settings file: from the first login
+  screen's "서버 바꾸기" and the advanced section of the system tab. An address is taken only over HTTPS (plain HTTP
+  only to this machine), without a user name, query or fragment, when its `GET /health` answers within 5 s, with no
+  redirect and a certificate that holds, in the form of upstream's server (`ok`, `rooms=`, `public_rooms=`), and once
+  the user has confirmed that it receives their input signals, chat and account. Each server keeps its own account
+  (`serverAccounts`, encrypted beside the token), so returning to one brings its account back. A Shared store
+  keeps that key in upstream's `settings.json`, which upstream may drop when it saves.
 - More text can be selected and copied: besides chat messages and the fields, the changelog and a Repository's key
   fingerprint, and a question's words with Ctrl+C, as in a Windows message box. Fields select by word and paragraph
   with a double or triple click and move and delete by word with Ctrl.

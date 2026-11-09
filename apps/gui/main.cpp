@@ -31,6 +31,7 @@
 #include "crpp/assets/built_in.hpp"
 #include "crpp/assets/windows_platform.hpp"
 #include "crpp/update/built_in.hpp"
+#include "crpp/update/windows_platform.hpp"
 #include "os_policy.hpp"
 #include "shell.hpp"
 #include "sound_prefs.hpp"
@@ -48,10 +49,11 @@ bool on_a_desktop_someone_sees() {
   return GetUserObjectInformationW(GetThreadDesktop(GetCurrentThreadId()), UOI_NAME, name, sizeof name, nullptr) && std::wstring_view(name) == L"Default";
 }
 
-std::filesystem::path exe_dir() {
-  wchar_t buf[MAX_PATH];
-  const DWORD n = GetModuleFileNameW(nullptr, buf, MAX_PATH);
-  return std::filesystem::path(std::wstring(buf, n)).parent_path();
+std::filesystem::path exe_dir() { return update::running_exe().parent_path(); }
+
+bool is_file(const std::filesystem::path& path) {
+  std::error_code ec;
+  return std::filesystem::is_regular_file(path, ec);
 }
 
 sound::Settings load_audio_settings(const store::Store& data) {
@@ -165,7 +167,7 @@ int main(int argc, char** argv) {
   if (!locations) locations = beside_exe;
   // A development build runs from the folders its build put beside it, and installs nothing. An official
   // one never does: those files are signed by nobody, and anyone could leave them beside a downloaded exe.
-  const bool assets_beside_exe = !update::official_build() && std::filesystem::exists(exe_dir() / "assets" / assets::catalog_name);
+  const bool assets_beside_exe = !update::official_build() && is_file(exe_dir() / "assets" / assets::catalog_name);
   shell.assets_dir = assets_beside_exe ? exe_dir() / "assets" : locations->protected_dir / "assets";
   shell.skins_dir = assets_beside_exe ? exe_dir() / "skins" : shell.assets_dir / "skins";
   shell.repositories_dir = locations->protected_dir / "repositories";

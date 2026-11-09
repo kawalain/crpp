@@ -85,6 +85,12 @@ fonts {
 // Windows Standard of 98. See the Themes' colours in docs/research/retro-themes.md.
 
 palette classic {
+  // A word in a Room's code: the cake and the stars keep their colours in every Theme.
+  cake_sponge #f8dfb8
+  cake_cream #ff9db5
+  candle #8ecdf7
+  flame #ffb547
+  star #f2c200
   caption stops(0: #000080, 1: #1084d0)
   caption_idle stops(0: #808080, 1: #b8b4b8)
   caption_ink #ffffff

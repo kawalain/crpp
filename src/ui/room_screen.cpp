@@ -5,6 +5,7 @@
 #include <algorithm>
 
 #include "crpp/ui/emoji_picker.hpp"
+#include "crpp/ui/home_logic.hpp"
 
 namespace crpp::ui {
 
@@ -19,6 +20,7 @@ RoomScreen::RoomScreen(Ui& ui) : Surface(ui), chat_panel_(ui), profile_(ui), men
 
 void RoomScreen::enter_room(std::string room_code) {
   room_code_ = std::move(room_code);
+  code_words_ = home::words_in_code(room_code_);
   options_open_ = mute_popup_open_ = false;
 }
 

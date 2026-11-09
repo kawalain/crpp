@@ -45,6 +45,9 @@ room-field-menu
 room-chat-left
 room-new-line
 room-mention
+room-word-zzz
+room-word-cake
+room-word-star
 room-calm-firm
 settings-sound
 settings-sound-dark

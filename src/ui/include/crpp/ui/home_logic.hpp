@@ -10,6 +10,20 @@ namespace crpp::ui::home {
 
 inline constexpr std::size_t code_length = 6;
 
+// Words a Room's code may hold by chance, each with a look of its own in the Room: sleepy avatars, a cake, stars.
+// A code has no I or O, so no word does.
+enum CodeWord : unsigned { WordZzz = 1, WordCake = 2, WordStar = 4 };
+inline constexpr std::string_view code_words[] = {"ZZZ", "CAKE", "STAR"};
+
+// Which of code_words the code holds, as CodeWord bits.
+[[nodiscard]] constexpr unsigned words_in_code(std::string_view code) {
+  unsigned found = 0;
+  for (std::size_t i = 0; i < std::size(code_words); ++i) {
+    if (code.find(code_words[i]) != std::string_view::npos) found |= 1u << i;
+  }
+  return found;
+}
+
 // The characters ECMAScript's String.prototype.trim removes.
 [[nodiscard]] constexpr bool is_trimmed(wchar_t c) {
   return (c >= 0x09 && c <= 0x0D) || c == 0x20 || c == 0xA0 || c == 0x1680 || (c >= 0x2000 && c <= 0x200A) ||

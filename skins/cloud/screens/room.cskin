@@ -1,3 +1,10 @@
+// A code with STAR in it: stars in the sky, behind the cloud.
+repeat 5 if @stars {
+  let sx = @i==0 ? 0.07 : @i==1 ? 0.2 : @i==2 ? 0.37 : @i==3 ? 0.58 : 0.76
+  let sy = @i==0 ? 24 : @i==1 ? 56 : @i==2 ? 16 : @i==3 ? 44 : 20
+  let size = @i==1 || @i==3 ? 1.6 : 1.1
+  path "M5 0 6.2 3.8 10 5 6.2 6.2 5 10 3.8 6.2 0 5 3.8 3.8Z" (@W*sx, sy) color alpha(white, 0.9) scale size
+}
 // The cloud, four circles and a rectangle, on the stage. Everything else keeps its size in the window.
 (@stage_x, @stage_y, 951, 692) scale @scale origin {
   path "F1 M461 190A169 169 0 0 1 292 359A169 169 0 0 1 123 190A169 169 0 0 1 292 21A169 169 0 0 1 461 190Z M860 160A250 250 0 0 1 610 410A250 250 0 0 1 360 160A250 250 0 0 1 610 -90A250 250 0 0 1 860 160Z M1045 400A185 185 0 0 1 860 585A185 185 0 0 1 675 400A185 185 0 0 1 860 215A185 185 0 0 1 1045 400Z M330 405A180 180 0 0 1 150 585A180 180 0 0 1 -30 405A180 180 0 0 1 150 225A180 180 0 0 1 330 405Z M150 300H860V585H150Z"
@@ -50,10 +57,23 @@ note members_area (@stage_x+stage_left*k, @stage_y+top*k, cols*col_w+(cols-1)*24
         picture muted (28-size/2, 23.5-size/2, size, size) opacity @member_offline ? 0.55 : 1 gray quiet if @member_muted
         picture member (28-size/2, 23.5-size/2, size, size) opacity @member_offline ? 0.55 : 1 gray quiet
             if !@member_muted
+        // A code with ZZZ in it: everyone dozes.
+        path "M1 1H7L1 8H7" (45, 3) color hl_text_soft width 1.8 if @sleepy
+        path "M1 1H7L1 8H7" (51, -2) color hl_text_soft width 1.4 scale 0.7 if @sleepy
         text @member_name (58, 10.5, @W-58-12, 26) style member_name color @member_offline ? alpha(hl_text, 0.5) : hl_text
       }
     }
   }
+}
+// A code with CAKE in it: a cake at the bottom of the window, with its candle lit.
+(@W/2-22, @H-18-44, 44, 44) if @cake {
+  fill alpha(hl_text, 0.18) (3, 37, 38, 6) ellipse
+  fill cake_sponge (8, 21, 28, 18) radius 4
+  fill cake_sponge (8, 29, 28, 3)
+  fill cake_cream (8, 21, 28, 7) radius 4
+  path "M8 26C11 26 11 31 14 31S17 26 20 26 23 31 26 31 29 26 32 26 35 29 36 29V26H8Z" color cake_cream
+  fill candle (20.5, 10, 3, 11) radius 1
+  path "M18 1C13 10 2 20 2 31a16 16 0 0 0 32 0C34 20 23 10 18 1Z" (18.9, 1) color flame scale 0.17
 }
 slot chat (@stage_x+(left+219/k)*k, @stage_y+(top+7)*k, max(250, (right-left)*k-219), (bottom-top-7)*k) if @chat
 if @controls_shown {

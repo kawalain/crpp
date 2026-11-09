@@ -21,6 +21,12 @@ fonts {
 }
 
 palette luna_blue {
+  // A word in a Room's code: the cake and the stars keep their colours in every Theme.
+  cake_sponge #f8dfb8
+  cake_cream #ff9db5
+  candle #8ecdf7
+  flame #ffb547
+  star #f2c200
   caption stops(0: #0997ff, 0.08: #0053ee, 0.4: #0050ee, 0.88: #0066ff, 0.93: #0066ff, 0.95: #005bff, 0.96: #003dd7, 1: #003dd7)
   caption_idle stops(0: #a9c0f0, 0.08: #7a96df, 0.4: #7a96df, 0.88: #8aa7e4, 0.93: #8aa7e4, 0.95: #7d9ae0, 0.96: #6f8bd6, 1: #6f8bd6)
   caption_ink #ffffff
@@ -118,6 +124,12 @@ palette luna_blue {
 }
 
 palette luna_blue_dark {
+  // A word in a Room's code: the cake and the stars keep their colours in every Theme.
+  cake_sponge #f8dfb8
+  cake_cream #ff9db5
+  candle #8ecdf7
+  flame #ffb547
+  star #f2c200
   caption stops(0: #4a6491, 0.08: #1d2f52, 0.4: #1d2f52, 0.88: #253a63, 0.93: #253a63, 0.95: #1d2f52, 0.96: #142440, 1: #142440)
   caption_idle stops(0: #3a4252, 0.08: #2a303c, 0.4: #2a303c, 0.88: #303744, 0.93: #303744, 0.95: #2a303c, 0.96: #232833, 1: #232833)
   caption_ink #f2f5fb

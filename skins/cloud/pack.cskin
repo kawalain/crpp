@@ -29,6 +29,12 @@ constants {
 }
 
 palette cumulus {
+  // A word in a Room's code: the cake and the stars keep their colours in every Theme.
+  cake_sponge #f8dfb8
+  cake_cream #ff9db5
+  candle #8ecdf7
+  flame #ffb547
+  star #f2c200
   white #ffffff
   blue #3a9af0
   hl #66ccff
@@ -70,6 +76,12 @@ palette cumulus {
 }
 
 palette darkcloud {
+  // A word in a Room's code: the cake and the stars keep their colours in every Theme.
+  cake_sponge #f8dfb8
+  cake_cream #ff9db5
+  candle #8ecdf7
+  flame #ffb547
+  star #f2c200
   white #ffffff
   blue #3a9af0
   hl #4d7fab
@@ -111,6 +123,12 @@ palette darkcloud {
 }
 
 palette pastel {
+  // A word in a Room's code: the cake and the stars keep their colours in every Theme.
+  cake_sponge #f8dfb8
+  cake_cream #ff9db5
+  candle #8ecdf7
+  flame #ffb547
+  star #f2c200
   white #ffffff
   blue #3a9af0
   hl #b1dafd

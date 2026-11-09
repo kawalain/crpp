@@ -89,6 +89,17 @@ void test_some_days_have_a_greeting_of_their_own() {
   CHECK(home::special_day(0, 0) == home::SpecialDay::None);
 }
 
+void test_a_code_can_hold_words() {
+  CHECK(home::words_in_code("ABC234") == 0);
+  CHECK(home::words_in_code("ZZZ7KQ") == home::WordZzz);
+  CHECK(home::words_in_code("7KZZZZ") == home::WordZzz);
+  CHECK(home::words_in_code("CAKE42") == home::WordCake);
+  CHECK(home::words_in_code("X9STAR") == home::WordStar);
+  CHECK(home::words_in_code("ZZZSTA") == home::WordZzz);  // a word cut short is none
+  // The server's alphabet has no I or O, so no word may need them.
+  for (const std::string_view word : home::code_words) CHECK(word.find_first_of("IO01") == std::string_view::npos);
+}
+
 void test_coming_home_asks_once() {
   UiHarness h;
   CHECK(h.start());
@@ -337,6 +348,7 @@ int main() {
   test_short_code_does_not_join();
   test_search_finds_a_public_room();
   test_coming_home_asks_once();
+  test_a_code_can_hold_words();
   test_some_days_have_a_greeting_of_their_own();
   test_busy_buttons_do_nothing();
   return crpp_test_result();

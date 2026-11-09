@@ -15,6 +15,20 @@ use toolbar_button(lit = @options_open) (mute.right+2, mute.y) id more text @tr.
 repeat 3 (more.x, more.y) {
   fill bar_arrow (5+@i*5, 11, 3, 3)
 }
+// What a word in the code brings, at the toolbar's end: a cake for CAKE, a star for STAR.
+let mark_x = @W-6-22
+(mark_x, 26, 22, 22) if @cake {
+  fill cake_sponge (3, 10, 16, 9)
+  fill cake_cream (3, 7, 16, 4)
+  stroke ink (3, 7, 16, 12) radius 0 width 1
+  fill candle (10, 3, 2, 4)
+  fill flame (10, 0, 2, 3)
+  fill edge_dark (1, 19, 20, 1)
+}
+path "M10 1 12.6 7 19 7.5 14.1 11.7 15.6 18 10 14.6 4.4 18 5.9 11.7 1 7.5 7.4 7Z" (mark_x-(@cake ? 24 : 0), 28)
+    color star if @stars
+path "M10 1 12.6 7 19 7.5 14.1 11.7 15.6 18 10 14.6 4.4 18 5.9 11.7 1 7.5 7.4 7Z" (mark_x-(@cake ? 24 : 0), 28)
+    color ink width 1 if @stars
 // The status line.
 fill edge_dark y @H-20 h 1
 fill edge_light y snap(@Y+@H-20)-@Y+@u h 1
@@ -42,6 +56,9 @@ let cols = @chat ? 1 : max(1, floor((main_w-scrollbar_w)/112))
             // Only this much changes while someone types, so nothing else may depend on what is drawn under it.
             fill @hot ? hl_pale : field (disc_x-3, 2, 42, 42) note member_disc
             use picture_frame(glow = @member_level) (disc_x, 5, 36, 36)
+            // A code with ZZZ in it: everyone dozes.
+            path "M1 1H7L1 8H7" (disc_x+39, 6) color ink_soft width 1.5 if @sleepy
+            path "M1 1H7L1 8H7" (disc_x+45, 1) color ink_soft width 1.2 scale 0.7 if @sleepy
             picture muted (disc_x+2, 7, 32, 32) opacity @member_offline ? 0.55 : 1 gray @muted_all if @member_muted
             picture member (disc_x+2, 7, 32, 32) opacity @member_offline ? 0.55 : 1 gray @muted_all if !@member_muted
             text @member_name (3, 44, @W-6, 16) style body_center color @member_offline ? ink_soft : ink

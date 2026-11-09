@@ -171,6 +171,9 @@ against a real `server/` yet; do that once a local build of it is available.
   one made on 29 February has it on the 28th in other years.
 - Cloud's settings droplet, clicked five times in a row with less than half a second between clicks, splashes for
   700 ms. Retro has no droplet and no motion.
+- A Room whose code holds a word shows it: ZZZ puts a doze over every avatar, CAKE a cake (in Cloud at the bottom of
+  the window, in Retro at the toolbar's end) and STAR stars (in Cloud's sky, in Retro by the cake). Codes are random,
+  so these are rare.
 - The tray menu has mute and leaving the Room while in one, and the options, besides quitting.
 - The system tab's advanced section has "뒤에 있을 때 메모리 비우기" (at once, 10 s, 1 min, never), kept
   under a key of this client's own. Behind another program, outside a Room, the window lets go of its

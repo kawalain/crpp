@@ -4,6 +4,7 @@
 
 #include "crpp/skin/draw.hpp"
 #include "crpp/ui/emoji_picker.hpp"
+#include "crpp/ui/home_logic.hpp"
 #include "crpp/ui/room_screen.hpp"
 #include "crpp/ui/skin_canvas.hpp"
 
@@ -15,7 +16,7 @@ enum TextId : int { Contacts, MuteLabel, Status, Code, VolumeText, MemberName };
 enum NumberId : int {
   Muted, OptionsOpen, MutePopupOpen, ControlsShown, HasChat, Public, PublicOff, ChatOff, PinPublic, PinChat, Volume,
   Members, MemberSlot, MemberLevel, MemberMuted, MemberOffline, MutedAll, MembersScroll, MembersOffset, MembersOverflow,
-  Scale, StageX, StageY, MembersFadeTop, MembersFadeBottom, MemberNew, MemberKey
+  Scale, StageX, StageY, MembersFadeTop, MembersFadeBottom, MemberNew, MemberKey, Sleepy, Cake, Stars
 };
 enum PictureId : int { MemberPicture, MutedPicture };
 enum ReportId : int { MembersView, MembersContent };
@@ -26,7 +27,8 @@ constexpr skin::Name number_names[] = {{"muted", Muted}, {"options_open", Option
                                        {"public_off", PublicOff}, {"chat_off", ChatOff}, {"pin_public", PinPublic}, {"pin_chat", PinChat}, {"volume", Volume}, {"members", Members},
                                        {"member_slot", MemberSlot}, {"member_level", MemberLevel}, {"member_muted", MemberMuted}, {"member_offline", MemberOffline}, {"muted_all", MutedAll},
                                        {"members_scroll", MembersScroll}, {"members_offset", MembersOffset}, {"members_overflow", MembersOverflow}, {"scale", Scale}, {"stage_x", StageX}, {"stage_y", StageY},
-                                       {"members_fade_top", MembersFadeTop}, {"members_fade_bottom", MembersFadeBottom}, {"member_new", MemberNew}, {"member_key", MemberKey}};
+                                       {"members_fade_top", MembersFadeTop}, {"members_fade_bottom", MembersFadeBottom}, {"member_new", MemberNew}, {"member_key", MemberKey},
+                                       {"sleepy", Sleepy}, {"cake", Cake}, {"stars", Stars}};
 constexpr skin::Name picture_names[] = {{"member", MemberPicture}, {"muted", MutedPicture}};
 constexpr skin::Name slot_names[] = {{"chat", 0}};
 constexpr skin::Name report_names[] = {{"members_view", MembersView}, {"members_content", MembersContent}};
@@ -117,6 +119,9 @@ void RoomScreen::paint_pack(Painter& p, const skin::Screen& screen) {
           if (id == MemberNew) return yes(came != s_.came_later_.end());
           return came != s_.came_later_.end() ? static_cast<float>(came->second) : 0;
         }
+        case Sleepy: return yes((s_.code_words_ & home::WordZzz) != 0);
+        case Cake: return yes((s_.code_words_ & home::WordCake) != 0);
+        case Stars: return yes((s_.code_words_ & home::WordStar) != 0);
         default: return 0;
       }
     }

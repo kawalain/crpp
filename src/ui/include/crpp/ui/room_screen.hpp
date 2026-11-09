@@ -75,6 +75,8 @@ class RoomScreen final : public Surface {
   void close_member_popups();
 
   void enter_room(std::string room_code);
+  // The words of home::code_words in this Room's code, as home::CodeWord bits.
+  [[nodiscard]] unsigned code_words() const { return code_words_; }
   void reset();
   // Replaces the member list and room flags (from joined/members messages).
   void set_room(std::vector<MemberView> members, std::uint32_t me, std::optional<std::uint32_t> host,
@@ -157,6 +159,7 @@ class RoomScreen final : public Surface {
   // This session's loudness per member; absent means 100%.
   std::vector<std::pair<std::string, int>> member_volumes_;
   std::string room_code_;
+  unsigned code_words_ = 0;
   std::vector<MemberView> members_;
   std::uint32_t me_ = 0;
   // The member the keyboard is on, by slot; the first in the list until a key or a click says.

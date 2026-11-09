@@ -168,6 +168,11 @@ bool scene(Shell& s, std::string_view name) {
     }
     return true;
   }
+  if (name == "room-word-zzz" || name == "room-word-cake" || name == "room-word-star") {  // a word in the code
+    demo_session(s.app, false);
+    s.app.room().enter_room(name == "room-word-zzz" ? "ZZZ7KQ" : name == "room-word-cake" ? "CAKE42" : "X9STAR");
+    return true;
+  }
   if (name == "room-mention") {  // someone names this member
     demo_session(s.app, true);
     ChatPanel& chat = s.app.room().chat();

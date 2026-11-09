@@ -280,6 +280,32 @@ void mini_window_opens_mutes_and_closes(const char* pack, float radius) {
   CHECK(!mini.is_open());
 }
 
+// A selection held past the chat's end scrolls, and once nothing is left to scroll it asks for no frame.
+void test_a_selection_held_past_the_end_draws_no_more() {
+  UiHarness h;
+  CHECK(h.start());
+  h.app.set_animations(false);
+  h.app.show_session("ABC234");
+  h.app.room().set_room({{0, "a", "", false}}, 0, 0, false, true);
+  ChatPanel& chat = h.app.room().chat();
+  for (int i = 0; i < 80; ++i) chat.add({0, "c" + std::to_string(i), "a", "", "line " + std::to_string(i), 1700000000000 + i});
+  h.render();
+  h.render();
+  const Ui::Hit* text = h.app.ui().find_hit(&chat, ChatPanel::Text);
+  CHECK(text != nullptr);
+  if (!text) return;
+  const float x = text->rect.x + 2, y = text->rect.y + 2;
+  h.app.mouse_move(x, y);
+  h.app.mouse_down(x, y, false);
+  h.app.mouse_move(x, y + 5000);  // far below, where the newest already are
+  for (int i = 0; i < 3; ++i) h.render();
+  CHECK(!h.app.ui().more_frames);
+  h.app.mouse_move(x, y - 5000);  // far above, where there is still a way to go
+  h.render();
+  CHECK(h.app.ui().more_frames);
+  h.app.mouse_up(x, y - 5000);
+}
+
 // A Room can end under a prompt, as when a refused token asks to sign in: it is left all the same.
 void test_a_room_ended_under_a_prompt_is_left() {
   UiHarness h;
@@ -1585,6 +1611,7 @@ int main() {
   test_leave_asks_first();
   test_mini_window_opens_mutes_and_closes();
   test_a_room_ended_under_a_prompt_is_left();
+  test_a_selection_held_past_the_end_draws_no_more();
   test_a_disc_is_lit_while_its_member_sounds_unless_muted();
   test_leaving_host_is_told_about_delegation();
   test_chat_notice_shows_once_then_the_pin_tip_once();

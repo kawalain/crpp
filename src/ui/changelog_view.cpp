@@ -386,8 +386,13 @@ void ChangelogView::scroll_while_selecting() {
   const unsigned long long now = ui_.now_ms;
   const float elapsed = scrolled_at_ == 0 ? 16.0f : static_cast<float>(std::min<unsigned long long>(now - scrolled_at_, 50));
   scrolled_at_ = now;
+  const float was = scroll_.offset;
   scroll_.jump_to(scroll_.offset + (past < 0 ? -speed : speed) * elapsed / 1000);
   scroll_.clamp();
+  if (scroll_.offset == was) {  // at the end already: no frame until the pointer moves
+    scrolled_at_ = 0;
+    return;
+  }
   ui_.more_frames = true;
 }
 

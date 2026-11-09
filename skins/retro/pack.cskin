@@ -220,6 +220,7 @@ style note_title size @font_size+2 weight 700 line_height @font_size+4 wrap exac
 style note_version size @font_size line_height 20 exact
 style title size @font_size+2 weight 700 line_height @h ellipsis exact
 style sample size @font_size line_height @font_size+4 ellipsis exact
+style mono size @font_size line_height @h ellipsis exact role mono
 style caption size @font_size weight 700 line_height @h ellipsis exact role caption
 
 // The look of the time is two lines of light from the top left and two of shade from the bottom right.

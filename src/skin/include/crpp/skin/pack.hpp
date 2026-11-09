@@ -203,7 +203,7 @@ struct Style {
   float letter_spacing = 0;
   int weight = 400;
   std::uint8_t align = 0;  // 0 left, 1 center, 2 right
-  std::uint8_t role = 0;   // 0 body, 1 caption
+  std::uint8_t role = 0;   // 0 body, 1 caption, 2 mono
   bool wrap = false, ellipsis = false, exact = false, keep_words = false;
 };
 

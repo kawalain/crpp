@@ -30,7 +30,8 @@ struct Rect {
 };
 
 enum class Align : std::uint8_t { Left, Center, Right };
-enum class FontRole : std::uint8_t { Body, Caption };
+// Mono is a monospace font, for what is read character by character, as an address or a fingerprint.
+enum class FontRole : std::uint8_t { Body, Caption, Mono };
 
 struct TextStyle {
   float size = 16;
@@ -115,7 +116,7 @@ class Gfx {
   struct Metrics {
     float ascent = 0.8f, descent = 0.2f;
   };
-  Metrics classic_body_metrics_, classic_caption_metrics_;
+  Metrics classic_body_metrics_, classic_caption_metrics_, mono_metrics_;
   void choose_classic_fonts();
   [[nodiscard]] Metrics metrics_of(const std::wstring& family) const;
   void apply_style(IDWriteTextFormat* format, const TextStyle& style, Metrics metrics) const;

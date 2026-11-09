@@ -96,6 +96,9 @@ A Palette entry is a colour, a `mix` or `alpha` of an entry above it, or the `st
 arguments with their defaults, and a `use` of it passes them by name; what the `use` holds in `{ }` goes where the
 part has `content`.
 
+A style's `role` picks its font: `body`, the default; `caption`, the `fonts` section's caption font; or `mono`,
+a monospace font, for text read one character at a time, as an address or a fingerprint.
+
 ## What the program reads
 
 `constants` are names for numbers anywhere in the pack, and the program reads some itself: `required_constants` in

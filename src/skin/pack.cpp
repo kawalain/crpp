@@ -680,7 +680,8 @@ class Loader final : public Names {
         const auto value = role->as_string();
         if (value == "body") style.role = 0;
         else if (value == "caption") style.role = 1;
-        else return fail("role is not body or caption");
+        else if (value == "mono") style.role = 2;
+        else return fail("role is not body, caption or mono");
       }
       if (const Json* spacing = m.value.find("letter_spacing")) {
         const auto value = as_float(*spacing);

@@ -35,6 +35,7 @@ namespace {
 constexpr const wchar_t* ui_font = L"Malgun Gothic";            // fallback
 constexpr const wchar_t* custom_font = L"Pretendard GOV Variable";  // family name inside the fetched font
 constexpr const wchar_t* emoji_font = L"Segoe UI Emoji";
+constexpr const wchar_t* mono_font = L"Consolas";  // in every Windows since Vista
 
 D2D1_COLOR_F to_d2d(Color c) { return D2D1::ColorF(c.r, c.g, c.b, c.a); }
 
@@ -107,6 +108,7 @@ bool Gfx::init(const std::filesystem::path& font_file) {
     return false;
   }
   load_font(font_file);
+  mono_metrics_ = metrics_of(mono_font);
   return true;
 }
 
@@ -442,13 +444,14 @@ void Gfx::finish_layout(IDWriteTextLayout* layout, IDWriteTextFormat* format, st
 ComPtr<IDWriteTextLayout> Gfx::layout(std::wstring_view text, const TextStyle& style, float max_w,
                                       float max_h) const {
   if (classic_) return classic_layout(text, style, max_w, max_h);
+  const bool mono = style.role == FontRole::Mono;
   ComPtr<IDWriteTextFormat> format;
-  if (FAILED(dwrite_->CreateTextFormat(family_.c_str(), fonts_.get(), static_cast<DWRITE_FONT_WEIGHT>(style.weight),
-                                       DWRITE_FONT_STYLE_NORMAL, DWRITE_FONT_STRETCH_NORMAL, style.size,
-                                       language_.c_str(), format.put()))) {
+  if (FAILED(dwrite_->CreateTextFormat(mono ? mono_font : family_.c_str(), mono ? nullptr : fonts_.get(),
+                                       static_cast<DWRITE_FONT_WEIGHT>(style.weight), DWRITE_FONT_STYLE_NORMAL,
+                                       DWRITE_FONT_STRETCH_NORMAL, style.size, language_.c_str(), format.put()))) {
     return {};
   }
-  apply_style(format.get(), style, {ascent_, descent_});
+  apply_style(format.get(), style, mono ? mono_metrics_ : Metrics{ascent_, descent_});
   ComPtr<IDWriteTextLayout> layout;
   if (FAILED(dwrite_->CreateTextLayout(text.data(), static_cast<UINT32>(text.size()), format.get(), max_w, max_h,
                                        layout.put()))) {
@@ -479,13 +482,14 @@ ComPtr<IDWriteTextLayout> Gfx::classic_layout(std::wstring_view text, TextStyle 
     text = kept;
   }
   const bool caption = style.role == FontRole::Caption;
-  const std::wstring& family = caption ? classic_caption_ : classic_body_;
+  const bool mono = style.role == FontRole::Mono;
+  const wchar_t* family = mono ? mono_font : caption ? classic_caption_.c_str() : classic_body_.c_str();
   ComPtr<IDWriteTextFormat> format;
-  if (FAILED(dwrite_->CreateTextFormat(family.c_str(), nullptr, static_cast<DWRITE_FONT_WEIGHT>(style.weight), DWRITE_FONT_STYLE_NORMAL,
+  if (FAILED(dwrite_->CreateTextFormat(family, nullptr, static_cast<DWRITE_FONT_WEIGHT>(style.weight), DWRITE_FONT_STYLE_NORMAL,
                                        DWRITE_FONT_STRETCH_NORMAL, style.size, language_.c_str(), format.put()))) {
     return {};
   }
-  apply_style(format.get(), style, caption ? classic_caption_metrics_ : classic_body_metrics_);
+  apply_style(format.get(), style, mono ? mono_metrics_ : caption ? classic_caption_metrics_ : classic_body_metrics_);
   if (classic_fallback_) {
     ComPtr<IDWriteTextFormat1> format1;
     if (SUCCEEDED(format->QueryInterface(__uuidof(IDWriteTextFormat1), reinterpret_cast<void**>(format1.put())))) {

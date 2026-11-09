@@ -38,6 +38,14 @@
 
 **Host**: the member who controls the Room's visibility and chat. When the Host leaves, another online member becomes Host.
 
+**Achievement** (도전과제): a goal reached by using the app, such as a number of key presses or hours in Rooms, or finding something hidden. Kept only on this device and never shown to others.
+
+**Mini window** (작은 창): a small window kept above others that shows only a Room's members and mute, for following a Room while working in another program.
+
+**Room weather** (구름 날씨): how busy a Room is, from the input of all its members over the last minute, in four steps from clear to storm. It never shows one member's share.
+
+**Hidden Theme** (숨은 테마): a Theme left out of the list until an Achievement unlocks it.
+
 **Dark mode** (다크 모드): off, on or following the system, picked after the Theme. It chooses between a Theme and its dark variant, and is locked while the Theme has none.
 
 **Theme** (테마): what a user picks within a Skin in the display settings, for example classic or luna_blue in Retro. It has a Palette, and may have a dark variant, which is another Palette of the same Theme.

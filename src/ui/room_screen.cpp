@@ -606,8 +606,8 @@ void RoomScreen::drag(float x, float y) {
 
 bool RoomScreen::escape() {
   if (menu_.escape()) return true;
-  if (mute_popup_open_) {
-    mute_popup_open_ = false;
+  if (mute_popup_open_ || options_open_) {
+    mute_popup_open_ = options_open_ = false;
     return true;
   }
   return profile_.escape();

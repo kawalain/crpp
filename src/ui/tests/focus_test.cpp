@@ -341,6 +341,31 @@ void a_panel_opens_on_its_tab_and_closes_back(const char* pack) {
   CHECK(h.app.ui().stop_owner == before && h.app.ui().stop_id == before_id);
 }
 
+// The Room's options open from a click: the next Tab goes into them, not to what lies under them.
+void tab_goes_into_the_room_options_opened_by_a_click(const char* pack) {
+  UiHarness h;
+  CHECK(h.start(951, 692, pack));
+  h.app.show_session("ABC234");
+  RoomScreen& room = h.app.room();
+  room.set_room({{0, "a", "", false, "c0"}}, 0, 0, false, true);
+  h.render();
+  h.render();
+  CHECK(h.click(room, RoomScreen::More));
+  CHECK(h.drawn(room, RoomScreen::OptCode));
+  tab(h);
+  CHECK(h.app.ui().stop_owner == &room);
+  const int first = h.app.ui().stop_id;
+  CHECK(first == RoomScreen::OptCode || first == RoomScreen::OptPublic);
+  // Tab stays in them, and closing them gives the keyboard back to the button.
+  for (int i = 0; i < 8; ++i) {
+    tab(h);
+    CHECK(h.app.ui().stop_owner != &room || h.app.ui().stop_id < RoomScreen::MemberBase);
+  }
+  press(h, VK_ESCAPE);
+  CHECK(!h.drawn(room, RoomScreen::OptCode));
+  CHECK(h.app.ui().stop_owner == &room && h.app.ui().stop_id == RoomScreen::More);
+}
+
 void the_messages_and_the_members_take_the_arrows(const char* pack) {
   UiHarness h;
   CHECK(h.start(951, 692, pack));
@@ -464,6 +489,7 @@ int main() {
     a_question_starts_on_cancel_and_gives_the_keyboard_back(pack);
     a_panel_opens_on_its_tab_and_closes_back(pack);
     the_messages_and_the_members_take_the_arrows(pack);
+    tab_goes_into_the_room_options_opened_by_a_click(pack);
     the_menu_bar_takes_alt_and_its_letters(pack);
     the_member_list_scrolls_to_the_keyboard(pack);
   }

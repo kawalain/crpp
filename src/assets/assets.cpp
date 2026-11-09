@@ -87,13 +87,16 @@ auto with_retries(Platform& platform, const Get& get) {
   return result;
 }
 
-std::expected<Catalog, Error> checked(std::string_view text, const update::PublicKey& key, Platform& platform) {
+// A catalog fetched from a Repository must be of the current grammar; one kept on disk by an
+// older exe is read too, to find what it installed.
+std::expected<Catalog, Error> checked(std::string_view text, const update::PublicKey& key, Platform& platform, bool fetched = true) {
   auto catalog = parse_catalog(text);
   if (!catalog) return std::unexpected(Error::BadContent);
   if (catalog->key != key || !catalog->signature ||
       !platform.verify(key, as_bytes(text.substr(0, catalog->signed_bytes)), *catalog->signature)) {
     return std::unexpected(Error::BadSignature);
   }
+  if (fetched && catalog->grammar != catalog_grammar) return std::unexpected(Error::Outdated);
   return std::move(*catalog);
 }
 
@@ -103,7 +106,7 @@ std::expected<Fetched, Error> fetch_catalog(const Repository& repository, Platfo
   std::optional<Error> first;
   for (const std::string* folder : {&repository.url, &repository.mirror}) {
     if (folder->empty()) continue;
-    const std::string url = *folder + std::string(catalog_name);
+    const std::string url = *folder + repository.catalog;
     const auto bytes = with_retries(platform, [&] { return platform.fetch(url, max_catalog_size, nullptr); });
     std::expected<Catalog, Error> catalog = std::unexpected(bytes ? Error::BadContent : bytes.error());
     if (bytes) catalog = checked(as_text(*bytes), repository.key, platform);
@@ -184,7 +187,7 @@ std::expected<Fetched, Error> fetch_new_catalog(const std::string& folder, Platf
 
 std::optional<Catalog> load_catalog(const fs::path& dir, const update::PublicKey& key, Platform& platform) {
   const auto bytes = read_file(dir / catalog_name, max_catalog_size);
-  auto catalog = checked(as_text(bytes), key, platform);
+  auto catalog = checked(as_text(bytes), key, platform, false);
   if (!catalog) return std::nullopt;
   return std::move(*catalog);
 }
@@ -257,7 +260,7 @@ std::expected<void, Error> install(const Catalog& catalog, std::string_view base
   std::mutex mutex;  // guards state, failure and stop, and keeps progress calls in turn
   std::optional<Error> failure;
   bool stop = false;
-  std::atomic<bool> base_down{base.empty()};
+  std::atomic<bool> base_down{base.empty()}, mirror_down{false};
   std::vector<char> arrived(needed.size(), 0);
   const auto add_done = [&](std::uint64_t bytes, bool file_done) {
     const std::lock_guard lock(mutex);
@@ -297,8 +300,13 @@ std::expected<void, Error> install(const Catalog& catalog, std::string_view base
     };
     std::expected<std::vector<std::uint8_t>, Error> bytes = std::unexpected(Error::Network);
     if (!base_down) {
-      bytes = get(std::string(base) + file.path);
+      bytes = get(std::string(base) + file.sha256);
       if (!bytes && bytes.error() == Error::Network) base_down = true;
+    }
+    if (!bytes && !mirror_down && !catalog.mirror.empty()) {
+      const auto other = get(catalog.mirror + file.sha256);
+      if (!other && other.error() == Error::Network) mirror_down = true;
+      if (other || bytes.error() == Error::Network) bytes = other;
     }
     if (const SourceUrl* source = catalog.source(file.source); !bytes && source != nullptr) {
       const auto other = get(source->url + file.remote);

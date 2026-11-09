@@ -20,8 +20,9 @@ namespace crpp::assets {
 
 // Network: no answer from the server. Unavailable: it answered, without the file.
 // BadContent: a file or catalog other than the one expected. BadSignature: a catalog
-// not signed by the Repository's key.
-enum class Error : std::uint8_t { Network, Unavailable, BadContent, BadSignature, Disk };
+// not signed by the Repository's key. Outdated: a catalog of the grammar before ADR 0010, whose
+// Repository serves files by path and must be rebuilt.
+enum class Error : std::uint8_t { Network, Unavailable, BadContent, BadSignature, Disk, Outdated };
 
 // Called from several threads at once.
 class Platform {
@@ -47,6 +48,8 @@ struct Repository {
   std::string url;     // the folder of its catalog and files; ends with '/'
   std::string mirror;  // another folder with the same catalog, or empty
   update::PublicKey key{};
+  // The official Repository has one per pack format (ADR 0009); every other one has catalog.txt.
+  std::string catalog = std::string(catalog_name);
 };
 
 struct Fetched {
@@ -134,10 +137,11 @@ struct Progress {
 using OnProgress = std::function<void(const Progress&)>;
 
 // Fetches what is missing of the groups, a few files at a time, and removes files the
-// catalog no longer lists. Each file comes from `base`, the Repository's folder, or else
-// from its source; an empty base skips straight to the sources, as when the Repository did
-// not answer for its catalog. A file the network did not deliver is tried twice more after
-// a short wait, and once the Repository has failed that way the rest go to their sources.
+// catalog no longer lists. Each file comes from `base`, the Repository's folder, as
+// <base><sha256>, or else from the catalog's mirror the same way, or else from its source; an
+// empty base skips the Repository, as when it did not answer for its catalog. A file the network
+// did not deliver is tried twice more after a short wait, and once the Repository or the mirror
+// has failed that way the rest skip it.
 // A file that fails does not stop the others, but no answer from anywhere or a full disk
 // does, as the rest would only fail the same way. What arrived is kept and listed either
 // way, and the first error is returned; calling again fetches the rest. progress is called

@@ -54,6 +54,7 @@ const char* reason_of(assets::Error error) {
     case assets::Error::BadContent:
     case assets::Error::BadSignature: return tr().repository_reason_bad;
     case assets::Error::Disk: return tr().fetch_reason_disk;
+    case assets::Error::Outdated: return tr().repository_reason_outdated;
   }
   return tr().fetch_reason_network;
 }

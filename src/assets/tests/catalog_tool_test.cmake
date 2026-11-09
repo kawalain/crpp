@@ -1,16 +1,18 @@
 # crpp_catalog against this repository: it writes a catalog that lists the assets, the Skin
-# Packs and the third-party files, each with its second source. It checks its own output with
-# the parser before writing, so a catalog on disk is one the program accepts.
+# Packs and the third-party files with their sources, and with --copy every file once under its
+# hash. It checks its own output with the parser before writing, so a catalog on disk is one the
+# program accepts.
 file(REMOVE_RECURSE ${OUT})
 execute_process(COMMAND ${TOOL} ${OUT} --remote ${SOURCE}/cmake/remote_assets.txt --assets ${SOURCE}/assets
-                        --skins ${SOURCE}/skins --ref v0.0.0 --default-skin cloud
+                        --skins ${SOURCE}/skins --mirror https://mirror.test/s/ --default-skin cloud
                 RESULT_VARIABLE result OUTPUT_VARIABLE output ERROR_VARIABLE error)
 if(NOT result EQUAL 0)
   message(FATAL_ERROR "crpp_catalog failed (${result}): ${error}")
 endif()
 file(READ ${OUT}/catalog.txt catalog)
 foreach(expected
-    "\nsource crpp https://raw.githubusercontent.com/kawalain/crpp/v0.0.0/\n"
+    "crpp-catalog 2\nkey "
+    "\nmirror https://mirror.test/s/\n"
     "\nskin cloud 2\n"
     "\nskin retro 2\n"
     "\nskin-version cloud 0.1.0\n"
@@ -25,7 +27,6 @@ foreach(expected
     "\nfile skin:cloud fonts/PretendardGOVVariable.ttf 13386352 "
     "\nfile skin:cloud skins/cloud/pack.cskin "
     "\nfile shared words/animals.txt "
-    " from crpp assets/words/animals.txt\n"
     " from twemoji 1f507.svg nopick\n"
     "\nfile skin:cloud licenses/pretendard.txt 4418 "
     " from twemoji-root LICENSE-GRAPHICS\n")
@@ -34,7 +35,7 @@ foreach(expected
     message(FATAL_ERROR "the catalog lacks '${expected}'")
   endif()
 endforeach()
-foreach(absent "README.md" "signature ")
+foreach(absent "README.md" "signature " " from crpp ")
   string(FIND "${catalog}" "${absent}" at)
   if(NOT at EQUAL -1)
     message(FATAL_ERROR "the catalog lists '${absent}'")
@@ -58,4 +59,17 @@ execute_process(COMMAND ${TOOL} --verify ${OUT}/catalog.txt RESULT_VARIABLE resu
 if(result EQUAL 0)
   message(FATAL_ERROR "crpp_catalog --verify accepted an unsigned catalog")
 endif()
+# With --copy, the folder to serve: each file once, named by its hash, and nothing at a path.
 file(REMOVE_RECURSE ${OUT})
+file(WRITE ${OUT}-remote.txt "")
+execute_process(COMMAND ${TOOL} ${OUT} --remote ${OUT}-remote.txt --skins ${SOURCE}/skins --copy ${OUT}-cache
+                RESULT_VARIABLE result OUTPUT_QUIET ERROR_VARIABLE error)
+if(NOT result EQUAL 0)
+  message(FATAL_ERROR "crpp_catalog --copy failed (${result}): ${error}")
+endif()
+file(SHA256 ${SOURCE}/skins/cloud/pack.cskin cloud_hash)
+if(NOT EXISTS ${OUT}/${cloud_hash} OR EXISTS ${OUT}/skins)
+  message(FATAL_ERROR "crpp_catalog --copy did not put the files under their hashes")
+endif()
+file(REMOVE_RECURSE ${OUT})
+file(REMOVE ${OUT}-remote.txt)

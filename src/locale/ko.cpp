@@ -286,6 +286,7 @@ const Strings korean{
     .repository_reason_none = "그 주소에 저장소가 없어요.",
     .repository_reason_bad = "서명되지 않았거나, 스킨과 소리 말고 다른 것도 담고 있어요.",
     .repository_reason_known = "이미 추가한 저장소예요.",
+    .repository_reason_outdated = "예전 방식의 저장소예요. 만든 사람이 새로 만들어야 해요.",
     .repository_add_question = "이 저장소를 추가할까요?\n{0}\n\n{1}\n\n지문 {2}\n만든 사람이 알려 준 지문과 같은지 확인해 주세요.",
     .repository_add_pack = "{0} 스킨 ({1})",
     .repository_add_sound = "{0} 소리 ({1})",

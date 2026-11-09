@@ -220,6 +220,7 @@ const char* reason_of(assets::Error error) {
     case assets::Error::Unavailable: return tr().fetch_reason_unavailable;
     case assets::Error::BadContent:
     case assets::Error::BadSignature: return tr().fetch_reason_bad;
+    case assets::Error::Outdated: return tr().repository_reason_outdated;
     case assets::Error::Disk: return tr().fetch_reason_disk;
   }
   return tr().fetch_reason_network;

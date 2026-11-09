@@ -9,7 +9,7 @@ using namespace crpp::assets;
 namespace {
 
 const std::string key_line = "key " + std::string(128, 'a') + "\n";
-const std::string head = "crpp-catalog 1\n" + key_line;
+const std::string head = "crpp-catalog 2\n" + key_line;
 const std::string hash = std::string(64, 'b');
 
 std::string file_line(std::string_view group, std::string_view path, std::string_view tail = "") {
@@ -17,6 +17,7 @@ std::string file_line(std::string_view group, std::string_view path, std::string
 }
 
 const std::string good = head +
+                         "mirror https://mirror.test/s/\n"
                          "source twemoji https://raw.githubusercontent.com/jdecked/twemoji/abc/assets/svg/\n"
                          "skin cloud 1\n"
                          "skin-name cloud ko 구름\n"
@@ -40,6 +41,7 @@ void reads_every_kind_of_line() {
   CHECK(catalog.has_value());
   if (!catalog) return;
   CHECK(catalog->key[0] == 0xaa && catalog->key[63] == 0xaa);
+  CHECK(catalog->grammar == 2 && catalog->mirror == "https://mirror.test/s/");
   CHECK(catalog->sources.size() == 1 && catalog->sources[0].name == "twemoji");
   CHECK(catalog->skins.size() == 2 && catalog->skins[1].parent == "cloud" && catalog->skins[1].format == 1);
   CHECK(catalog->default_skin == "cloud");
@@ -76,9 +78,12 @@ void refuses(const std::string& text, std::size_t line) {
 void refuses_what_is_not_a_catalog() {
   refuses("", 0);
   refuses("crpp-catalog 1", 0);  // no line break at the end
-  refuses("crpp-catalog 2\n" + key_line, 1);
+  refuses("crpp-catalog 3\n" + key_line, 1);
+  CHECK(parse_catalog("crpp-catalog 1\n" + key_line).has_value());  // as an older exe kept it
+  refuses(head + "mirror http://a/\n", 3);
+  refuses(head + "mirror https://a/\nmirror https://b/\n", 4);
   refuses("crpp-catalog 1\n", 0);
-  refuses("crpp-catalog 1\nkey abc\n", 2);
+  refuses("crpp-catalog 2\nkey abc\n", 2);
   refuses("crpp-catalog 1\r\n" + key_line, 1);
   refuses(head + "source x https://a/\r\n", 3);
   refuses(head + "file shared a.txt 12 " + hash + "  \n", 3);  // a double space is an empty field

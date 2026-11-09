@@ -311,6 +311,7 @@ struct Strings {
   const char* repository_reason_none;
   const char* repository_reason_bad;
   const char* repository_reason_known;
+  const char* repository_reason_outdated;
   const char* repository_add_question;
   const char* repository_add_pack;
   const char* repository_add_sound;

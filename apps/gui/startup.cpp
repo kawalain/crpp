@@ -167,7 +167,8 @@ DiagEvent diag_of(assets::Error error) {
   switch (error) {
     case assets::Error::Network: return DiagEvent::AssetsNetwork;
     case assets::Error::Unavailable: return DiagEvent::AssetsUnavailable;
-    case assets::Error::BadContent: return DiagEvent::AssetsBadContent;
+    case assets::Error::BadContent:
+    case assets::Error::Outdated: return DiagEvent::AssetsBadContent;
     case assets::Error::BadSignature: return DiagEvent::AssetsBadSignature;
     case assets::Error::Disk: return DiagEvent::AssetsDisk;
   }

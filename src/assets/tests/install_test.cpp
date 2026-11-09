@@ -99,7 +99,7 @@ Catalog two_skins() {
 }
 
 void serve(Fake& fake, const Catalog& catalog) {
-  for (const File& f : catalog.files) fake.served[std::string(base) + f.path] = f.sha256;
+  for (const File& f : catalog.files) fake.served[std::string(base) + f.sha256] = f.sha256;
 }
 
 const std::vector<std::string> shared_and_cloud{"shared", "skin:cloud"};
@@ -166,7 +166,7 @@ void a_held_file_waits_for_the_next_start() {
   fake.asked.clear();
   const std::vector<std::string> held{"fonts/f.ttf"};
   CHECK(install(catalog, base, shared_and_cloud, dir.path, fake, nullptr, nullptr, held));
-  CHECK(fake.asked == std::vector<std::string>{"https://repo/emoji/a.svg"});
+  CHECK(fake.asked == std::vector<std::string>{"https://repo/AAA"});
   CHECK(read(dir.path / "fonts/f.ttf") == "ffff");
   const auto left = missing(catalog, shared_and_cloud, dir.path);
   CHECK(left.size() == 1 && left[0]->path == "fonts/f.ttf");
@@ -219,8 +219,8 @@ void a_pack_in_an_unreadable_format_keeps_the_installed_one() {
   std::vector<std::string> held;
   hold_unreadable(held, latest, &old, 1, 1);
   CHECK(install(latest, base, wanted_groups(latest, dir.path), dir.path, fake, nullptr, nullptr, held));
-  CHECK((fake.asked == std::vector<std::string>{"https://repo/emoji/a.svg", "https://repo/skins/plain/pack.cskin"} ||
-         fake.asked == std::vector<std::string>{"https://repo/skins/plain/pack.cskin", "https://repo/emoji/a.svg"}));
+  CHECK((fake.asked == std::vector<std::string>{"https://repo/AAA", "https://repo/PP"} ||
+         fake.asked == std::vector<std::string>{"https://repo/PP", "https://repo/AAA"}));
   CHECK(read(dir.path / "fonts/f.ttf") == "ffff");
   CHECK(read(dir.path / "skins/retro/pack.cskin") == "rr" && read(dir.path / "skins/retro/screens/home.cskin") == "hh");
   CHECK(!fs::exists(dir.path / "skins/retro/screens/menu.cskin"));
@@ -272,7 +272,7 @@ void a_new_catalog_fetches_only_what_changed() {
   serve(fake, catalog);
   fake.asked.clear();
   CHECK(install(catalog, base, shared_and_cloud, dir.path, fake, nullptr));
-  CHECK(fake.asked == std::vector<std::string>{"https://repo/fonts/f.ttf"});
+  CHECK(fake.asked == std::vector<std::string>{"https://repo/FFFFF"});
   CHECK(read(dir.path / "fonts/f.ttf") == "FFFFF");
   CHECK(!fs::exists(dir.path / "skins/retro/pack.cskin"));
 }
@@ -314,7 +314,7 @@ void what_an_older_version_installed_is_kept() {
   Fake fake;
   serve(fake, catalog);
   CHECK(install(catalog, base, shared_and_cloud, dir.path, fake, nullptr));
-  CHECK(fake.asked == std::vector<std::string>{"https://repo/fonts/f.ttf"});
+  CHECK(fake.asked == std::vector<std::string>{"https://repo/ffff"});
 }
 
 void what_does_not_match_is_never_kept() {
@@ -322,7 +322,7 @@ void what_does_not_match_is_never_kept() {
   for (const char* body : {"xxx", "aaaa"}) {  // the right size with the wrong hash, and too long
     TempDir dir;
     Fake fake;
-    fake.served["https://repo/emoji/a.svg"] = body;
+    fake.served["https://repo/aaa"] = body;
     fake.served["https://gh/x/emoji/a.svg"] = body;
     const std::vector<std::string> shared{"shared"};
     CHECK(install(catalog, base, shared, dir.path, fake, nullptr).error() == Error::BadContent);
@@ -336,7 +336,7 @@ void a_file_the_repository_lacks_comes_from_its_source() {
   const Catalog catalog = two_skins();
   Fake fake;
   fake.served["https://gh/x/emoji/a.svg"] = "aaa";
-  fake.served["https://repo/fonts/f.ttf"] = "ffff";
+  fake.served["https://repo/ffff"] = "ffff";
   CHECK(install(catalog, base, shared_and_cloud, dir.path, fake, nullptr));
   CHECK(read(dir.path / "emoji/a.svg") == "aaa");
   // The Repository answered, so it is still asked first.
@@ -348,7 +348,7 @@ void a_passing_failure_is_tried_again() {
   const Catalog catalog = two_skins();
   Fake fake;
   serve(fake, catalog);
-  fake.passing["https://repo/emoji/a.svg"] = 2;
+  fake.passing["https://repo/aaa"] = 2;
   const std::vector<std::string> shared{"shared"};
   CHECK(install(catalog, base, shared, dir.path, fake, nullptr));
   CHECK(fake.waits == 2);
@@ -367,6 +367,25 @@ void the_sources_take_over_when_the_repository_does_not_answer() {
   // Each worker may have met the Repository once, three times over, before it was known down.
   CHECK(fake.count("https://repo/") <= 8 * 3);
   CHECK(fake.count("https://gh/") == 52);
+}
+
+// The same files under the same hashes at the catalog's mirror, before a file's own source.
+void the_catalogs_mirror_comes_before_the_sources() {
+  TempDir dir;
+  Catalog catalog = two_skins();
+  catalog.mirror = "https://mirror/s/";
+  Fake fake;
+  fake.down = {std::string(base)};
+  for (const File& f : catalog.files) fake.served["https://mirror/s/" + f.sha256] = f.sha256;
+  CHECK(install(catalog, base, shared_and_cloud, dir.path, fake, nullptr));
+  CHECK(read(dir.path / "emoji/a.svg") == "aaa" && read(dir.path / "fonts/f.ttf") == "ffff");
+  CHECK(fake.count("https://gh/") == 0);
+  // And with the mirror down too, the sources.
+  TempDir again;
+  fake.down.push_back("https://mirror/");
+  for (const File& f : catalog.files) fake.served["https://gh/x/" + f.path] = f.sha256;
+  CHECK(install(catalog, base, shared_and_cloud, again.path, fake, nullptr));
+  CHECK(fake.count("https://gh/") == 2);
 }
 
 void an_empty_base_goes_straight_to_the_sources() {
@@ -404,14 +423,14 @@ void a_failed_run_keeps_what_arrived() {
   serve(fake, catalog);
   // At both places: the Repository is taken for down once the font fails there.
   for (const File& f : catalog.files) fake.served["https://gh/x/" + f.path] = f.sha256;
-  fake.down = {"https://repo/fonts/", "https://gh/x/fonts/"};
+  fake.down = {"https://repo/ffff", "https://gh/x/fonts/"};
   CHECK(install(catalog, base, shared_and_cloud, dir.path, fake, nullptr).error() == Error::Network);
   CHECK(missing(catalog, shared_and_cloud, dir.path).size() == 1);  // what arrived is listed already
 
   fake.down.clear();
   fake.asked.clear();
   CHECK(install(catalog, base, shared_and_cloud, dir.path, fake, nullptr));
-  CHECK(fake.asked == std::vector<std::string>{"https://repo/fonts/f.ttf"});
+  CHECK(fake.asked == std::vector<std::string>{"https://repo/ffff"});
 }
 
 void a_bad_file_does_not_stop_the_others() {
@@ -419,7 +438,7 @@ void a_bad_file_does_not_stop_the_others() {
   const Catalog catalog = two_skins();
   Fake fake;
   serve(fake, catalog);
-  fake.served["https://repo/emoji/a.svg"] = "xxx";
+  fake.served["https://repo/aaa"] = "xxx";
   CHECK(install(catalog, base, shared_and_cloud, dir.path, fake, nullptr).error() == Error::BadContent);
   CHECK(read(dir.path / "fonts/f.ttf") == "ffff");
   CHECK(missing(catalog, shared_and_cloud, dir.path).size() == 1);
@@ -477,7 +496,7 @@ void many_files_arrive_with_progress_in_order() {
 // --- catalogs ---
 
 std::string catalog_text(std::string_view signature_hex) {
-  return "crpp-catalog 1\nkey 01" + std::string(126, '0') + "\nfile shared a.txt 3 " + std::string(64, 'b') + "\nsignature " +
+  return "crpp-catalog 2\nkey 01" + std::string(126, '0') + "\nfile shared a.txt 3 " + std::string(64, 'b') + "\nsignature " +
          std::string(signature_hex) + "\n";
 }
 const std::string signed_good = catalog_text("07" + std::string(126, '0'));
@@ -515,6 +534,29 @@ void the_mirror_has_the_catalog_when_the_repository_does_not() {
   CHECK(fetch_catalog(repository(), fake).error() == Error::BadSignature);  // the first place's error
 }
 
+// A Repository must serve the current grammar; one an older exe kept is still read from disk.
+void a_catalog_of_the_old_grammar_is_only_read_from_disk() {
+  std::string old = signed_good;
+  old.replace(0, std::string_view("crpp-catalog 2").size(), "crpp-catalog 1");
+  Fake fake;
+  fake.served["https://repo/catalog.txt"] = old;
+  CHECK(fetch_catalog(Repository{std::string(base), "", good_key}, fake).error() == Error::Outdated);
+  fake.served["https://other/catalog.txt"] = old;
+  CHECK(fetch_new_catalog("https://other/", fake).error() == Error::Outdated);
+  TempDir dir;
+  CHECK(save_catalog(dir.path, old));
+  const auto kept = load_catalog(dir.path, good_key, fake);
+  CHECK(kept && kept->grammar == 1);
+}
+
+void a_catalog_has_the_name_its_repository_gives() {
+  Fake fake;
+  fake.served["https://repo/catalog-2.txt"] = signed_good;
+  Repository official{std::string(base), "", good_key};
+  official.catalog = "catalog-2.txt";
+  CHECK(fetch_catalog(official, fake).has_value());
+}
+
 void a_kept_catalog_is_checked_again() {
   TempDir dir;
   Fake fake;
@@ -529,7 +571,7 @@ void a_kept_catalog_is_checked_again() {
 
 void a_new_repository_is_trusted_with_the_key_it_states() {
   Fake fake;
-  const std::string head = "crpp-catalog 1\nkey 01" + std::string(126, '0') + "\nskin aurora 1\n";
+  const std::string head = "crpp-catalog 2\nkey 01" + std::string(126, '0') + "\nskin aurora 1\n";
   const std::string signature = "\nsignature 07" + std::string(126, '0') + "\n";
   const std::string good = head + "file skin:aurora skins/aurora/pack.cskin 3 " + std::string(64, 'b') + signature;
   fake.served["https://other/catalog.txt"] = good;
@@ -619,6 +661,7 @@ int main() {
   a_file_the_repository_lacks_comes_from_its_source();
   a_passing_failure_is_tried_again();
   the_sources_take_over_when_the_repository_does_not_answer();
+  the_catalogs_mirror_comes_before_the_sources();
   an_empty_base_goes_straight_to_the_sources();
   a_cancel_begins_no_more_files_and_keeps_what_arrived();
   a_failed_run_keeps_what_arrived();
@@ -629,6 +672,8 @@ int main() {
   a_catalog_is_kept_only_when_signed();
   the_mirror_has_the_catalog_when_the_repository_does_not();
   a_kept_catalog_is_checked_again();
+  a_catalog_of_the_old_grammar_is_only_read_from_disk();
+  a_catalog_has_the_name_its_repository_gives();
   a_new_repository_is_trusted_with_the_key_it_states();
   return crpp_test_result();
 }

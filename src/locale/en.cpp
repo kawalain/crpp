@@ -286,6 +286,7 @@ const Strings english{
     .repository_reason_none = "There's no Repository at that address.",
     .repository_reason_bad = "It isn't signed, or it holds more than Skins and sounds.",
     .repository_reason_known = "You've already added this Repository.",
+    .repository_reason_outdated = "This Repository is in an old layout. Whoever made it needs to build it again.",
     .repository_add_question = "Add this Repository?\n{0}\n\n{1}\n\nFingerprint {2}\nPlease check it matches the one its maker published.",
     .repository_add_pack = "The {0} Skin ({1})",
     .repository_add_sound = "The {0} sounds ({1})",

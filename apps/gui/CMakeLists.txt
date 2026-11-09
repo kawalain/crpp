@@ -38,12 +38,21 @@ if(WIN32)
   # A development build runs from an assets folder next to the exe, with an unsigned catalog
   # that says what the folder holds, and installs nothing. A release is the exe alone, and
   # fetches the official Repository's files into the user's data folder.
-  add_dependencies(crpp crpp_catalog)
-  add_custom_command(TARGET crpp POST_BUILD
-    COMMAND ${CMAKE_COMMAND} -E copy_directory ${PROJECT_SOURCE_DIR}/assets $<TARGET_FILE_DIR:crpp>/assets
-    COMMAND ${CMAKE_COMMAND} -E copy_directory ${PROJECT_SOURCE_DIR}/skins $<TARGET_FILE_DIR:crpp>/skins
-    COMMAND $<TARGET_FILE:crpp_catalog> $<TARGET_FILE_DIR:crpp>/assets --remote ${CRPP_REMOTE_ASSETS}
-            --assets ${PROJECT_SOURCE_DIR}/assets --skins ${PROJECT_SOURCE_DIR}/skins --default-skin cloud)
+  # The copy follows the files themselves, not the exe: a pack edited alone is copied at the next
+  # build, so a shot never draws a pack older than its source. The exe is built into this folder.
+  file(GLOB_RECURSE crpp_dev_files CONFIGURE_DEPENDS ${PROJECT_SOURCE_DIR}/assets/* ${PROJECT_SOURCE_DIR}/skins/*)
+  set(crpp_dev_stamp ${CMAKE_CURRENT_BINARY_DIR}/dev_files.stamp)
+  add_custom_command(OUTPUT ${crpp_dev_stamp}
+    COMMAND ${CMAKE_COMMAND} -E copy_directory ${PROJECT_SOURCE_DIR}/assets ${CMAKE_CURRENT_BINARY_DIR}/assets
+    COMMAND ${CMAKE_COMMAND} -E copy_directory ${PROJECT_SOURCE_DIR}/skins ${CMAKE_CURRENT_BINARY_DIR}/skins
+    COMMAND $<TARGET_FILE:crpp_catalog> ${CMAKE_CURRENT_BINARY_DIR}/assets --remote ${CRPP_REMOTE_ASSETS}
+            --assets ${PROJECT_SOURCE_DIR}/assets --skins ${PROJECT_SOURCE_DIR}/skins --default-skin cloud
+    COMMAND ${CMAKE_COMMAND} -E touch ${crpp_dev_stamp}
+    DEPENDS ${crpp_dev_files} ${CRPP_REMOTE_ASSETS} crpp_catalog
+    COMMENT "Copying the assets and Skin Packs beside the exe"
+    VERBATIM)
+  add_custom_target(crpp_dev_files DEPENDS ${crpp_dev_stamp})
+  add_dependencies(crpp crpp_dev_files)
   if(CRPP_FETCH_DEV_ASSETS)
     add_custom_command(TARGET crpp POST_BUILD
       COMMAND ${CMAKE_COMMAND} -E make_directory ${CRPP_ASSET_CACHE}

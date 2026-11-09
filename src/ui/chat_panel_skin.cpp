@@ -207,7 +207,10 @@ void ChatPanel::paint_rows(Painter& p, Rect area) {
     if (row.new_line) paint_new_line(p, x, row.y_line + rise, list_w, look.head_h, look.time, with_alpha(look.link, arrived));
     if (row.mention) {
       const float top = (row.head ? row.y_head : row.y_text) + rise;
-      p.fill_round({x - 8, top - 3, list_w + 16, row.y_text + rise + row.h_text + 3 - (top - 3)}, 8, with_alpha(look.link, 0.14f * arrived));
+      const float h = row.y_text + rise + row.h_text + 3 - (top - 3);
+      p.fill_round({x - 8, top - 3, list_w + 16, h}, 8, with_alpha(look.link, 0.14f * arrived));
+      // A bar on its side too, so that it stands out by more than a colour.
+      p.fill_round({x - 8, top - 3 + 4, 3, h - 8}, 1.5f, with_alpha(look.link, arrived));
     }
     if (row.head) {
       draw_svg(p, ui_.emoji_image(e.emoji), {x, row.y_head + rise, look.face, look.face}, arrived);
@@ -390,7 +393,9 @@ void ChatPanel::paint_messages(Painter& p, Rect inner) {
     if (row.new_line) paint_new_line(p, x, top + row.y_line, text_w_full, body.line_height + 4, head, look.link);
     if (row.mention) {
       const float from = top + (row.head ? row.y_head : row.y_text);
-      p.fill_rect({x - 2, from - 1, text_w_full + 4, top + row.y_text + row.h_text + 1 - (from - 1)}, with_alpha(look.link, 0.12f));
+      const float h = top + row.y_text + row.h_text + 1 - (from - 1);
+      p.fill_rect({x - 2, from - 1, text_w_full + 4, h}, with_alpha(look.link, 0.12f));
+      p.fill_rect({x - 2, from - 1, 2, h}, look.link);  // more than a colour, as Cloud's bar
     }
     if (row.head) {
       if (!row.time) {

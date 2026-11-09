@@ -113,7 +113,9 @@ std::expected<void, std::string> App::read_pack(const std::string& overlay) {
   if (!pack) return std::unexpected(std::move(pack.error()));
   if (const auto missing = skin::missing_constant(*pack)) return std::unexpected("pack: no constant \"" + std::string(*missing) + "\"");
   ui_.forget_render_target();  // brushes are kept by the address of their stops
-  previous_pack_ = std::move(pack_);  // a hit of the last frame can still point into it
+  // And hits hold views of their shapes in the pack that goes: no window keeps one until it is drawn again.
+  ui_.forget_hits();
+  for (WindowState& window : windows_) window.forget_hits();
   pack_ = std::move(*pack);
   ui_.pack = &*pack_;
   return {};

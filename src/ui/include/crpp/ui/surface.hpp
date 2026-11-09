@@ -147,6 +147,12 @@ struct WindowState {
     Rect whole;  // before any clip, to scroll it into view
   };
 
+  // What the last frame left to click goes: a hit's shape is a view into the pack it was drawn from.
+  void forget_hits() {
+    hits_.clear();
+    hit_clips_.clear();
+  }
+
  protected:
   std::vector<Hit> hits_;
   std::vector<Rect> hit_clips_;

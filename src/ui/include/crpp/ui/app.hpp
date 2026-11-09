@@ -268,7 +268,6 @@ class App {
   std::vector<SkippedPack> skipped_;
   [[nodiscard]] skin::LoadOptions load_options(std::string overlay, const std::filesystem::path& folder) const;
   std::optional<skin::Pack> pack_;
-  std::optional<skin::Pack> previous_pack_;
   std::string theme_id_ = "cumulus";  // the Theme a Ui starts with, until a choice is read
   MemoryPrefs memory_prefs_;
   Achievements achievements_;

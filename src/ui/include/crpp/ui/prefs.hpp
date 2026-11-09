@@ -91,10 +91,10 @@ inline constexpr Bool public_notice_seen{"publicNoticeSeen", false};
 inline constexpr Bool chat_notice_seen{"chatNoticeSeen", false};
 inline constexpr Bool pin_tip_seen{"pinTipSeen", false};
 
-// What "설정 초기화" puts back. Account and Room values are not settings.
+// What "설정 초기화" puts back. Account and Room values are not settings, nor what was found, as hidden Themes.
 inline constexpr std::array all_bool{mute_others,       listen_self,       others_use_my_sounds, mute_on_idle,    mute_notifications_on_mute,
                                      spatial_audio,     channel_balance_enabled, system_theme, theme_cursor, sky_effects, chat_tray_notify,
-                                     chat_taskbar_flash, chat_mention_notify, achievements_on, hidden_themes, start_with_system,   minimize_to_tray, use_24h,
+                                     chat_taskbar_flash, chat_mention_notify, achievements_on, start_with_system,   minimize_to_tray, use_24h,
                                      log_enabled,       input_detail};
 inline constexpr std::array all_int{volume, keyboard_volume, mouse_volume, pen_volume, channel_balance, chat_scale, idle_minutes, release_graphics_after};
 inline constexpr std::array all_text{speaker_device, speaker_device_name, keyboard_sound, mouse_sound, pen_sound,

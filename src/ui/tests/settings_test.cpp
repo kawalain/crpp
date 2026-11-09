@@ -301,6 +301,7 @@ void test_reset_goes_through_its_dialog() {
   prefs.set(pref::use_24h, true);
   prefs.set(pref::input_detail, true);
   prefs.set(pref::theme, "pastel");
+  prefs.set(pref::hidden_themes, true);
   prefs.set_notification_sound("cloud_chat", false);
   open(h, SettingsPage::System);
   h.app.settings().scroll_to(10000);
@@ -319,6 +320,7 @@ void test_reset_goes_through_its_dialog() {
   CHECK(!prefs.get(pref::input_detail));
   CHECK(prefs.get(pref::theme) == "cloudroom");
   CHECK(prefs.notification_sound("cloud_chat"));
+  CHECK(prefs.get(pref::hidden_themes));  // found, as an Achievement is reached: not a setting
 }
 
 void test_scrollbar_shows_on_scrolling_and_hides_after_a_pause() {

@@ -342,6 +342,7 @@ LRESULT CALLBACK wnd_proc(HWND hwnd, UINT msg, WPARAM wp, LPARAM lp) {
       s->input_sink.pulse_taken();
       area::sound::own_input(*s);
       s->app.room().pulse_me();
+      s->app.room().note_input(s->input_sink.take_events());
       InvalidateRect(hwnd, nullptr, FALSE);
       sync_frames(*s);
       return 0;

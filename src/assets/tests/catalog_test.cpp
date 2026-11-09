@@ -110,6 +110,28 @@ void refuses_wrong_names_and_themes() {
   CHECK(parse_catalog(a + "skin-name a ko " + std::string(64, 'x') + "\n").has_value());
 }
 
+// A name is read in the question about trusting a Repository: the marks that turn the direction
+// of text could make it say something else than was written.
+void a_name_holds_nothing_that_turns_text() {
+  const std::string a = head + "skin a 1\n";
+  CHECK(!parse_catalog(a + "skin-name a en safe\xE2\x80\xAE" "txt.exe\n"));
+  CHECK(!parse_catalog(a + "skin-name a en \xE2\x81\xA6x\n"));
+  CHECK(parse_catalog(a + "skin-name a en \xE2\x80\x94 dash\n").has_value());
+}
+
+// Each pack is looked up among those before it, so a catalog may list only so many.
+void lists_only_so_many_packs() {
+  std::string skins = head, sounds = head;
+  for (std::size_t i = 0; i < max_packs; ++i) {
+    skins += "skin s" + std::to_string(i) + " 1\n";
+    sounds += "sound s" + std::to_string(i) + "\n";
+  }
+  CHECK(parse_catalog(skins).has_value());
+  CHECK(parse_catalog(sounds).has_value());
+  CHECK(!parse_catalog(skins + "skin one-more 1\n"));
+  CHECK(!parse_catalog(sounds + "sound one-more\n"));
+}
+
 void refuses_paths_that_leave_the_folder() {
   for (const char* path : {"../a", "a/../b", "/a", "a//b", "a/./b", "a\\b", "a b", "%2e%2e/a", "a/", "."}) {
     CHECK(!parse_catalog(head + file_line("shared", path)));
@@ -273,6 +295,8 @@ void a_digest_lists_the_packs_own_files() {
 }  // namespace
 
 int main() {
+  a_name_holds_nothing_that_turns_text();
+  lists_only_so_many_packs();
   reads_every_kind_of_line();
   writes_what_it_reads();
   a_signature_covers_what_comes_before_it();

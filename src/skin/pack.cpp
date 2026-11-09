@@ -15,36 +15,10 @@ namespace {
 
 using store::Json;
 
-// As a Repository's catalog takes them (ADR 0008), so that a pack id with a Repository's prefix
-// stays within what the server takes for a Sound pack.
-[[nodiscard]] bool is_pack_id(std::string_view s) {
-  return !s.empty() && s.size() <= 32 && std::ranges::all_of(s, [](char c) {
-    return (c >= 'a' && c <= 'z') || (c >= '0' && c <= '9') || c == '-' || c == '_';
-  });
-}
-
 // What a user calls a pack or Theme in a locale, as the catalog copies it.
 [[nodiscard]] bool good_name(const Json::Member& name) {
   const auto words = name.value.as_string();
-  return is_pack_id(name.key) && words && !words->empty() && words->size() <= 64 && words->front() != ' ' && words->back() != ' ' &&
-         std::ranges::all_of(*words, [](char c) { return static_cast<unsigned char>(c) >= 0x20 && c != 0x7f; });
-}
-
-[[nodiscard]] bool is_hex64(std::string_view s) {
-  return s.size() == 64 && std::ranges::all_of(s, [](char c) { return (c >= '0' && c <= '9') || (c >= 'a' && c <= 'f'); });
-}
-
-// Digits with no leading zero, separated by dots: count of them.
-[[nodiscard]] bool dotted(std::string_view s, std::size_t parts) {
-  for (std::size_t i = 0; i < parts; ++i) {
-    const std::size_t dot = s.find('.');
-    const std::string_view part = s.substr(0, dot);
-    if (part.empty() || part.size() > 9 || (part.size() > 1 && part[0] == '0') || !std::ranges::all_of(part, [](char c) { return c >= '0' && c <= '9'; })) return false;
-    if (i + 1 == parts) return dot == std::string_view::npos;
-    if (dot == std::string_view::npos) return false;
-    s.remove_prefix(dot + 1);
-  }
-  return false;
+  return is_pack_id(name.key) && words && is_shown_name(*words);
 }
 
 [[nodiscard]] std::optional<int> find_name(std::span<const Name> names, std::string_view name) {
@@ -361,8 +335,8 @@ class Loader final : public Names {
     pin.fingerprint = field("fingerprint");
     pin.version = field("version");
     pin.sha256 = field("sha256");
-    if (!pin.fingerprint.empty() && !is_hex64(pin.fingerprint)) fail("a fingerprint is 64 lowercase hex digits");
-    else if (!pin.sha256.empty() && !is_hex64(pin.sha256)) fail("a sha256 is 64 lowercase hex digits");
+    if (!pin.fingerprint.empty() && !is_lower_hex(pin.fingerprint, 64)) fail("a fingerprint is 64 lowercase hex digits");
+    else if (!pin.sha256.empty() && !is_lower_hex(pin.sha256, 64)) fail("a sha256 is 64 lowercase hex digits");
     else if (!pin.version.empty() && !is_version_pin(pin.version)) fail("a parent's version is 0.y or 0.y.z");
     else if (pin.repository.size() > 300 || (!pin.repository.empty() && pin.fingerprint.empty())) fail("a repository needs the fingerprint of its key");
     else return pin;
@@ -1383,9 +1357,5 @@ std::expected<Pack, std::string> load_pack(const ReadFile& read, std::span<const
   if (!loader.load(schemas)) return std::unexpected(loader.error());
   return loader.take();
 }
-
-bool is_version(std::string_view s) { return s.starts_with("0.") && dotted(s, 3); }
-
-bool is_version_pin(std::string_view s) { return s.starts_with("0.") && (dotted(s, 2) || dotted(s, 3)); }
 
 }  // namespace crpp::skin

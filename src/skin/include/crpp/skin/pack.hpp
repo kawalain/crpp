@@ -92,6 +92,7 @@
 
 #include "crpp/skin/color.hpp"
 #include "crpp/skin/expr.hpp"
+#include "crpp/skin/naming.hpp"
 
 namespace crpp::skin {
 
@@ -287,11 +288,6 @@ struct ParentPin {
   std::string version;      // 0.y or 0.y.z: that version, or any 0.y.z; empty: any
   std::string sha256;       // the digest of its own files in its catalog, or empty
 };
-
-// 0.y.z, as a pack says its own version.
-[[nodiscard]] bool is_version(std::string_view s);
-// 0.y or 0.y.z, as a pin asks for one.
-[[nodiscard]] bool is_version_pin(std::string_view s);
 
 struct Pack {
   std::string id;

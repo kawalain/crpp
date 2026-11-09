@@ -1,6 +1,6 @@
 add_library(crpp_assets STATIC assets.cpp catalog.cpp)
 target_include_directories(crpp_assets PUBLIC include)
-target_link_libraries(crpp_assets PUBLIC crpp_update Threads::Threads)
+target_link_libraries(crpp_assets PUBLIC crpp_update Threads::Threads PRIVATE crpp_skin)
 crpp_target_defaults(crpp_assets)
 
 function(crpp_assets_test name)

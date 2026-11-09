@@ -42,6 +42,9 @@ inline constexpr std::string_view catalog_name = "catalog.txt";
 inline constexpr std::size_t max_catalog_size = 4 * 1024 * 1024;
 // Cloudflare serves files up to 25 MiB; this leaves room for another host.
 inline constexpr std::uint64_t max_file_size = 64 * 1024 * 1024;
+// How many skins, sounds or sources one catalog lists. Each is looked up among those before it, so
+// without a limit 4 MB of one-word lines would take the parser minutes.
+inline constexpr std::size_t max_packs = 1000;
 
 struct File {
   std::string group, path;  // the path is where it is installed, relative to the assets folder

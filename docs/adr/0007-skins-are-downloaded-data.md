@@ -28,7 +28,7 @@ front end is the language's: what it reads is the tree the engine draws, with ex
 
 ## Consequences
 
-- The screens are rewritten as data, and the engine is new code that must keep the performance rules: idle means blocked, and a still window draws nothing. Going over the limits in `docs/plans/skin-packs.md` stops the work.
+- The screens are rewritten as data, and the engine is new code that must keep the performance rules: idle means blocked, and a still window draws nothing. The limits, measured against the build the work started from: idle CPU stays 0.0% and a still window draws nothing, idle private memory grows at most 5%, scrolling CPU at most 20%, and from reading a pack to the first screen takes at most 100 ms. Going over them stops the work.
 - Unlike the assets of ADR 0004, a Skin Pack is required: until one is installed the exe shows only a small screen of its own for progress, failure and retry. The official Repository has a second source on GitHub (ADR 0008), but a network blocking both stops a first run.
 - A signed catalog lists the packs and their hashes, so a Skin needs no release. Packs come from the official Repository and from any other a user adds (ADR 0008); a development build can load a folder.
 - A pack states the format it is written in, and the exe refuses others, so screens an exe needs and a pack lacks are caught before anything is drawn.

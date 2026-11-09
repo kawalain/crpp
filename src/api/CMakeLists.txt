@@ -17,7 +17,7 @@ crpp_api_test(worker)
 
 if(WIN32)
   add_library(crpp_api_winhttp STATIC winhttp_client.cpp)
-  target_link_libraries(crpp_api_winhttp PUBLIC crpp_api winhttp)
+  target_link_libraries(crpp_api_winhttp PUBLIC crpp_api winhttp PRIVATE crpp_winhttp)
   target_compile_definitions(crpp_api_winhttp PRIVATE NOMINMAX WIN32_LEAN_AND_MEAN)
   crpp_target_defaults(crpp_api_winhttp)
 

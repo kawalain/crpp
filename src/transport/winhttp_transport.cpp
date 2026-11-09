@@ -9,28 +9,15 @@
 #include <windows.h>
 #include <winhttp.h>
 
+#include "crpp/winhttp/winhttp.hpp"
+
 namespace crpp::transport {
 
 namespace {
 
-std::wstring widen(std::string_view s) {
-  if (s.empty()) return {};
-  const int n = MultiByteToWideChar(CP_UTF8, 0, s.data(), static_cast<int>(s.size()), nullptr, 0);
-  std::wstring w(static_cast<std::size_t>(n), L'\0');
-  MultiByteToWideChar(CP_UTF8, 0, s.data(), static_cast<int>(s.size()), w.data(), n);
-  return w;
-}
+using winhttp::widen;
 
 HINTERNET as_handle(void* h) { return static_cast<HINTERNET>(h); }
-
-// A header value must not be able to start another header.
-bool is_header_safe(std::string_view s) {
-  for (const char c : s) {
-    const auto u = static_cast<unsigned char>(c);
-    if (u < 0x20 || u == 0x7F) return false;
-  }
-  return true;
-}
 
 constexpr DWORD keepalive_ms = 15000;  // the minimum WinHTTP accepts
 
@@ -104,7 +91,7 @@ bool WinHttpTransport::send_binary(std::span<const std::uint8_t> bytes) {
 }
 
 WinHttpTransport::Outcome WinHttpTransport::connect(const Target& target, const std::string& token) {
-  if (!is_header_safe(token)) return Outcome::Failed;
+  if (!winhttp::header_safe(token)) return Outcome::Failed;
   const auto gave_up = [&] { return stopping_ ? Outcome::Stopped : Outcome::Failed; };
 
   // Each handle is used here by the copy this thread made of it: the members are close()'s to

@@ -122,7 +122,7 @@ endif()
 
 if(WIN32)
   add_library(crpp_assets_windows STATIC windows_platform.cpp)
-  target_link_libraries(crpp_assets_windows PUBLIC crpp_assets crpp_update_windows winhttp bcrypt)
+  target_link_libraries(crpp_assets_windows PUBLIC crpp_assets crpp_update_windows winhttp bcrypt PRIVATE crpp_winhttp)
   # BCryptHash and its pseudo-handles start at Windows 10.
   target_compile_definitions(crpp_assets_windows PRIVATE NOMINMAX WIN32_LEAN_AND_MEAN _WIN32_WINNT=0x0A00)
   crpp_target_defaults(crpp_assets_windows)

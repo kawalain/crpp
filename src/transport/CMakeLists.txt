@@ -10,7 +10,7 @@ add_test(NAME transport.target COMMAND crpp_transport_target_test)
 
 if(WIN32)
   add_library(crpp_transport_winhttp STATIC winhttp_transport.cpp winhttp_health.cpp)
-  target_link_libraries(crpp_transport_winhttp PUBLIC crpp_transport winhttp)
+  target_link_libraries(crpp_transport_winhttp PUBLIC crpp_transport winhttp PRIVATE crpp_winhttp)
   crpp_target_defaults(crpp_transport_winhttp)
 
   add_executable(crpp_transport_winhttp_test tests/winhttp_transport_test.cpp)

@@ -383,6 +383,9 @@ const Strings korean{
     .system_reset_confirm = "되돌리기",
     .system_logs_failed = "로그 폴더를 열지 못했어요.",
     .system_autostart_failed = "자동 실행 설정을 바꾸지 못했어요.",
+    .input_failed = "키보드와 마우스를 읽지 못해서 구름에 내 입력이 전해지지 않아요.",
+    .home_waiting = "구름의 대답을 기다리고 있어요…",
+    .mute_hotkey_busy = "다른 프로그램이 음소거 단축키를 쓰고 있어서 지금은 동작하지 않아요.",
 
     .setup_message = "처음 실행에 필요한 파일을 받고 있어요",
     .setup_detail = "파일 {0}/{1} · {2}/{3} MB",

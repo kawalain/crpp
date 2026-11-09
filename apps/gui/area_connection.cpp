@@ -91,8 +91,8 @@ void wire(Shell& s) {
   Shell* sp = &s;
   s.connection = std::make_shared<ConnectionArea>(s);
   s.bridge->on_room_changed = [sp](bool in_room) {
-    if (in_room) (void)sp->input->start();
-    else sp->input->stop();
+    if (!in_room) sp->input->stop();
+    else if (!sp->input->start()) sp->app.toasts().toast(tr().input_failed);  // upstream says so too
   };
   s.bridge->on_unauthorized = [sp] { area::account::token_rejected(*sp); };
   s.bridge->on_state = [sp](session::State state) { sp->connection->feedback.state_changed(state); };

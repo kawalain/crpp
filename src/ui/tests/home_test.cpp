@@ -169,6 +169,8 @@ void test_busy_buttons_do_nothing() {
   h.app.mouse_down(180, 260, false);  // the create cloud
   h.app.mouse_up(180, 260);
   CHECK(calls == 0);
+  // It says why, upstream's "waiting for the answer".
+  CHECK(h.app.toasts().text() == tr().home_waiting);
 }
 
 void test_return_decisions() {

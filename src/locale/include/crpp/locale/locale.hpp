@@ -404,6 +404,12 @@ struct Strings {
   const char* system_reset_confirm;
   const char* system_logs_failed;
   const char* system_autostart_failed;
+  // Raw Input could not start in a Room.
+  const char* input_failed;
+  // A click on Home while a Room is still being created or entered.
+  const char* home_waiting;
+  // Entering a Room, the chosen mute shortcut was held by another program.
+  const char* mute_hotkey_busy;
 
   // Starting up.
   const char* setup_message;

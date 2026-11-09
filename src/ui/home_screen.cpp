@@ -50,8 +50,14 @@ std::string seat_time_left(std::uint64_t left_ms) {
   return locale::fill(tr().home_seat_left, {std::to_string(std::max<std::uint64_t>(1, (left_ms + 59999) / 60000))});
 }
 
+bool HomeScreen::waiting() {
+  if (!is_busy()) return false;
+  if (ui_.toasts) ui_.toasts->toast(tr().home_waiting);
+  return true;
+}
+
 void HomeScreen::join() {
-  if (is_busy()) return;
+  if (waiting()) return;
   last_action_ = Join;
   const auto code = home::normalize_code(code_.text());
   if (!code) {
@@ -62,7 +68,7 @@ void HomeScreen::join() {
 }
 
 void HomeScreen::find() {
-  if (is_busy()) return;
+  if (waiting()) return;
   refresh_seat(clock_ms());
   // A Skin that lists the Seats has no need to ask.
   if (ui_.scales_stage() && home::find_step(returning()) == home::FindStep::AskReturn) {
@@ -113,7 +119,7 @@ void HomeScreen::drag(float x, float) { code_.drag_to(code_.position_at(ui_.gfx,
 void HomeScreen::click(int id, float x, float, bool shift) {
   switch (id) {
     case Create:
-      if (is_busy()) break;
+      if (waiting()) break;
       last_action_ = Create;
       if (on_create) on_create();
       break;
@@ -134,18 +140,18 @@ void HomeScreen::click(int id, float x, float, bool shift) {
       break;
     case ReturnConfirm:
       return_open_ = false;
-      if (is_busy()) break;
+      if (waiting()) break;
       last_action_ = Join;
       if (on_return) on_return();
       break;
     case ReturnRandom:
       return_open_ = false;
-      if (is_busy()) break;
+      if (waiting()) break;
       last_action_ = Find;
       if (on_find_public) on_find_public();
       break;
     default:
-      if (id >= SeatBase && !is_busy() && held_seats && on_join) {
+      if (id >= SeatBase && !waiting() && held_seats && on_join) {
         const std::vector<HeldSeatShown> seats = held_seats();
         const auto index = static_cast<std::size_t>(id - SeatBase);
         if (index < seats.size()) {

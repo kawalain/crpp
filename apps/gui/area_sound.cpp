@@ -173,9 +173,9 @@ void list_speakers(Shell& s) {
 constexpr int mute_hotkey_id = 1;  // RegisterHotKey's id, of the main window
 
 // The shortcut is held only in a Room, where it acts, so that out of one it is left to other programs. Out of a Room
-// a choice is only tried and let go, to say whether another program holds it.
-void sync_hotkey(Shell& s, bool try_now) {
-  if (!s.hwnd) return;  // a shot, which has no window and leaves the system's shortcuts alone
+// a choice is only tried and let go, to say whether another program holds it. True if another program holds it.
+bool sync_hotkey(Shell& s, bool try_now) {
+  if (!s.hwnd) return false;  // a shot, which has no window and leaves the system's shortcuts alone
   State& st = *s.sound_state;
   if (st.hotkey_held) {
     UnregisterHotKey(s.hwnd, mute_hotkey_id);
@@ -183,17 +183,20 @@ void sync_hotkey(Shell& s, bool try_now) {
   }
   SoundTab& tab = s.app.settings().sound();
   const MuteHotkey* key = mute_hotkey_named(s.prefs->get(pref::mute_hotkey));
+  bool taken = false;
   if (!key) {
     tab.set_hotkey_taken(false);
   } else if (st.in_room || try_now) {
     // Without MOD_NOREPEAT a held key would toggle again and again.
     const bool held = RegisterHotKey(s.hwnd, mute_hotkey_id, key->modifiers | MOD_NOREPEAT, key->vk) != 0;
-    tab.set_hotkey_taken(!held);
+    taken = !held;
+    tab.set_hotkey_taken(taken);
     if (held && st.in_room) st.hotkey_held = true;
     else if (held) UnregisterHotKey(s.hwnd, mute_hotkey_id);
   }
   InvalidateRect(s.hwnd, nullptr, FALSE);
   invalidate_panes(s);
+  return taken;
 }
 
 void tab_shown(Shell& s) {
@@ -302,7 +305,8 @@ void wire(Shell& s) {
       sp->engine->clear_member_volumes();
     }
     sync_idle(*sp);
-    sync_hotkey(*sp, false);
+    // Taken since it was chosen: the settings row says so, but nobody looks there on entering a Room.
+    if (sync_hotkey(*sp, false) && in_room) sp->app.toasts().toast(tr().mute_hotkey_busy);
   };
 }
 

@@ -92,6 +92,8 @@ class HomeScreen final : public Surface {
 
  private:
   [[nodiscard]] bool is_busy() const { return busy && busy(); }
+  // Busy, and says so: a click now would do nothing.
+  bool waiting();
   void paint_pack(Painter& p, const skin::Screen& screen);
   void paint_return_pack(Painter& p, const skin::Screen& screen);
   [[nodiscard]] TextStyle field_style() const;

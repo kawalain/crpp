@@ -383,6 +383,9 @@ const Strings english{
     .system_reset_confirm = "Reset",
     .system_logs_failed = "Couldn't open the log folder.",
     .system_autostart_failed = "We couldn't change whether it starts with the system.",
+    .input_failed = "We couldn't read the keyboard and mouse, so your input won't reach the Room.",
+    .home_waiting = "We're waiting for the Room to answer…",
+    .mute_hotkey_busy = "Another program is using the mute shortcut, so it won't work for now.",
 
     .setup_message = "Getting a few files for the first run",
     .setup_detail = "{0} of {1} files · {2} of {3} MB",

@@ -274,8 +274,9 @@ class Loader final : public Names {
       const Json* extends = root->find("extends");
       std::string next;
       if (extends) {
-        if (!extends->as_string()) {
-          fail("extends is not an id");
+        // Only an id: what finds the parent makes a folder of it, and a path there could reach a share.
+        if (!extends->as_string() || !is_pack_id(*extends->as_string())) {
+          fail("extends is not an id: 1 to 32 of a-z, 0-9, - and _");
           return std::nullopt;
         }
         next = std::string(*extends->as_string());

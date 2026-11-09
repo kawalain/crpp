@@ -992,6 +992,17 @@ void extending_is_refused_where_it_cannot_work() {
   const Files base = {{"pack.cskin", parent_pack}};
   CHECK(!load_pack(from(pack_named("child", "base")), {}));  // nothing finds parents
   CHECK(!load_pack(from(pack_named("child", "nobody")), {}, parents({{"base", base}})));
+  // A parent is named by its id alone, so what looks for it never gets a path, a share or a drive.
+  bool asked = false;
+  LoadOptions anywhere;
+  anywhere.parent = [&asked](const ParentQuery&) -> std::optional<FoundPack> {
+    asked = true;
+    return std::nullopt;
+  };
+  for (const std::string bad : {"../base", R"("..\\base")", R"("\\\\host\\share\\base")", R"("c:base")", "BASE", R"("")"}) {
+    CHECK(!load_pack(from(pack_named("child", bad)), {}, anywhere));
+  }
+  CHECK(!asked);
   // Around in a circle.
   CHECK(!load_pack(from(pack_named("a", "b")), {}, parents({{"b", pack_named("b", "a")}, {"a", pack_named("a", "b")}})));
   // Three between it and the parent is the limit of four levels.

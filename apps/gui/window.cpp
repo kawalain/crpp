@@ -97,7 +97,9 @@ void set_frame_region(HWND hwnd, UINT dpi, float radius_dips) {
   RECT rc;
   if (IsIconic(hwnd) || !GetWindowRect(hwnd, &rc)) return;
   const int w = rc.right - rc.left, h = rc.bottom - rc.top;
-  const double radius = static_cast<double>(radius_dips) * dpi / 96;
+  // A row of the region for each pixel of it: never more than the window has, whatever a pack says.
+  const double asked = static_cast<double>(radius_dips) * dpi / 96;
+  const double radius = !(asked > 0) ? 0 : std::min(asked, std::min(w, h) / 2.0);
   // Every pixel the curve touches, row by row: drawing smooths the ones it only partly covers.
   HRGN shape = CreateRectRgn(0, static_cast<int>(std::ceil(radius)), w, h);
   for (int y = 0; y < static_cast<int>(std::ceil(radius)); ++y) {

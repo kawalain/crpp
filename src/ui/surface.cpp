@@ -201,8 +201,9 @@ ID2D1LinearGradientBrush* Ui::edge_fade_mask(Painter& p, Rect area, float top, f
     fade_masks_.clear();
     masks_target_ = p.rt();
   }
-  const int top_px = static_cast<int>(top + 0.5f), bottom_px = static_cast<int>(bottom + 0.5f);
-  const int key = (static_cast<int>(area.h) << 12) | (top_px << 6) | bottom_px;
+  // A pack's numbers: kept to what a key of three parts holds.
+  const int top_px = skin::whole(top + 0.5f, 0, 63), bottom_px = skin::whole(bottom + 0.5f, 0, 63);
+  const int key = (skin::whole(area.h, 0, 65535) << 12) | (top_px << 6) | bottom_px;
   for (FadeMask& mask : fade_masks_) {
     if (mask.key == key) return mask.brush.get();
   }

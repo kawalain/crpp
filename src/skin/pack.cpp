@@ -74,6 +74,21 @@ using store::Json;
   return value;
 }
 
+// What is wrong with a constant's value, in words, if anything. The shell makes windows, their
+// corners and timers of these, so each has the range that leaves a window someone can use.
+[[nodiscard]] std::optional<std::string> out_of_range(std::string_view name, float value) {
+  const auto within = [&](float lo, float hi) -> std::optional<std::string> {
+    if (value >= lo && value <= hi) return std::nullopt;
+    return "from " + std::to_string(static_cast<long long>(lo)) + " to " + std::to_string(static_cast<long long>(hi));
+  };
+  static constexpr std::string_view frame_parts[] = {"caption_h", "frame_w", "menu_h", "frame_edge", "frame_corner", "frame_button", "frame_button_gap", "frame_button_top", "frame_button_right"};
+  if (name == "window_radius") return within(0, max_window_radius);
+  if (name.starts_with("window_") && (name.ends_with("_w") || name.ends_with("_h"))) return within(min_window_side, max_window_side);
+  if (std::ranges::find(frame_parts, name) != std::end(frame_parts)) return within(0, max_frame_part);
+  if (name.ends_with("_ms")) return within(0, max_constant);
+  return within(-max_constant, max_constant);
+}
+
 [[nodiscard]] bool key_allowed(NodeKind kind, std::string_view key) {
   const auto named = [&](const KeyDoc& k) { return k.key == key; };
   return std::ranges::any_of(common_keys, named) || std::ranges::any_of(node_kinds[static_cast<std::size_t>(kind)].keys, named);
@@ -521,6 +536,7 @@ class Loader final : public Names {
     for (const Json::Member& m : *all) {
       const auto value = as_float(m.value);
       if (!value) return fail("the constant \"" + m.key + "\" is not a number");
+      if (const auto wrong = out_of_range(m.key, *value)) return fail("the constant \"" + m.key + "\" is not " + *wrong);
       pack_.constants.emplace_back(m.key, *value);
     }
     return true;
@@ -1299,8 +1315,8 @@ const Part* Pack::part(std::string_view name) const {
 }
 
 const Paint* Pack::paint(int palette, float value) const {
+  if (!(value >= 0) || value >= static_cast<float>(paint_names)) return nullptr;  // also what is not a number
   const auto entry = static_cast<std::uint32_t>(value);
-  if (value < 0 || entry >= paint_names) return nullptr;
   return &paints[static_cast<std::size_t>(palette) * paint_names + entry];
 }
 

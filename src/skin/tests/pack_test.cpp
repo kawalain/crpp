@@ -1,3 +1,4 @@
+#include <limits>
 #include <map>
 #include "crpp/skin/pack.hpp"
 
@@ -1152,7 +1153,40 @@ void a_parent_is_pinned_and_looked_for_where_it_is() {
   CHECK(is_version_pin("0.3") && is_version_pin("0.3.2") && !is_version_pin("0") && !is_version_pin("0.03"));
 }
 
+// The shell makes windows, their corners and timers of constants: each keeps to what leaves a window to use.
+void a_constant_keeps_to_its_range() {
+  const auto with = [](std::string_view constants) { return load_with("palette one {", "constants { " + std::string(constants) + " }\npalette one {"); };
+  CHECK(with("window_home_w 300 window_radius 8 caption_h 22 hold_wait_ms 400 gap -4").has_value());
+  CHECK(!with("window_radius 1000000000"));
+  CHECK(!with("window_radius -1"));
+  CHECK(!with("window_home_w 100000"));
+  CHECK(!with("window_home_min_h 0"));
+  CHECK(!with("caption_h 9000"));
+  CHECK(!with("hold_wait_ms -1"));
+  CHECK(!with("anything 1e30"));
+}
+
+// What an expression works out can be anything; as a count or an index it is a whole number in a range.
+void a_worked_out_number_is_whole_and_in_range() {
+  CHECK(whole(3.9f, 0, 10) == 3);
+  CHECK(whole(-5, 0, 10) == 0);
+  CHECK(whole(1e30f, 0, 4096) == 4096);
+  CHECK(whole(-1e30f, -7, 4096) == -7);
+  CHECK(whole(std::numeric_limits<float>::quiet_NaN(), 0, 10) == 0);
+  CHECK(whole(std::numeric_limits<float>::infinity(), 0, 10) == 10);
+  Pack pack;
+  pack.paint_names = 2;
+  pack.paints.resize(2);
+  CHECK(pack.paint(0, 1) == &pack.paints[1]);
+  CHECK(pack.paint(0, 2) == nullptr);
+  CHECK(pack.paint(0, -1) == nullptr);
+  CHECK(pack.paint(0, std::numeric_limits<float>::quiet_NaN()) == nullptr);
+  CHECK(pack.paint(0, 1e30f) == nullptr);
+}
+
 int main() {
+  a_constant_keeps_to_its_range();
+  a_worked_out_number_is_whole_and_in_range();
   a_child_replaces_by_name_and_keeps_the_rest();
   a_parent_is_pinned_and_looked_for_where_it_is();
   a_child_takes_a_screen_of_its_own();

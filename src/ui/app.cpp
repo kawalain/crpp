@@ -421,6 +421,10 @@ PaneInfo App::pane_info(Pane pane) const {
     case Pane::Main:
       break;
   }
+  // A pack measured some of these, and a window is made of them.
+  for (float* side : {&info.w, &info.h, &info.min_w, &info.min_h}) {
+    *side = !(*side >= 1) ? 1 : std::min(*side, skin::max_window_side);
+  }
   return info;
 }
 

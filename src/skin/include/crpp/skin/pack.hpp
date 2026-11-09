@@ -116,6 +116,17 @@ inline constexpr std::size_t max_slot_values = 16;
 inline constexpr int max_pack_levels = 4;
 inline constexpr int max_palette_levels = 8;
 
+// A number a pack worked out, as a whole one from lo to hi. An expression can give anything, as
+// 1 / 0.000001 or what is no number at all, and converting that as it is has no defined result.
+[[nodiscard]] constexpr int whole(float value, int lo, int hi) {
+  if (!(value >= static_cast<float>(lo))) return lo;  // also what is not a number
+  return value >= static_cast<float>(hi) ? hi : static_cast<int>(value);
+}
+
+// What a constant may be. The shell makes windows, regions and timers of some of them.
+inline constexpr float max_constant = 1'000'000;
+inline constexpr float min_window_side = 50, max_window_side = 4096, max_window_radius = 100, max_frame_part = 500;
+
 // What a screen offers a pack, under the names it may use. The ids are the screen's own.
 struct Name {
   std::string_view name;

@@ -14,6 +14,24 @@ namespace crpp::ui {
 
 enum class SettingsPage : std::uint8_t { Sound, Display, Notify, System, Account };
 
+// Clicks that come one after another, each within gap_ms of the one before.
+class ClickStreak {
+ public:
+  static constexpr unsigned long long gap_ms = 500;
+  // True on the click that makes `needed` in a row, which starts the count again.
+  bool click(unsigned long long now, int needed) {
+    count_ = count_ > 0 && now - last_ <= gap_ms ? count_ + 1 : 1;
+    last_ = now;
+    if (count_ < needed) return false;
+    count_ = 0;
+    return true;
+  }
+
+ private:
+  int count_ = 0;
+  unsigned long long last_ = 0;
+};
+
 class SettingsPanel final : public Surface {
  public:
   explicit SettingsPanel(Ui& ui)
@@ -42,6 +60,11 @@ class SettingsPanel final : public Surface {
 
   // The version button, which opens the changelog.
   std::function<void()> on_version;
+  // The droplet clicked this many times in a row splashes, if the pack draws it.
+  static constexpr int splash_clicks = 5;
+  std::function<void()> on_splash;
+  [[nodiscard]] unsigned splashes() const { return splashes_; }
+  void splash();
   void set_version(std::string version) { version_ = std::move(version); }
 
   [[nodiscard]] SoundTab& sound() { return sound_; }
@@ -107,6 +130,8 @@ class SettingsPanel final : public Surface {
   float pending_scroll_ = -1;
   unsigned tab_changes_ = 0, selects_ = 0;
   bool was_animating_ = false;
+  ClickStreak droplet_streak_;
+  unsigned splashes_ = 0;
 };
 
 }  // namespace crpp::ui

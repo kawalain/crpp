@@ -66,6 +66,30 @@ void test_settings_open_tab_and_close() {
   CHECK(s.page() == SettingsPage::Notify);  // stays where the user was
 }
 
+void test_clicks_in_a_row_count_only_close_together() {
+  ClickStreak s;
+  for (int i = 0; i < 4; ++i) CHECK(!s.click(1000 + i * 400, 5));
+  CHECK(s.click(2600, 5));
+  CHECK(!s.click(2700, 5));  // counting again from one
+  ClickStreak slow;
+  for (int i = 0; i < 4; ++i) CHECK(!slow.click(1000 + i * 400, 5));
+  CHECK(!slow.click(1000 + 3 * 400 + ClickStreak::gap_ms + 1, 5));  // too late: this is the first again
+}
+
+void test_the_droplet_splashes_after_five_clicks() {
+  UiHarness h;
+  CHECK(h.start());
+  SettingsPanel& s = h.app.settings();
+  int splashed = 0;
+  s.on_splash = [&] { ++splashed; };
+  for (int i = 0; i < SettingsPanel::splash_clicks - 1; ++i) CHECK(h.click(s, SettingsPanel::Droplet));
+  CHECK(s.splashes() == 0);
+  CHECK(h.click(s, SettingsPanel::Droplet));
+  CHECK(s.splashes() == 1);
+  CHECK(splashed == 1);
+  CHECK(s.is_open());  // it still opened and closed on every click
+}
+
 void test_settings_hide_room_controls() {
   UiHarness h;
   CHECK(h.start());
@@ -265,6 +289,8 @@ int main() {
   test_dialog_without_cancel_ignores_escape();
   test_dialog_blocks_what_is_under_it();
   test_settings_open_tab_and_close();
+  test_clicks_in_a_row_count_only_close_together();
+  test_the_droplet_splashes_after_five_clicks();
   test_settings_hide_room_controls();
   test_toast_expires_without_frames();
   test_toast_action_runs_once();

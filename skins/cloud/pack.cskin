@@ -245,6 +245,15 @@ part cloud(scale = 1, shadow = 0, sigma = 0) {
       color ink_strong width 3/scale scale scale if @focused
 }
 
+// One drop of the droplet's splash: thrown towards (dx, dy) from where its box starts, it falls and fades as t
+// runs to 1.
+part splash_drop(dx = 0, dy = 0, t = 0, size = 0.25) {
+  let out = 1-(1-t)*(1-t)
+  (dx*out-18*size, dy*out+90*t*t-25*size) opacity 1-t*t {
+    path "M18 1C13 10 2 20 2 31a16 16 0 0 0 32 0C34 20 23 10 18 1Z" color droplet scale size
+  }
+}
+
 // .tip: its box is the label's own, and it rises 4 px as it fades in.
 // Where the keyboard is. The program draws it over the control, in the control's box, as a browser draws
 // its outline, and only while that shows.

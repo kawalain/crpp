@@ -100,10 +100,16 @@ void SettingsPanel::before_click(const Surface* owner, int id) {
 // A track that jumps to the pointer has nothing to repeat.
 bool SettingsPanel::repeats(int id) const { return id == BarUp || id == BarDown || (id == Track && !ui_.scales_stage()); }
 
+void SettingsPanel::splash() {
+  ++splashes_;
+  if (on_splash) on_splash();
+}
+
 void SettingsPanel::click(int id, float, float y, bool) {
   if (id == Droplet) {
     if (open_) close();
     else open(page_);
+    if (droplet_streak_.click(clock_ms(), splash_clicks)) splash();
   } else if (id >= TabBase && id < TabBase + static_cast<int>(tab_buttons.size())) {
     select(static_cast<SettingsPage>(id - TabBase));
     ui_.set_stop(this, id);  // the row's stop is the tab shown, which this is now

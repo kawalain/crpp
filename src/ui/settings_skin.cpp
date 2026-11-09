@@ -30,7 +30,7 @@ constexpr skin::Name panel_numbers[] = {{"page", Page}, {"overflow", Overflow}, 
                                        {"left_scroll", LeftScroll}, {"left_height", LeftHeight}, {"left_fade_top", LeftFadeTop}, {"left_fade_bottom", LeftFadeBottom},
                                        {"bar_shown", BarShown}, {"bar_over", BarOver}, {"thumb_y", ThumbY}, {"thumb_h", ThumbH}};
 constexpr skin::Name panel_reports[] = {{"view", ViewReport}, {"content", ContentReport}};
-constexpr skin::Name droplet_numbers[] = {{"open", 0}};
+constexpr skin::Name droplet_numbers[] = {{"open", 0}, {"splashes", 1}};
 constexpr skin::Name droplet_hits[] = {{"droplet", SettingsPanel::Droplet}};
 constexpr skin::Name panel_slots[] = {{"tab", TabSlot}, {"popups", PopupsSlot}, {"current", CurrentSlot}, {"leaving", LeavingSlot}};
 constexpr skin::Name panel_notes[] = {{"track", TrackNote}, {"pane", PaneNote}};
@@ -263,12 +263,13 @@ void SettingsPanel::paint_pack(Painter& p, const skin::Screen& screen) {
   if (const skin::Screen* droplet = ui_.pack_screen("droplet")) {
     class Droplet final : public skin::Source {
      public:
-      explicit Droplet(bool open) : open_(open) {}
-      float number(int, int) override { return yes(open_); }
+      Droplet(bool open, unsigned splashes) : open_(open), splashes_(splashes) {}
+      float number(int id, int) override { return id == 1 ? static_cast<float>(splashes_) : yes(open_); }
 
      private:
       bool open_;
-    } on_top(open_);
+      unsigned splashes_;
+    } on_top(open_, splashes_);
     p.set_base(D2D1::Matrix3x2F::Identity());
     draw_layer(ui_, p, this, *droplet, {0, 0, ui_.width, ui_.height}, on_top);
   }

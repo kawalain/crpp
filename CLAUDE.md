@@ -169,6 +169,8 @@ against a real `server/` yet; do that once a local build of it is available.
   v0.1.0 came out.
 - A profile says "(오늘 2주년)" after the date an account was made, on that day of a later year by the local calendar;
   one made on 29 February has it on the 28th in other years.
+- Cloud's settings droplet, clicked five times in a row with less than half a second between clicks, splashes for
+  700 ms. Retro has no droplet and no motion.
 - The tray menu has mute and leaving the Room while in one, and the options, besides quitting.
 - The system tab's advanced section has "뒤에 있을 때 메모리 비우기" (at once, 10 s, 1 min, never), kept
   under a key of this client's own. Behind another program, outside a Room, the window lets go of its

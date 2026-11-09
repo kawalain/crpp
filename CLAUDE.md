@@ -282,8 +282,10 @@ The desktop stays for two minutes after the last run, held by a windowless `crpp
 every desktop made and destroyed leaves composition objects in dwm.exe and the kernel that only a
 restart frees, and one per scene slowed dwm.exe down over a day of renders.
 
-Options are read from the end of the command line: `crpp --shot <png> <size> <hour> <scene>
---data <dir>`. Put first, `--data` is ignored and the real app opens on the user's desktop.
+An option with a value stands anywhere on the command line: `crpp --shot <png> <size> <hour> <scene>
+--data <dir>`, or `--data <dir>` first. What says what to do keeps its order. A word with dashes that
+is no option ends the start with 3 and no window, and says why in `<png>.error` or
+`start-failure.txt` (`apps/gui/options.hpp`).
 A shot is in Korean and in the Theme of its scene unless `--locale <id>` or
 `--theme <id>` says otherwise. `auto` for the size renders the window size of the Skin's screen.
 A scene that opens a panel with a window of its own renders that window. Under `--skin-dir`, the scene `cursors`, which

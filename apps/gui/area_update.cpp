@@ -60,7 +60,6 @@ std::filesystem::path cache_path(const Shell& s) { return s.data_dir / "releases
 std::wstring relaunch_args(const Shell& s) {
   std::wstring args;
   if (!s.update_url.empty()) args += L"--update-url " + ui::widen(s.update_url) + L" ";
-  // main reads --data last, then the others from the end.
   if (!s.data_override.empty()) args += L"--data \"" + s.data_override + L"\"";
   return args;
 }

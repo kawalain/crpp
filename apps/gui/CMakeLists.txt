@@ -77,6 +77,11 @@ if(WIN32)
   crpp_target_defaults(crpp_gui_sound_prefs_test)
   add_test(NAME gui.sound_prefs COMMAND crpp_gui_sound_prefs_test)
 
+  add_executable(crpp_gui_options_test tests/options_test.cpp)
+  target_include_directories(crpp_gui_options_test PRIVATE . ${PROJECT_SOURCE_DIR}/tests/support)
+  crpp_target_defaults(crpp_gui_options_test)
+  add_test(NAME gui.options COMMAND crpp_gui_options_test)
+
   add_executable(crpp_gui_parts_test tests/parts_test.cpp)
   target_link_libraries(crpp_gui_parts_test PRIVATE crpp_store)
   target_include_directories(crpp_gui_parts_test PRIVATE . ${PROJECT_SOURCE_DIR}/tests/support)

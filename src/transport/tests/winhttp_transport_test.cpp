@@ -193,6 +193,22 @@ void refused_handshakes() {
     CHECK(rec.wait_for("failed"));
   }
   {
+    // A redirect is not followed, so the token never goes to the other address.
+    mock::Server elsewhere([](mock::Conn& c) { c.accept_ws(); });
+    const Target there = target_for(elsewhere);
+    mock::Server server([&there](mock::Conn& c) {
+      const std::string r = "HTTP/1.1 307 X\r\nLocation: http://127.0.0.1:" + std::to_string(there.port) +
+                            "/ws\r\nContent-Length: 0\r\nConnection: close\r\n\r\n";
+      c.send_all(r.data(), r.size());
+    });
+    Recorder rec;
+    WinHttpTransport t;
+    t.open(target_for(server), "secret", rec);
+    CHECK(rec.wait_for("failed"));
+    CHECK(rec.count("connected") == 0);
+    CHECK(elsewhere.connections() == 0);
+  }
+  {
     // A token that could inject a header is refused before anything is sent.
     mock::Server server([](mock::Conn& c) { c.accept_ws(); });
     Recorder rec;

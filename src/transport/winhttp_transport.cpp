@@ -113,6 +113,11 @@ WinHttpTransport::Outcome WinHttpTransport::connect(const Target& target, const 
   }
   WinHttpSetTimeouts(as_handle(session_), static_cast<int>(timeout), static_cast<int>(timeout),
                      static_cast<int>(timeout), static_cast<int>(timeout));
+  // The token goes in a header, which a followed redirect would carry to another host.
+  DWORD never = WINHTTP_OPTION_REDIRECT_POLICY_NEVER;
+  if (!WinHttpSetOption(as_handle(session_), WINHTTP_OPTION_REDIRECT_POLICY, &never, sizeof never)) {
+    return stopping_ ? Outcome::Stopped : Outcome::Failed;
+  }
 
   const std::wstring host = widen(target.host);
   if (!publish(connection_, WinHttpConnect(as_handle(session_), host.c_str(), target.port, 0))) {

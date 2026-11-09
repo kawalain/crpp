@@ -1,7 +1,6 @@
 #include "crpp/assets/windows_platform.hpp"
 
 #include <windows.h>
-#include <bcrypt.h>
 #include <winhttp.h>
 
 #include <array>
@@ -95,25 +94,15 @@ std::expected<std::vector<std::uint8_t>, Error> WindowsPlatform::fetch(const std
   return bytes;
 }
 
-std::string WindowsPlatform::sha256(std::span<const std::uint8_t> bytes) {
-  std::array<UCHAR, 32> digest{};
-  if (!BCRYPT_SUCCESS(BCryptHash(BCRYPT_SHA256_ALG_HANDLE, nullptr, 0, const_cast<UCHAR*>(bytes.data()),
-                                 static_cast<ULONG>(bytes.size()), digest.data(), static_cast<ULONG>(digest.size())))) {
-    return {};
-  }
-  static constexpr char hex[] = "0123456789abcdef";
-  std::string text;
-  text.reserve(digest.size() * 2);
-  for (const UCHAR b : digest) {
-    text += hex[b >> 4];
-    text += hex[b & 15];
-  }
-  return text;
-}
+std::string WindowsPlatform::sha256(std::span<const std::uint8_t> bytes) { return update::sha256_hex(bytes); }
 
 bool WindowsPlatform::verify(const update::PublicKey& key, std::span<const std::uint8_t> message,
                              const update::Signature& signature) {
   return update::verify_signature(key, message, signature);
+}
+
+bool WindowsPlatform::write_file(const std::filesystem::path& path, std::span<const std::uint8_t> bytes) {
+  return update::write_flushed(path, bytes);
 }
 
 void WindowsPlatform::wait(std::chrono::milliseconds time) { Sleep(static_cast<DWORD>(time.count())); }

@@ -33,6 +33,12 @@ class WindowsPlatform final : public Platform {
 // ECDSA P-256 over the SHA-256 of message, with BCrypt; also what checks a catalog.
 [[nodiscard]] bool verify_signature(const PublicKey& key, std::span<const std::uint8_t> message, const Signature& signature);
 
+// SHA-256 with BCrypt, in lowercase hex; empty if it could not be worked out.
+[[nodiscard]] std::string sha256_hex(std::span<const std::uint8_t> bytes);
+
+// Writes the file anew; the bytes are on the disk when this returns true.
+[[nodiscard]] bool write_flushed(const std::filesystem::path& path, std::span<const std::uint8_t> bytes);
+
 // The path of this process's exe.
 [[nodiscard]] std::filesystem::path running_exe();
 

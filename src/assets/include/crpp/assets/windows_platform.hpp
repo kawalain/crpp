@@ -19,6 +19,7 @@ class WindowsPlatform final : public Platform {
   std::string sha256(std::span<const std::uint8_t> bytes) override;
   bool verify(const update::PublicKey& key, std::span<const std::uint8_t> message, const update::Signature& signature) override;
   void wait(std::chrono::milliseconds time) override;
+  bool write_file(const std::filesystem::path& path, std::span<const std::uint8_t> bytes) override;
 
  private:
   struct Impl;

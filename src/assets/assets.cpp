@@ -50,18 +50,25 @@ std::vector<std::uint8_t> read_file(const fs::path& path, std::uint64_t limit) {
   return {std::istreambuf_iterator<char>(in), std::istreambuf_iterator<char>()};
 }
 
-// The temporary name means a stop halfway leaves the old file or none.
-bool replace_file(const fs::path& path, std::string_view bytes) {
+bool write_plainly(const fs::path& path, std::string_view bytes) {
+  std::ofstream out(path, std::ios::binary | std::ios::trunc);
+  out.write(bytes.data(), static_cast<std::streamsize>(bytes.size()));
+  out.close();
+  return static_cast<bool>(out);
+}
+
+// The temporary name means a stop halfway leaves the old file or none. With a platform the bytes
+// are on the disk first; the lists written without one are made again when they do not read.
+bool replace_file(const fs::path& path, std::string_view bytes, Platform* platform = nullptr) {
   std::error_code ec;
   fs::create_directories(path.parent_path(), ec);
   if (ec) return false;
   fs::path temp = path;
   temp += ".part";
-  {
-    std::ofstream out(temp, std::ios::binary | std::ios::trunc);
-    out.write(bytes.data(), static_cast<std::streamsize>(bytes.size()));
-    out.close();
-    if (!out) return false;
+  const bool wrote = platform ? platform->write_file(temp, {reinterpret_cast<const std::uint8_t*>(bytes.data()), bytes.size()}) : write_plainly(temp, bytes);
+  if (!wrote) {
+    fs::remove(temp, ec);
+    return false;
   }
   fs::rename(temp, path, ec);
   if (ec) fs::remove(temp, ec);
@@ -98,6 +105,8 @@ std::expected<Catalog, Error> checked(std::string_view text, const update::Publi
 }
 
 }  // namespace
+
+bool Platform::write_file(const fs::path& path, std::span<const std::uint8_t> bytes) { return write_plainly(path, as_text(bytes)); }
 
 std::expected<Fetched, Error> fetch_catalog(const Repository& repository, Platform& platform) {
   std::optional<Error> first;
@@ -306,7 +315,7 @@ std::expected<void, Error> install(const Catalog& catalog, std::string_view base
       if (other || bytes.error() == Error::Network) bytes = other;
     }
     if (!bytes) return fail(bytes.error());
-    if (!replace_file(path, as_text(*bytes))) return fail(Error::Disk);
+    if (!replace_file(path, as_text(*bytes), &platform)) return fail(Error::Disk);
     add_done(file.size - reported, true);
     arrived[index] = 1;
   };

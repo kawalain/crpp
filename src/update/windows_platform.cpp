@@ -118,7 +118,9 @@ std::expected<std::vector<std::uint8_t>, Error> WindowsPlatform::get(const std::
   return bytes;
 }
 
-std::string WindowsPlatform::sha256(std::span<const std::uint8_t> bytes) {
+std::string WindowsPlatform::sha256(std::span<const std::uint8_t> bytes) { return sha256_hex(bytes); }
+
+std::string sha256_hex(std::span<const std::uint8_t> bytes) {
   std::array<UCHAR, 32> digest{};
   if (!BCRYPT_SUCCESS(BCryptHash(BCRYPT_SHA256_ALG_HANDLE, nullptr, 0, const_cast<UCHAR*>(bytes.data()),
                                  static_cast<ULONG>(bytes.size()), digest.data(), static_cast<ULONG>(digest.size())))) {
@@ -162,7 +164,9 @@ bool verify_signature(const PublicKey& key, std::span<const std::uint8_t> messag
   return good;
 }
 
-bool WindowsPlatform::write_file(const std::filesystem::path& path, std::span<const std::uint8_t> bytes) {
+bool WindowsPlatform::write_file(const std::filesystem::path& path, std::span<const std::uint8_t> bytes) { return write_flushed(path, bytes); }
+
+bool write_flushed(const std::filesystem::path& path, std::span<const std::uint8_t> bytes) {
   const Kernel file(CreateFileW(path.c_str(), GENERIC_WRITE, 0, nullptr, CREATE_ALWAYS, FILE_ATTRIBUTE_NORMAL, nullptr));
   if (file.get() == nullptr) return false;
   std::size_t done = 0;

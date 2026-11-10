@@ -102,15 +102,15 @@ void set_frame_region(HWND hwnd, UINT dpi, float radius_dips) {
   const double asked = static_cast<double>(radius_dips) * dpi / 96;
   const double radius = !(asked > 0) ? 0 : std::min(asked, std::min(w, h) / 2.0);
   // Every pixel the curve touches, row by row: drawing smooths the ones it only partly covers.
-  HRGN shape = CreateRectRgn(0, static_cast<int>(std::ceil(radius)), w, h);
+  win::GdiObject<HRGN> shape(CreateRectRgn(0, static_cast<int>(std::ceil(radius)), w, h));
+  if (!shape) return;
   for (int y = 0; y < static_cast<int>(std::ceil(radius)); ++y) {
     const double below = radius - (y + 1);
     const int inset = static_cast<int>(std::floor(radius - std::sqrt(std::max(0.0, radius * radius - below * below))));
-    HRGN row = CreateRectRgn(inset, y, w - inset, y + 1);
-    CombineRgn(shape, shape, row, RGN_OR);
-    DeleteObject(row);
+    const win::GdiObject<HRGN> row(CreateRectRgn(inset, y, w - inset, y + 1));
+    if (row) CombineRgn(shape.get(), shape.get(), row.get(), RGN_OR);
   }
-  if (SetWindowRgn(hwnd, shape, TRUE) == 0) DeleteObject(shape);  // otherwise the system owns it
+  if (SetWindowRgn(hwnd, shape.get(), TRUE) != 0) (void)shape.release();  // the system owns it now
 }
 
 LRESULT frame_hit_code(WindowFrame::Zone zone) {
@@ -486,8 +486,9 @@ HWND create_window(Shell& s) {
   wc.lpfnWndProc = wnd_proc;
   wc.hInstance = GetModuleHandleW(nullptr);
   wc.hCursor = LoadCursorW(nullptr, MAKEINTRESOURCEW(32512));
-  wc.hIcon = load_app_icon(GetSystemMetrics(SM_CXICON));
-  wc.hIconSm = load_app_icon(GetSystemMetrics(SM_CXSMICON));
+  // The window class keeps them for as long as the process runs.
+  wc.hIcon = load_app_icon(GetSystemMetrics(SM_CXICON)).release();
+  wc.hIconSm = load_app_icon(GetSystemMetrics(SM_CXSMICON)).release();
   const bool official = update::official_build();
   wc.lpszClassName = os_policy::window_class(official);
   RegisterClassExW(&wc);

@@ -15,7 +15,7 @@ crpp_store_test(store)
 
 if(WIN32)
   add_library(crpp_store_windows STATIC windows_platform.cpp)
-  target_link_libraries(crpp_store_windows PUBLIC crpp_store crypt32 shell32 ole32)
+  target_link_libraries(crpp_store_windows PUBLIC crpp_store crypt32 shell32 ole32 PRIVATE crpp_win)
   target_compile_definitions(crpp_store_windows PRIVATE NOMINMAX WIN32_LEAN_AND_MEAN)
   crpp_target_defaults(crpp_store_windows)
 

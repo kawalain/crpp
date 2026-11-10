@@ -21,7 +21,7 @@ crpp_sound_test(idle)
 
 if(WIN32)
   add_library(crpp_sound_wasapi STATIC wasapi_device.cpp)
-  target_link_libraries(crpp_sound_wasapi PUBLIC crpp_sound ole32 avrt uuid)
+  target_link_libraries(crpp_sound_wasapi PUBLIC crpp_sound ole32 avrt uuid PRIVATE crpp_win)
   target_compile_definitions(crpp_sound_wasapi PRIVATE NOMINMAX WIN32_LEAN_AND_MEAN)
   crpp_target_defaults(crpp_sound_wasapi)
   crpp_sound_test(wasapi crpp_sound_wasapi)

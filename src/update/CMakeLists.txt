@@ -82,7 +82,7 @@ crpp_target_defaults(crpp_update_built_in)
 
 if(WIN32)
   add_library(crpp_update_windows STATIC windows_platform.cpp)
-  target_link_libraries(crpp_update_windows PUBLIC crpp_update winhttp bcrypt PRIVATE crpp_winhttp)
+  target_link_libraries(crpp_update_windows PUBLIC crpp_update winhttp bcrypt PRIVATE crpp_winhttp crpp_win)
   target_compile_definitions(crpp_update_windows PRIVATE NOMINMAX WIN32_LEAN_AND_MEAN _WIN32_WINNT=0x0A00)
   crpp_target_defaults(crpp_update_windows)
 

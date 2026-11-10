@@ -139,10 +139,9 @@ void notify_chat(Shell& s, const ChatEntry& entry) {
   });
   // Drawing that made the factory again if it had gone, and a burst should share it.
   if (s.hidden) SetTimer(s.hwnd, graphics_timer, graphics_release_ms, release_graphics);
-  HICON icon = icon_from_pixels(pixels, size);
+  const win::Icon icon = icon_from_pixels(pixels, size);
   const std::wstring title = widen(entry.nick.empty() ? std::string_view(tr().guest) : std::string_view(entry.nick));
-  if (show_notification(s, title, widen(entry.text), icon, NIIF_NOSOUND | NIIF_RESPECT_QUIET_TIME)) state.notified = true;
-  if (icon) DestroyIcon(icon);
+  if (show_notification(s, title, widen(entry.text), icon.get(), NIIF_NOSOUND | NIIF_RESPECT_QUIET_TIME)) state.notified = true;
 }
 
 void flash_taskbar(Shell& s, DWORD flags) {
@@ -222,8 +221,9 @@ void close_to_tray(Shell& s) {
 }
 
 void show_menu(Shell& s, int x, int y) {
-  HMENU menu = CreatePopupMenu();
-  if (!menu) return;
+  const win::Menu owned_menu(CreatePopupMenu());
+  if (!owned_menu) return;
+  HMENU const menu = owned_menu.get();
   constexpr UINT_PTR exit_item = 1, mute_item = 2, leave_item = 3, options_item = 4, mini_item = 5;
   // In a Room, what is done most without opening the window; the words are the Room's own.
   if (in_room(s)) {
@@ -243,7 +243,6 @@ void show_menu(Shell& s, int x, int y) {
   SetForegroundWindow(s.hwnd);
   const BOOL chosen = TrackPopupMenu(menu, TPM_RETURNCMD | TPM_RIGHTBUTTON | TPM_BOTTOMALIGN, x, y, 0, s.hwnd, nullptr);
   PostMessageW(s.hwnd, WM_NULL, 0, 0);
-  DestroyMenu(menu);
   switch (static_cast<UINT_PTR>(chosen)) {
     case exit_item:
       DestroyWindow(s.hwnd);

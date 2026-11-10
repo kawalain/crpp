@@ -4,6 +4,7 @@
 #include <cmath>
 
 #include "crpp/skin/draw.hpp"
+#include "crpp/win/handles.hpp"
 
 namespace crpp::ui {
 
@@ -86,12 +87,13 @@ std::optional<CursorImage> make_cursor_image(const Ui& ui, skin::CursorKind kind
   info.bmiHeader.biBitCount = 32;
   info.bmiHeader.biCompression = BI_RGB;
   void* bits = nullptr;
-  HDC dc = CreateCompatibleDC(nullptr);
-  if (!dc) return std::nullopt;
-  HBITMAP bitmap = CreateDIBSection(dc, &info, DIB_RGB_COLORS, &bits, nullptr, 0);
+  const win::MemoryDc owned_dc(CreateCompatibleDC(nullptr));
+  if (!owned_dc) return std::nullopt;
+  HDC const dc = owned_dc.get();
+  const win::GdiObject<HBITMAP> bitmap(CreateDIBSection(dc, &info, DIB_RGB_COLORS, &bits, nullptr, 0));
   std::optional<CursorImage> image;
   if (bitmap) {
-    HGDIOBJ const old = SelectObject(dc, bitmap);
+    HGDIOBJ const old = SelectObject(dc, bitmap.get());
     ComPtr<ID2D1DCRenderTarget> target;
     const auto props = D2D1::RenderTargetProperties(D2D1_RENDER_TARGET_TYPE_SOFTWARE, D2D1::PixelFormat(DXGI_FORMAT_B8G8R8A8_UNORM, D2D1_ALPHA_MODE_PREMULTIPLIED), 96, 96);
     const RECT whole{0, 0, drawn, drawn};
@@ -120,10 +122,8 @@ std::optional<CursorImage> make_cursor_image(const Ui& ui, skin::CursorKind kind
         }
       }
     }
-    SelectObject(dc, old);
-    DeleteObject(bitmap);
+    SelectObject(dc, old);  // before the bitmap and the context go, in that order
   }
-  DeleteDC(dc);
   return image;
 }
 
@@ -141,8 +141,8 @@ HCURSOR make_system_cursor(const CursorImage& image) {
   info.bmiHeader.biBitCount = 32;
   info.bmiHeader.biCompression = BI_RGB;
   void* bits = nullptr;
-  HBITMAP color = CreateDIBSection(nullptr, &info, DIB_RGB_COLORS, &bits, nullptr, 0);
-  if (!color) return nullptr;
+  const win::GdiObject<HBITMAP> color(CreateDIBSection(nullptr, &info, DIB_RGB_COLORS, &bits, nullptr, 0));
+  if (!color || !bits) return nullptr;
   std::ranges::transform(image.pixels, static_cast<std::uint32_t*>(bits), straight_alpha);
 
   // CreateBitmap takes rows of whole 16-bit words, the leftmost pixel in the highest bit.
@@ -155,20 +155,15 @@ HCURSOR make_system_cursor(const CursorImage& image) {
       }
     }
   }
-  HBITMAP mask = CreateBitmap(size, size, 1, 1, rows.data());
-  HCURSOR cursor = nullptr;
-  if (mask) {
-    ICONINFO icon{};
-    icon.fIcon = FALSE;
-    icon.xHotspot = static_cast<DWORD>(image.hot_x);
-    icon.yHotspot = static_cast<DWORD>(image.hot_y);
-    icon.hbmMask = mask;
-    icon.hbmColor = color;
-    cursor = CreateIconIndirect(&icon);
-    DeleteObject(mask);
-  }
-  DeleteObject(color);
-  return cursor;
+  const win::GdiObject<HBITMAP> mask(CreateBitmap(size, size, 1, 1, rows.data()));
+  if (!mask) return nullptr;
+  ICONINFO icon{};
+  icon.fIcon = FALSE;
+  icon.xHotspot = static_cast<DWORD>(image.hot_x);
+  icon.yHotspot = static_cast<DWORD>(image.hot_y);
+  icon.hbmMask = mask.get();
+  icon.hbmColor = color.get();
+  return CreateIconIndirect(&icon);  // copies both bitmaps
 }
 
 }  // namespace crpp::ui

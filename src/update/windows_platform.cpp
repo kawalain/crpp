@@ -8,6 +8,7 @@
 #include <array>
 #include <cstring>
 
+#include "crpp/win/handles.hpp"
 #include "crpp/winhttp/winhttp.hpp"
 
 namespace crpp::update {
@@ -17,20 +18,11 @@ namespace {
 constexpr int timeout_ms = 30000;
 constexpr DWORD exit_wait_ms = 30000;
 
-class Kernel {
- public:
-  // Both spellings of "no handle" that kernel calls return.
-  explicit Kernel(HANDLE handle = nullptr) noexcept : handle_(handle == INVALID_HANDLE_VALUE ? nullptr : handle) {}
-  ~Kernel() {
-    if (handle_ != nullptr) CloseHandle(handle_);
-  }
-  Kernel(const Kernel&) = delete;
-  Kernel& operator=(const Kernel&) = delete;
-  [[nodiscard]] HANDLE get() const noexcept { return handle_; }
-
- private:
-  HANDLE handle_;
-};
+// Owns an ECDSA algorithm provider or key, for the one function that verifies.
+void close_algorithm(BCRYPT_ALG_HANDLE algorithm) noexcept { (void)BCryptCloseAlgorithmProvider(algorithm, 0); }
+using Algorithm = win::Own<BCRYPT_ALG_HANDLE, close_algorithm>;
+void destroy_key(BCRYPT_KEY_HANDLE key) noexcept { (void)BCryptDestroyKey(key); }
+using Key = win::Own<BCRYPT_KEY_HANDLE, destroy_key>;
 
 std::wstring ascii_wide(std::string_view s) { return {s.begin(), s.end()}; }
 
@@ -106,28 +98,27 @@ bool verify_signature(const PublicKey& key, std::span<const std::uint8_t> messag
                                  static_cast<ULONG>(message.size()), digest.data(), static_cast<ULONG>(digest.size())))) {
     return false;
   }
-  BCRYPT_ALG_HANDLE algorithm = nullptr;
-  if (!BCRYPT_SUCCESS(BCryptOpenAlgorithmProvider(&algorithm, BCRYPT_ECDSA_P256_ALGORITHM, nullptr, 0))) return false;
+  BCRYPT_ALG_HANDLE raw_algorithm = nullptr;
+  if (!BCRYPT_SUCCESS(BCryptOpenAlgorithmProvider(&raw_algorithm, BCRYPT_ECDSA_P256_ALGORITHM, nullptr, 0))) return false;
+  const Algorithm algorithm(raw_algorithm);
   std::array<UCHAR, sizeof(BCRYPT_ECCKEY_BLOB) + std::tuple_size_v<PublicKey>> blob{};
   const BCRYPT_ECCKEY_BLOB header{BCRYPT_ECDSA_PUBLIC_P256_MAGIC, 32};
   std::memcpy(blob.data(), &header, sizeof header);
   std::memcpy(blob.data() + sizeof header, key.data(), key.size());
-  BCRYPT_KEY_HANDLE handle = nullptr;
-  bool good = false;
-  if (BCRYPT_SUCCESS(BCryptImportKeyPair(algorithm, nullptr, BCRYPT_ECCPUBLIC_BLOB, &handle, blob.data(),
-                                         static_cast<ULONG>(blob.size()), 0))) {
-    good = BCRYPT_SUCCESS(BCryptVerifySignature(handle, nullptr, digest.data(), static_cast<ULONG>(digest.size()),
-                                                const_cast<UCHAR*>(signature.data()), static_cast<ULONG>(signature.size()), 0));
-    BCryptDestroyKey(handle);
+  BCRYPT_KEY_HANDLE raw_key = nullptr;
+  if (!BCRYPT_SUCCESS(BCryptImportKeyPair(algorithm.get(), nullptr, BCRYPT_ECCPUBLIC_BLOB, &raw_key, blob.data(),
+                                          static_cast<ULONG>(blob.size()), 0))) {
+    return false;
   }
-  BCryptCloseAlgorithmProvider(algorithm, 0);
-  return good;
+  const Key key_handle(raw_key);
+  return BCRYPT_SUCCESS(BCryptVerifySignature(key_handle.get(), nullptr, digest.data(), static_cast<ULONG>(digest.size()),
+                                              const_cast<UCHAR*>(signature.data()), static_cast<ULONG>(signature.size()), 0));
 }
 
 bool WindowsPlatform::write_file(const std::filesystem::path& path, std::span<const std::uint8_t> bytes) { return write_flushed(path, bytes); }
 
 bool write_flushed(const std::filesystem::path& path, std::span<const std::uint8_t> bytes) {
-  const Kernel file(CreateFileW(path.c_str(), GENERIC_WRITE, 0, nullptr, CREATE_ALWAYS, FILE_ATTRIBUTE_NORMAL, nullptr));
+  const auto file = win::own_handle(CreateFileW(path.c_str(), GENERIC_WRITE, 0, nullptr, CREATE_ALWAYS, FILE_ATTRIBUTE_NORMAL, nullptr));
   if (file.get() == nullptr) return false;
   std::size_t done = 0;
   while (done < bytes.size()) {
@@ -140,7 +131,7 @@ bool write_flushed(const std::filesystem::path& path, std::span<const std::uint8
 }
 
 std::expected<std::vector<std::uint8_t>, Error> WindowsPlatform::read_file(const std::filesystem::path& path, std::size_t limit) {
-  const Kernel file(CreateFileW(path.c_str(), GENERIC_READ, FILE_SHARE_READ | FILE_SHARE_DELETE, nullptr, OPEN_EXISTING,
+  const auto file = win::own_handle(CreateFileW(path.c_str(), GENERIC_READ, FILE_SHARE_READ | FILE_SHARE_DELETE, nullptr, OPEN_EXISTING,
                                 FILE_ATTRIBUTE_NORMAL, nullptr));
   if (file.get() == nullptr) return std::unexpected(Error::Disk);
   LARGE_INTEGER size{};
@@ -175,7 +166,7 @@ bool WindowsPlatform::remove_file(const std::filesystem::path& path) {
 
 bool WindowsPlatform::launch(const std::filesystem::path& exe) {
   const DWORD me = GetCurrentProcessId();
-  const Kernel started(CreateEventW(nullptr, TRUE, FALSE, ack_event_name(me).c_str()));
+  const auto started = win::own_handle(CreateEventW(nullptr, TRUE, FALSE, ack_event_name(me).c_str()));
   if (started.get() == nullptr) return false;
   ResetEvent(started.get());  // a failed attempt may have left it set
   std::wstring command = L"\"" + exe.wstring() + L"\" --updated-from " + std::to_wstring(me);
@@ -192,7 +183,7 @@ bool WindowsPlatform::launch(const std::filesystem::path& exe) {
                                       exe.parent_path().c_str(), &startup, &process);
   if (quiet) SetThreadErrorMode(error_mode, nullptr);
   if (!created) return false;
-  const Kernel child(process.hProcess), thread(process.hThread);
+  const win::Handle child(process.hProcess), thread(process.hThread);
   const std::array<HANDLE, 2> waits{started.get(), child.get()};
   if (WaitForMultipleObjects(static_cast<DWORD>(waits.size()), waits.data(), FALSE, impl_->launch_wait_ms) == WAIT_OBJECT_0) {
     return true;
@@ -210,12 +201,12 @@ std::filesystem::path running_exe() {
 }
 
 void report_started(unsigned long parent_pid) {
-  const Kernel started(OpenEventW(EVENT_MODIFY_STATE, FALSE, ack_event_name(parent_pid).c_str()));
+  const auto started = win::own_handle(OpenEventW(EVENT_MODIFY_STATE, FALSE, ack_event_name(parent_pid).c_str()));
   if (started.get() != nullptr) SetEvent(started.get());
 }
 
 void wait_for_exit(unsigned long parent_pid) {
-  const Kernel parent(OpenProcess(SYNCHRONIZE, FALSE, parent_pid));
+  const auto parent = win::own_handle(OpenProcess(SYNCHRONIZE, FALSE, parent_pid));
   if (parent.get() != nullptr) WaitForSingleObject(parent.get(), exit_wait_ms);
 }
 

@@ -178,8 +178,9 @@ void register_pane_class() {
     wc.lpfnWndProc = pane_proc;
     wc.hInstance = GetModuleHandleW(nullptr);
     wc.hCursor = LoadCursorW(nullptr, MAKEINTRESOURCEW(32512));
-    wc.hIcon = load_app_icon(GetSystemMetrics(SM_CXICON));
-    wc.hIconSm = load_app_icon(GetSystemMetrics(SM_CXSMICON));
+    // The window class keeps them for as long as the process runs.
+    wc.hIcon = load_app_icon(GetSystemMetrics(SM_CXICON)).release();
+    wc.hIconSm = load_app_icon(GetSystemMetrics(SM_CXSMICON)).release();
     wc.lpszClassName = pane_class;
     return RegisterClassExW(&wc) != 0;
   }();

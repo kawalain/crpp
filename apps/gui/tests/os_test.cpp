@@ -196,9 +196,8 @@ void pixels_become_an_icon() {
   const int size = 16;
   const auto pixels = render_pixels(gfx.d2d(), size, [](ID2D1RenderTarget* rt) { rt->Clear(D2D1::ColorF(0x5DADEC)); });
   CHECK(pixels.size() == static_cast<std::size_t>(size * size));
-  HICON icon = icon_from_pixels(pixels, size);
+  const crpp::win::Icon icon = icon_from_pixels(pixels, size);
   CHECK(icon != nullptr);
-  if (icon) DestroyIcon(icon);
   CHECK(icon_from_pixels({}, 16) == nullptr);
 }
 

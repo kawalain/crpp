@@ -69,12 +69,12 @@ std::vector<std::uint32_t> render_pixels(ID2D1Factory* factory, int size,
   return pixels;
 }
 
-HICON load_app_icon(int size) {
-  return static_cast<HICON>(LoadImageW(GetModuleHandleW(nullptr), MAKEINTRESOURCEW(app_icon_id), IMAGE_ICON, size, size, 0));
+win::Icon load_app_icon(int size) {
+  return win::Icon(static_cast<HICON>(LoadImageW(GetModuleHandleW(nullptr), MAKEINTRESOURCEW(app_icon_id), IMAGE_ICON, size, size, 0)));
 }
 
-HICON icon_from_pixels(const std::vector<std::uint32_t>& pixels, int size) {
-  if (size <= 0 || pixels.size() != static_cast<std::size_t>(size) * static_cast<std::size_t>(size)) return nullptr;
+win::Icon icon_from_pixels(const std::vector<std::uint32_t>& pixels, int size) {
+  if (size <= 0 || pixels.size() != static_cast<std::size_t>(size) * static_cast<std::size_t>(size)) return {};
   BITMAPV5HEADER header{};
   header.bV5Size = sizeof header;
   header.bV5Width = size;
@@ -88,35 +88,29 @@ HICON icon_from_pixels(const std::vector<std::uint32_t>& pixels, int size) {
   header.bV5AlphaMask = 0xFF000000;
   void* bits = nullptr;
   HDC screen = GetDC(nullptr);
-  HBITMAP color = CreateDIBSection(screen, reinterpret_cast<BITMAPINFO*>(&header), DIB_RGB_COLORS, &bits, nullptr, 0);
+  const win::GdiObject<HBITMAP> color(CreateDIBSection(screen, reinterpret_cast<BITMAPINFO*>(&header), DIB_RGB_COLORS, &bits, nullptr, 0));
   ReleaseDC(nullptr, screen);
-  HBITMAP mask = CreateBitmap(size, size, 1, 1, nullptr);
-  HICON icon = nullptr;
-  if (color && mask && bits) {
-    std::copy(pixels.begin(), pixels.end(), static_cast<std::uint32_t*>(bits));
-    ICONINFO info{};
-    info.fIcon = TRUE;
-    info.hbmMask = mask;
-    info.hbmColor = color;
-    icon = CreateIconIndirect(&info);  // copies both bitmaps
-  }
-  if (color) DeleteObject(color);
-  if (mask) DeleteObject(mask);
-  return icon;
+  const win::GdiObject<HBITMAP> mask(CreateBitmap(size, size, 1, 1, nullptr));
+  if (!color || !mask || !bits) return {};
+  std::copy(pixels.begin(), pixels.end(), static_cast<std::uint32_t*>(bits));
+  ICONINFO info{};
+  info.fIcon = TRUE;
+  info.hbmMask = mask.get();
+  info.hbmColor = color.get();
+  return win::Icon(CreateIconIndirect(&info));  // copies both bitmaps
 }
 
 bool TrayIcon::add() {
   if (present_) return true;
   const int size = GetSystemMetrics(SM_CXSMICON);
-  HICON icon = load_app_icon(size);
+  const win::Icon icon = load_app_icon(size);
   if (!icon) return false;
   auto data = base_data(hwnd_);
   data.uFlags = NIF_MESSAGE | NIF_ICON | NIF_TIP | NIF_SHOWTIP;
   data.uCallbackMessage = wm_tray;
-  data.hIcon = icon;
+  data.hIcon = icon.get();
   GetWindowTextW(hwnd_, data.szTip, static_cast<int>(std::size(data.szTip)));  // says the same as the taskbar
-  present_ = Shell_NotifyIconW(NIM_ADD, &data) != FALSE;
-  DestroyIcon(icon);
+  present_ = Shell_NotifyIconW(NIM_ADD, &data) != FALSE;  // the shell copies the icon
   if (!present_) return false;
   // Must follow every add. Version 4 reports events in LOWORD(lParam).
   data.uVersion = NOTIFYICON_VERSION_4;

@@ -196,6 +196,10 @@ exist (real + test).
 - `winhttp`: what the WinHTTP adapters of `transport`, `api`, `assets` and `update` do the same way: a handle
   that closes itself, a session with one timeout and one rule for redirects, a status, a body up to a
   limit. A new request goes through it; an adapter keeps only what is its own. Windows only.
+- `win`: what every Windows adapter owns, freed on every path: `ComPtr` for COM, and `Own` with the
+  aliases of `handles.hpp` (`Handle`, `CoTaskMem`, `LocalMem`, `GdiObject`, `MemoryDc`, `Icon`, `Menu`)
+  for handles and system memory. A new resource gets an alias there rather than a free call by hand.
+  Header only; `own.hpp` and `com_ptr.hpp` include no Windows header, so their test runs anywhere.
 - `transport`: WinHTTP WebSocket/HTTPS adapter with one receive thread; fake
   adapter for tests.
 - `input`: Raw Input (`RIDEV_INPUTSINK`) adapter on its own thread with a

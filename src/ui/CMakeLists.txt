@@ -8,7 +8,7 @@ if(WIN32)
     update_popup.cpp changelog_view.cpp
     home_screen_skin.cpp prompt_screen_skin.cpp window_frame_skin.cpp room_screen_skin.cpp chat_panel_skin.cpp settings_skin.cpp)
   target_include_directories(crpp_ui PUBLIC include)
-  target_link_libraries(crpp_ui PUBLIC crpp_files crpp_session crpp_update crpp_locale crpp_skin d2d1 dwrite windowscodecs ole32 user32 gdi32)
+  target_link_libraries(crpp_ui PUBLIC crpp_files crpp_session crpp_update crpp_locale crpp_skin crpp_win d2d1 dwrite windowscodecs ole32 user32 gdi32)
   target_compile_definitions(crpp_ui PUBLIC NOMINMAX WIN32_LEAN_AND_MEAN)
   crpp_target_defaults(crpp_ui)
 

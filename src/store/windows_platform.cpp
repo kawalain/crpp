@@ -8,6 +8,8 @@
 
 #include <limits>
 
+#include "crpp/win/handles.hpp"
+
 namespace crpp::store {
 
 namespace {
@@ -24,22 +26,19 @@ DATA_BLOB blob_of(std::string_view bytes) noexcept {
 }
 
 std::string take_blob(DATA_BLOB& blob) {
-  std::string out(reinterpret_cast<const char*>(blob.pbData), blob.cbData);
-  LocalFree(blob.pbData);
-  return out;
+  const win::LocalMem<BYTE> owned(blob.pbData);
+  return std::string(reinterpret_cast<const char*>(owned.get()), blob.cbData);
 }
 
 bool fits_dword(std::string_view bytes) noexcept { return bytes.size() <= std::numeric_limits<DWORD>::max(); }
 
 bool write_and_flush(const std::filesystem::path& path, std::string_view bytes) noexcept {
-  HANDLE file = CreateFileW(path.c_str(), GENERIC_WRITE, 0, nullptr, CREATE_ALWAYS, FILE_ATTRIBUTE_NORMAL, nullptr);
-  if (file == INVALID_HANDLE_VALUE) return false;
+  const auto file = win::own_handle(CreateFileW(path.c_str(), GENERIC_WRITE, 0, nullptr, CREATE_ALWAYS, FILE_ATTRIBUTE_NORMAL, nullptr));
+  if (!file) return false;
   DWORD written = 0;
   // Flushing first: the rename's write-through flag does not cover the data.
-  const bool ok = WriteFile(file, bytes.data(), static_cast<DWORD>(bytes.size()), &written, nullptr) &&
-                  written == bytes.size() && FlushFileBuffers(file);
-  CloseHandle(file);
-  return ok;
+  return WriteFile(file.get(), bytes.data(), static_cast<DWORD>(bytes.size()), &written, nullptr) &&
+         written == bytes.size() && FlushFileBuffers(file.get());
 }
 
 }  // namespace
@@ -83,10 +82,9 @@ std::expected<void, Error> WindowsPlatform::replace_file(const std::filesystem::
 std::expected<Locations, Error> default_locations() {
   PWSTR raw = nullptr;
   const HRESULT hr = SHGetKnownFolderPath(FOLDERID_LocalAppData, 0, nullptr, &raw);
-  std::filesystem::path base;
-  if (SUCCEEDED(hr)) base = raw;
-  CoTaskMemFree(raw);  // required whether or not the call succeeded
-  if (FAILED(hr)) return std::unexpected(Error::BadData);
+  const win::CoTaskMem<WCHAR> owned(raw);  // freed whether or not the call succeeded
+  if (FAILED(hr) || !owned) return std::unexpected(Error::BadData);
+  const std::filesystem::path base = owned.get();
   return Locations{base / "crpp", base / "Cloudroom"};
 }
 

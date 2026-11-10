@@ -13,6 +13,7 @@
 #include <vector>
 
 #include "crpp/ui/gfx.hpp"
+#include "crpp/win/handles.hpp"
 
 namespace crpp::gui {
 
@@ -24,10 +25,10 @@ inline constexpr int app_icon_id = 1;  // crpp.rc.in
 // first; empty on failure.
 [[nodiscard]] std::vector<std::uint32_t> render_pixels(ID2D1Factory* factory, int size,
                                                        const std::function<void(ID2D1RenderTarget*)>& draw);
-// The icon in the exe, at that size in pixels; null without one. The caller destroys it.
-[[nodiscard]] HICON load_app_icon(int size);
-// Null on failure. The caller destroys it.
-[[nodiscard]] HICON icon_from_pixels(const std::vector<std::uint32_t>& pixels, int size);
+// The icon in the exe, at that size in pixels; null without one.
+[[nodiscard]] win::Icon load_app_icon(int size);
+// Null on failure.
+[[nodiscard]] win::Icon icon_from_pixels(const std::vector<std::uint32_t>& pixels, int size);
 
 class TrayIcon {
  public:

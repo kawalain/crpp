@@ -10,6 +10,9 @@
 #include <propsys.h>
 #include <xmmintrin.h>
 
+#include "crpp/win/com_ptr.hpp"
+#include "crpp/win/handles.hpp"
+
 #include <algorithm>
 #include <atomic>
 #include <cstdint>
@@ -22,11 +25,7 @@ namespace crpp::sound {
 
 namespace {
 
-template <typename T>
-void release(T*& p) noexcept {
-  if (p) p->Release();
-  p = nullptr;
-}
+using win::ComPtr;
 
 enum class SampleType : std::uint8_t { Float32, Int16 };
 
@@ -96,12 +95,12 @@ struct WasapiDevice::Impl final : IMMNotificationClient {
 
   // ---- the stream ----
   bool com_ready = false;
-  IMMDeviceEnumerator* enumerator = nullptr;
+  ComPtr<IMMDeviceEnumerator> enumerator;
   bool registered = false;
-  IAudioClient* client = nullptr;
-  IAudioRenderClient* render_client = nullptr;
-  HANDLE ready_event = nullptr;
-  HANDLE stop_event = nullptr;
+  ComPtr<IAudioClient> client;
+  ComPtr<IAudioRenderClient> render_client;
+  win::Handle ready_event;
+  win::Handle stop_event;
   UINT32 buffer_frames = 0;
   std::size_t channels = 0;
   SampleType type = SampleType::Float32;
@@ -134,7 +133,7 @@ struct WasapiDevice::Impl final : IMMNotificationClient {
     // Decaying reverb reaches denormals, which are very slow on the CPU.
     _mm_setcsr(_mm_getcsr() | 0x8040u);  // FTZ and DAZ
 
-    const HANDLE waits[2] = {stop_event, ready_event};
+    const HANDLE waits[2] = {stop_event.get(), ready_event.get()};
     bool lost = false;
     while (!lost && WaitForMultipleObjects(2, waits, FALSE, 2000) != WAIT_OBJECT_0) {
       UINT32 padding = 0;
@@ -156,11 +155,10 @@ struct WasapiDevice::Impl final : IMMNotificationClient {
   }
 
   void close_stream() noexcept {
-    release(render_client);
-    release(client);
-    if (ready_event) CloseHandle(ready_event);
-    if (stop_event) CloseHandle(stop_event);
-    ready_event = stop_event = nullptr;
+    render_client.reset();
+    client.reset();
+    ready_event.reset();
+    stop_event.reset();
     stereo = {};
     renderer = nullptr;
   }
@@ -192,7 +190,7 @@ std::expected<std::uint32_t, DeviceError> WasapiDevice::open(Renderer& renderer)
     return std::unexpected(error);
   };
   if (FAILED(CoCreateInstance(__uuidof(MMDeviceEnumerator), nullptr, CLSCTX_ALL, __uuidof(IMMDeviceEnumerator),
-                              reinterpret_cast<void**>(&s.enumerator)))) {
+                              s.enumerator.put_void()))) {
     return fail(DeviceError::Unavailable);
   }
   s.registered = SUCCEEDED(s.enumerator->RegisterEndpointNotificationCallback(&s));
@@ -202,19 +200,24 @@ std::expected<std::uint32_t, DeviceError> WasapiDevice::open(Renderer& renderer)
     std::lock_guard lock(s.changed_mutex);
     selected = s.selected;
   }
-  IMMDevice* endpoint = nullptr;
-  if (!selected.empty() && SUCCEEDED(s.enumerator->GetDevice(selected.c_str(), &endpoint))) {
+  ComPtr<IMMDevice> endpoint;
+  if (!selected.empty() && SUCCEEDED(s.enumerator->GetDevice(selected.c_str(), endpoint.put()))) {
     DWORD state = 0;
-    if (FAILED(endpoint->GetState(&state)) || state != DEVICE_STATE_ACTIVE) release(endpoint);
+    if (FAILED(endpoint->GetState(&state)) || state != DEVICE_STATE_ACTIVE) endpoint.reset();
   }
-  s.on_default = endpoint == nullptr;
-  HRESULT hr = endpoint ? S_OK : s.enumerator->GetDefaultAudioEndpoint(eRender, eConsole, &endpoint);
-  if (SUCCEEDED(hr)) hr = endpoint->Activate(__uuidof(IAudioClient), CLSCTX_ALL, nullptr, reinterpret_cast<void**>(&s.client));
-  release(endpoint);
+  s.on_default = !endpoint;
+  HRESULT hr = endpoint ? S_OK : s.enumerator->GetDefaultAudioEndpoint(eRender, eConsole, endpoint.put());
+  if (SUCCEEDED(hr)) hr = endpoint->Activate(__uuidof(IAudioClient), CLSCTX_ALL, nullptr, s.client.put_void());
+  endpoint.reset();
   if (FAILED(hr)) return fail(DeviceError::Unavailable);
 
-  WAVEFORMATEX* format = nullptr;
-  if (FAILED(s.client->GetMixFormat(&format))) return fail(DeviceError::Unavailable);
+  win::CoTaskMem<WAVEFORMATEX> owned_format;
+  {
+    WAVEFORMATEX* raw = nullptr;
+    if (FAILED(s.client->GetMixFormat(&raw))) return fail(DeviceError::Unavailable);
+    owned_format.reset(raw);
+  }
+  const WAVEFORMATEX* const format = owned_format.get();
   bool is_float = format->wFormatTag == WAVE_FORMAT_IEEE_FLOAT;
   bool is_pcm = format->wFormatTag == WAVE_FORMAT_PCM;
   if (format->wFormatTag == WAVE_FORMAT_EXTENSIBLE) {
@@ -229,15 +232,15 @@ std::expected<std::uint32_t, DeviceError> WasapiDevice::open(Renderer& renderer)
   const bool supported = s.channels > 0 && ((is_float && bits == 32) || (is_pcm && bits == 16));
   s.type = is_float ? SampleType::Float32 : SampleType::Int16;
   if (supported) hr = s.client->Initialize(AUDCLNT_SHAREMODE_SHARED, AUDCLNT_STREAMFLAGS_EVENTCALLBACK, 0, 0, format, nullptr);
-  CoTaskMemFree(format);
+  owned_format.reset();
   if (!supported) return fail(DeviceError::UnsupportedFormat);
   if (FAILED(hr)) return fail(DeviceError::Unavailable);
 
-  s.ready_event = CreateEventW(nullptr, FALSE, FALSE, nullptr);
-  s.stop_event = CreateEventW(nullptr, FALSE, FALSE, nullptr);
-  if (!s.ready_event || !s.stop_event || FAILED(s.client->SetEventHandle(s.ready_event)) ||
+  s.ready_event.reset(CreateEventW(nullptr, FALSE, FALSE, nullptr));
+  s.stop_event.reset(CreateEventW(nullptr, FALSE, FALSE, nullptr));
+  if (!s.ready_event || !s.stop_event || FAILED(s.client->SetEventHandle(s.ready_event.get())) ||
       FAILED(s.client->GetBufferSize(&s.buffer_frames)) ||
-      FAILED(s.client->GetService(__uuidof(IAudioRenderClient), reinterpret_cast<void**>(&s.render_client)))) {
+      FAILED(s.client->GetService(__uuidof(IAudioRenderClient), s.render_client.put_void()))) {
     return fail(DeviceError::Unavailable);
   }
   s.stereo.resize(std::size_t{s.buffer_frames} * 2);
@@ -254,7 +257,7 @@ bool WasapiDevice::start() {
   s.write_frames(data, s.buffer_frames);
   if (FAILED(s.render_client->ReleaseBuffer(s.buffer_frames, 0))) return false;
   if (FAILED(s.client->Start())) return false;
-  ResetEvent(s.stop_event);
+  ResetEvent(s.stop_event.get());
   s.thread = std::thread([&s] { s.render_loop(); });
   return true;
 }
@@ -262,7 +265,7 @@ bool WasapiDevice::start() {
 void WasapiDevice::stop() {
   Impl& s = *impl_;
   if (!s.thread.joinable()) return;
-  SetEvent(s.stop_event);
+  SetEvent(s.stop_event.get());
   s.thread.join();
   s.client->Stop();
   s.client->Reset();
@@ -274,14 +277,14 @@ void WasapiDevice::close() {
   s.close_stream();
   if (s.enumerator && s.registered) s.enumerator->UnregisterEndpointNotificationCallback(&s);
   s.registered = false;
-  release(s.enumerator);
+  s.enumerator.reset();
   if (s.com_ready) CoUninitialize();
   s.com_ready = false;
 }
 
 struct OutputDevices::Impl final : IMMNotificationClient {
   bool com_ready = false;
-  IMMDeviceEnumerator* enumerator = nullptr;
+  ComPtr<IMMDeviceEnumerator> enumerator;
   bool registered = false;
   std::function<void()> changed;  // set before registering, then only read
 
@@ -318,13 +321,13 @@ OutputDevices::OutputDevices() : impl_(std::make_unique<Impl>()) {
   // Whatever model the thread already has will do; each success is paired below.
   impl_->com_ready = SUCCEEDED(CoInitializeEx(nullptr, COINIT_APARTMENTTHREADED));
   (void)CoCreateInstance(__uuidof(MMDeviceEnumerator), nullptr, CLSCTX_ALL, __uuidof(IMMDeviceEnumerator),
-                         reinterpret_cast<void**>(&impl_->enumerator));
+                         impl_->enumerator.put_void());
 }
 
 OutputDevices::~OutputDevices() {
   Impl& s = *impl_;
   if (s.enumerator && s.registered) s.enumerator->UnregisterEndpointNotificationCallback(&s);
-  release(s.enumerator);
+  s.enumerator.reset();
   if (s.com_ready) CoUninitialize();
 }
 
@@ -337,35 +340,32 @@ void OutputDevices::watch(std::function<void()> changed) {
 
 std::vector<OutputDevice> OutputDevices::list() const {
   std::vector<OutputDevice> devices;
-  IMMDeviceCollection* collection = nullptr;
-  if (!impl_->enumerator || FAILED(impl_->enumerator->EnumAudioEndpoints(eRender, DEVICE_STATE_ACTIVE, &collection))) {
+  ComPtr<IMMDeviceCollection> collection;
+  if (!impl_->enumerator || FAILED(impl_->enumerator->EnumAudioEndpoints(eRender, DEVICE_STATE_ACTIVE, collection.put()))) {
     return devices;
   }
   UINT count = 0;
   if (FAILED(collection->GetCount(&count))) count = 0;
   for (UINT i = 0; i < count; ++i) {
-    IMMDevice* device = nullptr;
-    if (FAILED(collection->Item(i, &device))) continue;
+    ComPtr<IMMDevice> device;
+    if (FAILED(collection->Item(i, device.put()))) continue;
     OutputDevice entry;
-    LPWSTR id = nullptr;
-    if (SUCCEEDED(device->GetId(&id))) {
-      entry.id = to_utf8(id);
-      CoTaskMemFree(id);
+    LPWSTR raw_id = nullptr;
+    if (SUCCEEDED(device->GetId(&raw_id))) {
+      const win::CoTaskMem<WCHAR> id(raw_id);
+      if (id) entry.id = to_utf8(id.get());
     }
-    IPropertyStore* properties = nullptr;
-    if (SUCCEEDED(device->OpenPropertyStore(STGM_READ, &properties))) {
+    ComPtr<IPropertyStore> properties;
+    if (SUCCEEDED(device->OpenPropertyStore(STGM_READ, properties.put()))) {
       PROPVARIANT name;
       PropVariantInit(&name);
       if (SUCCEEDED(properties->GetValue(friendly_name_key, &name)) && name.vt == VT_LPWSTR && name.pwszVal) {
         entry.name = to_utf8(name.pwszVal);
       }
       PropVariantClear(&name);
-      release(properties);
     }
-    release(device);
     if (!entry.id.empty()) devices.push_back(std::move(entry));
   }
-  release(collection);
   return devices;
 }
 

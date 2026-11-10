@@ -37,22 +37,22 @@ class RoomScreen final : public Surface {
   // What a Skin Pack can name on this screen.
   [[nodiscard]] static skin::ScreenSchema schema();
 
-  std::function<void()> on_leave;
+  std::move_only_function<void() const> on_leave;
   // The Mini window, from the options.
-  std::function<void()> on_mini;
-  std::function<void(bool)> on_set_public;
-  std::function<void(bool)> on_set_chat;
-  std::function<void(int percent)> on_volume;
-  std::function<void(bool)> on_mute;
+  std::move_only_function<void() const> on_mini;
+  std::move_only_function<void(bool) const> on_set_public;
+  std::move_only_function<void(bool) const> on_set_chat;
+  std::move_only_function<void(int percent) const> on_volume;
+  std::move_only_function<void(bool) const> on_mute;
   // False if the clipboard refused it.
-  std::function<bool(std::string)> on_copy;
+  std::move_only_function<bool(std::string) const> on_copy;
 
-  std::function<void(std::uint32_t slot)> on_request_profile;
+  std::move_only_function<void(std::uint32_t slot) const> on_request_profile;
   // One member's loudness here. `on_member_muted` fires when it crosses 0%.
-  std::function<void(const std::string& cid, int percent)> on_member_volume;
-  std::function<void(const std::string& cid, bool muted)> on_member_muted;
+  std::move_only_function<void(const std::string& cid, int percent) const> on_member_volume;
+  std::move_only_function<void(const std::string& cid, bool muted) const> on_member_muted;
   // The user picked a new emoji for themselves on their card.
-  std::function<void(const std::string& id)> on_pick_emoji;
+  std::move_only_function<void(const std::string& id) const> on_pick_emoji;
 
   // Hit ids tests click by.
   enum Id : int { Leave, Mute, More, OptCode, OptPublic, OptChat, OptMini, VolumeSlider, Popup, MembersBar, MembersUp, MembersDown, MembersTrack, MembersThumb, MemberBase = 1000 };

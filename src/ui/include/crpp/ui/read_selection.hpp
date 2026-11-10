@@ -21,7 +21,7 @@ struct TextPoint {
 class ReadSelection {
  public:
   // A block's text; empty for one that is gone.
-  using TextOf = std::function<std::wstring_view(std::size_t block)>;
+  using TextOf = std::move_only_function<std::wstring_view(std::size_t block) const>;
 
   // A press at a place: one click starts there, two take the word and three the paragraph;
   // Shift extends what is selected. A drag that follows goes by the same unit.

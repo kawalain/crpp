@@ -33,7 +33,7 @@ enum class Error : std::uint8_t { Network, Unavailable, BadContent, BadSignature
 class Platform {
  public:
   // Told how many bytes of the file have arrived so far.
-  using OnBytes = std::function<void(std::uint64_t received)>;
+  using OnBytes = std::move_only_function<void(std::uint64_t received) const>;
   // A GET of the address, without following redirects. At most limit + 1 bytes; more
   // than that is not worth reading.
   virtual std::expected<std::vector<std::uint8_t>, Error> fetch(const std::string& url, std::uint64_t limit,
@@ -155,7 +155,7 @@ struct Progress {
   std::size_t files_done = 0, files = 0;
   std::uint64_t bytes_done = 0, bytes = 0;
 };
-using OnProgress = std::function<void(const Progress&)>;
+using OnProgress = std::move_only_function<void(const Progress&) const>;
 
 // Fetches what is missing of the groups into the store, a few files at a time, once for each
 // content, and lists in `dir` what the catalog lists. Each file comes from `base`, the Repository's folder, as

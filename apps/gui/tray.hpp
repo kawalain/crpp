@@ -24,7 +24,7 @@ inline constexpr int app_icon_id = 1;  // crpp.rc.in
 // Draws into a target of `size` pixels and returns straight-alpha BGRA pixels, top row
 // first; empty on failure.
 [[nodiscard]] std::vector<std::uint32_t> render_pixels(ID2D1Factory* factory, int size,
-                                                       const std::function<void(ID2D1RenderTarget*)>& draw);
+                                                       const std::move_only_function<void(ID2D1RenderTarget*) const>& draw);
 // The icon in the exe, at that size in pixels; null without one.
 [[nodiscard]] win::Icon load_app_icon(int size);
 // Null on failure.

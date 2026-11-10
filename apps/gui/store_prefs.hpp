@@ -14,7 +14,7 @@ class StorePrefs final : public ui::Prefs {
   explicit StorePrefs(store::Store& store) : store_(store) {}
 
   // After every change, on the UI thread.
-  std::function<void(std::string_view key)> on_changed;
+  std::move_only_function<void(std::string_view key) const> on_changed;
 
   [[nodiscard]] bool get(ui::pref::Bool key) const override { return store_.bool_or(key.name, key.fallback); }
   [[nodiscard]] int get(ui::pref::Int key) const override {

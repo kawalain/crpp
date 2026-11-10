@@ -109,9 +109,9 @@ class SoundTab final : public SettingsTab {
   bool stop_key(int id, unsigned vk, bool ctrl, bool shift, bool alt) override;
 
   // The tab came on screen: time to fill the lists.
-  std::function<void()> on_shown;
+  std::move_only_function<void() const> on_shown;
   // The user picked another output; the setting has changed already.
-  std::function<void()> on_speaker_picked;
+  std::move_only_function<void() const> on_speaker_picked;
 
   // The outputs there are now, without "기본 출력 장치". A saved one that is missing
   // from them stays on the list under its saved name.
@@ -198,11 +198,11 @@ class DisplayTab final : public SettingsTab {
   bool stop_key(int id, unsigned vk, bool ctrl, bool shift, bool alt) override;
 
   // Asked whenever the tab comes on screen, for who the chat sample shows.
-  std::function<void()> on_shown;
+  std::move_only_function<void() const> on_shown;
   // A Theme of a pack that is not installed was picked, or picked again after it failed: the pack is
   // to be fetched, and the Theme applied once it is there if it is still the last one picked.
-  std::function<void(const std::string& skin, const std::string& theme)> on_fetch;
-  std::function<void()> on_cancel_fetch;
+  std::move_only_function<void(const std::string& skin, const std::string& theme) const> on_fetch;
+  std::move_only_function<void() const> on_cancel_fetch;
   // An installed pack's Theme, as when picked in the list: the dark mode stays.
   void use_theme(const std::string& skin, const std::string& theme);
   void set_sample(std::string nick, std::string emoji);
@@ -252,8 +252,8 @@ class NotifyTab final : public SettingsTab {
   }
 
   // Asked whenever the tab comes on screen, as the sounds may arrive after startup.
-  std::function<void()> on_shown;
-  std::function<void(const std::string& stem)> on_preview;
+  std::move_only_function<void() const> on_shown;
+  std::move_only_function<void(const std::string& stem) const> on_preview;
   void set_sounds(std::vector<NotifySound> sounds);
 
   void paint(Painter& p, Rect area) override;
@@ -277,7 +277,7 @@ class AchievementsTab final : public SettingsTab {
     return std::nullopt;
   }
   // The record was cleared, once the user agreed.
-  std::function<void()> on_clear;
+  std::move_only_function<void() const> on_clear;
 
   void paint(Painter& p, Rect area) override;
   void click(int id, float x, float y, bool shift) override;
@@ -349,16 +349,16 @@ class SystemTab final : public SettingsTab {
   void clear_server_field() { server_.clear(); }
   [[nodiscard]] TextField& server_field() { return server_; }
   // What was typed, as typed, empty for the default server.
-  std::function<void(std::string address)> on_apply_server;
+  std::move_only_function<void(std::string address) const> on_apply_server;
 
-  std::function<void()> on_open_logs;
+  std::move_only_function<void() const> on_open_logs;
   // What was typed, as typed: the shell reads it as an address.
-  std::function<void(std::string address)> on_add_repository;
-  std::function<void(std::size_t index)> on_remove_repository;
+  std::move_only_function<void(std::string address) const> on_add_repository;
+  std::move_only_function<void(std::size_t index) const> on_remove_repository;
   // Its address was clicked: the shell opens the page it is read on.
-  std::function<void(const std::string& address)> on_open_repository;
-  std::function<void(std::size_t index)> on_remove_pack;
-  std::function<void(std::size_t index)> on_update_pack;
+  std::move_only_function<void(const std::string& address) const> on_open_repository;
+  std::move_only_function<void(std::size_t index) const> on_remove_pack;
+  std::move_only_function<void(std::size_t index) const> on_update_pack;
 
   void paint(Painter& p, Rect area) override;
   void paint_popups(Painter& p, Rect area) override;
@@ -437,8 +437,8 @@ class AccountTab final : public SettingsTab {
   };
   void set_profile(Profile profile) { profile_ = std::move(profile); }
 
-  std::function<void(std::string id)> on_emoji;
-  std::function<void()> on_change_nickname, on_change_handle, on_logout;
+  std::move_only_function<void(std::string id) const> on_emoji;
+  std::move_only_function<void() const> on_change_nickname, on_change_handle, on_logout;
 
   void paint(Painter& p, Rect area) override;
   void click(int id, float x, float y, bool shift) override;

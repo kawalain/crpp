@@ -25,7 +25,7 @@ class SetupScreen final : public Surface {
 
   [[nodiscard]] static skin::ScreenSchema schema();
 
-  std::function<void()> on_retry, on_quit;
+  std::move_only_function<void() const> on_retry, on_quit;
 
   void set(const Status& status) { status_ = status; }
   [[nodiscard]] const Status& status() const { return status_; }

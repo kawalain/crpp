@@ -71,6 +71,6 @@ struct Address {
 // Reads the body to its end, or until it is longer than `limit`: at most limit + 1 bytes, so a
 // longer one shows. False when reading failed. on_bytes hears how many have arrived so far.
 [[nodiscard]] bool read_body(Raw request, std::size_t limit, std::vector<std::uint8_t>& out,
-                             const std::function<void(std::uint64_t)>& on_bytes = nullptr);
+                             const std::move_only_function<void(std::uint64_t) const>& on_bytes = nullptr);
 
 }  // namespace crpp::winhttp

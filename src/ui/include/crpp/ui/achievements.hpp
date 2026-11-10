@@ -73,7 +73,7 @@ class Achievements {
   };
 
   // Called for each Achievement as it is reached.
-  std::function<void(AchievementId)> on_reached;
+  std::move_only_function<void(AchievementId) const> on_reached;
 
   // Off, nothing counts and nothing is reached; what was reached stays.
   void set_enabled(bool on) { enabled_ = on; }

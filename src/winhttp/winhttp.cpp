@@ -76,7 +76,7 @@ std::optional<unsigned long> status_of(Raw request) {
   return status;
 }
 
-bool read_body(Raw request, std::size_t limit, std::vector<std::uint8_t>& out, const std::function<void(std::uint64_t)>& on_bytes) {
+bool read_body(Raw request, std::size_t limit, std::vector<std::uint8_t>& out, const std::move_only_function<void(std::uint64_t) const>& on_bytes) {
   // One byte of room beyond the limit is enough to tell that it is too long.
   const std::size_t room = limit + 1;
   if (out.empty()) out.reserve(std::min<std::size_t>(room, 16 * 1024 * 1024));

@@ -26,7 +26,7 @@ skin::ScreenSchema Toasts::bubble_schema() { return {.screen = "bubble", .texts 
 
 void Toasts::toast(std::string text, unsigned long long duration_ms) { toast(std::move(text), {}, nullptr, duration_ms); }
 
-void Toasts::toast(std::string text, std::string action, std::function<void()> on_action, unsigned long long duration_ms) {
+void Toasts::toast(std::string text, std::string action, std::move_only_function<void() const> on_action, unsigned long long duration_ms) {
   shown_in_ = ui_.window;
   const auto now = clock_ms();
   bubble_ = {};

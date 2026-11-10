@@ -41,21 +41,21 @@ class Bridge final : public client::Observer {
 
   // All of these run on the UI thread.
   // Called when the token is rejected; the client cannot go on with it.
-  std::function<void()> on_unauthorized;
+  std::move_only_function<void() const> on_unauthorized;
   // Input is observed only while in a Room.
-  std::function<void(bool in_room)> on_room_changed;
+  std::move_only_function<void(bool in_room) const> on_room_changed;
   // Every connection state, for what the user is shown while reconnecting.
-  std::function<void(session::State)> on_state;
+  std::move_only_function<void(session::State) const> on_state;
   // The Room could not be entered or was lost; the app has gone back to Home.
-  std::function<void(session::Failure, const std::string& detail)> on_failure;
+  std::move_only_function<void(session::Failure, const std::string& detail) const> on_failure;
   // The chat rate limit: nothing can be sent for this long.
-  std::function<void(std::uint64_t ms)> on_chat_blocked;
-  std::function<void(const ProfileInfo&)> on_profile;
+  std::move_only_function<void(std::uint64_t ms) const> on_chat_blocked;
+  std::move_only_function<void(const ProfileInfo&) const> on_profile;
   // A chat message arrived, just before it is added to the panel.
-  std::function<void(const ui::ChatEntry&)> on_chat;
+  std::move_only_function<void(const ui::ChatEntry&) const> on_chat;
   // The member list changed, just before the screen is updated.
-  std::function<void(const std::vector<ui::MemberView>&)> on_members;
-  std::function<void(const std::vector<MemberIds>&)> on_member_ids;
+  std::move_only_function<void(const std::vector<ui::MemberView>&) const> on_members;
+  std::move_only_function<void(const std::vector<MemberIds>&) const> on_member_ids;
 
   // UI thread: remember which held Seat a resume is for, to forget it if refused.
   void expect_resume(std::string code) { resume_code_ = std::move(code); }

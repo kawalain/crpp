@@ -57,7 +57,7 @@ inline std::int64_t unix_ms() {
 class UiTasks {
  public:
   void attach(HWND hwnd) { hwnd_ = hwnd; }
-  void post(std::function<void()> f) {
+  void post(std::move_only_function<void()> f) {
     {
       std::lock_guard lock(m_);
       q_.push_back(std::move(f));
@@ -65,7 +65,7 @@ class UiTasks {
     if (hwnd_) PostMessageW(hwnd_, wm_ui_task, 0, 0);
   }
   // For a task that asks for what it needs drawn itself, so it costs no full repaint.
-  void post_quiet(std::function<void()> f) {
+  void post_quiet(std::move_only_function<void()> f) {
     {
       std::lock_guard lock(m_);
       q_.push_back(std::move(f));
@@ -75,7 +75,7 @@ class UiTasks {
   }
   // True if any of them may have changed what is on screen.
   bool run_all() {
-    std::deque<std::function<void()>> batch;
+    std::deque<std::move_only_function<void()>> batch;
     bool loud = false;
     {
       std::lock_guard lock(m_);
@@ -90,7 +90,7 @@ class UiTasks {
  private:
   HWND hwnd_ = nullptr;
   std::mutex m_;
-  std::deque<std::function<void()>> q_;
+  std::deque<std::move_only_function<void()>> q_;
   std::size_t quiet_ = 0;
 };
 

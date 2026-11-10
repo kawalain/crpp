@@ -18,8 +18,8 @@ class MemberMenu final : public Surface {
   [[nodiscard]] bool holds_keys(int id) const override { return id == Card; }
   bool stop_key(int id, unsigned vk, bool ctrl, bool shift, bool alt) override;
 
-  std::function<void(std::uint32_t slot)> on_profile;
-  std::function<void(std::uint32_t slot, int percent)> on_volume;
+  std::move_only_function<void(std::uint32_t slot) const> on_profile;
+  std::move_only_function<void(std::uint32_t slot, int percent) const> on_volume;
 
   [[nodiscard]] static skin::ScreenSchema schema();
 

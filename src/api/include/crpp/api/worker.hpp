@@ -13,10 +13,10 @@ namespace crpp::api {
 
 class Worker {
  public:
-  using Done = std::function<void()>;
-  using Work = std::function<Done()>;
+  using Done = std::move_only_function<void()>;
+  using Work = std::move_only_function<Done()>;
 
-  explicit Worker(std::function<void(Done)> deliver);
+  explicit Worker(std::move_only_function<void(Done)> deliver);
   ~Worker();
   Worker(const Worker&) = delete;
   Worker& operator=(const Worker&) = delete;

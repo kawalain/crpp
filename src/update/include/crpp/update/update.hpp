@@ -79,7 +79,7 @@ struct Release {
 
 class Platform {
  public:
-  using OnBytes = std::function<void(std::uint64_t received)>;
+  using OnBytes = std::move_only_function<void(std::uint64_t received) const>;
   // HTTPS GET following redirects. At most limit + 1 bytes, so a longer reply shows.
   // `accept` is the Accept header; empty sends none.
   virtual std::expected<std::vector<std::uint8_t>, Error> get(const std::string& url, std::size_t limit,

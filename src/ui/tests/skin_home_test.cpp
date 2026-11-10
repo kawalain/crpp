@@ -721,7 +721,7 @@ std::uint32_t look_of(UiHarness& h, Rect r) {
 }
 
 // It looks pressed and scrolls again and again while the pointer stays on it.
-void hold_an_arrow(UiHarness& h, const Surface& owner, int arrow, const std::function<float()>& position) {
+void hold_an_arrow(UiHarness& h, const Surface& owner, int arrow, const std::move_only_function<float() const>& position) {
   const Ui::Hit* hit = h.app.ui().find_hit(&owner, arrow);
   CHECK(hit != nullptr);
   if (!hit) return;

@@ -193,7 +193,7 @@ void start_update(Shell& s) {
   }
   Target target = target_for(s);
   run_worker(s, [&s, target = std::move(target), args = relaunch_args(s)] {
-    using Done = std::function<void()>;
+    using Done = std::move_only_function<void() const>;
     up::WindowsPlatform platform(args);
     // The release may have changed since the popup appeared: always go by the latest.
     const auto latest = up::check(target.source, target.current, target.key, platform);

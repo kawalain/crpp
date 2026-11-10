@@ -464,7 +464,7 @@ class Loader final : public Names {
     std::vector<Mark> marks(all->size(), Mark::None);
     Json::Object ordered;
     ordered.reserve(all->size());
-    const std::function<bool(std::size_t, int)> visit = [&](std::size_t at, int depth) {
+    const std::move_only_function<bool(std::size_t, int) const> visit = [&](std::size_t at, int depth) {
       if (marks[at] == Mark::Done) return true;
       if (marks[at] == Mark::Open || depth > max_walk_depth) return fail("the part \"" + (*all)[at].key + "\" uses itself");
       marks[at] = Mark::Open;

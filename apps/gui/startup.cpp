@@ -199,7 +199,7 @@ struct Installed {
 // Repositories the user added too. A pack picked in the display tab comes from the latest of its
 // Repository, with what it extends.
 Installed install(Shell& s, const InstallJob& job, const std::atomic<bool>& cancel,
-                  const std::function<void(const assets::Progress&)>& progress) {
+                  const std::move_only_function<void(const assets::Progress&) const>& progress) {
   assets::WindowsPlatform platform;
   Installed done;
   if (job.kind == InstallJob::Kind::Remove) {

@@ -32,9 +32,9 @@ class ChatPanel final : public Surface {
   [[nodiscard]] static skin::ScreenSchema schema();
 
   // False if it could not be sent; the text stays in the box.
-  std::function<bool(std::string text)> on_send;
+  std::move_only_function<bool(std::string text) const> on_send;
   // Opens a link in the browser. False if that failed.
-  std::function<bool(const std::string& url)> on_open_link;
+  std::move_only_function<bool(const std::string& url) const> on_open_link;
 
   // Fixed values plus LinkBase + message number * links_per_entry + link index. A message's
   // number stays when older ones leave the log, so a drawn id never means another message.

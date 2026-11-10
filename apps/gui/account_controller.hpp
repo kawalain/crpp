@@ -29,7 +29,7 @@ class AccountHost {
   [[nodiscard]] virtual std::string emoji() const = 0;
   virtual void set_emoji(std::string id) = 0;
   // Sends off the UI thread; `done` runs on the UI thread.
-  virtual void send(api::Request request, std::function<void(api::HttpResult)> done) = 0;
+  virtual void send(api::Request request, std::move_only_function<void(api::HttpResult) const> done) = 0;
 
   // A server the user typed, checked: its address as kept, empty for the default, or why not.
   struct ServerCheck {
@@ -42,7 +42,7 @@ class AccountHost {
   [[nodiscard]] virtual std::string server_shown() const = 0;
   // Whether the address is good and a Cloudroom server answers there; `done` runs on the UI thread.
   // Empty is the default server, which is taken as it is.
-  virtual void check_server(std::string typed, std::function<void(ServerCheck)> done) = 0;
+  virtual void check_server(std::string typed, std::move_only_function<void(ServerCheck) const> done) = 0;
   // Uses that server from now on, with the account kept for it, leaving any Room first.
   virtual void change_server(const std::string& address) = 0;
 

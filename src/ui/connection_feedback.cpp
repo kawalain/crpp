@@ -47,7 +47,7 @@ ConnectionFeedback::ConnectionFeedback(App& app, HealthProbe& probe) : app_(app)
   app_.offline().on_retry = [this] { ask(); };
 }
 
-void ConnectionFeedback::check_server(std::function<void()> then) {
+void ConnectionFeedback::check_server(std::move_only_function<void() const> then) {
   then_ = std::move(then);
   ask();
 }

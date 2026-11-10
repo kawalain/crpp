@@ -60,10 +60,10 @@ class SettingsPanel final : public Surface {
   [[nodiscard]] static skin::ScreenSchema droplet_schema();
 
   // The version button, which opens the changelog.
-  std::function<void()> on_version;
+  std::move_only_function<void() const> on_version;
   // The droplet clicked this many times in a row splashes, if the pack draws it.
   static constexpr int splash_clicks = 5;
-  std::function<void()> on_splash;
+  std::move_only_function<void() const> on_splash;
   [[nodiscard]] unsigned splashes() const { return splashes_; }
   void splash();
   void set_version(std::string version) { version_ = std::move(version); }

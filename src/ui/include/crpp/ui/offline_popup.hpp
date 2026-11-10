@@ -18,7 +18,7 @@ class OfflinePopup final : public Surface {
   [[nodiscard]] static skin::ScreenSchema schema();
 
   // The next check is due; runs inside tick().
-  std::function<void()> on_retry;
+  std::move_only_function<void() const> on_retry;
 
   void show();
   void hide();

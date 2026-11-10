@@ -83,16 +83,16 @@ class Host final : public AccountHost {
     sound::tell_server_my_sounds(s_);
   }
 
-  void send(api::Request request, std::function<void(api::HttpResult)> done) override {
+  void send(api::Request request, std::move_only_function<void(api::HttpResult) const> done) override {
     if (!http_) http_ = std::make_shared<api::WinHttpClient>(s_.store->string_or("serverUrl", store::default_server_url));
-    worker_.post([http = http_, request = std::move(request), done = std::move(done)]() -> api::Worker::Done {
-      return [result = http->send(request), done] { done(result); };
+    worker_.post([http = http_, request = std::move(request), done = std::move(done)]() mutable -> api::Worker::Done {
+      return [result = http->send(request), done = std::move(done)] { done(result); };
     });
   }
 
   [[nodiscard]] std::string server_shown() const override { return shown(s_.store->server()); }
 
-  void check_server(std::string typed, std::function<void(ServerCheck)> done) override {
+  void check_server(std::string typed, std::move_only_function<void(ServerCheck) const> done) override {
     const std::string fallback = store::normalize_server(store::default_server_url);
     if (typed.find_first_not_of(" \t") == std::string::npos) {
       done({true, "", shown(fallback), ""});
@@ -109,12 +109,12 @@ class Host final : public AccountHost {
       return;
     }
     // WinHTTP refuses a certificate that does not hold and, here, any redirect: either is no answer.
-    worker_.post([address = *address, normalized, done = std::move(done)]() -> api::Worker::Done {
+    worker_.post([address = *address, normalized, done = std::move(done)]() mutable -> api::Worker::Done {
       std::optional<std::string> body;
       if (const auto target = transport::make_health_target(address)) body = transport::WinHttpHealth().ask(*target);
       const bool answered = body.has_value(), cloudroom = body && transport::is_cloudroom_health(*body);
       // The wording is read on the UI thread, where the language changes.
-      return [address, normalized, answered, cloudroom, done] {
+      return [address, normalized, answered, cloudroom, done = std::move(done)] {
         ServerCheck check{cloudroom, address, shown(normalized), ""};
         if (!answered) check.problem = tr().server_unreachable;
         else if (!cloudroom) check.problem = tr().server_not_cloudroom;

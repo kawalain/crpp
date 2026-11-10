@@ -28,7 +28,7 @@ class EmojiPicker final : public Surface {
   // Seven rows of eight can show at once; this keeps a little of the scroll around.
   static constexpr std::size_t cache_capacity = 72;
 
-  void show(std::string current, std::function<void(std::string id)> on_pick);
+  void show(std::string current, std::move_only_function<void(std::string id) const> on_pick);
   void close();
   void forget_graphics();
   [[nodiscard]] bool is_open() const { return open_; }
@@ -65,7 +65,7 @@ class EmojiPicker final : public Surface {
   int columns_ = 8;
   float row_h_ = 0;
   [[nodiscard]] int keyboard_cell() const;
-  std::function<void(std::string id)> on_pick_;
+  std::move_only_function<void(std::string id) const> on_pick_;
   std::vector<std::string> ids_;
   std::optional<EmojiCache> cache_;
   Scroll scroll_;

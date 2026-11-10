@@ -8,7 +8,7 @@
 namespace crpp::api {
 
 struct Worker::State {
-  std::function<void(Done)> deliver;
+  std::move_only_function<void(Done)> deliver;
   std::mutex mutex;
   std::condition_variable cv;
   std::deque<Work> queue;
@@ -16,7 +16,7 @@ struct Worker::State {
   bool stopped = false;
 };
 
-Worker::Worker(std::function<void(Done)> deliver) : state_(std::make_shared<State>()) {
+Worker::Worker(std::move_only_function<void(Done)> deliver) : state_(std::make_shared<State>()) {
   state_->deliver = std::move(deliver);
 }
 

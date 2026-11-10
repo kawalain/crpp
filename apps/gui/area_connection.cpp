@@ -33,7 +33,7 @@ class HealthWorker {
   HealthWorker(const HealthWorker&) = delete;
   HealthWorker& operator=(const HealthWorker&) = delete;
 
-  void start(std::function<void(std::optional<std::string>)> done) {
+  void start(std::move_only_function<void(std::optional<std::string>) const> done) {
     if (thread_.joinable()) thread_.join();  // it posted its answer and is ending
     auto health = std::make_shared<transport::WinHttpHealth>();
     {
@@ -61,7 +61,7 @@ class HealthWorker {
 class WorkerProbe final : public HealthProbe {
  public:
   explicit WorkerProbe(Shell& s) : s_(s), worker_(s) {}
-  void start(std::function<void(bool)> done) override {
+  void start(std::move_only_function<void(bool) const> done) override {
     worker_.start([this, done = std::move(done)](std::optional<std::string> body) {
       if (body) s_.app.home().set_public_rooms(ui::home::public_rooms_in_health(*body));
       done(body.has_value());
@@ -101,7 +101,7 @@ void wire(Shell& s) {
   };
 }
 
-void check_server(Shell& s, std::function<void()> then) {
+void check_server(Shell& s, std::move_only_function<void() const> then) {
   // A throwaway data folder with no server of its own stays off the default one, so a
   // scripted run touches no network unless it asks to.
   if (s.throwaway_data && s.store->string_or("serverUrl", "").empty()) {

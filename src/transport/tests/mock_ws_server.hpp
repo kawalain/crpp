@@ -134,7 +134,7 @@ struct Conn {
 
 class Server {
  public:
-  using Script = std::function<void(Conn&)>;
+  using Script = std::move_only_function<void(Conn&) const>;
 
   explicit Server(Script script) : script_(std::move(script)) {
     WSADATA w;

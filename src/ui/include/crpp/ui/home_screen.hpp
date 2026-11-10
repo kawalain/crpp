@@ -38,22 +38,22 @@ class HomeScreen final : public Surface {
   [[nodiscard]] bool holds_keys(int id) const override { return id == ReturnBackdrop; }
   void focus(int id) override;
 
-  std::function<void()> on_create;
-  std::function<void(std::string code)> on_join;
-  std::function<void()> on_find_public;
+  std::move_only_function<void() const> on_create;
+  std::move_only_function<void(std::string code) const> on_join;
+  std::move_only_function<void() const> on_find_public;
   // "돌아가기" in the question the search button asks when a Seat is held.
-  std::function<void()> on_return;
+  std::move_only_function<void() const> on_return;
   // A Room is being entered: the buttons do nothing and nothing about them changes.
-  std::function<bool()> busy;
+  std::move_only_function<bool() const> busy;
   // How many ms the latest held Seat still lasts, if there is one. Read on every
   // paint, so nobody has to report a Seat coming or going.
   std::function<std::optional<std::uint64_t>()> held_seat_ms;
   // The Rooms with a Seat to go back to, and the user's own picture: read on every paint, by
   // a Skin that shows them.
   std::function<std::vector<HeldSeatShown>()> held_seats;
-  std::function<std::string()> my_emoji;
+  std::move_only_function<std::string() const> my_emoji;
   // Home came on screen, from anywhere else.
-  std::function<void()> on_shown;
+  std::move_only_function<void() const> on_shown;
   // How many public Rooms the server says are open; nothing when it was not asked or did not say.
   void set_public_rooms(std::optional<int> n) { public_rooms_ = n; }
   [[nodiscard]] std::optional<int> public_rooms() const { return public_rooms_; }

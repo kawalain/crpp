@@ -20,7 +20,7 @@ class HealthProbe {
   virtual ~HealthProbe() = default;
   // Asks once. `done` runs on the UI thread, possibly before start returns. Never
   // called again until `done` has run.
-  virtual void start(std::function<void(bool reachable)> done) = 0;
+  virtual void start(std::move_only_function<void(bool reachable) const> done) = 0;
 };
 
 // Upstream's wording. in_room: the Room had been entered, so this is a reconnect ending.
@@ -34,7 +34,7 @@ class ConnectionFeedback {
 
   // Startup: runs `then` once the server answers, however long that takes. If a Room
   // is being entered by then, `then` is dropped: the user already moved on.
-  void check_server(std::function<void()> then);
+  void check_server(std::move_only_function<void() const> then);
   // A request of another kind failed on the network.
   void server_unreachable();
 
@@ -53,7 +53,7 @@ class ConnectionFeedback {
   bool offline_ = false;       // the popup is up because the server is gone
   bool reconnecting_ = false;  // the popup is up because a Room's connection is lost
   std::string pending_;        // said if the server turns out to be there
-  std::function<void()> then_;
+  std::move_only_function<void() const> then_;
 };
 
 }  // namespace crpp::ui

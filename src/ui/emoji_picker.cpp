@@ -105,7 +105,7 @@ void EmojiPicker::paint_pack(Painter& p, const skin::Screen& screen) {
   draw_layer(ui_, p, this, screen, ui_.content, shown);
 }
 
-void EmojiPicker::show(std::string current, std::function<void(std::string id)> on_pick) {
+void EmojiPicker::show(std::string current, std::move_only_function<void(std::string id) const> on_pick) {
   open_ = true;
   closed_at_ = 0;
   current_ = std::move(current);

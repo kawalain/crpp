@@ -16,7 +16,7 @@ namespace {
 
 class FakeProbe final : public HealthProbe {
  public:
-  void start(std::function<void(bool)> done) override {
+  void start(std::move_only_function<void(bool) const> done) override {
     ++asked;
     done_ = std::move(done);
   }
@@ -29,7 +29,7 @@ class FakeProbe final : public HealthProbe {
   int asked = 0;
 
  private:
-  std::function<void(bool)> done_;
+  std::move_only_function<void(bool) const> done_;
 };
 
 struct Rig {

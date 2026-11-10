@@ -14,8 +14,8 @@ struct Dialog {
   std::string confirm;  // the primary button
   std::string cancel;   // empty = no cancel button, and Escape does not close it
   bool wide = false;    // 380 wide instead of 320 (.modal-card.wide)
-  std::function<void()> on_confirm;
-  std::function<void()> on_cancel;
+  std::move_only_function<void() const> on_confirm;
+  std::move_only_function<void() const> on_cancel;
   // What it confirms cannot be undone, as leaving or removing: the keyboard starts on Cancel.
   bool cannot_undo = false;
 };

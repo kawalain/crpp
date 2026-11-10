@@ -18,9 +18,9 @@ class UpdatePopup final : public Surface {
   [[nodiscard]] static skin::ScreenSchema schema();
 
   // The button, in both of its wordings.
-  std::function<void()> on_update;
+  std::move_only_function<void() const> on_update;
   // The update check that was scheduled is due.
-  std::function<void()> on_check_due;
+  std::move_only_function<void() const> on_check_due;
 
   void show_available();
   // Up to 100, which then says it is installing.

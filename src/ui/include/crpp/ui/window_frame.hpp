@@ -22,7 +22,7 @@ class WindowFrame final : public Surface {
   using Surface::Surface;
   enum Id : int { Minimize, Close, MenuBase = 10, ItemBase = 100 };
 
-  std::function<void()> on_minimize, on_close, on_exit, on_leave_room, on_options, on_changelog, on_mini;
+  std::move_only_function<void() const> on_minimize, on_close, on_exit, on_leave_room, on_options, on_changelog, on_mini;
 
   // What a Skin Pack can name here: the frame, and the menu that is down.
   [[nodiscard]] static skin::ScreenSchema schema();
@@ -68,7 +68,7 @@ class WindowFrame final : public Surface {
  private:
   struct Item {
     const char* text;
-    std::function<void()>* action;
+    std::move_only_function<void() const>* action;
   };
   [[nodiscard]] std::vector<Item> items_of(int menu);
   [[nodiscard]] static const char* title_of(int menu);

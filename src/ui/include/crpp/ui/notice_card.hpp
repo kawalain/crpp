@@ -25,7 +25,7 @@ class NoticeCard final : public Surface {
   [[nodiscard]] static skin::ScreenSchema schema();
 
   // Runs once, when the action button is pressed; the notice closes.
-  std::function<void()> on_action;
+  std::move_only_function<void() const> on_action;
 
   void set(std::optional<Notice> notice) { notice_ = std::move(notice); }
 

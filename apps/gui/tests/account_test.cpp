@@ -21,7 +21,7 @@ class FakeHost final : public AccountHost {
   std::string gid, stored_emoji;
   int seats_forgotten = 0, erased = 0, left_room = 0, saved = 0;
   std::vector<api::Request> requests;
-  std::deque<std::function<void(api::HttpResult)>> pending;
+  std::deque<std::move_only_function<void(api::HttpResult) const>> pending;
 
   [[nodiscard]] api::Identity identity() const override { return stored; }
   [[nodiscard]] std::string guest_id() const override { return gid; }
@@ -40,7 +40,7 @@ class FakeHost final : public AccountHost {
   [[nodiscard]] std::string random_nickname() override { return "졸린 곰"; }
   [[nodiscard]] std::string emoji() const override { return stored_emoji; }
   void set_emoji(std::string id) override { stored_emoji = std::move(id); }
-  void send(api::Request request, std::function<void(api::HttpResult)> done) override {
+  void send(api::Request request, std::move_only_function<void(api::HttpResult) const> done) override {
     requests.push_back(std::move(request));
     pending.push_back(std::move(done));
   }
@@ -49,9 +49,9 @@ class FakeHost final : public AccountHost {
   std::string server = "cr.nanliburusu.com";
   std::map<std::string, api::Identity> kept;
   std::vector<std::string> checked;
-  std::function<void(ServerCheck)> checking;
+  std::move_only_function<void(ServerCheck) const> checking;
   [[nodiscard]] std::string server_shown() const override { return server; }
-  void check_server(std::string typed, std::function<void(ServerCheck)> done) override {
+  void check_server(std::string typed, std::move_only_function<void(ServerCheck) const> done) override {
     checked.push_back(std::move(typed));
     checking = std::move(done);
   }

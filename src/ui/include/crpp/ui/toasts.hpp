@@ -22,7 +22,7 @@ class Toasts final : public Surface {
 
   // A duration of 0 stays until replaced or cleared.
   void toast(std::string text, unsigned long long duration_ms = default_ms);
-  void toast(std::string text, std::string action, std::function<void()> on_action,
+  void toast(std::string text, std::string action, std::move_only_function<void() const> on_action,
              unsigned long long duration_ms = default_ms);
   // anchor is the button, in window coordinates; the bubble's right edge meets the
   // button's, `gap` above it.
@@ -53,7 +53,7 @@ class Toasts final : public Surface {
 
   Message toast_;
   std::string action_;
-  std::function<void()> on_action_;
+  std::move_only_function<void() const> on_action_;
   Message bubble_;
   Rect anchor_;
   float gap_ = 8;

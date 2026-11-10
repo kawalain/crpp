@@ -40,9 +40,9 @@ class ProfileCard final : public Surface {
   static constexpr unsigned long long answer_timeout_ms = 4000;
   static constexpr unsigned long long refresh_ms = 1000;
 
-  std::function<void(std::uint32_t slot)> on_request;
+  std::move_only_function<void(std::uint32_t slot) const> on_request;
   // The own card's icon was clicked.
-  std::function<void()> on_change_icon;
+  std::move_only_function<void() const> on_change_icon;
 
   // Asks the server; the card opens when the answer comes, or a toast says it did not.
   void request(std::uint32_t slot);

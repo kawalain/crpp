@@ -26,7 +26,7 @@ namespace connection {  // failures, reconnecting, the offline popup
 void wire(Shell& s);
 [[nodiscard]] bool scene(Shell& s, std::string_view name);
 // Runs `then` once the server answers; until then the offline popup says it does not.
-void check_server(Shell& s, std::function<void()> then);
+void check_server(Shell& s, std::move_only_function<void() const> then);
 // An HTTP API call failed on the network: asks, and shows the popup if the server is gone.
 void server_unreachable(Shell& s);
 // Asks /health how many public Rooms are open, for Home to say. One question at a time; none

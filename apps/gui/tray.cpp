@@ -32,7 +32,7 @@ void copy_text(wchar_t (&dst)[N], std::wstring_view text) {
 }  // namespace
 
 std::vector<std::uint32_t> render_pixels(ID2D1Factory* factory, int size,
-                                         const std::function<void(ID2D1RenderTarget*)>& draw) {
+                                         const std::move_only_function<void(ID2D1RenderTarget*) const>& draw) {
   if (size <= 0) return {};
   const HRESULT com = CoInitializeEx(nullptr, COINIT_APARTMENTTHREADED);
   std::vector<std::uint32_t> pixels;

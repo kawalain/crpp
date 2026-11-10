@@ -111,9 +111,9 @@ class App {
   // Whether a point of the Mini window has nothing to click, so that it moves the window.
   [[nodiscard]] bool mini_drags_at(float x, float y) const;
   // Each Achievement as it is reached, after its toast.
-  std::function<void(AchievementId)> on_achievement;
+  std::move_only_function<void(AchievementId) const> on_achievement;
   // Back from a Room: the time in it has been counted.
-  std::function<void()> on_left_room;
+  std::move_only_function<void() const> on_left_room;
   // My own input since the last call, by count only: the weather, totals and time in the Room follow it.
   void note_own_input(std::uint32_t events, std::uint32_t presses, std::uint32_t clicks);
   [[nodiscard]] Dialogs& dialogs() { return dialogs_; }

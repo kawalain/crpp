@@ -49,7 +49,7 @@ jobs:
         run: .github/scripts/msvc-build.sh build -DCRPP_FETCH_DEV_ASSETS=OFF -DCRPP_OFFICIAL_BUILD=ON "-DCRPP_VERSION=${{ steps.tag.outputs.version }}"
 
       - name: Test
-        run: ctest --test-dir build --output-on-failure -E '^input\.raw$'
+        run: ctest --test-dir build --output-on-failure --timeout 300 -E '^input\.raw$'
 
       # The key is a file only for this step, readable by this user alone.
       - name: Sign

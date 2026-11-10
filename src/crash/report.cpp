@@ -292,9 +292,10 @@ Tidy tidy_reports(std::span<const std::string> names) {
       kept.push_back(name);
     }
   }
-  std::ranges::sort(kept, std::greater{});
+  // In the order the catalog sorts its names too, which the exe then holds once: oldest first.
+  std::ranges::sort(kept);
   kept.erase(std::unique(kept.begin(), kept.end()), kept.end());
-  for (std::size_t i = kept_reports; i < kept.size(); ++i) tidy.remove.push_back(kept[i]);
+  for (std::size_t i = 0; i + kept_reports < kept.size(); ++i) tidy.remove.push_back(kept[i]);
   return tidy;
 }
 

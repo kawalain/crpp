@@ -520,13 +520,13 @@ void a_part_can_be_drawn_alone() {
   source.log = &log;
   const Part* part = pack->part("button");
   CHECK(part != nullptr);
-  const std::pair<std::string_view, float> off{"off", 1};
+  const std::pair<std::string_view, float> off{"off", 1.0f};
   draw_part(*pack, *part, 0, {1, 2, 30, 20}, log, source, {.label = "x", .hot = true, .pressed = false, .args = std::span(&off, 1)});
   CHECK(log.out == "round 1,2,30,20 3 1/0/0/1\ntext x 3,2,30,20 12/20/400 0/0/0/0.5\nfill 1,2,20,20 1/0/0/1\n");
   // Without a screen no number is a note.
   Log alone;
   source.log = &alone;
-  const std::pair<std::string_view, float> where{"where", 81};
+  const std::pair<std::string_view, float> where{"where", 81.0f};
   draw_part(*pack, *pack->part("by"), 0, {1, 2, 30, 20}, alone, source, {.args = std::span(&where, 1)});
   CHECK(alone.out == "fill 1,2,30,20 1/0/0/1\n");
 }

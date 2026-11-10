@@ -3,7 +3,6 @@
 #include <algorithm>
 #include <cctype>
 #include <cmath>
-#include <cstdio>
 #include <cstdlib>
 #include <fstream>
 #include <map>
@@ -201,11 +200,18 @@ SvgImage parse_svg(const Gfx& gfx, std::string_view svg) {
     if (tag.name == "svg") {
       const auto vb = attr(tag.attrs, "viewBox");
       if (!vb.empty()) {
-        float x = 0, y = 0, w = 36, h = 36;
-        if (std::sscanf(vb.c_str(), "%f %f %f %f", &x, &y, &w, &h) == 4) {
-          image.width = w;
-          image.height = h;
-          stack.back().matrix = D2D1::Matrix3x2F::Translation(-x, -y);
+        float box[4] = {};
+        int read = 0;
+        for (const char* p = vb.c_str(); read < 4; ++read) {
+          char* end = nullptr;
+          box[read] = std::strtof(p, &end);
+          if (end == p) break;
+          p = end;
+        }
+        if (read == 4) {
+          image.width = box[2];
+          image.height = box[3];
+          stack.back().matrix = D2D1::Matrix3x2F::Translation(-box[0], -box[1]);
         }
       } else {
         image.width = number_attr(tag.attrs, "width", 36);

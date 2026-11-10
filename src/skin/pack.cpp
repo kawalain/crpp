@@ -1336,8 +1336,8 @@ std::optional<std::string_view> missing_constant(const Pack& pack) {
 
 bool Pack::palette_is_dark(int palette) const {
   if (palette < 0 || static_cast<std::size_t>(palette) >= palette_ids.size()) return false;
-  const std::string& id = palette_ids[static_cast<std::size_t>(palette)];
-  return std::ranges::any_of(themes, [&](const PackTheme& theme) { return theme.dark == id; });
+  const std::string& palette_id = palette_ids[static_cast<std::size_t>(palette)];
+  return std::ranges::any_of(themes, [&](const PackTheme& theme) { return theme.dark == palette_id; });
 }
 
 float Pack::constant(std::string_view name) const {

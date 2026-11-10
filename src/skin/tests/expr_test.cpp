@@ -13,11 +13,11 @@ namespace {
 class TestNames final : public Names {
  public:
   std::optional<std::uint16_t> slot(std::string_view name) override {
-    if (name == "gap") return 0;
+    if (name == "gap") return std::uint16_t{0};
     return std::nullopt;
   }
   std::optional<std::uint16_t> box(std::string_view name) override {
-    if (name == "field") return 1;
+    if (name == "field") return std::uint16_t{1};
     return std::nullopt;
   }
   std::optional<float> constant(std::string_view name) override {
@@ -26,17 +26,17 @@ class TestNames final : public Names {
     return std::nullopt;
   }
   std::optional<std::uint16_t> number(std::string_view name) override {
-    if (name == "seats") return 7;
+    if (name == "seats") return std::uint16_t{7};
     return std::nullopt;
   }
   std::optional<std::uint16_t> paint(std::string_view name) override {
-    if (name == "ink") return 3;
-    if (name == "face") return 4;
-    if (name == "ten") return 5;  // also a constant, which the two cannot share
+    if (name == "ink") return std::uint16_t{3};
+    if (name == "face") return std::uint16_t{4};
+    if (name == "ten") return std::uint16_t{5};  // also a constant, which the two cannot share
     return std::nullopt;
   }
   std::optional<std::uint16_t> style(std::string_view name) override {
-    if (name == "body") return 2;
+    if (name == "body") return std::uint16_t{2};
     return std::nullopt;
   }
   std::optional<std::uint32_t> text(std::string_view source) override {

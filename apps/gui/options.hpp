@@ -8,6 +8,7 @@
 // real app on the user's desktop and data.
 #include <algorithm>
 #include <array>
+#include <charconv>
 #include <expected>
 #include <map>
 #include <span>
@@ -33,6 +34,15 @@ struct Options {
 inline constexpr std::array<std::string_view, 8> valued_options{"--data", "--update-url", "--updated-from", "--asset-url", "--skin-dir", "--locale", "--theme", "--dpi"};
 // Words with dashes that are not options with a value: they say what to do, where they stand.
 inline constexpr std::array<std::string_view, 4> command_words{"--shot", "--smoke", "--minimized", "--at"};
+
+// The number that is the whole of `text`, or `fallback` for anything else, as "14abc" or "".
+template <class T>
+[[nodiscard]] T number_or(std::string_view text, T fallback) {
+  T value{};
+  const char* const end = text.data() + text.size();
+  const auto [stop, error] = std::from_chars(text.data(), end, value);
+  return error == std::errc{} && stop == end && !text.empty() ? value : fallback;
+}
 
 // `args` as main gets them, the program's name first. The error names what was wrong.
 [[nodiscard]] inline std::expected<Options, std::string> read_options(std::span<const char* const> args) {

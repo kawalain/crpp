@@ -154,7 +154,8 @@ int main(int argc, char** argv) {
   const locale::Locale* shot_locale = locale::find_locale("ko");
   if (const locale::Locale* named = locale::find_locale(options->value("locale"))) shot_locale = named;
   const std::string shot_theme(options->value("theme"));
-  const float shot_dpi = options->value("dpi").empty() ? 96.0f : static_cast<float>(std::atof(std::string(options->value("dpi")).c_str()));
+  // Whole numbers only: from_chars of a float would bring 100 KB of tables into the exe.
+  const float shot_dpi = static_cast<float>(number_or(options->value("dpi"), 96u));
   const store::Locations beside_exe{exe_dir() / "data" / "crpp", exe_dir() / "data" / "Cloudroom"};
   auto locations = !data_dir.empty()
                        ? std::expected<store::Locations, store::Error>(store::Locations{data_dir / "crpp", data_dir / "Cloudroom"})

@@ -48,8 +48,19 @@ void a_word_that_is_no_option_is_an_error() {
 
 }  // namespace
 
+// Sizes, hours and the like are the whole word or nothing: "14abc" is not 14.
+void a_number_is_the_whole_word() {
+  CHECK(number_or(std::string_view("14"), 0) == 14);
+  CHECK(number_or(std::string_view("14abc"), 0) == 0);
+  CHECK(number_or(std::string_view(""), 7) == 7);
+  CHECK(number_or(std::string_view("-3"), 0u) == 0u);
+  CHECK(number_or(std::string_view("144"), 96u) == 144u);
+  CHECK(number_or(std::string_view("dpi"), 96u) == 96u);
+}
+
 int main() {
   an_option_stands_anywhere();
+  a_number_is_the_whole_word();
   what_to_do_keeps_its_order();
   a_word_that_is_no_option_is_an_error();
   return crpp_test_result();

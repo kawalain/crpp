@@ -1,12 +1,12 @@
 // --shot: renders one scene offscreen, without a window, a store or a connection.
-#include <cstdio>
-#include <cstdlib>
 #include <functional>
 #include <map>
+#include <string_view>
 
 #include "areas.hpp"
 #include "crpp/ui/clipboard.hpp"
 #include "crpp/ui/png.hpp"
+#include "options.hpp"
 #include "shell.hpp"
 
 using namespace crpp::ui;
@@ -99,16 +99,23 @@ int run_shot(Shell& s, int argc, char** argv, float dpi) {
   hold_wall_clock(1700000000);
   s.app.achievements().set_enabled(false);  // a scene reaches nothing, so no toast covers it
   unsigned w = 951, h = 692;
-  if (argc >= 4) std::sscanf(argv[3], "%ux%u", &w, &h);
-  if (argc >= 8 && std::string_view(argv[6]) == "--at") {
-    if (const Motion* motion = motion_named(argv[5])) {
-      if (argc >= 5) s.app.home().set_hour(std::atoi(argv[4]));
-      s.app.home().set_date(0, 0);
-      s.app.home().set_nickname("크롬이");
-      return run_motion(s, *motion, widen(argv[2]), w, h, dpi, std::atoi(argv[7]));
+  if (argc >= 4) {  // <w>x<h>; anything else, as "auto", keeps the default
+    const std::string_view size = argv[3];
+    const std::size_t x = size.find('x');
+    if (x != std::string_view::npos) {
+      const unsigned width = number_or(size.substr(0, x), 0u), height = number_or(size.substr(x + 1), 0u);
+      if (width > 0 && height > 0) w = width, h = height;
     }
   }
-  if (argc >= 5) s.app.home().set_hour(std::atoi(argv[4]));
+  if (argc >= 8 && std::string_view(argv[6]) == "--at") {
+    if (const Motion* motion = motion_named(argv[5])) {
+      if (argc >= 5) s.app.home().set_hour(number_or(std::string_view(argv[4]), 0));
+      s.app.home().set_date(0, 0);
+      s.app.home().set_nickname("크롬이");
+      return run_motion(s, *motion, widen(argv[2]), w, h, dpi, number_or(std::string_view(argv[7]), 0));
+    }
+  }
+  if (argc >= 5) s.app.home().set_hour(number_or(std::string_view(argv[4]), 0));
   s.app.home().set_date(0, 0);  // a shot holds the clock, so no day of its own unless a scene says so
   s.app.home().set_nickname("크롬이");
   const bool sized_by_screen = argc >= 4 && std::string_view(argv[3]) == "auto" && !s.app.screen_size().key.empty();
@@ -121,7 +128,7 @@ int run_shot(Shell& s, int argc, char** argv, float dpi) {
   int tabs = 0;
   if (scene.starts_with("focus-") && scene.find_last_of('-') > 5) {
     const std::size_t dash = scene.find_last_of('-');
-    tabs = std::atoi(std::string(scene.substr(dash + 1)).c_str());
+    tabs = number_or(scene.substr(dash + 1), 0);
     scene = scene.substr(6, dash - 6);
   }
   const auto press_tabs = [&] {

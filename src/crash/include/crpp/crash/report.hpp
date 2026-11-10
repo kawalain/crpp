@@ -69,8 +69,8 @@ struct Crash {
   std::uint64_t address = 0;
   bool main_thread = false;
   std::uint64_t uptime_ms = 0;
-  std::span<const Frame> frames;
-  std::span<const Module> modules;
+  std::span<const Frame> frames{};
+  std::span<const Module> modules{};
 };
 
 // The name of a Windows exception code, or empty.

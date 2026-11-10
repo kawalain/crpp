@@ -261,15 +261,22 @@ bool still_running(const Marker& marker) noexcept {
 
 Build this_build() noexcept { return {state.version, state.hash, state.official, {state.windows, state.windows_size}}; }
 
+// A function of a DLL by its name, as the type it has. Through a function without parameters, which
+// no compiler warns a cast from.
+template <class Function>
+Function function_of(HMODULE module, const char* name) noexcept {
+  return reinterpret_cast<Function>(reinterpret_cast<void (*)()>(GetProcAddress(module, name)));
+}
+
 // The event log's functions, from wevtapi.dll loaded for the purpose.
 class EventLog {
  public:
   EventLog() : library_(LoadLibraryExW(L"wevtapi.dll", nullptr, LOAD_LIBRARY_SEARCH_SYSTEM32)) {
     if (!library_) return;
-    query_ = reinterpret_cast<decltype(query_)>(GetProcAddress(library_.get(), "EvtQuery"));
-    next_ = reinterpret_cast<decltype(next_)>(GetProcAddress(library_.get(), "EvtNext"));
-    render_ = reinterpret_cast<decltype(render_)>(GetProcAddress(library_.get(), "EvtRender"));
-    close_ = reinterpret_cast<decltype(close_)>(GetProcAddress(library_.get(), "EvtClose"));
+    query_ = function_of<decltype(query_)>(library_.get(), "EvtQuery");
+    next_ = function_of<decltype(next_)>(library_.get(), "EvtNext");
+    render_ = function_of<decltype(render_)>(library_.get(), "EvtRender");
+    close_ = function_of<decltype(close_)>(library_.get(), "EvtClose");
   }
 
   // The crash of this process recorded since it was created, if Windows recorded one.
@@ -307,7 +314,7 @@ class EventLog {
 
  private:
   using Query = EVT_HANDLE(WINAPI*)(EVT_HANDLE, LPCWSTR, LPCWSTR, DWORD);
-  using Next = BOOL(WINAPI*)(EVT_HANDLE, DWORD, PEVT_HANDLE, DWORD, DWORD, PDWORD);
+  using Next = BOOL(WINAPI*)(EVT_HANDLE, DWORD, EVT_HANDLE*, DWORD, DWORD, PDWORD);
   using Render = BOOL(WINAPI*)(EVT_HANDLE, EVT_HANDLE, DWORD, DWORD, PVOID, PDWORD, PDWORD);
   using Close = BOOL(WINAPI*)(EVT_HANDLE);
 
@@ -384,8 +391,9 @@ void install(const Setup& setup) {
   copy_utf8(name, state.exe_name, std::size(state.exe_name), state.exe_name_size);
   // RtlGetVersion tells the truth whatever the manifest says.
   using GetVersion = LONG(WINAPI*)(OSVERSIONINFOW*);
-  OSVERSIONINFOW version{sizeof(OSVERSIONINFOW)};
-  if (const auto get = reinterpret_cast<GetVersion>(GetProcAddress(GetModuleHandleW(L"ntdll.dll"), "RtlGetVersion")); get && get(&version) == 0) {
+  OSVERSIONINFOW version{};
+  version.dwOSVersionInfoSize = sizeof version;
+  if (const auto get = function_of<GetVersion>(GetModuleHandleW(L"ntdll.dll"), "RtlGetVersion"); get && get(&version) == 0) {
     Writer out(state.windows);
     out.dec(version.dwMajorVersion).ch('.').dec(version.dwMinorVersion).ch('.').dec(version.dwBuildNumber);
     state.windows_size = out.written().size();

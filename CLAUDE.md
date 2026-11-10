@@ -22,8 +22,11 @@ and developer communities, not from memory.
   headers; every OS API lives in an adapter behind a seam (`transport`,
   `input`, `AudioDevice`, `ui`, tray/notification). macOS/Linux adapters are
   added later without touching pure modules.
-- Windows builds use MSVC from Build Tools 2022 (`/std:c++latest` via CMake), locally
-  too. The CI job `portability-gcc` builds and tests the pure modules with GCC on a
+- Windows builds use MSVC from Build Tools 2026 (`/std:c++latest` via CMake), locally
+  too, and the runner `windows-2025-vs2026`; Build Tools 2022 is not supported. MSVC's
+  `/std:c++latest` also turns on parts of the C++26 draft, so only `portability-gcc`
+  catches C++26 in pure modules. Once MSVC 14.52 ships `/std:c++23` and CMake maps
+  C++23 to it, move to it. The CI job `portability-gcc` builds and tests the pure modules with GCC on a
   Linux runner, run by hand with `gh workflow run ci.yml`, only to keep them portable;
   no Linux build of the app is produced or supported.
 - Build is CMake + Ninja only; no package manager. Third-party code, if ever

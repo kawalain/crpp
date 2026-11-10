@@ -17,7 +17,7 @@ defaults:
 
 jobs:
   release:
-    runs-on: windows-2022
+    runs-on: windows-2025-vs2026
     timeout-minutes: 60
     steps:
       # Full history: the notes list the commits since the previous tag.

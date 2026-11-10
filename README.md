@@ -58,7 +58,7 @@ The reasoning is in [ADR 0003](docs/adr/0003-presence-mode-by-default.md) and
 ### Requirements
 
 - Windows 10 version 1703 or later
-- [Visual Studio Build Tools 2022](https://visualstudio.microsoft.com/downloads/) with the
+- [Visual Studio Build Tools 2026](https://visualstudio.microsoft.com/downloads/) with the
   C++ tools. No other libraries or package managers are needed.
 - [CMake](https://cmake.org/) 3.28 or later on `PATH`
 - [Git for Windows](https://gitforwindows.org/), whose Git Bash runs the build script

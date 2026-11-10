@@ -58,7 +58,7 @@ Cloudroom++는 [공식 클라이언트](https://github.com/pb29/Cloudroom)를 C+
 ### 요구 사항
 
 - Windows 10 버전 1703 이상
-- C++ 도구를 포함한 [Visual Studio Build Tools 2022](https://visualstudio.microsoft.com/downloads/).
+- C++ 도구를 포함한 [Visual Studio Build Tools 2026](https://visualstudio.microsoft.com/downloads/).
   다른 라이브러리나 패키지 관리자는 필요 없습니다.
 - `PATH`에 등록된 [CMake](https://cmake.org/) 3.28 이상
 - 빌드 스크립트를 실행할 Git Bash가 들어 있는 [Git for Windows](https://gitforwindows.org/)

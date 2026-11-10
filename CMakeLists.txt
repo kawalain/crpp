@@ -11,6 +11,7 @@ set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 
 include(cmake/warnings.cmake)
 include(cmake/size.cmake)
+include(cmake/sanitize.cmake)
 
 find_package(Threads REQUIRED)
 
@@ -34,3 +35,4 @@ add_subdirectory(src/ui)
 add_subdirectory(apps/cli)
 add_subdirectory(apps/gui)
 add_subdirectory(apps/soundtest)
+crpp_sanitize_tests(${PROJECT_SOURCE_DIR})

@@ -1,8 +1,9 @@
 # portability-gcc checks that the pure modules stay portable ISO C++23 by building and
-# testing them with GCC on a Linux runner. It is a check only: no Linux build of the app is
-# produced or supported. windows-msvc builds the whole app with the compiler that releases
-# use (MSVC). input.raw is left out where it runs: it injects keys and needs a
-# real input desktop, which a runner is not known to have.
+# testing them with GCC on a Linux runner, once as they are and once with ASan and UBSan.
+# It is a check only: no Linux build of the app is produced or supported. windows-msvc
+# builds the whole app with the compiler that releases use (MSVC). input.raw is left out
+# where it runs: it injects keys and needs a real input desktop, which a runner is not
+# known to have.
 # Runs only by hand, as Actions minutes are limited: gh workflow run ci.yml
 name: CI
 
@@ -52,6 +53,14 @@ jobs:
       - name: Test
         shell: bash
         run: ctest --test-dir build --output-on-failure --timeout 300
+      - name: Build with ASan and UBSan
+        shell: bash
+        run: |
+          cmake -S . -B build-sanitize -G Ninja -DCMAKE_CXX_COMPILER=g++ -DCMAKE_BUILD_TYPE=RelWithDebInfo -DCRPP_SANITIZE=ON
+          cmake --build build-sanitize
+      - name: Test with ASan and UBSan
+        shell: bash
+        run: ctest --test-dir build-sanitize --output-on-failure --timeout 600
 
   windows-msvc:
     runs-on: windows-2025-vs2026

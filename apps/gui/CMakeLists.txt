@@ -27,8 +27,11 @@ if(WIN32)
     target_sources(crpp PRIVATE crpp.manifest)
     target_link_options(crpp PRIVATE /ENTRY:mainCRTStartup)  # the entry point stays main
     # A release is one exe, often run from Downloads: imports come from System32 only
-    # (LOAD_LIBRARY_SEARCH_SYSTEM32), not from a DLL left beside it.
-    target_link_options(crpp PRIVATE /DEPENDENTLOADFLAG:0x800)
+    # (LOAD_LIBRARY_SEARCH_SYSTEM32), not from a DLL left beside it. A sanitized build needs
+    # the ASan runtime, which is not in System32.
+    if(NOT CRPP_SANITIZE)
+      target_link_options(crpp PRIVATE /DEPENDENTLOADFLAG:0x800)
+    endif()
   endif()
   target_link_libraries(crpp PRIVATE crpp_ui crpp_client crpp_store_windows crpp_assets_windows crpp_assets_built_in crpp_update_windows crpp_update_built_in crpp_input_raw crpp_sound_wasapi crpp_transport_winhttp crpp_api_winhttp imm32)
   target_link_libraries(crpp PRIVATE dwmapi)

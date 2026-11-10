@@ -148,8 +148,8 @@ every scene in `scenes.txt` on a hidden desktop, before and after, and `compare.
 the folders by hash. A shot holds the clock, so the same scene always gives the same file.
 
 `-DCRPP_SANITIZE=ON` (`cmake/sanitize.cmake`) builds with AddressSanitizer, and with GCC also
-UBSan; the GCC job runs the tests that way. With MSVC it is a diagnostic build in a folder of its
-own, `build-msvc-asan`, deleted afterwards: `msvc-build.sh build-msvc-asan -DCRPP_SANITIZE=ON`, then
+UBSan; the GCC job runs the tests that way. With MSVC it is a diagnostic build in a scratch folder
+outside the repository, deleted afterwards: `msvc-build.sh <scratch>/asan -DCRPP_SANITIZE=ON`, then
 `ctest`, which finds the runtime by itself. The exe loads it from beside cl.exe, so copy
 `clang_rt.asan_dynamic-x86_64.dll` next to it before `render.sh`, and give `ASAN_OPTIONS` a
 `log_path` without a drive letter, as `:` separates its options.

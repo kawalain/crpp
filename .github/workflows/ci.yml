@@ -18,17 +18,39 @@ concurrency:
 
 jobs:
   portability-gcc:
+    # The latest stable GCC, from its official Docker image pinned by digest: runner images
+    # ship only what their Ubuntu release packages. CMake and Ninja come from their releases,
+    # checked by hash, as Debian's are older than cmake_minimum_required.
     runs-on: ubuntu-24.04
+    container: gcc:16.2@sha256:b8a42d6804296fbe7a54e17e9d60c3100d9e8dbe7ef88c748cae2ddb00d63ba2
     timeout-minutes: 30
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           persist-credentials: false
+      - name: Install CMake and Ninja
+        shell: bash
+        run: |
+          set -euo pipefail
+          cd /tmp
+          curl -fsSLo cmake.tar.gz https://github.com/Kitware/CMake/releases/download/v4.4.5/cmake-4.4.5-linux-x86_64.tar.gz
+          echo 'ed85135c5a5135b45e50423cb406dea04ca3338da0b8ef3c9ede963559680be0  cmake.tar.gz' | sha256sum -c -
+          curl -fsSLo ninja.zip https://github.com/ninja-build/ninja/releases/download/v1.13.2/ninja-linux.zip
+          echo '5749cbc4e668273514150a80e387a957f933c6ed3f5f11e03fb30955e2bbead6  ninja.zip' | sha256sum -c -
+          mkdir -p /opt/cmake /opt/ninja
+          tar -xzf cmake.tar.gz -C /opt/cmake --strip-components=1
+          python3 -c 'import zipfile; zipfile.ZipFile("ninja.zip").extractall("/opt/ninja")'
+          chmod +x /opt/ninja/ninja
+          echo /opt/cmake/bin >> "$GITHUB_PATH"
+          echo /opt/ninja >> "$GITHUB_PATH"
       - name: Configure
-        run: cmake -S . -B build -G Ninja -DCMAKE_CXX_COMPILER=g++-14
+        shell: bash
+        run: cmake -S . -B build -G Ninja -DCMAKE_CXX_COMPILER=g++
       - name: Build
+        shell: bash
         run: cmake --build build
       - name: Test
+        shell: bash
         run: ctest --test-dir build --output-on-failure --timeout 300
 
   windows-msvc:

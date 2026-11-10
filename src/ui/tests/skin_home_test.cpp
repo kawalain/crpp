@@ -614,6 +614,11 @@ std::uint32_t drawn_over(HCURSOR cursor, int size, std::uint32_t background, int
   void* bits = nullptr;
   HDC dc = CreateCompatibleDC(nullptr);
   HBITMAP bitmap = CreateDIBSection(dc, &info, DIB_RGB_COLORS, &bits, nullptr, 0);
+  CHECK(bitmap != nullptr && bits != nullptr);
+  if (bitmap == nullptr || bits == nullptr) {
+    DeleteDC(dc);
+    return {};
+  }
   HGDIOBJ old = SelectObject(dc, bitmap);
   auto* const pixels = static_cast<std::uint32_t*>(bits);
   std::fill_n(pixels, size * size, background);

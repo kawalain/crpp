@@ -14,6 +14,12 @@ seen it; add one for what a change could not verify.
   needs a code signature and an install under Program Files. Keyboard sound apps and Discord document
   the same limit and ask to run as administrator. The limit is accepted: no elevation, no uiAccess
   until the exe is signed and installed. Confirm a game that is not elevated still reports.
+- The hardened exe (`docs/research/hardening.md`: STL bounds checks, Control Flow Guard, CET) has run only in
+  tests and on a hidden desktop. Run it on a real desktop with a third-party IME and a sound device, and once on a
+  CPU with CET shadow stacks (Intel 11th generation or AMD Zen 3 and later), where Windows enforces them.
+- Since resources moved into `crpp_win` (handles, icons, GDI objects, WASAPI's COM pointers), the tray icon, a chat
+  notification's icon, the window region of an own frame and switching sound devices have run in tests and shots
+  only: watch each once on a real desktop.
 - IME composition and candidate windows at a scale above 100%: they get physical
   client pixels, which Microsoft's DPI pages do not state for the IME calls.
 - Output device changes (plug, unplug, default change) were never exercised on real

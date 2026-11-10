@@ -3,7 +3,7 @@ if(WIN32)
   add_executable(crpp WIN32
     main.cpp window.cpp pane_window.cpp cursors.cpp startup.cpp installed.cpp bridge.cpp shot.cpp
     area_connection.cpp area_home.cpp area_room.cpp area_sound.cpp area_preferences.cpp area_repositories.cpp area_os.cpp area_account.cpp area_achievements.cpp
-    area_update.cpp tray.cpp autostart_windows.cpp account_controller.cpp)
+    area_update.cpp area_crash.cpp tray.cpp autostart_windows.cpp account_controller.cpp)
   # Releases use MSVC, whose linker embeds this. A GCC build runs unaware of DPI,
   # which Windows scales for it; it exists to keep the code portable.
   # Icon and file properties. The numeric fields take digits only, so a test version
@@ -33,7 +33,7 @@ if(WIN32)
       target_link_options(crpp PRIVATE /DEPENDENTLOADFLAG:0x800)
     endif()
   endif()
-  target_link_libraries(crpp PRIVATE crpp_ui crpp_client crpp_store_windows crpp_assets_windows crpp_assets_built_in crpp_update_windows crpp_update_built_in crpp_input_raw crpp_sound_wasapi crpp_transport_winhttp crpp_api_winhttp imm32)
+  target_link_libraries(crpp PRIVATE crpp_ui crpp_client crpp_store_windows crpp_assets_windows crpp_assets_built_in crpp_update_windows crpp_update_built_in crpp_input_raw crpp_sound_wasapi crpp_transport_winhttp crpp_api_winhttp crpp_crash_windows imm32)
   target_link_libraries(crpp PRIVATE dwmapi)
   # Per-Monitor v2 starts at Windows 10 1703, which the UI's font loading needs too.
   target_compile_definitions(crpp PRIVATE _CRT_SECURE_NO_WARNINGS _WIN32_WINNT=0x0A00)
@@ -86,7 +86,7 @@ if(WIN32)
   add_test(NAME gui.options COMMAND crpp_gui_options_test)
 
   add_executable(crpp_gui_parts_test tests/parts_test.cpp)
-  target_link_libraries(crpp_gui_parts_test PRIVATE crpp_store crpp_files)
+  target_link_libraries(crpp_gui_parts_test PRIVATE crpp_store crpp_files crpp_crash_windows)
   target_include_directories(crpp_gui_parts_test PRIVATE . ${PROJECT_SOURCE_DIR}/tests/support)
   crpp_target_defaults(crpp_gui_parts_test)
   add_test(NAME gui.parts COMMAND crpp_gui_parts_test ${PROJECT_SOURCE_DIR}/assets/sounds/notifications)

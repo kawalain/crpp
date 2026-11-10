@@ -153,6 +153,12 @@ the commit that makes it.
   Repository, pinned by its key's fingerprint and maybe a version and digest; an update it was not made for
   waits in the system tab until the user takes it. An added Repository may offer Sound packs too, which the sound
   tab fetches when picked. Upstream has none of this.
+- A crash leaves a Crash report in the data folder's `crash/`, and the next start offers it: "올리기" puts it on the
+  clipboard and opens a new issue of `kawalain/crpp` from the crash form, filled with it, for the user to read and
+  send; nothing is sent by the app. It holds the version, Windows' version, the cause, the stack as module+offset and
+  the last diagnostic events, and never input, chat, a name, an address or a path. A crash Windows ends at once comes
+  from Windows' event log, which holds one only where Windows Error Reporting is on. The newest five are kept.
+  Upstream has none.
 - Upstream's Theme 구름 is 뭉게구름 ("Cumulus"), as the Skin it belongs to is 구름 too. Its id is `cumulus`;
   upstream's keys keep upstream's `cloudroom`, which is read as `cumulus` wherever it is found.
 - The create cloud on Home really grows under the pointer, as upstream's does.

@@ -32,6 +32,7 @@ void what_to_do_keeps_its_order() {
   CHECK(motion.has_value());
   CHECK(motion->word(6) == "--at" && motion->word(7) == "120");
   CHECK(motion->value("dpi") == "144");
+  CHECK(read({"crpp", "--crash", "access", "--data", "d"})->value("crash") == "access");
   const auto plain = read({"crpp"});
   CHECK(plain.has_value() && plain->words.size() == 1 && plain->named.empty());
   CHECK(read({"crpp", "--minimized"})->word(1) == "--minimized");

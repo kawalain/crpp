@@ -19,7 +19,7 @@
 namespace crpp::gui {
 
 struct Options {
-  // By name without the dashes: data, update-url, updated-from, asset-url, skin-dir, locale, theme, dpi.
+  // By name without the dashes: data, update-url, updated-from, asset-url, skin-dir, locale, theme, dpi, crash.
   std::map<std::string, std::string, std::less<>> named;
   // The program's name, then what says what to do, as main and run_shot index it.
   std::vector<std::string> words;
@@ -31,7 +31,7 @@ struct Options {
   [[nodiscard]] std::string_view word(std::size_t index) const { return index < words.size() ? std::string_view(words[index]) : std::string_view{}; }
 };
 
-inline constexpr std::array<std::string_view, 8> valued_options{"--data", "--update-url", "--updated-from", "--asset-url", "--skin-dir", "--locale", "--theme", "--dpi"};
+inline constexpr std::array<std::string_view, 9> valued_options{"--data", "--update-url", "--updated-from", "--asset-url", "--skin-dir", "--locale", "--theme", "--dpi", "--crash"};
 // Words with dashes that are not options with a value: they say what to do, where they stand.
 inline constexpr std::array<std::string_view, 4> command_words{"--shot", "--smoke", "--minimized", "--at"};
 

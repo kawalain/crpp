@@ -22,7 +22,8 @@ bool apply_scene(Shell& s, std::string_view name) {
   }
   return area::connection::scene(s, name) || area::home::scene(s, name) || area::room::scene(s, name) ||
          area::sound::scene(s, name) || area::preferences::scene(s, name) || area::repositories::scene(s, name) || area::os::scene(s, name) ||
-         area::account::scene(s, name) || area::update::scene(s, name) || area::achievements::scene(s, name);
+         area::account::scene(s, name) || area::update::scene(s, name) || area::achievements::scene(s, name) ||
+         area::crash_report::scene(s, name);
 }
 
 // A moment of a motion, to compare by eye: a scene is set up and painted, something

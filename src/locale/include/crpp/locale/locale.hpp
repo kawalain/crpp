@@ -430,6 +430,12 @@ struct Strings {
   const char* system_reset_confirm;
   const char* system_logs_failed;
   const char* system_autostart_failed;
+  // At the start after a crash: its report, offered to be posted as an issue.
+  const char* crash_question;
+  const char* crash_send;
+  const char* crash_close;
+  const char* crash_copied;
+  const char* crash_open_failed;
   // Raw Input could not start in a Room.
   const char* input_failed;
   // A click on Home while a Room is still being created or entered.

@@ -130,3 +130,9 @@ seen it; add one for what a change could not verify.
 - A path outside the ANSI code page (a Korean user name on an English Windows) has only been read as
   MSVC's `filesystem.cpp`: this machine's code page is UTF-8, where the test passes either way. Run the
   app from such a folder on a machine whose code page is 949 or 1252.
+- The Crash report has run in tests, on a hidden desktop and in shots: the app crashed by `--crash access` and
+  `--crash stl` left reports, and the next start took the newest as shown. Not yet seen: the question on a real
+  desktop, "올리기" opening the browser on a filled issue of the crash form (the form exists on GitHub only once
+  pushed), a report that is too long for the address, and a `__fastfail` or CFG crash turned into a report from
+  the event log on a machine with Windows Error Reporting on. This machine has it off, so only an older
+  recorded crash was read back.

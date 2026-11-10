@@ -28,6 +28,7 @@ home-bubble-find
 toast
 notice
 dialog
+crash-report
 session
 chat
 room-dark

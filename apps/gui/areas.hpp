@@ -203,4 +203,10 @@ void took_over(unsigned long old_pid);
 void shutdown(Shell& s);
 }  // namespace update
 
+namespace crash_report {  // the Crash report of the run before, offered at a start
+// Once the screen is up: the newest report not shown yet, as a question whether to post it.
+void offer(Shell& s);
+[[nodiscard]] bool scene(Shell& s, std::string_view name);
+}  // namespace crash_report
+
 }  // namespace crpp::gui::area

@@ -19,6 +19,8 @@
 //   ... --updated-from <pid>      started by the update of process <pid>
 //   ... --data <dir>              keep data in <dir>, not the user's
 //                                 folders; other instances are then allowed
+//   ... --crash <kind>            (not in official builds) crash as src/crash names it, once
+//                                 the run is marked, to see the report at the next start
 // An option with a value may stand anywhere; a word with dashes that is no option ends the
 // start with 3 and no window (options.hpp).
 // A development build always allows other instances, and without --data keeps its data in
@@ -32,6 +34,7 @@
 #include "areas.hpp"
 #include "crpp/assets/built_in.hpp"
 #include "crpp/assets/windows_platform.hpp"
+#include "crpp/crash/handler.hpp"
 #include "crpp/update/built_in.hpp"
 #include "crpp/update/windows_platform.hpp"
 #include "options.hpp"
@@ -163,6 +166,8 @@ int main(int argc, char** argv) {
                        ? std::expected<store::Locations, store::Error>(beside_exe)
                        : store::default_locations();
   if (!locations) locations = beside_exe;
+  // From here on a crash leaves a report in the Protected store, a shot's too.
+  crash::install({locations->protected_dir / "crash", update::built_version(), update::built_hash(), update::official_build()});
   // A development build runs from the folders its build put beside it, and installs nothing. An official
   // one never does: those files are signed by nobody, and anyone could leave them beside a downloaded exe.
   const bool assets_beside_exe = !update::official_build() && is_file(exe_dir() / "assets" / assets::catalog_name);
@@ -241,6 +246,10 @@ int main(int argc, char** argv) {
   }
   if (updated_from != 0) area::update::took_over(updated_from);
   if (shell.shares_the_machine && another_instance_running()) return 0;
+  // A run that ends without removing this mark, and without a report of its own, is looked up in
+  // Windows' event log at the next start.
+  crash::begin_run();
+  if (!update::official_build()) crash::crash_on_purpose(options->value("crash"));
   // What nothing lists leaves the store, once no other start can be installing into it. Of the
   // store only the font is open yet, and it is listed.
   if (!assets_beside_exe) assets::collect_garbage(shell.files_dir, repository_dirs);
@@ -292,6 +301,7 @@ int main(int argc, char** argv) {
   if (shell.app.base_view() == ui::View::Session) shell.app.achievements().in_room(ui::clock_ms(), ui::local_day());
   area::achievements::flush(shell);
   (void)data.save();
+  crash::end_run();
   area::update::shutdown(shell);
   // A blocked download may take long to give up, and files are only ever replaced whole,
   // so there is nothing to finish.

@@ -113,6 +113,7 @@ void enter_app(Shell& s) {
   s.config.token = data.string_or("token", "");
   show_store_notice(s);
   if (!first_run) s.app.show_home();
+  area::crash_report::offer(s);
   start_client(s);
   if (!s.smoke_path.empty()) {
     s.smoke_start = clock_ms();

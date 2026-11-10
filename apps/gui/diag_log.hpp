@@ -4,6 +4,7 @@
 // packs, or why a pack could not be read, in the words of whoever wrote the pack.
 // Written only while enabled; turning it off deletes the file, as upstream does. All
 // of it runs on the UI thread, on rare events, so each line opens the file itself.
+// Every event also goes to the breadcrumbs a Crash report ends with, enabled or not.
 #include <array>
 #include <chrono>
 #include <cstdint>
@@ -15,6 +16,9 @@
 #include <string>
 #include <string_view>
 #include <system_error>
+
+#include "crpp/crash/breadcrumbs.hpp"
+#include "crpp/crash/handler.hpp"
 
 namespace crpp::gui {
 
@@ -75,6 +79,7 @@ class DiagLog {
 
   // With a detail of no input, as which packs.
   void note(DiagEvent event, std::string_view detail = {}) {
+    crash::breadcrumbs.note(crash::now_ms(), diag_name(event), detail);
     if (!enabled_ || file_.empty()) return;
     std::error_code ec;
     std::filesystem::create_directories(file_.parent_path(), ec);

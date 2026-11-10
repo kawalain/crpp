@@ -1,4 +1,4 @@
-cmake_minimum_required(VERSION 3.28)
+cmake_minimum_required(VERSION 4.4)
 project(crpp LANGUAGES CXX)
 if(WIN32)
   enable_language(RC)

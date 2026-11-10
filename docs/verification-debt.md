@@ -107,8 +107,8 @@ seen it; add one for what a change could not verify.
   `kawalain/crpp-repository` was published (catalog-2.txt, signed with the release key, 409 files), and a
   development build with nothing beside it, on a hidden desktop with `--asset-url` at
   raw.githubusercontent.com, fetched the same 327 files in 10 s, each named by its hash, and a second start
-  wrote nothing. Not yet run: an official build, which reads that address by itself, a deploy of the Worker
-  with the rules, v0.2.x and v0.3.0 against it, and the mirror taking over when GitHub fails.
+  wrote nothing. Not yet run: an official build, which reads that address by itself. The Worker is frozen as
+  v0.3.0's release left it (ADR 0011), so v0.2.x and v0.3.0 meet nothing new.
 - Adding a Repository, fetching a Theme of it and removing it, updates behind the app and removing a
   downloaded Skin have run on a hidden desktop against localhost only, driven by a throwaway build, not by
   hand. So have a parent in another Repository, a pin that asks first or holds an update back, adding a

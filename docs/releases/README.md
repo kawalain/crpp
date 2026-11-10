@@ -31,7 +31,7 @@ crpp --shot out/notes.png 951x692 12 changelog=out/notes.md --data out/data
 
 Before a release, check that every tool is on its latest stable release: MSVC Build Tools,
 CMake, Ninja, the GCC image and runner labels in `.github/workflows/`, `actions/checkout`,
-Wrangler in `release.sh`, and the third-party files in `cmake/remote_assets.txt`. A release
+and the third-party files in `cmake/remote_assets.txt`. A release
 candidate, snapshot or preview does not count.
 
 To release: commit the notes to `main`, push, then run this in Git Bash:
@@ -47,15 +47,12 @@ official Repository, the public GitHub repository `kawalain/crpp-repository`, in
 and fills it through `.github/scripts/build-repository.sh` (ADR 0010): this release's
 `catalog-<format>.txt`, signed with the same key, and every file a served catalog lists, once,
 named by its SHA-256, from `assets/`, `skins/` and the third-party files a development build
-caches in `.cache/remote-assets`. `dist/repository` is the Worker's half: the same files under
-`s/`, its mirror, and the catalogs that v0.2.x and v0.3.0 read, kept in `.github/frozen-catalogs/`
-as they were signed, answered from `s/` by `_redirects`. Each pack format has its own catalog (ADR
+caches in `.cache/remote-assets`. The Worker at `crpp.kawala.in` is no longer deployed: it keeps
+what v0.3.0's release put there for v0.2.x and v0.3.0 (ADR 0011). Each pack format has its own catalog (ADR
 0009); when a release raises `pack_format`, its catalog gets the new number and the old one
 stays only while `build-repository.sh` keeps listing its files. Then it pushes the tag, commits
-and pushes `dist/github`, deploys the mirror with `npx --yes wrangler@4.159.0 deploy`
-(`wrangler.jsonc`, your own `CLOUDFLARE_API_TOKEN` or `wrangler login`) and publishes the
-Release. `--dry-run` stops before the tag and leaves the result in `dist/`. A run that fails
-after the tag can be run again: it rebuilds, deploys and publishes what is missing.
+and pushes `dist/github` and publishes the Release. `--dry-run` stops before the tag and leaves the result in `dist/`. A run that fails
+after the tag can be run again: it rebuilds and publishes what is missing.
 
 GitHub Actions no longer runs by itself, as its minutes are limited. Nothing builds on a push
 or a tag, so GCC's portability check runs only on `gh workflow run ci.yml`; do that before a

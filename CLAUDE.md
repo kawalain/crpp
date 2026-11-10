@@ -168,10 +168,9 @@ server; seed `serverUrl` in its `crpp/settings.json` to test the offline popup. 
 so a run that clicks needs a `serverUrl` on localhost. A development build with an
 `assets/` folder holding a `catalog.txt` beside it, as every build has, runs from that folder and
 `skins/` and installs nothing; an official build never reads them, as nobody signed them. To test installing, build with `-DCRPP_UPDATE_TEST_KEY=<hex>`, fill
-a folder that `git init` made with `.github/scripts/build-repository.sh <version> --github <folder> --out <worker>
+a folder that `git init` made with `.github/scripts/build-repository.sh <version> --github <folder>
 --public <hex> --key <test key file>`, serve that folder on localhost and copy the exe elsewhere: `--asset-url
-<folder>` reads its `catalog-<format>.txt`, signed with the build's key. `<worker>` is the Worker's half, which
-`wrangler dev` serves. Rebuild with `-DCRPP_UPDATE_TEST_KEY=` afterwards.
+<folder>` reads its `catalog-<format>.txt`, signed with the build's key. Rebuild with `-DCRPP_UPDATE_TEST_KEY=` afterwards.
 
 Scripted runs of the app go on a hidden Win32 desktop (`CreateDesktop`,
 `STARTUPINFO.lpDesktop`, `EnumDesktopWindows`), so no window reaches the user's
@@ -235,16 +234,15 @@ exist (real + test).
   `shared`, which holds the official Sound packs, emoji and word lists, one `skin:<id>` per Skin Pack, and
   `sound:<id>`, which the official catalog does not use. `install` fetches the groups asked for from the
   Repository, or a file's second source when the Repository fails, verifies each and keeps what
-  already matches. A Repository serves each file as `<folder><sha256>`, then its catalog's `mirror` does (ADR 0010);
+  already matches. A Repository serves each file as `<folder><sha256>`, then its catalog's `mirror` if it names one (ADR 0010);
   what is installed is kept once in the store `files/<sha256>` of the Protected store, which every Repository shares,
   and each Repository's folder lists its paths with their hashes (`installed_tree`). At start what an older exe
   installed at its paths moves into the store (`move_into_store`) and what no list names leaves it
-  (`collect_garbage`). The exe holds only the official Repository's address, its mirror and the update key
-  (`built_in.hpp`): `kawalain/crpp-repository` on GitHub, mirrored by the Worker at `crpp.kawala.in/s/`, with a
+  (`collect_garbage`). The exe holds only the official Repository's address and the update key
+  (`built_in.hpp`): `kawalain/crpp-repository` on GitHub, with no mirror (ADR 0011), with a
   `catalog-<format>.txt` per pack format. `crpp_catalog` writes a catalog, and with `--copy` the folder to serve,
   from `assets/`, `skins/`, another Repository's `--sounds` and `cmake/remote_assets.txt`;
-  `.github/scripts/build-repository.sh` fills and signs the official one and the Worker's half, which keeps the
-  frozen catalogs of v0.2.x and v0.3.0 (`.github/frozen-catalogs/`) answering from `s/`, and `sign-catalog.sh`
+  `.github/scripts/build-repository.sh` fills and signs the official one, and `sign-catalog.sh`
   prints its key's fingerprint. A Repository the user adds (`folder_of` reads
   its address) offers only packs, in folders of their own, and is trusted by the key its catalog states
   (`fetch_new_catalog`) once the user has seen the fingerprint; `apps/gui/area_repositories.cpp` keeps each

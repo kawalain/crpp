@@ -19,7 +19,6 @@ crpp_assets_test(catalog)
 # that a build folder's cache does not keep the Worker's address.
 set(CRPP_OFFICIAL_REPOSITORY "https://raw.githubusercontent.com/kawalain/crpp-repository/main/" CACHE STRING
     "The official Repository's folder, ending with '/'")
-set(CRPP_OFFICIAL_MIRROR "https://crpp.kawala.in/s/" CACHE STRING "Its mirror, ending with '/'")
 # Each pack format has a catalog of its own (ADR 0009), catalog-<format>.txt in the folder. The
 # number is the one the pack loader writes for, read here so that it is said once.
 file(STRINGS "${PROJECT_SOURCE_DIR}/src/skin/include/crpp/skin/pack.hpp" format_line
@@ -30,13 +29,9 @@ if(NOT CRPP_PACK_FORMAT MATCHES "^[0-9]+$")
   message(FATAL_ERROR "pack_format was not found in src/skin/include/crpp/skin/pack.hpp.")
 endif()
 set(CRPP_CATALOG_NAME "catalog-${CRPP_PACK_FORMAT}.txt")
-if(CRPP_OFFICIAL_BUILD)
-  if(NOT CRPP_OFFICIAL_REPOSITORY MATCHES "^https://.+/$" OR NOT CRPP_OFFICIAL_MIRROR MATCHES "^https://.+/$")
-    message(FATAL_ERROR "An official build needs CRPP_OFFICIAL_REPOSITORY and CRPP_OFFICIAL_MIRROR, https:// folders ending with '/'.")
-  endif()
-  set(CRPP_REPOSITORY_MIRROR "${CRPP_OFFICIAL_MIRROR}")
-else()
-  set(CRPP_REPOSITORY_MIRROR "")
+# No mirror: the official Repository is GitHub alone (ADR 0011).
+if(CRPP_OFFICIAL_BUILD AND NOT CRPP_OFFICIAL_REPOSITORY MATCHES "^https://.+/$")
+  message(FATAL_ERROR "An official build needs CRPP_OFFICIAL_REPOSITORY, an https:// folder ending with '/'.")
 endif()
 set(CRPP_REPOSITORY_FOLDER "${CRPP_OFFICIAL_REPOSITORY}")
 configure_file(built_in.cpp.in built_in.cpp @ONLY)

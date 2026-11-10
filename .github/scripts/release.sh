@@ -1,5 +1,6 @@
 #!/usr/bin/env bash
-# Builds, signs and publishes a release from this machine, with the official Repository (ADR 0010).
+# Builds, signs and publishes a release from this machine, with the official Repository (ADR 0010,
+# ADR 0011).
 # See docs/releases/README.md.
 #   .github/scripts/release.sh <version> [--dry-run] [--notes <file>] [--key <key.pem>]
 # --dry-run does everything up to the tag, and leaves the result in dist/. The private key is
@@ -21,8 +22,6 @@ while [[ $# -gt 0 ]]; do
   esac
 done
 fail() { echo "$*" >&2; exit 1; }
-# Also named in wrangler.jsonc. No package.json pins it, as the build has no package manager.
-wrangler=wrangler@4.159.0
 
 tag="v$version"
 [[ $version =~ ^0\.(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)$ ]] || fail "not a 0.y.z version: $version"
@@ -66,11 +65,11 @@ cp "$built" "$dist/crpp.exe"
 build-release/src/update/crpp_update_verify.exe "$dist/crpp-update.manifest" "$dist/crpp.exe" || fail 'the release does not verify'
 
 echo '== Filling the Repository'
-# The exe reads it from GitHub, and wrangler.jsonc serves dist/repository as its mirror.
+# The exe reads it from GitHub, and only there.
 repository_git=https://github.com/kawalain/crpp-repository
 git clone --quiet --depth 1 "$repository_git" "$dist/github" ||
   fail "could not clone $repository_git; it must exist and be public"
-"$here/build-repository.sh" "$version" --out "$dist/repository" --github "$dist/github"   --tool build-release/src/assets/crpp_catalog.exe --key "$key"
+"$here/build-repository.sh" "$version" --github "$dist/github" --tool build-release/src/assets/crpp_catalog.exe --key "$key"
 
 if [[ $dry_run == 1 ]]; then
   echo "== Dry run: nothing was tagged or published. The result is in $dist/."
@@ -78,13 +77,12 @@ if [[ $dry_run == 1 ]]; then
 fi
 
 echo '== Publishing'
-# The tag, then the Repository and its mirror, then the Release, so the new exe never starts against
+# The tag, then the Repository, then the Release, so the new exe never starts against
 # the files of the one before.
 [[ -n $tagged ]] || git tag "$tag"
 git push origin "$tag" || fail 'pushing the tag failed'
 git -C "$dist/github" add -A
 git -C "$dist/github" diff --cached --quiet || git -C "$dist/github" commit --quiet -m "chore: the Repository of $tag"
 git -C "$dist/github" push --quiet origin HEAD:refs/heads/main || fail 'pushing the Repository failed; run this again to retry'
-npx --yes "$wrangler" deploy || fail 'deploying the mirror failed; run this again to retry'
 "$here/publish-release.sh" "$tag"
 gh release view "$tag" --json url --jq .url

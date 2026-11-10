@@ -9,7 +9,7 @@ std::optional<Repository> official_repository() {
   const auto key = update::built_in_key();
   constexpr std::string_view url = "@CRPP_REPOSITORY_FOLDER@";
   if (!key || url.empty()) return std::nullopt;
-  return Repository{std::string(url), "@CRPP_REPOSITORY_MIRROR@", *key, std::string(official_catalog_name())};
+  return Repository{std::string(url), "", *key, std::string(official_catalog_name())};  // no mirror (ADR 0011)
 }
 
 std::string_view official_catalog_name() { return "@CRPP_CATALOG_NAME@"; }

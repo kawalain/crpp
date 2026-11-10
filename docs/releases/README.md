@@ -52,7 +52,7 @@ caches in `.cache/remote-assets`. `dist/repository` is the Worker's half: the sa
 as they were signed, answered from `s/` by `_redirects`. Each pack format has its own catalog (ADR
 0009); when a release raises `pack_format`, its catalog gets the new number and the old one
 stays only while `build-repository.sh` keeps listing its files. Then it pushes the tag, commits
-and pushes `dist/github`, deploys the mirror with `npx --yes wrangler@4.152.0 deploy`
+and pushes `dist/github`, deploys the mirror with `npx --yes wrangler@4.159.0 deploy`
 (`wrangler.jsonc`, your own `CLOUDFLARE_API_TOKEN` or `wrangler login`) and publishes the
 Release. `--dry-run` stops before the tag and leaves the result in `dist/`. A run that fails
 after the tag can be run again: it rebuilds, deploys and publishes what is missing.

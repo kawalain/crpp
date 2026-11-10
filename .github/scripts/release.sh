@@ -22,7 +22,7 @@ while [[ $# -gt 0 ]]; do
 done
 fail() { echo "$*" >&2; exit 1; }
 # Also named in wrangler.jsonc. No package.json pins it, as the build has no package manager.
-wrangler=wrangler@4.152.0
+wrangler=wrangler@4.159.0
 
 tag="v$version"
 [[ $version =~ ^0\.(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)$ ]] || fail "not a 0.y.z version: $version"

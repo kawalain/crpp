@@ -1,7 +1,7 @@
 // The official Repository: static files only, no Worker code. The release script fills
 // dist/repository with the signed catalog, the files it lists and a _redirects file that sends
 // the bare address to the source repository, then deploys with
-//   npx --yes wrangler@4.152.0 deploy
+//   npx --yes wrangler@4.159.0 deploy
 // No package.json: the build has no package manager, so the version is pinned here and in
 // the script instead. Authentication is the developer's own (CLOUDFLARE_API_TOKEN).
 {

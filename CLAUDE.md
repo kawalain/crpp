@@ -315,6 +315,9 @@ exist (real + test).
 - The exe is built for size (`cmake/size.cmake`): `/O1`, whole-program optimisation, no RTTI and Windows' own
   UCRT took it from 2.21 to 1.54 MB, at no CPU cost that could be measured (`docs/research/binary-size.md`).
   Code that needs RTTI or `/O2` must show it in numbers first.
+- Every build is hardened (`cmake/hardening.cmake`): the STL checks bounds (`_MSVC_STL_HARDENING`, with GCC
+  `_GLIBCXX_ASSERTIONS`), Control Flow Guard and CET compatibility. It costs 41 KB and nothing measurable in
+  CPU (`docs/research/hardening.md`). A hot loop that seems to pay for a check is measured, not exempted.
 - Nearly all memory while visible is the GPU driver's: an empty hardware Direct2D window is
   already 58 MB private against the app's 63. Software rendering is not the way down: it
   takes about 10 times the CPU to scroll, and owning the D3D11 device saves nothing. Findings:

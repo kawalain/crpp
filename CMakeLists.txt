@@ -12,6 +12,7 @@ set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 include(cmake/warnings.cmake)
 include(cmake/size.cmake)
 include(cmake/sanitize.cmake)
+include(cmake/hardening.cmake)
 
 find_package(Threads REQUIRED)
 

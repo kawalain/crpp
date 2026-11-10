@@ -17,6 +17,7 @@ include(cmake/hardening.cmake)
 find_package(Threads REQUIRED)
 
 enable_testing()
+add_subdirectory(src/crash)
 add_subdirectory(src/files)
 add_subdirectory(src/locale)
 add_subdirectory(src/wire)

@@ -40,7 +40,7 @@ and developer communities, not from memory.
 - Layout: `src/<module>/` (CMake static library) with `src/<module>/tests/`.
   Dependency direction, as CMake links them: `session`, `input`, `sound -> wire`; `client -> session,
   transport`; `api -> store, locale`; `update -> store`; `skin -> store, locale`; `assets -> files, update, skin`;
-  `ui -> session, update, locale, skin, files`; `sound -> files` too. `store` is also the JSON reader of `api`, `update` and `skin`.
+  `ui -> session, update, locale, skin, files`; `sound -> files` too; `crash` depends on nothing. `store` is also the JSON reader of `api`, `update` and `skin`.
   `transport` and `input` are reached from `session` only through interfaces, and only `apps/gui` links
   every adapter. Nothing lower may come to depend on `ui` or `assets`.
 - Audio is raw WASAPI with a hand-written WAV parser (no third party).
@@ -228,6 +228,13 @@ exist (real + test).
   lists what each screen offers.
   A panel with a window of its own reports its size, and `measure_screen` walks the screen without drawing to learn it. What the
   program itself must know of a look, as a frame's sizes and each window's, is in constants that `required_constants` lists; fonts and cursors have sections of their own.
+- `crash`: the Crash report. `report.hpp` is its text, written into a buffer that is already there (`Writer`), as
+  the handler may not allocate, and `breadcrumbs` the last 32 diagnostic events, kept always (4 KB). Pure. `handler.hpp`
+  is Windows': an unhandled exception, `abort()` (where a failed STL check ends, `_MSVC_STL_USE_ABORT_AS_DOOM_FUNCTION`),
+  `std::terminate`, a pure call and an invalid parameter write `crash/new-*.txt` in the Protected store, the stack walked
+  with the unwind tables and named module+offset from the images' own headers, with no allocation, DLL or loader lock.
+  What Windows ends at once (CFG, CET, `__fastfail`) leaves the run's mark, `running-<pid>.txt`, and the next start
+  reads Windows' event 1000 for it, which only a machine with Windows Error Reporting on records.
 - `files`: `Tree`, a path a catalog gives a file and where the file really is. Whatever reads a downloaded file asks
   one, as installed files are named by their hashes and a development build reads its source folders. Pure.
 - `assets`: a Repository's signed catalog (`catalog.hpp`, ADR 0008) and the files it lists in groups:

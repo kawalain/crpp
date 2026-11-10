@@ -8,6 +8,10 @@ the RAII change before it, on one Windows 10 PC with an NVIDIA card. Settings ar
 - `_MSVC_STL_HARDENING=1`: the STL checks `operator[]`, `front()`, `back()` and the like of `vector`, `array`,
   `span`, `string_view`, `optional` and others, and ends the process at a bad one instead of reading past the end.
   MSVC 14.51 defines it as 0 by default (`yvals.h`).
+  A failed check calls `abort()` rather than `__fastfail(5)` (`_MSVC_STL_USE_ABORT_AS_DOOM_FUNCTION`,
+  `__msvc_doom_core.hpp`), so that the crash handler of `src/crash` writes a report of it; `__fastfail` ends the
+  process before any handler in it runs. The check comes before the bad access, so what the report reads is whole.
+  It made the exe 11,264 bytes larger (1,690,624 to 1,701,888): each failed check is a call now, not one instruction.
 - `/guard:cf`: Control Flow Guard checks the target of every indirect call.
 - `/CETCOMPAT`: the exe says it works with CET shadow stacks, so Windows can enforce them where the CPU has them.
 - With GCC, `_GLIBCXX_ASSERTIONS`, libstdc++'s counterpart of the STL checks; the portability job builds with it.

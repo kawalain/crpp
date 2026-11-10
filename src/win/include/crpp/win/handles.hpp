@@ -18,6 +18,7 @@ inline BOOL delete_object(HGDIOBJ object) noexcept { return DeleteObject(object)
 inline BOOL destroy_icon(HICON icon) noexcept { return DestroyIcon(icon); }
 inline BOOL delete_dc(HDC dc) noexcept { return DeleteDC(dc); }
 inline BOOL destroy_menu(HMENU menu) noexcept { return DestroyMenu(menu); }
+inline BOOL free_library(HMODULE module) noexcept { return FreeLibrary(module); }
 }  // namespace free_with
 
 // A kernel handle: an event, a file, a process.
@@ -39,5 +40,7 @@ using GdiObject = Own<H, free_with::delete_object>;
 using MemoryDc = Own<HDC, free_with::delete_dc>;
 using Icon = Own<HICON, free_with::destroy_icon>;
 using Menu = Own<HMENU, free_with::destroy_menu>;
+// A DLL loaded only when it is needed.
+using Library = Own<HMODULE, free_with::free_library>;
 
 }  // namespace crpp::win

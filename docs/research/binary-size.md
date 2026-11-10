@@ -14,6 +14,11 @@ Windows 10 PC with an NVIDIA card. Settings are in `cmake/size.cmake`.
 | the same, `/GR-` | 1,789,952 |
 | the same, the system's UCRT (hybrid CRT) | **1,537,536** |
 
+On 2026-11-10 the toolchain moved to MSVC 14.51 (Build Tools 2026). A development build of `build-msvc`, all
+settings as above, went from 1,663,488 bytes with 14.44 at commit 99430fd to 1,684,992 (+1.3%) with 14.51 at
+7b37dfb, which changes only the warnings 14.51 reported. Every scene in `scenes.txt` rendered the same, by hash, and
+the exe still imports no `vcruntime` or `msvcp` DLL. CPU and memory were not measured again.
+
 v0.2.0 was 2,121,216 bytes. In the last build the code is the program's own: the largest parts are `crpp_ui`
 (313 KB of code), `crpp_skin` (161 KB), and the shell's `main.cpp` and `startup.cpp`. The icon is 37 KB of resources.
 

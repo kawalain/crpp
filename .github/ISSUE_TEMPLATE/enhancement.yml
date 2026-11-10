@@ -1,0 +1,17 @@
+name: 제안 (Suggestion)
+description: 있었으면 하는 기능이나 바뀌었으면 하는 점이 있어요.
+labels: [enhancement]
+body:
+  - type: textarea
+    id: what
+    attributes:
+      label: 원하는 것 (What you want)
+    validations:
+      required: true
+  - type: textarea
+    id: why
+    attributes:
+      label: 이유 (Why)
+      description: 지금은 무엇이 불편한지 적어 주시면 더 좋은 방법을 함께 찾을 수 있어요.
+    validations:
+      required: true

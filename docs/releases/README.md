@@ -29,6 +29,11 @@ To look at the result first, as the app will draw it:
 crpp --shot out/notes.png 951x692 12 changelog=out/notes.md --data out/data
 ```
 
+Before a release, check that every tool is on its latest stable release: MSVC Build Tools,
+CMake, Ninja, the GCC image and runner labels in `.github/workflows/`, `actions/checkout`,
+Wrangler in `release.sh`, and the third-party files in `cmake/remote_assets.txt`. A release
+candidate, snapshot or preview does not count.
+
 To release: commit the notes to `main`, push, then run this in Git Bash:
 
 ```bash

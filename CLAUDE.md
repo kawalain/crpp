@@ -11,7 +11,8 @@ and developer communities, not from memory.
 - Protocol: `cloudroom-v2` only. The v1 subprotocol is not implemented.
 - Wording lives in `src/locale`, one table per Locale, compiled in; see
   `docs/adr/0006-locales-compiled-into-the-exe.md`. Korean and English ship.
-- Language baseline is C++23. Do not depend on C++26 (the DIS ballot was
+- Language baseline is C++23, the newest published ISO standard that both MSVC and GCC
+  implement, as the global toolchain rule asks. Do not depend on C++26 (the DIS ballot was
   reported as failed; contracts, reflection and `std::execution` are not
   portable yet). Errors use `std::expected`, not exceptions.
 - Upstream server code (`server/src/main.rs`) is the protocol spec. The

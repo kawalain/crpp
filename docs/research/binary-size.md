@@ -23,6 +23,8 @@ Later the same day, hardening (`docs/research/hardening.md`) added 41 KB, and ca
 `std::move_only_function` instead of `std::function` took 40 KB off: 1,690,624 bytes at 87fa0d2. Two changes
 were tried and dropped for their size: `std::to_chars` and `std::from_chars` of floating point, about 130 KB of
 tables between them, and `Json::find` as one deducing-this template, 7 KB as it was inlined at every caller.
+The Crash report then added 51 KB, 11 KB of it the STL calling `abort()`: 1,741,824 bytes
+(`docs/research/crash-reports.md`). The PDB every Release build now writes left the size as it was.
 
 v0.2.0 was 2,121,216 bytes. In the last build the code is the program's own: the largest parts are `crpp_ui`
 (313 KB of code), `crpp_skin` (161 KB), and the shell's `main.cpp` and `startup.cpp`. The icon is 37 KB of resources.

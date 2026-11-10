@@ -58,6 +58,8 @@ pattern=''
 for byte in $(printf '%s' "$expected" | iconv -f UTF-8 -t UTF-16LE | od -An -v -tx1); do pattern+="\\x$byte"; done
 LC_ALL=C grep -qaP "${pattern}\\x00\\x00" "$built" || fail "the exe does not say it is $expected"
 cp "$built" "$dist/crpp.exe"
+# Its symbols, published beside it, which turn a Crash report into functions and lines.
+cp "${built%.exe}.pdb" "$dist/crpp.pdb"
 "$here/sign-release.sh" "$dist/crpp.exe" "$version" "$dist/crpp-update.manifest" "$key"
 
 # Against the key built into this very build: a key file that does not match would otherwise

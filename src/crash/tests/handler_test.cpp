@@ -198,6 +198,35 @@ void marks_of_others(const std::filesystem::path& root) {
   CHECK(names_in(dir).empty());
 }
 
+// crpp_symbolize names a crashed test's frames from the test's own PDB, which a Release build writes.
+void symbolized(const std::filesystem::path& root, const std::filesystem::path& tool) {
+  const std::filesystem::path dir = root / L"symbolize";
+  (void)crash_child(L"access", dir);
+  const std::vector<std::string> names = names_in(dir);
+  CHECK(names.size() == 1);
+  if (names.size() != 1) return;
+  std::filesystem::path pdb = self();
+  pdb.replace_extension(L".pdb");
+  // cmd takes the whole line in quotes, around the quoted words.
+  const std::wstring command = L"\"\"" + tool.wstring() + L"\" \"" + (dir / names[0]).wstring() + L"\" \"" + pdb.wstring() + L"\"\"";
+  FILE* pipe = _wpopen(command.c_str(), L"rb");
+  CHECK(pipe != nullptr);
+  if (!pipe) return;
+  std::string out;
+  char buffer[4096];
+  for (std::size_t n; (n = std::fread(buffer, 1, sizeof buffer, pipe)) > 0;) out.append(buffer, n);
+  CHECK(_pclose(pipe) == 0);
+  // The crash itself may be inlined into the caller, which whole-program optimisation decides.
+  const bool named = out.find("  0  crpp_crash_handler_test.exe+0x") != std::string::npos &&
+                     (out.find("access_violation") != std::string::npos || out.find("crash_on_purpose") != std::string::npos ||
+                      out.find("wmain") != std::string::npos);
+  const bool lined = out.find("  src\\crash\\") != std::string::npos;
+  if (!named || !lined) std::fprintf(stderr, "crpp_symbolize said:\n%s\n", out.c_str());
+  CHECK(named);
+  CHECK(lined);
+  CHECK(out.starts_with("crpp crash report\n"));
+}
+
 }  // namespace
 
 int wmain(int argc, wchar_t** argv) {
@@ -216,6 +245,8 @@ int wmain(int argc, wchar_t** argv) {
   crash::install({root, "0.0.0", "parent", false});
   if (argc == 2 && std::wstring_view(argv[1]) == L"--event-log") {
     reports_from_the_event_log(root);
+  } else if (argc == 3 && std::wstring_view(argv[1]) == L"--symbolize") {
+    symbolized(root, argv[2]);
   } else {
     for (const Case& c : cases) caught(c, root);
     marks_of_others(root);

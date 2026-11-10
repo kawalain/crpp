@@ -24,4 +24,13 @@ if(WIN32)
   add_test(NAME crash.handler COMMAND crpp_crash_handler_test)
   # Reads the Application log, so it runs where there is one, apart from the others.
   add_test(NAME crash.event_log COMMAND crpp_crash_handler_test --event-log)
+
+  # A report's frames as functions and lines, from the PDB a Release build writes (cmake/symbols.cmake).
+  add_executable(crpp_symbolize tools/symbolize.cpp)
+  target_link_libraries(crpp_symbolize PRIVATE dbghelp)
+  target_compile_definitions(crpp_symbolize PRIVATE NOMINMAX WIN32_LEAN_AND_MEAN _WIN32_WINNT=0x0A00)
+  crpp_target_defaults(crpp_symbolize)
+  if(MSVC)
+    add_test(NAME crash.symbolize COMMAND crpp_crash_handler_test --symbolize $<TARGET_FILE:crpp_symbolize>)
+  endif()
 endif()

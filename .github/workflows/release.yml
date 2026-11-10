@@ -62,6 +62,7 @@ jobs:
           trap 'rm -f "$key"' EXIT
           (umask 077 && printf '%s\n' "$CRPP_UPDATE_SIGNING_KEY" > "$key")
           cp build/apps/gui/crpp.exe dist/crpp.exe
+          cp build/apps/gui/crpp.pdb dist/crpp.pdb
           .github/scripts/sign-release.sh dist/crpp.exe "$VERSION" dist/crpp-update.manifest "$key"
           cat dist/crpp-update.manifest
 

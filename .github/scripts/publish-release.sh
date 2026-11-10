@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Publishes the exe, manifest and notes in dist/ as a GitHub Release of an existing tag. The
+# Publishes the exe, its PDB, the manifest and notes in dist/ as a GitHub Release of an existing tag. The
 # first line of the notes, if it is "# Title", becomes the release's name.
 #   .github/scripts/publish-release.sh <tag>
 set -euo pipefail
@@ -13,4 +13,4 @@ if [[ $first =~ ^#\ (.+)$ ]]; then
 else
   cp dist/release-notes.md dist/notes.md
 fi
-gh release create "$tag" dist/crpp.exe dist/crpp-update.manifest --verify-tag --latest --title "$title" --notes-file dist/notes.md
+gh release create "$tag" dist/crpp.exe dist/crpp.pdb dist/crpp-update.manifest --verify-tag --latest --title "$title" --notes-file dist/notes.md

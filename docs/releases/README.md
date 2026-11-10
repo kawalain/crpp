@@ -42,7 +42,8 @@ To release: commit the notes to `main`, push, then run this in Git Bash:
 
 It refuses a tree that differs from `origin/main`, then builds an official exe in
 `build-release`, tests it, signs it with the key in `~/.crpp-signing` (see
-`docs/signing-key.md`) and verifies the result against the key built into it. It clones the
+`docs/signing-key.md`) and verifies the result against the key built into it, and keeps the exe's
+symbols, `crpp.pdb`, which the Release publishes beside it. It clones the
 official Repository, the public GitHub repository `kawalain/crpp-repository`, into `dist/github`
 and fills it through `.github/scripts/build-repository.sh` (ADR 0010): this release's
 `catalog-<format>.txt`, signed with the same key, and every file a served catalog lists, once,
@@ -70,6 +71,20 @@ before publishing does not predict it.
 
 After publishing, update from the previous version once and watch for a minute. If it is
 flagged, rebuild from the tag, sign and verify as `release.sh` does, and replace the files
-with `gh release upload v0.y.z dist/crpp.exe dist/crpp-update.manifest --clobber`. The new
+with `gh release upload v0.y.z dist/crpp.exe dist/crpp.pdb dist/crpp-update.manifest --clobber`. The new
 exe's hash must differ. Until then an update can cost someone their copy of the app, because
 the rollback ends once the new exe has started.
+
+## Reading a Crash report
+
+A Crash report names each frame `<module>+0x<offset>` and each module's PDB by its file name, GUID and
+age. With the `crpp.pdb` of the Release whose version and commit the report names, `crpp_symbolize`
+prints the report with each frame of `crpp.exe` as a function and a source line:
+
+```bash
+build-msvc/src/crash/crpp_symbolize.exe report.txt crpp.pdb
+```
+
+It refuses a PDB whose GUID and age are not the report's, as another build's would name the wrong
+lines. A report from Windows' event log names only the module and offset where it ended. Windows' own
+DLLs are listed with their PDB's name and key, which Microsoft's public symbol server files them by.

@@ -235,6 +235,7 @@ exist (real + test).
   with the unwind tables and named module+offset from the images' own headers, with no allocation, DLL or loader lock.
   What Windows ends at once (CFG, CET, `__fastfail`) leaves the run's mark, `running-<pid>.txt`, and the next start
   reads Windows' event 1000 for it, which only a machine with Windows Error Reporting on records.
+  `crpp_symbolize` reads a report with the `crpp.pdb` a Release publishes. Findings: `docs/research/crash-reports.md`.
 - `files`: `Tree`, a path a catalog gives a file and where the file really is. Whatever reads a downloaded file asks
   one, as installed files are named by their hashes and a development build reads its source folders. Pure.
 - `assets`: a Repository's signed catalog (`catalog.hpp`, ADR 0008) and the files it lists in groups:
@@ -319,7 +320,8 @@ exist (real + test).
 - Measure idle memory/CPU of every UI change; do not trust third-party numbers.
 - The exe is built for size (`cmake/size.cmake`): `/O1`, whole-program optimisation, no RTTI and Windows' own
   UCRT took it from 2.21 to 1.54 MB, at no CPU cost that could be measured (`docs/research/binary-size.md`).
-  Code that needs RTTI or `/O2` must show it in numbers first.
+  Code that needs RTTI or `/O2` must show it in numbers first. Every MSVC Release build also writes a PDB beside each
+  exe (`cmake/symbols.cmake`), for Crash reports; the code and the exe's size stay the same.
 - Every build is hardened (`cmake/hardening.cmake`): the STL checks bounds (`_MSVC_STL_HARDENING`, with GCC
   `_GLIBCXX_ASSERTIONS`), Control Flow Guard and CET compatibility. It costs 41 KB and nothing measurable in
   CPU (`docs/research/hardening.md`). A hot loop that seems to pay for a check is measured, not exempted.

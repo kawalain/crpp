@@ -19,6 +19,11 @@ settings as above, went from 1,663,488 bytes with 14.44 at commit 99430fd to 1,6
 7b37dfb, which changes only the warnings 14.51 reported. Every scene in `scenes.txt` rendered the same, by hash, and
 the exe still imports no `vcruntime` or `msvcp` DLL. CPU and memory were not measured again.
 
+Later the same day, hardening (`docs/research/hardening.md`) added 41 KB, and callbacks held in
+`std::move_only_function` instead of `std::function` took 40 KB off: 1,690,624 bytes at 87fa0d2. Two changes
+were tried and dropped for their size: `std::to_chars` and `std::from_chars` of floating point, about 130 KB of
+tables between them, and `Json::find` as one deducing-this template, 7 KB as it was inlined at every caller.
+
 v0.2.0 was 2,121,216 bytes. In the last build the code is the program's own: the largest parts are `crpp_ui`
 (313 KB of code), `crpp_skin` (161 KB), and the shell's `main.cpp` and `startup.cpp`. The icon is 37 KB of resources.
 

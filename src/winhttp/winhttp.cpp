@@ -4,7 +4,6 @@
 #include <winhttp.h>
 
 #include <algorithm>
-#include <array>
 
 namespace crpp::winhttp {
 
@@ -54,9 +53,14 @@ std::optional<Address> crack(std::string_view url) {
   parts.dwUrlPathLength = static_cast<DWORD>(-1);
   parts.dwExtraInfoLength = static_cast<DWORD>(-1);
   if (!WinHttpCrackUrl(wide.c_str(), 0, 0, &parts)) return std::nullopt;
+  // A part the address does not have may come back as a null pointer.
+  const auto part = [](const wchar_t* text, DWORD length) {
+    return text ? std::wstring_view(text, length) : std::wstring_view{};
+  };
   Address address;
-  address.host.assign(parts.lpszHostName, parts.dwHostNameLength);
-  address.path = std::wstring(parts.lpszUrlPath, parts.dwUrlPathLength) + std::wstring(parts.lpszExtraInfo, parts.dwExtraInfoLength);
+  address.host = part(parts.lpszHostName, parts.dwHostNameLength);
+  address.path = std::wstring(part(parts.lpszUrlPath, parts.dwUrlPathLength));
+  address.path += part(parts.lpszExtraInfo, parts.dwExtraInfoLength);
   address.port = parts.nPort;
   address.secure = parts.nScheme == INTERNET_SCHEME_HTTPS;
   return address;
@@ -75,14 +79,17 @@ std::optional<unsigned long> status_of(Raw request) {
 bool read_body(Raw request, std::size_t limit, std::vector<std::uint8_t>& out, const std::function<void(std::uint64_t)>& on_bytes) {
   // One byte of room beyond the limit is enough to tell that it is too long.
   const std::size_t room = limit + 1;
-  std::array<std::uint8_t, read_size> chunk;
+  if (out.empty()) out.reserve(std::min<std::size_t>(room, 16 * 1024 * 1024));
+  // Straight into the end of `out`, not through a 64 KB buffer on the thread's stack.
   while (out.size() < room) {
+    const std::size_t at = out.size();
+    const std::size_t want = std::min(read_size, room - at);
+    out.resize(at + want);
     DWORD read = 0;
-    const DWORD want = static_cast<DWORD>(std::min(chunk.size(), room - out.size()));
-    if (!WinHttpReadData(request, chunk.data(), want, &read)) return false;
+    const bool ok = WinHttpReadData(request, out.data() + at, static_cast<DWORD>(want), &read) != FALSE;
+    out.resize(at + (ok ? std::min<std::size_t>(read, want) : 0));
+    if (!ok) return false;
     if (read == 0) break;
-    if (out.empty()) out.reserve(std::min<std::size_t>(room, 16 * 1024 * 1024));
-    out.insert(out.end(), chunk.begin(), chunk.begin() + read);
     if (on_bytes) on_bytes(out.size());
   }
   return true;

@@ -11,6 +11,7 @@
 #include <cstdlib>
 #include <mutex>
 #include <string>
+#include <utility>
 
 #include "crpp/client/client.hpp"
 #include "crpp/transport/winhttp_transport.hpp"
@@ -58,7 +59,7 @@ class Printer final : public client::Observer {
   }
   void on_peer_input(std::span<const wire::ServerEvent>) override {}
   void on_failed(session::Failure reason, std::string_view detail) override {
-    std::printf("failed: reason=%d detail=%.*s\n", static_cast<int>(reason),
+    std::printf("failed: reason=%d detail=%.*s\n", std::to_underlying(reason),
                 static_cast<int>(detail.size()), detail.data());
     std::lock_guard lock(m_);
     failed_ = true;

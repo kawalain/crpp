@@ -8,6 +8,7 @@
 #include <cstdint>
 #include <expected>
 #include <span>
+#include <utility>
 
 namespace crpp::wire {
 
@@ -76,7 +77,7 @@ inline constexpr std::size_t max_frame_events = 32;
 
 // True for every kind the server accepts.
 [[nodiscard]] constexpr bool is_known(Kind kind) noexcept {
-  switch (static_cast<std::uint8_t>(kind)) {
+  switch (std::to_underlying(kind)) {
     case 0: case 1: case 2: case 3: case 4: case 5:
     case 8: case 9: case 10: case 11: case 12: case 13:
     case 16: case 17: case 18: case 19: case 20: case 21:

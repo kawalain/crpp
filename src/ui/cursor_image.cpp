@@ -2,6 +2,7 @@
 
 #include <algorithm>
 #include <cmath>
+#include <utility>
 
 #include "crpp/skin/draw.hpp"
 #include "crpp/win/handles.hpp"
@@ -73,7 +74,7 @@ std::uint32_t straight_alpha(std::uint32_t pixel) {
 
 std::optional<CursorImage> make_cursor_image(const Ui& ui, skin::CursorKind kind, int size) {
   if (!ui.pack || !ui.pack->cursors || ui.palette < 0 || size <= 0 || size > 256) return std::nullopt;
-  const skin::PackCursor& cursor = (*ui.pack->cursors)[static_cast<std::size_t>(kind)];
+  const skin::PackCursor& cursor = (*ui.pack->cursors)[std::to_underlying(kind)];
   ID2D1Factory* const factory = ui.gfx.d2d();
   if (!factory) return std::nullopt;
   const bool hard = ui.pack->cursors_hard;

@@ -61,7 +61,7 @@ std::string pack_name(const files::Tree& pack, std::string fallback, std::string
 }  // namespace
 
 std::optional<std::string_view> sound_name(wire::Kind kind) noexcept {
-  switch (static_cast<std::uint8_t>(kind)) {
+  switch (std::to_underlying(kind)) {
     case 0: return "left";
     case 1: return "middle";
     case 2: return "wheel";
@@ -113,7 +113,7 @@ std::optional<fs::path> notification_file(const files::Tree& sounds, std::string
 }
 
 Device device_of(wire::Kind kind) noexcept {
-  const auto k = static_cast<std::uint8_t>(kind);
+  const auto k = std::to_underlying(kind);
   if (k < 16) return Device::Mouse;
   if (k < 32 || k >= 40) return Device::Keyboard;
   return Device::Pen;

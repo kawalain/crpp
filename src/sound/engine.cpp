@@ -6,6 +6,7 @@
 #include <fstream>
 #include <iterator>
 #include <random>
+#include <utility>
 
 namespace crpp::sound {
 
@@ -323,7 +324,7 @@ std::span<const float> Engine::recording(const std::filesystem::path& path) {
 // Kept with the recordings: voices point into them, and they cost nothing until needed.
 std::span<const float> Engine::generated(wire::Kind kind, std::string_view pack) {
   const auto variant = static_cast<std::uint32_t>(random_.below(synth_variants));
-  const std::string key = "generated:" + std::string(pack) + ":" + std::to_string(static_cast<int>(kind)) + ":" + std::to_string(variant);
+  const std::string key = "generated:" + std::string(pack) + ":" + std::to_string(std::to_underlying(kind)) + ":" + std::to_string(variant);
   if (const auto found = recordings_.find(key); found != recordings_.end()) return found->second;
   return recordings_.emplace(key, synthesize(kind, pack, rate_, variant)).first->second;
 }

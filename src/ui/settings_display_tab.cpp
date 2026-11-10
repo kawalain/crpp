@@ -2,6 +2,7 @@
 #include <array>
 #include <cstdio>
 #include <ctime>
+#include <utility>
 
 #include "crpp/ui/chat_panel.hpp"
 #include "crpp/ui/settings_tabs.hpp"
@@ -116,7 +117,7 @@ namespace {
 
 constexpr std::string_view dark_keys[] = {"off", "on", "system"};
 
-std::string_view dark_key(DarkMode mode) { return dark_keys[static_cast<std::size_t>(mode)]; }
+std::string_view dark_key(DarkMode mode) { return dark_keys[std::to_underlying(mode)]; }
 
 }  // namespace
 

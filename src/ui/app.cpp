@@ -441,7 +441,7 @@ PaneInfo App::pane_info(Pane pane) const {
 
 PaneState App::pane_state() const {
   PaneState state;
-  for (const Pane pane : open_panes()) state.open |= 1u << static_cast<unsigned>(pane);
+  for (const Pane pane : open_panes()) state.open |= 1u << std::to_underlying(pane);
   state.revision = dialogs_.revision() * 2 + (room_.profile_card().profile().created ? 1 : 0);
   state.raising = raised_pane_.has_value();
   if (mini_.is_open()) state.members = room_.member_count();
@@ -453,9 +453,9 @@ std::optional<Pane> App::take_raised_pane() { return std::exchange(raised_pane_,
 void App::use_pane(Pane pane) {
   if (pane == pane_) return;
   ui_.swap_window(windows_[static_cast<std::size_t>(pane_)]);
-  ui_.swap_window(windows_[static_cast<std::size_t>(pane)]);
+  ui_.swap_window(windows_[std::to_underlying(pane)]);
   pane_ = pane;
-  ui_.window = static_cast<int>(pane);
+  ui_.window = std::to_underlying(pane);
 }
 
 void App::close_pane(Pane pane) {
@@ -471,7 +471,7 @@ void App::close_pane(Pane pane) {
   }
 }
 
-void App::set_pane_active(Pane pane, bool active) { pane_active_[static_cast<std::size_t>(pane)] = active; }
+void App::set_pane_active(Pane pane, bool active) { pane_active_[std::to_underlying(pane)] = active; }
 
 bool App::window_deactivated() {
   if (pane_ == Pane::Emoji) {
@@ -486,9 +486,9 @@ bool App::window_deactivated() {
 void App::forget_pane(Pane pane) {
   if (pane == pane_) {
     static_cast<WindowState&>(ui_) = WindowState{};
-    ui_.window = static_cast<int>(pane);
+    ui_.window = std::to_underlying(pane);
   } else {
-    windows_[static_cast<std::size_t>(pane)] = WindowState{};
+    windows_[std::to_underlying(pane)] = WindowState{};
   }
 }
 

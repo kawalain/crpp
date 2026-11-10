@@ -1,6 +1,7 @@
 #include "crpp/ui/settings_panel.hpp"
 
 #include <algorithm>
+#include <utility>
 
 namespace crpp::ui {
 
@@ -187,7 +188,7 @@ bool SettingsPanel::layer_key(unsigned vk, bool ctrl, bool shift) {
   else if (vk == VK_PRIOR) step = -1;
   else return false;
   const int count = static_cast<int>(tab_buttons.size());
-  const int to = (static_cast<int>(page_) + step + count) % count;
+  const int to = (std::to_underlying(page_) + step + count) % count;
   select(static_cast<SettingsPage>(to));
   // The keyboard stays where it was, unless that was on the tabs, where it follows.
   if (ui_.stop_owner == this && ui_.stop_id >= TabBase) ui_.move_stop_to(this, TabBase + to);

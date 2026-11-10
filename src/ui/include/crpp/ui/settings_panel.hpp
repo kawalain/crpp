@@ -4,6 +4,7 @@
 #include <array>
 #include <functional>
 #include <string>
+#include <utility>
 
 #include "crpp/ui/controls.hpp"
 #include "crpp/ui/settings_rows.hpp"
@@ -49,9 +50,9 @@ class SettingsPanel final : public Surface {
   // Ctrl+Tab and Ctrl+Page Down go to the next tab, with Shift or Page Up the one before, wherever the keyboard is.
   bool layer_key(unsigned vk, bool ctrl, bool shift) override;
   // The row of tabs is one stop, on the tab shown; the arrows go along it.
-  [[nodiscard]] int stop_for(int id) const override { return id >= TabBase ? TabBase + static_cast<int>(page_) : id; }
+  [[nodiscard]] int stop_for(int id) const override { return id >= TabBase ? TabBase + std::to_underlying(page_) : id; }
   // It opens with the keyboard on the tab it shows.
-  [[nodiscard]] std::optional<int> opening_stop() const override { return TabBase + static_cast<int>(page_); }
+  [[nodiscard]] std::optional<int> opening_stop() const override { return TabBase + std::to_underlying(page_); }
   bool reveal(Rect whole) override;
 
   // What a Skin Pack can name on this panel.

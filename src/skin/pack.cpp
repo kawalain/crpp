@@ -65,7 +65,7 @@ using store::Json;
 
 [[nodiscard]] bool key_allowed(NodeKind kind, std::string_view key) {
   const auto named = [&](const KeyDoc& k) { return k.key == key; };
-  return std::ranges::any_of(common_keys, named) || std::ranges::any_of(node_kinds[static_cast<std::size_t>(kind)].keys, named);
+  return std::ranges::any_of(common_keys, named) || std::ranges::any_of(node_kinds[std::to_underlying(kind)].keys, named);
 }
 
 }  // namespace

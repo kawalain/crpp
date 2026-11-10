@@ -183,10 +183,15 @@ bool WindowsPlatform::launch(const std::filesystem::path& exe) {
   STARTUPINFOW startup{};
   startup.cb = sizeof startup;
   PROCESS_INFORMATION process{};
-  if (!CreateProcessW(exe.c_str(), command.data(), nullptr, nullptr, FALSE, 0, nullptr, exe.parent_path().c_str(), &startup,
-                      &process)) {
-    return false;
-  }
+  // A file that is not a program makes CreateProcessW show a modal "Unsupported 16-Bit
+  // Application" box and wait for it, unless this thread fails critical errors itself
+  // (seen on Windows Server 2025 with error mode 0). The failure is then just a return value.
+  DWORD error_mode = 0;
+  const bool quiet = SetThreadErrorMode(SEM_FAILCRITICALERRORS, &error_mode) != FALSE;
+  const BOOL created = CreateProcessW(exe.c_str(), command.data(), nullptr, nullptr, FALSE, 0, nullptr,
+                                      exe.parent_path().c_str(), &startup, &process);
+  if (quiet) SetThreadErrorMode(error_mode, nullptr);
+  if (!created) return false;
   const Kernel child(process.hProcess), thread(process.hThread);
   const std::array<HANDLE, 2> waits{started.get(), child.get()};
   if (WaitForMultipleObjects(static_cast<DWORD>(waits.size()), waits.data(), FALSE, impl_->launch_wait_ms) == WAIT_OBJECT_0) {
